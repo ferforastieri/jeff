@@ -35,7 +35,12 @@ async function downloadApk(url: string, version: string) {
   }).__TAURI_INTERNALS__;
   if (internals?.invoke) {
     try {
-      await internals.invoke("plugin:opener|open_url", { url });
+      // The opener may not settle while Android sends the app to the browser:
+      // the race lets the toast finish its processing instead of hanging.
+      await Promise.race([
+        internals.invoke("plugin:opener|open_url", { url }),
+        new Promise((resolve) => window.setTimeout(resolve, 2500)),
+      ]);
       return;
     } catch {
       // The capability is missing or the opener refused: try the browser below.
@@ -159,7 +164,12 @@ export default function UpdateToast() {
     setError("");
     setDetail(mobileClient ? "Baixando o APK…" : installer ? "Baixando o instalador…" : "Preparando a atualização…");
     try {
-      if (mobileClient && status.apkUrl) {
+      if (mobileClient) {
+        if (!status.apkUrl) {
+          setPhase("error");
+          setError("Esta versão não publicou um APK. Baixe pela página de releases do projeto.");
+          return;
+        }
         await downloadApk(status.apkUrl, target);
         // The APK opens outside the app: say what happened and let the toast go.
         useApp.getState().notify("info", "Download do APK aberto. Autorize a instalação de apps desconhecidos, se pedido.");
@@ -274,22 +284,20 @@ export default function UpdateToast() {
             <small className="ac-toast__detail">{error}</small>
           ) : null}
         </span>
-        {!updating ? (
-          <button
-            type="button"
-            className="ac-btn ac-btn--ghost ac-btn--sm ac-btn--icon ac-toast__close"
-            aria-label="Fechar"
-            onClick={(event) => {
-              event.stopPropagation();
-              if (status) dismissed.current = status.latestVersion;
-              setPhase("idle");
-              setDetail("");
-              setStatus(null);
-            }}
-          >
-            <Icon name="close" size={16} />
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="ac-btn ac-btn--ghost ac-btn--sm ac-btn--icon ac-toast__close"
+          aria-label="Fechar"
+          onClick={(event) => {
+            event.stopPropagation();
+            if (status) dismissed.current = status.latestVersion;
+            setPhase("idle");
+            setDetail("");
+            setStatus(null);
+          }}
+        >
+          <Icon name="close" size={16} />
+        </button>
       </div>
     </div>
   );
