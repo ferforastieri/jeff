@@ -90,32 +90,16 @@ pub async fn attachment_files(dir: &Path, attachments: &[Attachment]) -> AppResu
     Ok(files)
 }
 
-/// Toph-only tools selected for one Toph (email connector and image
-/// generation), exposed as a native stdio MCP server. The harness sees normal
-/// MCP tools and executes them itself; there is no Toph gateway.
-pub fn native_server(
-    project_id: &str,
-    project_root: &Path,
-    tools: &[String],
-    accounts: &[String],
-) -> Option<Server> {
-    let image = tools.iter().any(|tool| tool == "generate_image");
-    if accounts.is_empty() && !image {
+/// Toph-only tools selected for one Toph (the email connector), exposed as a
+/// native stdio MCP server. The harness sees normal MCP tools and executes them
+/// itself; there is no Toph gateway.
+pub fn native_server(accounts: &[String]) -> Option<Server> {
+    if accounts.is_empty() {
         return None;
     }
     let executable = std::env::current_exe().ok()?;
     let mut env = HashMap::new();
-    if !accounts.is_empty() {
-        env.insert("TOPH_EMAIL_ACCOUNTS".into(), accounts.join(","));
-    }
-    if image {
-        env.insert("TOPH_TOOLS".into(), "generate_image".into());
-        env.insert("TOPH_PROJECT_ID".into(), project_id.into());
-        env.insert(
-            "TOPH_PROJECT_ROOT".into(),
-            project_root.display().to_string(),
-        );
-    }
+    env.insert("TOPH_EMAIL_ACCOUNTS".into(), accounts.join(","));
     Some(Server {
         id: "toph-tools".into(),
         name: "toph_tools".into(),

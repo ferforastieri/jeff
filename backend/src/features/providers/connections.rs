@@ -163,7 +163,6 @@ impl AiService {
                 temperature: 0.0,
                 autocomplete: false,
                 system_prompt: String::new(),
-                image_providers: vec![],
                 connection_label: String::new(),
             },
         };

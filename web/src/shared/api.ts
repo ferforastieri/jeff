@@ -89,28 +89,6 @@ export interface GitHistoryEntry {
 
 
 
-export interface ImageProviderConfig {
-  id: string;
-  label: string;
-  kind: string;
-  baseUrl: string;
-  model: string;
-  enabled: boolean;
-  hasKey: boolean;
-}
-
-export interface ImageProviderInput {
-  id: string;
-  label: string;
-  kind: string;
-  baseUrl: string;
-  model: string;
-  enabled: boolean;
-  apiKey?: string;
-  clearKey?: boolean;
-  hasKey?: boolean;
-}
-
 export interface AIConfig {
   label: string;
   connectionLabel: string;
@@ -123,7 +101,6 @@ export interface AIConfig {
   autocomplete: boolean;
   systemPrompt: string;
   hasKey: boolean;
-  imageProviders: ImageProviderConfig[];
 }
 
 export interface AIConfigInput {
@@ -138,7 +115,6 @@ export interface AIConfigInput {
   temperature: number;
   autocomplete: boolean;
   systemPrompt: string;
-  imageProviders: ImageProviderInput[];
 }
 
 export interface AIModel {
@@ -1008,7 +984,7 @@ export const api = {
 
   async aiChat(
     messages: AIMessage[],
-    options: { model?: string; effort?: string; yolo?: boolean; projectId?: string; tools?: string[] } = {},
+    options: { model?: string; effort?: string; yolo?: boolean } = {},
   ): Promise<{ text: string }> {
     return request<{ text: string }>("/ai/chat", {
       method: "POST",

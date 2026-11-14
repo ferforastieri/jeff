@@ -13,7 +13,6 @@ export const DEFAULT_TOPH: TophPreset = {
   permissionMode: "yolo",
   mcpServers: [],
   emailAccountIds: [],
-  tools: ["generate_image"],
   language: "auto",
 };
 
@@ -36,7 +35,6 @@ function fixedTophPatch(toph: ChatToph): Partial<ChatToph> {
   if (toph.effort !== "") patch.effort = "";
   if (toph.mcpServers.length > 0) patch.mcpServers = [];
   if (toph.emailAccountIds.length > 0) patch.emailAccountIds = [];
-  if (toph.tools.length !== 1 || toph.tools[0] !== "generate_image") patch.tools = [...(DEFAULT_TOPH.tools ?? [])];
   if (toph.color !== DEFAULT_TOPH.color) patch.color = DEFAULT_TOPH.color;
   if (toph.avatar !== DEFAULT_TOPH.avatar) patch.avatar = DEFAULT_TOPH.avatar;
   return patch;

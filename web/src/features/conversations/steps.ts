@@ -230,9 +230,6 @@ export function toolStep(message: NativeMessage): ToolStepView {
       detail: agent ? `@${agent.replace(/^@/, "")}` : "outro Toph",
     };
   }
-  if (/generate_image/.test(name)) {
-    return { label: "Gerou", detail: "uma imagem" };
-  }
   if (/email_send/.test(name)) {
     return { label: "Enviou", detail: "um e-mail" };
   }

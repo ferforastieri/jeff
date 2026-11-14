@@ -821,18 +821,6 @@ impl Runtime {
                     agent.role,
                     agent.description.chars().take(180).collect::<String>()
                 );
-                if !agent.tools.is_empty() {
-                    line.push_str(&format!(
-                        " · ferramentas: {}",
-                        agent
-                            .tools
-                            .iter()
-                            .take(12)
-                            .cloned()
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    ));
-                }
                 if !agent.mcp_servers.is_empty() {
                     line.push_str(&format!(
                         " · MCPs: {}",
@@ -889,7 +877,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         ];
         let answer = match tokio::time::timeout(
             Duration::from_secs(20),
-            self.inner.ai.chat(messages, None, None, None, vec![]),
+            self.inner.ai.chat(messages, None, None),
         )
         .await
         {
@@ -1421,12 +1409,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 .selected_servers(&ctx.agent.mcp_servers)
                 .await
                 .unwrap_or_default();
-            if let Some(native) = cli::native_server(
-                &ctx.project_id,
-                &ctx.root,
-                &ctx.agent.tools,
-                &email_accounts,
-            ) {
+            if let Some(native) = cli::native_server(&email_accounts) {
                 mcp_servers.push(native);
             }
             // A per-run MCP endpoint exposes ask_user: the CLI keeps its native
@@ -1897,12 +1880,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             Ok(value) => value,
             Err(error) => json!({"error":error.to_string()}),
         };
-        if !failed
-            && matches!(
-                name,
-                "write_file" | "edit_file" | "delete_file" | "generate_image"
-            )
-        {
+        if !failed && matches!(name, "write_file" | "edit_file" | "delete_file") {
             self.inner
                 .repo
                 .append_event(
@@ -2246,7 +2224,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         ];
         let answer = match tokio::time::timeout(
             Duration::from_secs(20),
-            self.inner.ai.chat(messages, None, None, None, vec![]),
+            self.inner.ai.chat(messages, None, None),
         )
         .await
         {

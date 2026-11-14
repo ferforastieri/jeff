@@ -65,7 +65,6 @@ pub fn tool_activity(name: &str, args: &Value) -> String {
             "passou uma tarefa para @{}",
             short(args["agent"].as_str().unwrap_or("outro Toph"))
         ),
-        "generate_image" => "gerou uma imagem".into(),
         "email_list" | "email_read" => "consultou o e-mail".into(),
         "email_send" => "enviou um e-mail".into(),
         _ => "usou uma ferramenta".into(),

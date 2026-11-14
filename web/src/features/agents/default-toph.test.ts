@@ -28,7 +28,6 @@ describe("ensureSingleToph", () => {
       model: "openai::gpt",
       mcpServers: ["chrome"],
       emailAccountIds: ["work"],
-      tools: [],
     })!;
     const second = useChats.getState().createToph("p", { ...DEFAULT_TOPH, name: "Nico" })!;
     const solo = useChats.getState().createConversation("p", [first.id])!;
@@ -48,7 +47,6 @@ describe("ensureSingleToph", () => {
     expect(project.tophs[0].model).toBe("");
     expect(project.tophs[0].mcpServers).toEqual([]);
     expect(project.tophs[0].emailAccountIds).toEqual([]);
-    expect(project.tophs[0].tools).toEqual(["generate_image"]);
     expect(toph?.id).toBe(first.id);
     expect(project.chats.map((chat) => chat.id)).toEqual([solo.id, group.id]);
     expect(project.chats.find((chat) => chat.id === group.id)?.participantIds).toEqual([first.id]);

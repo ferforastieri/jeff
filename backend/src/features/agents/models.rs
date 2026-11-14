@@ -27,8 +27,6 @@ pub struct AgentSpec {
     pub agent_mode: String,
     #[serde(default = "ask")]
     pub permission_mode: String,
-    #[serde(default = "default_tools")]
-    pub tools: Vec<String>,
     #[serde(default)]
     pub mcp_servers: Vec<String>,
     #[serde(default)]
@@ -45,10 +43,6 @@ fn default_engine() -> String {
 fn ask() -> String {
     "ask".into()
 }
-fn default_tools() -> Vec<String> {
-    vec!["generate_image".into()]
-}
-
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Attachment {

@@ -1,6 +1,6 @@
 use super::models::{now, RunContext};
 use crate::{
-    ai::{AiService, ImageTool},
+    ai::AiService,
     email::EmailService,
     errors::{bad_request, AppError, AppResult},
     store::Store,
@@ -106,13 +106,7 @@ pub fn ask_user_definition() -> Value {
 pub fn mutating(name: &str) -> bool {
     matches!(
         name,
-        "write_file"
-            | "edit_file"
-            | "delete_file"
-            | "shell"
-            | "remember"
-            | "generate_image"
-            | "email_send"
+        "write_file" | "edit_file" | "delete_file" | "shell" | "remember" | "email_send"
     )
 }
 
@@ -339,17 +333,6 @@ impl Tools {
                 let rows=sqlx::query("SELECT id,content,source_id FROM agent_memories WHERE user_id=? AND project_id=? AND instr(lower(content),lower(?))>0 ORDER BY created_at DESC LIMIT 5")
                     .bind(ctx.user_id).bind(&ctx.project_id).bind(text(args,"query")?).fetch_all(self.store.pool()).await?;
                 Ok(json!(rows.iter().map(|r|json!({"id":r.get::<String,_>("id"),"content":r.get::<String,_>("content"),"sourceId":r.get::<String,_>("source_id")})).collect::<Vec<_>>()))
-            }
-            "generate_image" => {
-                self.ai
-                    .image(
-                        &ImageTool {
-                            project_id: ctx.project_id.clone(),
-                            project_root: ctx.root.clone(),
-                        },
-                        &args.to_string(),
-                    )
-                    .await
             }
             "email_list" | "email_read" | "email_send" => {
                 let account = text(args, "accountId")?;

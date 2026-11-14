@@ -21,7 +21,6 @@ const toph: ChatToph = {
   permissionMode: "yolo",
   mcpServers: [],
   emailAccountIds: [],
-  tools: [],
   language: "auto",
   color: "#8FB5F5",
   avatar: "toph-logo",

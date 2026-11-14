@@ -16,7 +16,6 @@ fn agent(extra: Value) -> AgentSpec {
         "prompt": "Execute the task.",
         "agentMode": "build",
         "permissionMode": "yolo",
-        "tools": ["generate_image"],
         "mcpServers": [],
         "emailAccountIds": []
     });

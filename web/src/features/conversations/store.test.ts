@@ -36,7 +36,6 @@ const legacyToph = (id: string, chatId: string, name: string): ChatToph & { chat
   permissionMode: "yolo",
   mcpServers: [],
   emailAccountIds: [],
-  tools: [],
   language: "auto",
   color: "#FFB547",
   avatar: "toph-logo",
