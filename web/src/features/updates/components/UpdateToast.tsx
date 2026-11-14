@@ -175,9 +175,24 @@ export default function UpdateToast() {
           setError("Esta versão não publicou um APK. Baixe pela página de releases do projeto.");
           return;
         }
+        // The phone also asks the server to update itself; the APK is the app's
+        // own new version, the server is where the release is served from.
+        let serverError = "";
+        try {
+          await api.startUpdate();
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 409)) {
+            serverError = err instanceof Error ? err.message : "O servidor não pôde ser atualizado.";
+          }
+        }
         await downloadApk(status.apkUrl, target);
         // The APK opens outside the app: say what happened and let the toast go.
-        useApp.getState().notify("info", "Download do APK aberto. Autorize a instalação de apps desconhecidos, se pedido.");
+        useApp.getState().notify(
+          "info",
+          serverError
+            ? `Download do APK aberto. O servidor não pôde ser atualizado: ${serverError}`
+            : "Download do APK aberto e servidor atualizando. Autorize a instalação de apps desconhecidos, se pedido.",
+        );
         setPhase("idle");
         setDetail("");
         setStatus(null);
