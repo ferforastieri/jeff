@@ -273,7 +273,12 @@ export default function UpdateToast() {
         <Icon name={failed ? "alert" : "download"} />
         <span className="ac-toast__text flex min-w-0 flex-col gap-1">
           <b className="ac-toast__title">
-            {updating ? "Atualizando Toph" : failed ? "Falha na atualização" : `Toph v${status?.latestVersion ?? ""} disponível`}
+            {updating ? (
+              <span className="flex items-center gap-1.5">
+                <Icon name="spinner" size={14} />
+                Atualizando Toph
+              </span>
+            ) : failed ? "Falha na atualização" : `Toph v${status?.latestVersion ?? ""} disponível`}
           </b>
           {updating ? (
             <>

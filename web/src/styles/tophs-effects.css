@@ -45,7 +45,8 @@
 /* The composer's box: the words and the placeholder sit on the same left edge as the actions below. */
 .ac-composer > * textarea,
 .ac-composer textarea {
-  padding: 14px 16px 6px;
+  min-height: 56px;
+  padding: 15px 16px 8px;
   line-height: 20px;
 }
 .ac-composer textarea::placeholder {
@@ -208,10 +209,6 @@ html:not(.dark) .text-accent-600 {
 
 /* The phone's composer gets its own room above the tab bar and a centred placeholder. */
 @media (max-width: 640px) {
-  .ac-composer textarea {
-    min-height: 56px;
-    padding: 15px 16px 8px;
-  }
   .ac-composer {
     margin-bottom: 2px;
   }
@@ -230,4 +227,14 @@ html:not(.dark) .text-accent-600 {
 .ac-composer.agent-composer:focus-within {
   box-shadow: var(--focus-ring) !important;
   border-radius: 20px;
+}
+
+
+/* The update toast's indeterminate bar travels; without it the bar looked frozen. */
+.progress-indeterminate {
+  animation: toph-progress-slide 1.3s ease-in-out infinite;
+}
+@keyframes toph-progress-slide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
 }
