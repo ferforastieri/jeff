@@ -238,3 +238,19 @@ html:not(.dark) .text-accent-600 {
   0% { transform: translateX(-120%); }
   100% { transform: translateX(320%); }
 }
+
+/* Copy sits beside the time; on a mouse it shows on hover, on a phone it stays
+   visible (there is no hover to reveal it). */
+.message-copy {
+  opacity: 1;
+  transition: opacity 0.15s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .message-copy {
+    opacity: 0;
+  }
+  .group\/msg:hover .message-copy,
+  .message-copy:focus-visible {
+    opacity: 1;
+  }
+}

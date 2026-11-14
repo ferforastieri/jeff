@@ -144,10 +144,14 @@ function StreamedTranscript({ message, project, mobile }: { message: NativeMessa
 
 function UserMessage({ message }: { message: NativeMessage }) {
   return (
-    <article data-testid="chat-user-message" className="toph-msg-in flex min-w-0 justify-end py-1.5">
+    <article data-testid="chat-user-message" className="toph-msg-in group/msg flex min-w-0 flex-col items-end gap-1 py-1.5">
       <p className="max-w-[min(78%,620px)] rounded-[18px] rounded-br-[6px] bg-background-tertiary-default px-3.5 py-2 text-[14px] leading-[1.65] whitespace-pre-wrap break-words text-text-primary">
         {message.content}
       </p>
+      <div className="flex items-center gap-1.5 text-[11px] text-text-tertiary">
+        <span>{timeLabel(message.createdAt)}</span>
+        <CopyMessageButton content={message.content} label="Copiar mensagem" />
+      </div>
     </article>
   );
 }
@@ -159,12 +163,6 @@ function AgentMessage({ message, toph, project, grouped, mobile }: {
   grouped: boolean;
   mobile: boolean;
 }) {
-  const [copied, setCopied] = useState(false);
-  function copy() {
-    void navigator.clipboard?.writeText(message.content).catch(() => undefined);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
-  }
   return (
     <article data-testid="chat-agent-message" className="toph-msg-in group/msg flex min-w-0 gap-3 py-1.5">
       <div className="w-[40px] shrink-0">{grouped ? null : <BotAvatar bot={toph} size={40} />}</div>
@@ -173,27 +171,45 @@ function AgentMessage({ message, toph, project, grouped, mobile }: {
           <div className="mb-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <strong className="truncate text-[13.5px] font-semibold text-text-primary">{toph.name}</strong>
             <span className="text-[11px] text-text-tertiary">{timeLabel(message.createdAt)}</span>
-            <Button
-              variant="ghost"
-              size="xs"
-              iconOnly
-              aria-label={copied ? "Copiado" : "Copiar resposta"}
-              title={copied ? "Copiado" : "Copiar resposta"}
-              className="size-5 text-text-tertiary opacity-0 transition-opacity group-hover/msg:opacity-100 focus-visible:opacity-100"
-              onClick={copy}
-            >
-              <span className="relative inline-flex size-3.5 items-center justify-center" aria-hidden="true">
-                <Copy className={cx("absolute transition-all duration-200", copied ? "scale-50 opacity-0" : "scale-100 opacity-100")} size={12} />
-                <Check className={cx("absolute transition-all duration-200", copied ? "scale-100 opacity-100" : "scale-50 opacity-0")} size={12} />
-              </span>
-            </Button>
+            <CopyMessageButton content={message.content} label="Copiar resposta" />
           </div>
         )}
         <div className="md min-w-0 [&_p:first-child]:mt-0 [&_pre:first-child]:mt-0 [&_ul:first-child]:mt-0 [&_ol:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre:last-child]:mb-0 [&_ul:last-child]:mb-0 [&_ol:last-child]:mb-0">
           <StreamedTranscript message={message} project={project} mobile={mobile} />
         </div>
+        {grouped ? (
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-text-tertiary">
+            <span>{timeLabel(message.createdAt)}</span>
+            <CopyMessageButton content={message.content} label="Copiar resposta" />
+          </div>
+        ) : null}
       </div>
     </article>
+  );
+}
+
+function CopyMessageButton({ content, label }: { content: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    void navigator.clipboard?.writeText(content).catch(() => undefined);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <Button
+      variant="ghost"
+      size="xs"
+      iconOnly
+      aria-label={copied ? "Copiado" : label}
+      title={copied ? "Copiado" : label}
+      className="message-copy size-5 text-text-tertiary"
+      onClick={copy}
+    >
+      <span className="relative inline-flex size-3.5 items-center justify-center" aria-hidden="true">
+        <Copy className={cx("absolute transition-all duration-200", copied ? "scale-50 opacity-0" : "scale-100 opacity-100")} size={12} />
+        <Check className={cx("absolute transition-all duration-200", copied ? "scale-100 opacity-100" : "scale-50 opacity-0")} size={12} />
+      </span>
+    </Button>
   );
 }
 

@@ -88,7 +88,7 @@ describe("ChatMessages timeline", () => {
     );
 
     const mine = screen.getByTestId("chat-user-message");
-    expect(mine).toHaveClass("justify-end");
+    expect(mine).toHaveClass("items-end");
     expect(mine.querySelector("p")).toHaveClass("bg-background-tertiary-default");
   });
 
