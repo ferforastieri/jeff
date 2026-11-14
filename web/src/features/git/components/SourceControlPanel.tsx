@@ -338,18 +338,27 @@ export default function SourceControlPanel({
           onKeyDownCapture={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); void commit(); } }}
         >
           <div className="relative w-full">
-            <Input value={message} onChange={setMessage} placeholder="Mensagem do commit" aria-label="Mensagem do commit" fieldClassName="commit-message-input w-full pe-9" />
+            <Input value={message} onChange={setMessage} placeholder="Mensagem do commit" aria-label="Mensagem do commit" fieldClassName="commit-message-input w-full" />
             <IconButton
               icon={Sparkles}
               size="small"
-              aria-label="Generate message from pattern"
-              title="Generate commit message"
+              aria-label="Gerar mensagem com IA"
+              title="Gerar mensagem com IA"
               disabled={Boolean(busy)}
               onClick={() => void generateMessage()}
-              className="absolute end-1 top-1/2 size-6 -translate-y-1/2 border-transparent bg-transparent p-0 shadow-none [&_svg]:size-4"
+              className="absolute end-1 top-1/2 size-7 -translate-y-1/2 rounded-lg bg-background-secondary-default text-text-secondary shadow-none hover:bg-background-primary-hover hover:text-text-primary [&_svg]:size-4"
             />
           </div>
-          <Button size="small" className="h-8 w-full justify-center" disabled={staged.length === 0 || Boolean(busy)} onClick={() => void commit()} leadingIcon={Check}>Commit</Button>
+          <Button
+            variant={staged.length === 0 ? "secondary" : "primary"}
+            size="small"
+            className="h-8 w-full justify-center"
+            disabled={staged.length === 0 || Boolean(busy)}
+            onClick={() => void commit()}
+            leadingIcon={Check}
+          >
+            Commit
+          </Button>
         </div>
       )}
       {showChanges && (view === "changes" || changesOpen) && (

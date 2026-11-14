@@ -80,11 +80,47 @@
 }
 
 
-/* On a phone the composer owns the bottom: notices stand above it, never over the input or the header's actions. */
+/* On a phone notices sit centred under the header, thin enough not to take
+   the screen: the composer and the tab bar stay untouched. */
 @media (max-width: 640px) {
   .ac-toasts {
-    bottom: calc(240px + var(--safe-bottom));
-    top: auto;
+    top: calc(var(--safe-top) + 64px);
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(420px, calc(100vw - 24px));
+    max-width: none;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .ac-toast {
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 16px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .ac-toast > .ac-icon {
+    width: 16px;
+    height: 16px;
+    margin-block: 0;
+  }
+  .ac-toast > .ac-toast__text {
+    margin-block: 0;
+  }
+  .ac-toast > .ac-toast__close {
+    width: 24px;
+    height: 24px;
+  }
+  .ac-toast--update {
+    align-items: flex-start;
+    padding: 8px 8px 9px 10px;
+  }
+  .ac-toast--update .ac-toast__detail {
+    font-size: 11px;
+    line-height: 15px;
   }
 }
 
@@ -193,12 +229,15 @@ html.theme-transitioning *::after {
 
 /* The commit box is the sidebar's compact field, not a full dialog input. */
 .commit-message-input {
-  height: 32px;
+  height: 36px;
 }
 .commit-message-input input {
   height: 100%;
-  padding-inline: 12px;
+  padding-inline: 12px 42px;
   font-size: 13px;
+}
+.commit-message-input--roomy {
+  height: 44px;
 }
 
 /* Light mode: the amber details need a darker ink to read on white. */

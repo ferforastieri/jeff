@@ -312,10 +312,26 @@ export default function GitScreen({ project, branch, onOpenDiff, onBranch }: Pro
             <Badge color={staged.length > 0 ? "primary" : "neutral"}>{staged.length} preparada{staged.length === 1 ? "" : "s"}</Badge>
           </div>
           <div className="relative">
-            <Input value={message} onChange={setMessage} placeholder="Mensagem do commit" aria-label="Mensagem do commit" fieldClassName="h-10 pe-10" />
-            <Button variant="ghost" size="xs" iconOnly leadingIcon={Sparkles} aria-label="Gerar mensagem com IA" title="Gerar mensagem com IA" disabled={Boolean(busy)} onClick={() => void generateMessage()} className="absolute end-1 top-1/2 -translate-y-1/2" />
+            <Input value={message} onChange={setMessage} placeholder="Mensagem do commit" aria-label="Mensagem do commit" fieldClassName="commit-message-input commit-message-input--roomy w-full" />
+            <Button
+              variant="ghost"
+              size="xs"
+              iconOnly
+              leadingIcon={Sparkles}
+              aria-label="Gerar mensagem com IA"
+              title="Gerar mensagem com IA"
+              disabled={Boolean(busy)}
+              onClick={() => void generateMessage()}
+              className="absolute end-1 top-1/2 size-8 -translate-y-1/2 rounded-xl bg-background-secondary-default text-text-secondary shadow-none hover:bg-background-primary-hover hover:text-text-primary"
+            />
           </div>
-          <Button className="mt-2 h-11 w-full justify-center" leadingIcon={Check} disabled={!staged.length || Boolean(busy)} onClick={() => void commit()}>
+          <Button
+            variant={staged.length === 0 ? "secondary" : "primary"}
+            className="mt-2 h-11 w-full justify-center"
+            leadingIcon={Check}
+            disabled={!staged.length || Boolean(busy)}
+            onClick={() => void commit()}
+          >
             {busy === "commit" ? "Commitando..." : busy === "generate" ? "Gerando..." : "Commit"}
           </Button>
         </section>

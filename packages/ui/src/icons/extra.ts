@@ -35,6 +35,22 @@ const BRAIN_CODEX: IconShape[] = [
     },
   ],
 ];
+/** AI actions: a large sparkle, a small one and a glint. */
+const SPARKLES: IconShape[] = [
+  [
+    "path",
+    {
+      d: "M8 3.2c.3 2.3 1.2 3.2 3.5 3.5-2.3.3-3.2 1.2-3.5 3.5C7.7 7.9 6.8 7 4.5 6.7 6.8 6.4 7.7 5.5 8 3.2Z",
+    },
+  ],
+  [
+    "path",
+    {
+      d: "M14.6 10.6c.2 1.4.8 2 2.2 2.2-1.4.2-2 .8-2.2 2.2-.2-1.4-.8-2-2.2-2.2 1.4-.2 2-.8 2.2-2.2Z",
+    },
+  ],
+  ["path", { d: "M14.6 3.4v3M13.1 4.9h3" }],
+];
 /** Debug: a bug, the conventional breakpoint and console mark. */
 const BUG: IconShape[] = [
   ["path", { d: "M7.8 5 6.4 3.4M12.2 5l1.4-1.6" }],
@@ -432,6 +448,8 @@ export const extraIcons = {
   executorCodex: BRAIN_CODEX,
   /** Debug: a bug. */
   bug: BUG,
+  /** AI actions: generating a message or a recipe. */
+  sparkles: SPARKLES,
   brainClaudeCode: BRAIN_CLAUDE_CODE,
   brainCodex: BRAIN_CODEX,
   brainAgent: BRAIN_AGENT,

@@ -285,7 +285,7 @@ export default function UpdateToast() {
   return (
     <div className="ac-toasts" aria-live="polite">
       <div
-        className={`ac-toast ac-toast--${failed ? "error" : updating ? "info" : "success"} cursor-pointer`}
+        className={`ac-toast ac-toast--${failed ? "error" : updating ? "info" : "success"} ac-toast--update cursor-pointer`}
         role={failed ? "alert" : "status"}
         onClick={() => { if (!updating) void update(); }}
         aria-label={failed ? `Falha na atualização: ${error}` : "Clique para atualizar o Toph"}
