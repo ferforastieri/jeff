@@ -3,6 +3,7 @@ import { api, ApiError, type UpdateInstaller, type UpdateStatus } from "../../..
 import { Icon } from "@toph/ui";
 import { ProgressBar } from "@toph/ui/app";
 import { isMobileViewport } from "../../../shared/ui/useIsMobile";
+import { useApp } from "../../../app/store";
 
 type Phase = "idle" | "updating" | "error";
 
@@ -25,26 +26,20 @@ function wait(milliseconds: number) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
-function downloadApk(url: string, version: string) {
-  // Android WebView ignores anchor downloads. Use the native opener so the APK
-  // opens in the system browser/download manager. If the client is too old to
-  // have the opener plugin, fall back to navigating to the APK URL.
+async function downloadApk(url: string, version: string) {
+  // Android WebView ignores anchor downloads. The native opener hands the APK
+  // to the system browser/download manager; an older client without the plugin
+  // gets the anchor as a last resort.
   const internals = (window as unknown as {
     __TAURI_INTERNALS__?: { invoke?: (command: string, args?: Record<string, unknown>) => Promise<unknown> };
   }).__TAURI_INTERNALS__;
   if (internals?.invoke) {
-    let settled = false;
-    const fallback = () => {
-      if (settled) return;
-      settled = true;
-      window.location.href = url;
-    };
-    const timer = window.setTimeout(fallback, 1500);
-    void internals
-      .invoke("plugin:opener|open_url", { url })
-      .then(() => { settled = true; window.clearTimeout(timer); })
-      .catch(() => { window.clearTimeout(timer); fallback(); });
-    return;
+    try {
+      await internals.invoke("plugin:opener|open_url", { url });
+      return;
+    } catch {
+      // The capability is missing or the opener refused: try the browser below.
+    }
   }
   const link = document.createElement("a");
   link.href = url;
@@ -165,8 +160,15 @@ export default function UpdateToast() {
     setDetail(mobileClient ? "Baixando o APK…" : installer ? "Baixando o instalador…" : "Preparando a atualização…");
     try {
       if (mobileClient && status.apkUrl) {
-        downloadApk(status.apkUrl, target);
-      } else if (installer) {
+        await downloadApk(status.apkUrl, target);
+        // The APK opens outside the app: say what happened and let the toast go.
+        useApp.getState().notify("info", "Download do APK aberto. Autorize a instalação de apps desconhecidos, se pedido.");
+        setPhase("idle");
+        setDetail("");
+        setStatus(null);
+        return;
+      }
+      if (installer) {
         await downloadInstaller(installer);
       }
     } catch (err) {

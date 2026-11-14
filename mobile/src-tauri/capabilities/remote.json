@@ -15,6 +15,7 @@
   },
   "permissions": [
     "core:default",
+    "opener:default",
     "allow-download-update"
   ]
 }
