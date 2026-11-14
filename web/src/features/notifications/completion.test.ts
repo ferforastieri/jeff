@@ -75,7 +75,7 @@ describe("handleAiCompletion", () => {
     handleAiCompletion({ projectId: "p1", chatId: "c1", botName: "Leo", body: "feito", notificationId: "n1" });
     const notifications = useApp.getState().notifications;
     expect(notifications).toHaveLength(1);
-    expect(notifications[0]).toMatchObject({ projectId: "p1", chatId: "c1", title: "Leo" });
+    expect(notifications[0]).toMatchObject({ projectId: "p1", chatId: "c1", title: "Leo respondeu" });
     expect(sound).toHaveBeenCalledTimes(1);
   });
 

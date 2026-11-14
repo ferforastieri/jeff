@@ -40,12 +40,15 @@ export function handleAiCompletion(payload: AiCompletionPayload): void {
     }
     return;
   }
+  const projectName = payload.projectName?.trim() || state.projects.find((project) => project.id === projectId)?.name;
+  const who = payload.botName?.trim() || payload.title?.trim() || "Toph";
   const added = state.addNotification({
     kind: "ai",
-    title: payload.botName?.trim() || payload.title?.trim() || "Resposta da IA",
+    // "repos respondeu" reads better than a bare agent name in the phone's banner.
+    title: projectName ? `${who} respondeu em ${projectName}` : `${who} respondeu`,
     body: payload.body?.trim() || "A IA terminou de responder.",
     projectId,
-    projectName: payload.projectName?.trim() || state.projects.find((project) => project.id === projectId)?.name,
+    projectName,
     tabId: payload.tabId || `bots:${projectId}`,
     chatId: payload.chatId,
     sessionId: payload.sessionId,

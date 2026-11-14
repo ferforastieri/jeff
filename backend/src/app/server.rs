@@ -446,9 +446,9 @@ impl AppState {
             .map(|project| project.name)
             .unwrap_or_default();
         let title = if project_name.is_empty() {
-            notice.agent_name.clone()
+            format!("{} respondeu", notice.agent_name)
         } else {
-            format!("{} · {}", notice.agent_name, project_name)
+            format!("{} respondeu em {}", notice.agent_name, project_name)
         };
         let body = notification_preview(&notice.text);
         let notification_id = crate::crypto::new_id();
@@ -1356,7 +1356,7 @@ mod lifecycle_tests {
         assert_eq!(event.bot_name.as_deref(), Some("Beto"));
         assert_eq!(event.bot_role.as_deref(), Some("Dev"));
         assert_eq!(event.chat_id.as_deref(), Some("chat-1"));
-        assert_eq!(event.title, format!("Beto · {}", project.name));
+        assert_eq!(event.title, format!("Beto respondeu em {}", project.name));
         assert!(event.body.contains("Tudo passou no teste final."));
         state.agents.shutdown();
         state.watcher.stop_all();
