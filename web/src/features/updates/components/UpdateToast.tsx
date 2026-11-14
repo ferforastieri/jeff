@@ -4,6 +4,7 @@ import { Icon } from "@toph/ui";
 import { ProgressBar } from "@toph/ui/app";
 import { isMobileViewport } from "../../../shared/ui/useIsMobile";
 import { useApp } from "../../../app/store";
+import { isDesktopClient } from "../../settings/store";
 
 type Phase = "idle" | "updating" | "error";
 
@@ -157,12 +158,16 @@ export default function UpdateToast() {
   async function update() {
     if (!status || phase === "updating") return;
     const target = status.latestVersion;
-    const mobileClient = isMobile();
-    const installer = mobileClient ? undefined : preferredInstaller(status);
+    // Only the installed clients download a file: the browser updates the
+    // server it is served from, never the desktop installer.
+    const native = Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+    const mobileClient = native && isMobile();
+    const desktopClient = !mobileClient && (isDesktopClient() || native);
+    const installer = desktopClient ? preferredInstaller(status) : undefined;
 
     setPhase("updating");
     setError("");
-    setDetail(mobileClient ? "Baixando o APK…" : installer ? "Baixando o instalador…" : "Preparando a atualização…");
+    setDetail(mobileClient ? "Baixando o APK…" : installer ? "Baixando o instalador…" : "Atualizando o servidor…");
     try {
       if (mobileClient) {
         if (!status.apkUrl) {
