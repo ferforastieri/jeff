@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Database, Folder, Plus, Table2, Trash2 } from "@toph/icons";
+import { ChevronDown, ChevronRight, Database, Folder, Layers, Plus, Table2, Trash2 } from "@toph/icons";
 import { api, type DBProfile, type Project, type SchemaTable } from "../../../shared/api";
 import { useApp } from "../../../app/store";
 import { useConfirm } from "../../../shared/ui/confirm";
@@ -12,6 +12,7 @@ import { Chip } from "@toph/ui/app";
 import { useProjectEvents } from "../../projects/events";
 import LoadingState from "../../../shared/ui/LoadingState";
 import SidebarHeader from "../../../app/components/SidebarHeader";
+import { groupTables } from "../schema";
 
 interface Props {
   project: Project;
@@ -69,69 +70,95 @@ export default function DatabasesPanel({ project, onOpenTable, embedded = false,
       {busy && <LoadingState label="Carregando..." className="px-1 py-1" />}
       {error && <Chip color="rose" variant="subtle" className="mx-2 mt-2 justify-start whitespace-normal px-2 py-1">{error}</Chip>}
       <div className="min-h-0 flex-1 overflow-y-auto p-1">
-        {(() => {
-          let lastFolder = "";
-          return profiles.map((profile) => {
-            const folder = profile.folder?.trim() || "Ungrouped";
-            const showFolder = folder !== lastFolder;
-            lastFolder = folder;
-            return (
-              <Fragment key={profile.id}>
-                {showFolder && (
-                  <div className="mt-2 flex items-center gap-1.5 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    <Folder size={13} /><span className="flex-1 truncate">{folder}</span><span>{profiles.filter((item) => (item.folder?.trim() || "Ungrouped") === folder).length}</span>
-                  </div>
-                )}
-                <div className="group flex items-center gap-0.5 px-1">
-                  <Button variant="ghost" size="small" className="h-8 min-w-0 flex-1 justify-start px-1.5" onClick={() => void toggle(profile)}>
-                    {expanded[profile.id] ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                    <Database size={15} className="text-muted-foreground" />
-                    <span className="truncate text-caption-1-regular">{profile.name}</span>
-                    <Badge color="neutral" className="px-1 text-[9px] uppercase">{profile.driver}</Badge>
-                  </Button>
-                  <span className="flex shrink-0 opacity-100 min-[901px]:opacity-0 min-[901px]:group-hover:opacity-100">
-                    <Button variant="ghost" size="xs" aria-label="Excluir conexão" onClick={async () => { const ok = await confirm({ title: "Excluir conexão?", message: `Excluir "${profile.name}" deste workspace?`, confirmLabel: "Excluir", danger: true }); if (!ok) return; try { await api.deleteDBProfile(profile.id); await load(); } catch (err) { notify("error", err instanceof Error ? err.message : "Could not delete."); } }}><Trash2 size={13} /></Button>
-                  </span>
+        {profiles.map((profile, index) => {
+          const folder = profile.folder?.trim() || "Sem pasta";
+          const showFolder = index === 0 || folder !== (profiles[index - 1]?.folder?.trim() || "Sem pasta");
+          const tables = schemas[profile.id];
+          return (
+            <Fragment key={profile.id}>
+              {showFolder && (
+                <div className="mt-2 flex items-center gap-1.5 px-2 py-1 text-caption-2-semibold uppercase tracking-wide text-text-tertiary">
+                  <Folder size={12} />
+                  <span className="min-w-0 flex-1 truncate">{folder}</span>
+                  <span className="shrink-0">{profiles.filter((item) => (item.folder?.trim() || "Sem pasta") === folder).length}</span>
                 </div>
-                {expanded[profile.id] && (
-                  <div className="ms-4 border-s border-separator-border ps-2">
-                    {schemas[profile.id] === undefined && <div className="px-2 py-1 text-caption-1-regular text-text-secondary">Lendo schema...</div>}
-                    {schemas[profile.id]?.length === 0 && <div className="px-2 py-1 text-caption-1-regular text-text-secondary">Sem tabelas.</div>}
-                    {(() => {
-                      let lastSchema = "";
-                      return schemas[profile.id]?.map((table) => {
-                        const key = `${profile.id}:${table.schema}.${table.name}`;
-                        const open = Boolean(expandedTables[key]);
-                        const showSchema = table.schema !== lastSchema;
-                        lastSchema = table.schema;
-                        return (
-                          <Fragment key={key}>
-                            {showSchema && <div className="flex items-center gap-1.5 px-2 pb-0.5 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"><Database size={11} /><span>{table.schema || "default"}</span></div>}
-                            <div className="flex items-center gap-0.5">
-                              <Button variant="ghost" size="xs" aria-label={open ? "Ocultar colunas" : "Mostrar colunas"} onClick={() => setExpandedTables((value) => ({ ...value, [key]: !open }))}>{open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</Button>
-                              <Button variant="ghost" size="small" className="h-8 min-w-0 flex-1 justify-start px-1.5" onClick={() => onOpenTable(profile.id, table, profile.driver)} title={`Open ${table.schema}.${table.name}`}>
-                                <Table2 size={14} className="text-muted-foreground" /><span className="truncate text-caption-1-regular">{table.name}</span><span className="text-caption-2-regular text-text-secondary">{table.columns.length}</span>
-                              </Button>
-                            </div>
-                            {open && (
-                              <div className="ms-4 flex flex-col gap-0.5 pb-1">
-                                {table.columns.map((column) => (
-                                  <div className="flex items-center gap-2 px-2 text-[10px]" key={`${key}:${column.name}`}>
-                                    <span className="min-w-0 flex-1 truncate">{column.name}</span><span className="truncate text-text-secondary">{column.type}</span>{column.primary && <span className="text-accent-500">PK</span>}{column.nullable && <span className="text-text-secondary">NULL</span>}
-                                  </div>
-                                ))}
+              )}
+              <div className="group flex items-center gap-0.5 rounded-lg px-1 transition-colors hover:bg-background-secondary-default">
+                <Button variant="ghost" size="small" className="h-8 min-w-0 flex-1 justify-start gap-2 px-1.5" onClick={() => void toggle(profile)}>
+                  {expanded[profile.id] ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent-500/10 text-accent-500"><Database size={13} /></span>
+                  <span className="truncate text-caption-1-medium text-text-primary" title={`${profile.name}${profile.readOnly ? " · read-only" : ""}`}>{profile.name}</span>
+                  <Badge color="neutral" className="shrink-0 px-1 text-[9px] uppercase">{profile.driver}</Badge>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="shrink-0 text-text-tertiary opacity-100 min-[901px]:opacity-0 min-[901px]:group-hover:opacity-100"
+                  aria-label="Excluir conexão"
+                  onClick={async () => {
+                    const ok = await confirm({ title: "Excluir conexão?", message: `Excluir "${profile.name}" deste workspace?`, confirmLabel: "Excluir", danger: true });
+                    if (!ok) return;
+                    try { await api.deleteDBProfile(profile.id); await load(); }
+                    catch (err) { notify("error", err instanceof Error ? err.message : "Could not delete."); }
+                  }}
+                >
+                  <Trash2 size={13} />
+                </Button>
+              </div>
+              {expanded[profile.id] && (
+                <div className="ms-4 border-s border-separator-border pb-1 ps-2">
+                  {tables === undefined ? (
+                    <p className="px-2 py-1.5 text-caption-1-regular text-text-tertiary">Lendo schema…</p>
+                  ) : tables.length === 0 ? (
+                    <p className="px-2 py-1.5 text-caption-1-regular text-text-tertiary">Sem tabelas.</p>
+                  ) : (
+                    groupTables(tables, profile.driver).map((group) => (
+                      <div key={group.schema || "default"} className="mt-1.5">
+                        <div className="flex items-center gap-1.5 px-2 pb-1 text-caption-2-semibold uppercase tracking-wide text-text-tertiary">
+                          <Layers size={12} />
+                          <span className="min-w-0 flex-1 truncate">{group.label}</span>
+                          <span className="shrink-0">{group.tables.length}</span>
+                        </div>
+                        {group.tables.map((table) => {
+                          const key = `${profile.id}:${table.schema}.${table.name}`;
+                          const open = Boolean(expandedTables[key]);
+                          return (
+                            <div key={key}>
+                              <div className="flex items-center gap-0.5 rounded-lg transition-colors hover:bg-background-secondary-default">
+                                <Button variant="ghost" size="xs" iconOnly aria-label={open ? "Ocultar colunas" : "Mostrar colunas"} title={open ? "Ocultar colunas" : "Mostrar colunas"} onClick={() => setExpandedTables((value) => ({ ...value, [key]: !open }))}>
+                                  {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                </Button>
+                                <Button variant="ghost" size="small" className="h-8 min-w-0 flex-1 justify-start gap-1.5 px-1" onClick={() => onOpenTable(profile.id, table, profile.driver)} title={`Abrir ${table.schema}.${table.name}`}>
+                                  <Table2 size={13} className="shrink-0 text-foreground-icon-secondary" />
+                                  <span className="truncate text-caption-1-regular text-text-primary">{table.name}</span>
+                                  <span className="ms-auto shrink-0 rounded-full bg-background-tertiary-default px-1.5 text-[10px] leading-4 text-text-tertiary">{table.columns.length}</span>
+                                </Button>
                               </div>
-                            )}
-                          </Fragment>
-                        );
-                      });
-                    })()}
-                  </div>
-                )}
-              </Fragment>
-            );
-          });
-        })()}
+                              {open && (
+                                <div className="db-columns flex flex-col gap-0.5 pb-1">
+                                  {table.columns.length === 0 ? (
+                                    <span className="px-2 py-0.5 text-caption-2-regular text-text-tertiary">Sem colunas.</span>
+                                  ) : table.columns.map((column) => (
+                                    <div key={`${key}:${column.name}`} className="flex min-w-0 items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] transition-colors hover:bg-background-secondary-default">
+                                      <span className={`min-w-0 flex-1 truncate ${column.primary ? "font-medium text-text-primary" : "text-text-secondary"}`}>{column.name}</span>
+                                      <span className="shrink-0 truncate text-[10px] text-text-tertiary">{column.type}</span>
+                                      {column.primary && <span className="shrink-0 rounded bg-accent-500/15 px-1 text-[9px] font-semibold leading-4 text-accent-600">PK</span>}
+                                      {column.nullable && <span className="shrink-0 text-[9px] leading-4 text-text-tertiary">NULL</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
         {!busy && profiles.length === 0 && !showForm && (
           <div className="bg-background-secondary-default m-1 flex flex-col items-center gap-2 rounded-lg border p-6 text-center">
             <span className="flex size-9 items-center justify-center rounded-full bg-background-tertiary-default text-foreground-icon-secondary"><Database size={20} /></span>

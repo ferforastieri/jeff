@@ -239,18 +239,21 @@ html:not(.dark) .text-accent-600 {
   100% { transform: translateX(320%); }
 }
 
-/* Copy sits beside the time; on a mouse it shows on hover, on a phone it stays
-   visible (there is no hover to reveal it). */
+/* Copy sits beside the time and is always offered, mouse or touch. */
 .message-copy {
   opacity: 1;
-  transition: opacity 0.15s;
 }
-@media (hover: hover) and (pointer: fine) {
-  .message-copy {
-    opacity: 0;
-  }
-  .group\/msg:hover .message-copy,
-  .message-copy:focus-visible {
-    opacity: 1;
+
+/* A table's columns hang under its name, with a light guide line, in every
+   database: the tree reads as one structure instead of loose rows. */
+.db-columns {
+  margin-inline-start: 34px;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--color-separator-border);
+}
+@media (max-width: 640px) {
+  .db-columns {
+    margin-inline-start: 52px;
+    margin-inline-end: 4px;
   }
 }

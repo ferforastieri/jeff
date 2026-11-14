@@ -431,7 +431,7 @@ export const TranscriptMessage = memo(function TranscriptMessage({ message, onPe
         <p className="min-w-0 max-w-full overflow-hidden rounded-2xl bg-accent-500 px-3.5 py-2 text-[14px] leading-[1.55] whitespace-pre-wrap break-words text-text-on-accent">
           {message.text}
         </p>
-        <Button variant="ghost" size="xs" iconOnly leadingIcon={Copy} aria-label="Copiar mensagem" title="Copiar mensagem" onClick={() => void navigator.clipboard.writeText(message.text).catch(() => undefined)} className="size-6 text-text-tertiary opacity-50 hover:opacity-100" />
+        <Button variant="ghost" size="xs" iconOnly leadingIcon={Copy} aria-label="Copiar mensagem" title="Copiar mensagem" onClick={() => void navigator.clipboard.writeText(message.text).catch(() => undefined)} className="size-6 text-text-tertiary" />
       </div>
     );
   }

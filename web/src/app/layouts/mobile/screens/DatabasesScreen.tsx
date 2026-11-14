@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, Database, Folder, Plus, Table2, Trash2 } from "@toph/icons";
+import { ChevronDown, ChevronRight, Database, Folder, Layers, Plus, Table2, Trash2 } from "@toph/icons";
 import { api, type DBProfile, type Project, type SchemaTable } from "../../../../shared/api";
 import { useApp } from "../../../store";
 import { useConfirm } from "../../../../shared/ui/confirm";
@@ -11,6 +11,7 @@ import { Input } from "@toph/ui/app";
 import { Modal } from "@toph/ui/app";
 import { Select, SelectItem } from "@toph/ui/app";
 import LoadingState from "../../../../shared/ui/LoadingState";
+import { driverName, groupTables } from "../../../../features/databases/schema";
 
 interface Props {
   project: Project;
@@ -43,6 +44,7 @@ export default function DatabasesScreen({ project, onOpenTable }: Props) {
   const [profiles, setProfiles] = useState<DBProfile[]>([]);
   const [schemas, setSchemas] = useState<Record<string, SchemaTable[] | undefined>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -124,37 +126,81 @@ export default function DatabasesScreen({ project, onOpenTable }: Props) {
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="truncate text-body-2-medium text-text-primary">{profile.name}</span>
                   <span className="flex items-center gap-1 truncate text-caption-2-regular text-text-tertiary">
-                    <Folder className="size-3" /> {profile.folder || "Sem pasta"} · {profile.driver}
+                    <Folder className="size-3" /> {profile.folder || "Sem pasta"} · {driverName(profile.driver)}
                   </span>
                 </span>
                 {profile.readOnly ? <Badge color="neutral">read-only</Badge> : null}
                 {open ? <ChevronDown className="size-5 text-text-tertiary" /> : <ChevronRight className="size-5 text-text-tertiary" />}
               </button>
 
-              <div className="flex justify-end border-t border-separator-border p-2">
-                <Button variant="ghost" size="small" leadingIcon={Trash2} onClick={() => void remove(profile)}>Excluir</Button>
-              </div>
-
               {open ? (
-                <div className="border-t border-separator-border p-2">
+                <div className="border-t border-separator-border px-2 pb-2 pt-1">
                   {busy === profile.id ? <LoadingState label="Lendo schema..." className="py-2" /> : null}
-                  {tables?.length === 0 && busy !== profile.id ? <p className="px-2 py-3 text-caption-1-regular text-text-secondary">Sem tabelas.</p> : null}
-                  <div className="flex flex-col gap-1">
-                    {tables?.map((table) => (
-                      <button
-                        key={`${profile.id}:${table.schema}.${table.name}`}
-                        type="button"
-                        className="flex min-h-11 w-full items-center gap-2 rounded-2xl px-2.5 text-start hover:bg-background-secondary-default"
-                        onClick={() => onOpenTable(profile.id, table, profile.driver)}
-                      >
-                        <Table2 className="size-4 shrink-0 text-foreground-icon-secondary" />
-                        <span className="flex min-w-0 flex-1 flex-col">
-                          <span className="truncate text-caption-1-medium text-text-primary">{table.name}</span>
-                          <span className="truncate text-caption-2-regular text-text-tertiary">{table.schema || "default"} · {table.columns.length} colunas</span>
-                        </span>
-                        <ChevronRight className="size-4 text-text-tertiary" />
-                      </button>
-                    ))}
+                  {busy !== profile.id && tables?.length === 0 ? <p className="px-2 py-3 text-caption-1-regular text-text-secondary">Sem tabelas.</p> : null}
+                  {busy !== profile.id && tables && tables.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {groupTables(tables, profile.driver).map((group) => (
+                        <section key={group.schema || "default"}>
+                          <div className="flex items-center gap-1.5 px-2 py-1.5 text-caption-2-semibold uppercase tracking-wide text-text-tertiary">
+                            <Layers className="size-3.5 shrink-0" />
+                            <span className="min-w-0 flex-1 truncate">{group.label}</span>
+                            <span className="shrink-0 rounded-full bg-background-tertiary-default px-1.5 text-[10px] leading-4">{group.tables.length}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            {group.tables.map((table) => {
+                              const key = `${profile.id}:${table.schema}.${table.name}`;
+                              const columnsOpen = Boolean(expandedTables[key]);
+                              return (
+                                <div key={key}>
+                                  <div className="flex items-center gap-0.5 rounded-2xl transition-colors hover:bg-background-secondary-default">
+                                    <button
+                                      type="button"
+                                      className="flex size-9 shrink-0 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+                                      aria-label={columnsOpen ? "Ocultar colunas" : "Mostrar colunas"}
+                                      title={columnsOpen ? "Ocultar colunas" : "Mostrar colunas"}
+                                      onClick={() => setExpandedTables((value) => ({ ...value, [key]: !columnsOpen }))}
+                                    >
+                                      {columnsOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-2xl px-1 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+                                      onClick={() => onOpenTable(profile.id, table, profile.driver)}
+                                    >
+                                      <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-background-tertiary-default text-foreground-icon-secondary">
+                                        <Table2 className="size-4" />
+                                      </span>
+                                      <span className="flex min-w-0 flex-1 flex-col">
+                                        <span className="truncate text-caption-1-medium text-text-primary">{table.name}</span>
+                                        <span className="truncate text-caption-2-regular text-text-tertiary">{table.columns.length} colunas</span>
+                                      </span>
+                                      <ChevronRight className="size-4 shrink-0 text-text-tertiary" />
+                                    </button>
+                                  </div>
+                                  {columnsOpen ? (
+                                    <div className="db-columns flex flex-col gap-0.5 pb-1">
+                                      {table.columns.length === 0 ? (
+                                        <p className="px-2 py-1 text-caption-2-regular text-text-tertiary">Sem colunas.</p>
+                                      ) : table.columns.map((column) => (
+                                        <div key={`${key}:${column.name}`} className="flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] transition-colors hover:bg-background-secondary-default">
+                                          <span className={`min-w-0 flex-1 truncate ${column.primary ? "font-medium text-text-primary" : "text-text-secondary"}`}>{column.name}</span>
+                                          <span className="shrink-0 truncate text-[10px] text-text-tertiary">{column.type}</span>
+                                          {column.primary ? <span className="shrink-0 rounded bg-accent-500/15 px-1 text-[9px] font-semibold leading-4 text-accent-600">PK</span> : null}
+                                          {column.nullable ? <span className="shrink-0 text-[9px] leading-4 text-text-tertiary">NULL</span> : null}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="mt-2 flex justify-end border-t border-separator-border pt-1">
+                    <Button variant="ghost" size="small" leadingIcon={Trash2} onClick={() => void remove(profile)}>Excluir</Button>
                   </div>
                 </div>
               ) : null}

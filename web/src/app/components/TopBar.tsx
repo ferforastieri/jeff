@@ -1,5 +1,5 @@
 import { useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { Bell, Bug, Database, Files, GitBranch, Globe2, MessageCircleQuestion, Moon, Plus, Sun, TerminalSquare, X } from "@toph/icons";
+import { Bell, Bug, Database, Files, GitBranch, Globe2, MessageCircleQuestion, Moon, Plus, Settings2, Sun, TerminalSquare, X } from "@toph/icons";
 import { useApp, type Sidebar } from "../store";
 import { featureEnabled, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import type { Project } from "../../shared/api";
@@ -232,11 +232,21 @@ export default function TopBar({ onOpenProject, onCloseProject, onGoHome, projec
             }
             window.dispatchEvent(new CustomEvent("toph:open-settings", { detail: { section: "general" } }));
           }}
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-text-primary transition-colors hover:bg-background-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+          className="relative flex size-10 shrink-0 items-center justify-center rounded-xl text-text-primary transition-colors hover:bg-background-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
           aria-label="Abrir configurações"
           title="Configurações · Alt+clique vai para o Toph"
         >
-          <BrandGlyph size={28} />
+          <span className="inline-flex size-7 items-center justify-center">
+            <img
+              src={`${import.meta.env.BASE_URL}brand/toph-mark.png?v=3`}
+              alt=""
+              className="size-7 object-contain"
+              draggable={false}
+            />
+          </span>
+          <span className="absolute bottom-0 right-1 flex size-3.5 items-center justify-center rounded-full bg-accent-500 text-text-on-accent shadow-sm ring-1 ring-background-primary-default">
+            <Settings2 style={{ width: 8, height: 8 }} />
+          </span>
         </button>
 
         <Button

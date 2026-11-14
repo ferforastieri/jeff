@@ -57,15 +57,21 @@ export function languageFor(path: string): string {
 }
 
 export function quoteIdentifier(driver: string, schema: string, table: string): string {
+  const qualified = (open: string, close: string) =>
+    schema
+      ? `${open}${schema}${close}.${open}${table}${close}`
+      : `${open}${table}${close}`;
   switch (driver) {
     case "mysql":
-      return `\`${schema}\`.\`${table}\``;
+    case "clickhouse":
+      return qualified("`", "`");
     case "sqlite":
       return `"${table}"`;
+    case "sqlserver":
     case "mssql":
-      return `[${schema}].[${table}]`;
+      return qualified("[", "]");
     default:
-      return `"${schema}"."${table}"`;
+      return qualified('"', '"');
   }
 }
 

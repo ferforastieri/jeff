@@ -370,6 +370,7 @@ export default function MobileApp() {
         onTophs={openConversations}
         onProjects={openProjectSheet}
         brandIcon={screen === "bots"}
+        onBrand={() => window.dispatchEvent(new CustomEvent("toph:open-settings", { detail: { section: "general" } }))}
       />
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background-primary-default pb-2">
         {screen === "bots" ? (

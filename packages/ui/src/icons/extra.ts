@@ -35,6 +35,18 @@ const BRAIN_CODEX: IconShape[] = [
     },
   ],
 ];
+/** Debug: a bug, the conventional breakpoint and console mark. */
+const BUG: IconShape[] = [
+  ["path", { d: "M7.8 5 6.4 3.4M12.2 5l1.4-1.6" }],
+  ["rect", { x: "6.6", y: "5.2", width: "6.8", height: "9.9", rx: "3.4" }],
+  ["path", { d: "M10 8.2v6.9" }],
+  [
+    "path",
+    {
+      d: "M6.6 8.4H3.2M13.4 8.4h3.4M6.6 12.2H3.4M13.4 12.2h3.2M7.3 14.6 4.8 16.4M12.7 14.6l2.5 1.8",
+    },
+  ],
+];
 /** Agente: our agent's outline (the engine's body, bodyPath) with its eyes, in the agents' color. */
 const BRAIN_AGENT: IconShape[] = [
   [
@@ -418,6 +430,8 @@ export const extraIcons = {
   /** The engines' line icons (`BrainIcon`); missions keep the executor names. */
   executorClaude: BRAIN_CLAUDE_CODE,
   executorCodex: BRAIN_CODEX,
+  /** Debug: a bug. */
+  bug: BUG,
   brainClaudeCode: BRAIN_CLAUDE_CODE,
   brainCodex: BRAIN_CODEX,
   brainAgent: BRAIN_AGENT,

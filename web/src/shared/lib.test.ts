@@ -13,6 +13,10 @@ describe("web helpers", () => {
     expect(quoteIdentifier("postgres", "public", "users")).toBe('"public"."users"');
     expect(quoteIdentifier("mysql", "app", "users")).toBe("`app`.`users`");
     expect(quoteIdentifier("sqlite", "main", "users")).toBe('"users"');
+    expect(quoteIdentifier("sqlserver", "dbo", "users")).toBe("[dbo].[users]");
+    expect(quoteIdentifier("oracle", "APP", "USERS")).toBe('"APP"."USERS"');
+    expect(quoteIdentifier("clickhouse", "app", "events")).toBe("`app`.`events`");
+    expect(quoteIdentifier("postgres", "", "users")).toBe('"users"');
   });
 
   it("returns the basename", () => {

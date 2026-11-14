@@ -78,46 +78,48 @@ export default function ConversationModelPicker({ projectId, chat, tophs }: Prop
           />
         )}
       </ComposerMenu>
-      {variants.length > 0 ? (
-        <ComposerMenu
-          label="Esforço"
-          isOpen={effortOpen}
-          onOpenChange={setEffortOpen}
-          trigger={
-            <>
-              <span className="truncate text-text-tertiary">{effortLabel(effort)}</span>
-              <ChevronDown size={12} className="size-3 shrink-0 text-text-tertiary" />
-            </>
-          }
-          triggerClassName="max-w-[110px]"
-          popoverClassName="w-[168px] p-1"
-        >
-          {(close) => (
-            <div className="flex flex-col gap-0.5">
-              {variants.map((variant) => {
-                const active = variant === effort;
-                return (
-                  <button
-                    key={variant}
-                    type="button"
-                    onClick={() => {
-                      updateChatToph(projectId, chat.id, member.id, { effort: variant });
-                      close();
-                    }}
-                    className={cx(
-                      "flex items-center gap-2 rounded-lg px-2 py-1.5 text-start text-caption-1-medium transition-colors",
-                      active ? "bg-background-primary-hover text-text-primary" : "text-text-secondary hover:bg-background-primary-hover hover:text-text-primary",
-                    )}
-                  >
-                    <span className="min-w-0 flex-1 truncate">{effortLabel(variant)}</span>
-                    {active ? <Check size={13} className="shrink-0 text-accent-500" /> : null}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </ComposerMenu>
-      ) : null}
+      <ComposerMenu
+        label="Esforço"
+        isOpen={effortOpen}
+        onOpenChange={setEffortOpen}
+        trigger={
+          <>
+            <span className="truncate text-text-tertiary">{effortLabel(effort)}</span>
+            <ChevronDown size={12} className="size-3 shrink-0 text-text-tertiary" />
+          </>
+        }
+        triggerClassName="max-w-[110px]"
+        popoverClassName="w-[168px] p-1"
+      >
+        {(close) => (
+          <div className="flex flex-col gap-0.5">
+            {variants.length === 0 ? (
+              <p className="px-2 py-2 text-caption-1-regular text-text-tertiary">
+                Este modelo não oferece níveis de esforço.
+              </p>
+            ) : variants.map((variant) => {
+              const active = variant === effort;
+              return (
+                <button
+                  key={variant}
+                  type="button"
+                  onClick={() => {
+                    updateChatToph(projectId, chat.id, member.id, { effort: variant });
+                    close();
+                  }}
+                  className={cx(
+                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-start text-caption-1-medium transition-colors",
+                    active ? "bg-background-primary-hover text-text-primary" : "text-text-secondary hover:bg-background-primary-hover hover:text-text-primary",
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate">{effortLabel(variant)}</span>
+                  {active ? <Check size={13} className="shrink-0 text-accent-500" /> : null}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </ComposerMenu>
     </div>
   );
 }
