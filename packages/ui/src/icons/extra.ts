@@ -35,6 +35,20 @@ const BRAIN_CODEX: IconShape[] = [
     },
   ],
 ];
+/** Theme: a crescent moon, not a bolt. */
+const MOON: IconShape[] = [
+  ["path", { d: "M15.6 12.1A6.2 6.2 0 0 1 7.9 4.4a6.6 6.6 0 1 0 7.7 7.7Z" }],
+];
+/** Theme: a sun with its rays. */
+const SUN: IconShape[] = [
+  ["circle", { cx: "10", cy: "10", r: "3.4" }],
+  [
+    "path",
+    {
+      d: "M10 2.1v2.1M10 15.8v2.1M2.1 10h2.1M15.8 10h2.1M4.4 4.4l1.5 1.5M14.1 14.1l1.5 1.5M15.6 4.4l-1.5 1.5M5.9 14.1l-1.5 1.5",
+    },
+  ],
+];
 /** AI actions: a large sparkle, a small one and a glint. */
 const SPARKLES: IconShape[] = [
   [
@@ -450,6 +464,9 @@ export const extraIcons = {
   bug: BUG,
   /** AI actions: generating a message or a recipe. */
   sparkles: SPARKLES,
+  /** Theme. */
+  moon: MOON,
+  sun: SUN,
   brainClaudeCode: BRAIN_CLAUDE_CODE,
   brainCodex: BRAIN_CODEX,
   brainAgent: BRAIN_AGENT,

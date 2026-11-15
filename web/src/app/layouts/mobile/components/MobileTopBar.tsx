@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Bell, MessageCircleQuestion, MessageSquare, Search, Settings2, X } from "@toph/icons";
+import { Bell, MessageCircleQuestion, MessageSquare, Search, X } from "@toph/icons";
 import type { Project } from "../../../../shared/api";
 import ProjectMonogram from "../../../../features/projects/components/ProjectMonogram";
 import { useProjectQuestion, useProjectRunning } from "../../../../features/agents/activity";
@@ -50,17 +50,12 @@ export default function MobileTopBar({
             title="Configurações"
             className="mobile-topbar__brand relative flex size-10 shrink-0 items-center justify-center rounded-2xl shadow-xs transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring disabled:active:scale-100"
           >
-            <span className="inline-flex size-7 items-center justify-center">
-              <img
-                src={`${import.meta.env.BASE_URL}brand/toph-mark.png?v=3`}
-                alt=""
-                className="size-7 object-contain"
-                draggable={false}
-              />
-            </span>
-            <span className="absolute bottom-0 right-1 flex size-3.5 items-center justify-center rounded-full bg-accent-500 text-text-on-accent shadow-sm ring-1 ring-background-primary-default">
-              <Settings2 style={{ width: 8, height: 8 }} />
-            </span>
+            <img
+              src={`${import.meta.env.BASE_URL}brand/toph-mark.png?v=3`}
+              alt=""
+              className="size-7 object-contain"
+              draggable={false}
+            />
           </button>
         ) : (
           <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-600">

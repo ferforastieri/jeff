@@ -1131,7 +1131,6 @@ export default function Workbench() {
       <TopBar
         onOpenProject={switchProject}
         onCloseProject={requestCloseProject}
-        onGoHome={() => setSidebar("bots")}
         onQuickOpen={() => setQuickOpenToken((current) => current + 1)}
         onOpenAuxiliary={openAuxiliary}
         project={project}

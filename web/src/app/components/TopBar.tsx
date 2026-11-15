@@ -25,7 +25,6 @@ const activityItems: Array<{ id: Sidebar; feature: WorkspaceFeature; label: stri
 interface Props {
   onOpenProject: (projectId: string) => void;
   onCloseProject: (projectId: string) => void;
-  onGoHome: () => void;
   onQuickOpen: () => void;
   onOpenAuxiliary?: (sidebar: Sidebar) => void;
   project?: Project | null;
@@ -195,7 +194,8 @@ function ProjectPicker({ open, onClose, onSelect }: { open: boolean; onClose: ()
 }
 
 /** Fixed workspace bar: open projects on the left, actions and Toph on the right. */
-export default function TopBar({ onOpenProject, onCloseProject, onGoHome, project = null, onOpenFile = () => undefined, quickOpenToken = 0, onOpenAuxiliary, tophControl }: Props) {
+export default function TopBar({ onOpenProject, onCloseProject, project = null, onOpenFile = () => undefined, quickOpenToken = 0, onOpenAuxiliary, tophControl }: Props) {
+  const setSidebar = useApp((state) => state.setSidebar);
   const projects = useApp((state) => state.projects);
   const openProjectIds = useApp((state) => state.openProjectIds);
   const activeProjectId = useApp((state) => state.activeProjectId);
@@ -224,29 +224,17 @@ export default function TopBar({ onOpenProject, onCloseProject, onGoHome, projec
       <header className="relative z-50 mx-1 mt-1 flex h-11 shrink-0 items-center gap-1.5 rounded-3xl border border-border-button-white bg-background-primary-default px-2.5 shadow-sidebar">
         <button
           type="button"
-          onClick={(event) => {
-            if (event.altKey) {
-              if (activeProjectId) onGoHome();
-              else setPickerOpen(true);
-              return;
-            }
-            window.dispatchEvent(new CustomEvent("toph:open-settings", { detail: { section: "general" } }));
-          }}
-          className="relative flex size-10 shrink-0 items-center justify-center rounded-xl text-text-primary transition-colors hover:bg-background-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
-          aria-label="Abrir configurações"
-          title="Configurações · Alt+clique vai para o Toph"
+          onClick={() => setSidebar("bots")}
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-text-primary transition-colors hover:bg-background-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+          aria-label="Ir para o Toph"
+          title="Toph"
         >
-          <span className="inline-flex size-7 items-center justify-center">
-            <img
-              src={`${import.meta.env.BASE_URL}brand/toph-mark.png?v=3`}
-              alt=""
-              className="size-7 object-contain"
-              draggable={false}
-            />
-          </span>
-          <span className="absolute bottom-0 right-1 flex size-3.5 items-center justify-center rounded-full bg-accent-500 text-text-on-accent shadow-sm ring-1 ring-background-primary-default">
-            <Settings2 style={{ width: 8, height: 8 }} />
-          </span>
+          <img
+            src={`${import.meta.env.BASE_URL}brand/toph-mark.png?v=3`}
+            alt=""
+            className="size-7 object-contain"
+            draggable={false}
+          />
         </button>
 
         <Button
@@ -318,6 +306,16 @@ export default function TopBar({ onOpenProject, onCloseProject, onGoHome, projec
           <WorkspaceOptions onOpenAuxiliary={onOpenAuxiliary} />
           <span className="h-5 w-px shrink-0 bg-separator-border" aria-hidden="true" />
           <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="small"
+            iconOnly
+            leadingIcon={Settings2}
+            aria-label="Abrir configurações"
+            title="Configurações"
+            className="size-9 [&_svg]:size-5"
+            onClick={() => window.dispatchEvent(new CustomEvent("toph:open-settings", { detail: { section: "general" } }))}
+          />
           {tophControl}
         </div>
       </header>

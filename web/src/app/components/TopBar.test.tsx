@@ -36,7 +36,7 @@ afterEach(cleanup);
 describe("TopBar", () => {
   it("lists open projects and marks their notifications as read", () => {
     const open = vi.fn();
-    render(<TopBar onOpenProject={open} onCloseProject={() => undefined} onGoHome={() => undefined} onQuickOpen={() => undefined} />);
+    render(<TopBar onOpenProject={open} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
 
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.queryByText("Beta")).not.toBeInTheDocument();
@@ -49,7 +49,7 @@ describe("TopBar", () => {
 
   it("opens the project picker with only projects that are not open", () => {
     const open = vi.fn();
-    render(<TopBar onOpenProject={open} onCloseProject={() => undefined} onGoHome={() => undefined} onQuickOpen={() => undefined} />);
+    render(<TopBar onOpenProject={open} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Abrir projeto" }));
     const dialog = screen.getByRole("dialog");
@@ -62,7 +62,7 @@ describe("TopBar", () => {
   });
 
   it("toggles the theme next to the Toph mark", async () => {
-    render(<TopBar onOpenProject={() => undefined} onCloseProject={() => undefined} onGoHome={() => undefined} onQuickOpen={() => undefined} />);
+    render(<TopBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
     const toggle = screen.getByRole("button", { name: "Ativar modo claro" });
     fireEvent.click(toggle);
     await waitFor(() => expect(useSettings.getState().theme).toBe("light"));
@@ -70,7 +70,7 @@ describe("TopBar", () => {
   });
 
   it("keeps the workspace actions in the header", () => {
-    render(<TopBar onOpenProject={() => undefined} onCloseProject={() => undefined} onGoHome={() => undefined} onQuickOpen={() => undefined} />);
+    render(<TopBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Databases" }));
     expect(useApp.getState().sidebar).toBe("db");
@@ -80,7 +80,7 @@ describe("TopBar", () => {
   it("opens a nav item in the auxiliary area without changing the center", () => {
     useApp.setState({ sidebar: "bots" });
     const openAuxiliary = vi.fn();
-    render(<TopBar onOpenProject={() => undefined} onCloseProject={() => undefined} onGoHome={() => undefined} onQuickOpen={() => undefined} onOpenAuxiliary={openAuxiliary} />);
+    render(<TopBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} onOpenAuxiliary={openAuxiliary} />);
 
     const databases = screen.getByRole("button", { name: "Databases" });
     fireEvent.contextMenu(databases);
