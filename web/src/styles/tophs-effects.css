@@ -65,7 +65,7 @@
   }
   .ac-composer .composer-trigger {
     max-width: 130px;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
   }
   .ac-composer .composer-trigger[aria-label="Esforço"] {
