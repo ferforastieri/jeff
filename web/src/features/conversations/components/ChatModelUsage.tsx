@@ -16,6 +16,7 @@ import type { AIModel } from "../../../shared/api";
 import { useChats, type ChatToph, type TophChat } from "../store";
 import ComposerMenu from "./ComposerMenu";
 import { effortLabel } from "../../providers/components/ModelPicker";
+import { useIsMobile } from "../../../shared/ui/useIsMobile";
 
 interface Props {
   projectId: string;
@@ -62,15 +63,17 @@ function tone(left: number | null): string {
 /**
  * One control for the conversation's model and the plan's consumption: the
  * chosen model's own mark inside a ring that shows what is left of the plan.
- * The menu keeps both compact, side by side on the web and stacked on a phone.
+ * The desktop keeps both side by side; the phone uses two compact tabs.
  */
 export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Props) {
   const models = useAI((state) => state.models);
   const config = useAI((state) => state.config);
   const loadModels = useAI((state) => state.loadModels);
   const updateChatToph = useChats((state) => state.updateChatToph);
+  const mobile = useIsMobile();
   const member = tophs[0] ?? null;
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"model" | "usage">("model");
   const [limits, setLimits] = useState<UsageLimits | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -113,6 +116,7 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
   const info: { id: string; label?: string; provider?: string; connectionLabel?: string } | undefined = found ?? (model ? { id: model, label: model.split("::").pop() ?? model } : undefined);
   const group = info ? modelGroup({ id: info.id, label: info.label ?? info.id, provider: info.provider, connectionLabel: info.connectionLabel }) : "opencode";
   const brand = info ? modelBrand({ id: info.id, label: info.label ?? info.id, provider: info.provider, connectionLabel: info.connectionLabel }) : "opencode";
+  const shortLabel = info?.label?.split(" ")[0] || "Modelo";
 
   const go = limits?.go;
   const windows = WINDOWS.map((item) => ({ ...item, window: go?.[item.key], left: remaining(go?.[item.key]) }));
@@ -148,16 +152,143 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
     setOpen(false);
   }
 
+  const modelList = (
+    <div className="model-usage-list">
+      {groups.length === 0 ? (
+        <p className="px-2 py-3 text-caption-1-regular text-text-tertiary">Salve a configuração para carregar os modelos.</p>
+      ) : groups.map(([provider, items]) => (
+        <div key={provider} className="mb-1">
+          <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
+            <span className="truncate">{providerLabel(provider)}</span>
+          </div>
+          {items.map((item) => {
+            const active = item.id === model;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => choose(item)}
+                className={cx(
+                  "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors",
+                  active
+                    ? "bg-background-secondary-hover text-text-primary"
+                    : "text-text-secondary hover:bg-background-secondary-hover hover:text-text-primary",
+                )}
+              >
+                <ProviderIcon provider={modelBrand({ id: item.id, label: item.label ?? item.id, provider: item.provider, connectionLabel: item.connectionLabel })} className="size-3.5 shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-[12.5px]" title={item.label}>{item.label}</span>
+                {active && item.variants?.length ? <span className="shrink-0 text-[10px] text-text-tertiary">{effortLabel(effort)}</span> : null}
+                {active ? <Check size={13} className="shrink-0 text-accent-500" /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+
+  const usageBody = (
+    <>
+      <div className="flex items-start gap-2.5">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-background-secondary-default">
+          <ProviderIcon provider={brand} className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <strong className="block text-body-medium text-text-primary">Consumo do plano</strong>
+          <p className="truncate text-caption-2-regular text-text-tertiary">
+            #{chatName}{limits?.workspace?.name ? ` · ${limits.workspace.name}` : ""}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void load(true)}
+          disabled={refreshing}
+          className="flex size-8 shrink-0 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:bg-background-primary-hover hover:text-text-primary disabled:opacity-50"
+          aria-label="Atualizar consumo"
+          title="Atualizar consumo"
+        >
+          <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      {loading && !limits ? (
+        <p className="mt-3 flex items-center gap-2 rounded-xl bg-background-secondary-default px-3 py-2 text-caption-1-regular text-text-secondary">
+          <LoaderCircle className="size-4 animate-spin" /> Consultando o OpenCode…
+        </p>
+      ) : null}
+
+      {go ? (
+        <div className="mt-3 divide-y divide-separator-border overflow-hidden rounded-2xl border border-border-button-default bg-background-secondary-default/60">
+          {windows.map(({ key, label: windowLabel, window, left: value }) => {
+            const used = value == null ? null : 100 - value;
+            return (
+              <div key={key} className="px-3 py-2.5">
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-caption-1-semibold text-text-primary">{windowLabel}</span>
+                    <span className={cx(
+                      "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
+                      used == null
+                        ? "bg-background-tertiary-default text-text-tertiary"
+                        : used >= 90
+                          ? "bg-status-rose-bg text-status-rose-text"
+                          : "bg-status-lime-bg text-status-lime-text",
+                    )}>
+                      {used == null ? "sem dados" : `${used}% usado`}
+                    </span>
+                  </div>
+                  <span className="shrink-0 text-caption-2-regular text-text-tertiary">
+                    {window ? `Renova em ${resetIn(window.resetsAt)}` : "—"}
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-background-tertiary-default">
+                  <div
+                    className={cx(
+                      "h-full rounded-full transition-[width] duration-500",
+                      used == null ? "bg-text-tertiary/30" : used >= 90 ? "bg-status-rose-text" : "bg-status-lime-text",
+                    )}
+                    style={{ width: `${used ?? 0}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {!loading && !go && !error ? (
+        <p className="mt-3 rounded-xl bg-background-secondary-default px-3 py-2 text-caption-1-regular text-text-secondary">Nenhuma janela de limite disponível para esta conta.</p>
+      ) : null}
+      {error ? <p className="mt-3 rounded-xl bg-status-rose-bg px-3 py-2 text-caption-1-regular text-status-rose-text">{error}</p> : null}
+
+      {limits?.workspace?.usageURL ? (
+        <a
+          href={limits.workspace.usageURL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-1 text-caption-1-medium text-accent-600 hover:text-accent-500"
+        >
+          Ver consumo no OpenCode <ExternalLink size={12} />
+        </a>
+      ) : null}
+
+      <p className="mt-3 text-[10px] leading-relaxed text-text-tertiary">
+        Percentual usado do limite do OpenCode Go. Atualiza a cada minuto.
+        {updatedAt ? ` Última leitura às ${time(updatedAt)}.` : ""}
+      </p>
+    </>
+  );
+
   return (
     <ComposerMenu
       label="Modelo e consumo"
       isOpen={open}
       onOpenChange={setOpen}
       trigger={
+        <>
         <span
           className="relative inline-flex size-[26px] shrink-0 items-center justify-center rounded-full outline-none"
           title={`${modelDisplay(info)} · ${remainingLabel}`}
-          aria-label={`${modelDisplay(info)} · ${remainingLabel}`}
         >
           <svg viewBox="0 0 26 26" className="absolute inset-0 size-full -rotate-90" aria-hidden>
             <circle cx="13" cy="13" r="11.5" fill="none" strokeWidth="1.6" className="stroke-border-button-default" />
@@ -177,138 +308,39 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
           </svg>
           <ProviderIcon provider={brand} className="relative size-3.5 text-text-primary" />
         </span>
+        {mobile ? <span className="min-w-0 max-w-[76px] truncate text-caption-2-regular text-text-tertiary">{shortLabel}</span> : null}
+        </>
       }
       triggerClassName="justify-center"
       popoverClassName="model-usage-popover p-0"
       contentClassName="p-0"
     >
-      {() => (
+      {() => mobile ? (
+        <div className="model-usage-mobile">
+          <div className="model-usage-head">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-background-secondary-default">
+              <ProviderIcon provider={brand} className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <strong className="block truncate text-body-2-medium text-text-primary">{info?.label ?? "Modelo"}</strong>
+              <span className="block truncate text-caption-2-regular text-text-tertiary">{providerLabel(group)} · {effortLabel(effort)}</span>
+            </div>
+          </div>
+          <div className="model-usage-tabs" role="tablist" aria-label="Modelo e consumo">
+            <button type="button" role="tab" aria-selected={tab === "model"} data-active={tab === "model"} className="model-usage-tab" onClick={() => setTab("model")}>Modelo</button>
+            <button type="button" role="tab" aria-selected={tab === "usage"} data-active={tab === "usage"} className="model-usage-tab" onClick={() => setTab("usage")}>Consumo</button>
+          </div>
+          <div className="model-usage-mobile-body" role="tabpanel">
+            {tab === "model" ? modelList : usageBody}
+          </div>
+        </div>
+      ) : (
         <div className="model-usage-menu">
           <section className="model-usage-models">
             <p className="px-3 pb-1 pt-3 text-caption-2-semibold uppercase tracking-wide text-text-tertiary">Modelo</p>
-            <div className="model-usage-list">
-              {groups.length === 0 ? (
-                <p className="px-2 py-3 text-caption-1-regular text-text-tertiary">Salve a configuração para carregar os modelos.</p>
-              ) : groups.map(([provider, items]) => (
-                <div key={provider} className="mb-1">
-                  <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
-                    <span className="truncate">{providerLabel(provider)}</span>
-                  </div>
-                  {items.map((item) => {
-                    const active = item.id === model;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => choose(item)}
-                        className={cx(
-                          "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors",
-                          active
-                            ? "bg-background-secondary-hover text-text-primary"
-                            : "text-text-secondary hover:bg-background-secondary-hover hover:text-text-primary",
-                        )}
-                      >
-                        <ProviderIcon provider={modelBrand({ id: item.id, label: item.label ?? item.id, provider: item.provider, connectionLabel: item.connectionLabel })} className="size-3.5 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate text-[12.5px]" title={item.label}>{item.label}</span>
-                        {active && item.variants?.length ? <span className="shrink-0 text-[10px] text-text-tertiary">{effortLabel(effort)}</span> : null}
-                        {active ? <Check size={13} className="shrink-0 text-accent-500" /> : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+            {modelList}
           </section>
-
-          <section className="model-usage-body">
-            <div className="flex items-start gap-2.5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-background-secondary-default">
-                <ProviderIcon provider={brand} className="size-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <strong className="block text-body-medium text-text-primary">Consumo do plano</strong>
-                <p className="truncate text-caption-2-regular text-text-tertiary">
-                  #{chatName}{limits?.workspace?.name ? ` · ${limits.workspace.name}` : ""}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void load(true)}
-                disabled={refreshing}
-                className="flex size-8 shrink-0 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:bg-background-primary-hover hover:text-text-primary disabled:opacity-50"
-                aria-label="Atualizar consumo"
-                title="Atualizar consumo"
-              >
-                <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-              </button>
-            </div>
-
-            {loading && !limits ? (
-              <p className="mt-3 flex items-center gap-2 rounded-xl bg-background-secondary-default px-3 py-2 text-caption-1-regular text-text-secondary">
-                <LoaderCircle className="size-4 animate-spin" /> Consultando o OpenCode…
-              </p>
-            ) : null}
-
-            {go ? (
-              <div className="mt-3 divide-y divide-separator-border overflow-hidden rounded-2xl border border-border-button-default bg-background-secondary-default/60">
-                {windows.map(({ key, label: windowLabel, window, left: value }) => {
-                  const used = value == null ? null : 100 - value;
-                  return (
-                    <div key={key} className="px-3 py-2.5">
-                      <div className="flex min-w-0 items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="truncate text-caption-1-semibold text-text-primary">{windowLabel}</span>
-                          <span className={cx(
-                            "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
-                            used == null
-                              ? "bg-background-tertiary-default text-text-tertiary"
-                              : used >= 90
-                                ? "bg-status-rose-bg text-status-rose-text"
-                                : "bg-status-lime-bg text-status-lime-text",
-                          )}>
-                            {used == null ? "sem dados" : `${used}% usado`}
-                          </span>
-                        </div>
-                        <span className="shrink-0 text-caption-2-regular text-text-tertiary">
-                          {window ? `Renova em ${resetIn(window.resetsAt)}` : "—"}
-                        </span>
-                      </div>
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-background-tertiary-default">
-                        <div
-                          className={cx(
-                            "h-full rounded-full transition-[width] duration-500",
-                            used == null ? "bg-text-tertiary/30" : used >= 90 ? "bg-status-rose-text" : "bg-status-lime-text",
-                          )}
-                          style={{ width: `${used ?? 0}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-
-            {!loading && !go && !error ? (
-              <p className="mt-3 rounded-xl bg-background-secondary-default px-3 py-2 text-caption-1-regular text-text-secondary">Nenhuma janela de limite disponível para esta conta.</p>
-            ) : null}
-            {error ? <p className="mt-3 rounded-xl bg-status-rose-bg px-3 py-2 text-caption-1-regular text-status-rose-text">{error}</p> : null}
-
-            {limits?.workspace?.usageURL ? (
-              <a
-                href={limits.workspace.usageURL}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex items-center gap-1 text-caption-1-medium text-accent-600 hover:text-accent-500"
-              >
-                Ver consumo no OpenCode <ExternalLink size={12} />
-              </a>
-            ) : null}
-
-            <p className="mt-3 text-[10px] leading-relaxed text-text-tertiary">
-              Percentual usado do limite do OpenCode Go. Atualiza a cada minuto.
-              {updatedAt ? ` Última leitura às ${time(updatedAt)}.` : ""}
-            </p>
-          </section>
+          <section className="model-usage-body">{usageBody}</section>
         </div>
       )}
     </ComposerMenu>
