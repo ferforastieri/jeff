@@ -51,8 +51,8 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 describe("Toph chat controls", () => {
   it.each([false, true])("keeps the model, the plan limit and the send controls in the composer (mobile=%s)", (mobile) => {
     render(<BotStudioTab project={project} conversationId={chatId} mobile={mobile} />);
-    expect(screen.getByRole("button", { name: "Consumo do plano" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Modelo" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Modelo e consumo" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Esforço" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Modo do agente" })).not.toBeInTheDocument();
     expect(screen.queryByText("Harness Toph · execução no servidor")).not.toBeInTheDocument();
     expect(screen.queryByText(/Sua mensagem entra na fila/)).not.toBeInTheDocument();
@@ -101,8 +101,8 @@ describe("Toph chat controls", () => {
 
   it("shows how much of the plan limit is left", async () => {
     render(<BotStudioTab project={project} conversationId={chatId} />);
-    fireEvent.click(screen.getByRole("button", { name: "Consumo do plano" }));
-    const dialog = await screen.findByRole("dialog", { name: "Consumo do plano" });
+    fireEvent.click(screen.getByRole("button", { name: "Modelo e consumo" }));
+    const dialog = await screen.findByRole("dialog", { name: "Modelo e consumo" });
     expect(within(dialog).getByText("Semanal")).toBeVisible();
     expect(within(dialog).getByText("55% usado")).toBeVisible();
     expect(within(dialog).getByText("Mensal")).toBeVisible();

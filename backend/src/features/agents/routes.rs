@@ -287,7 +287,7 @@ pub(super) async fn agent_artifact(
     Path((project, id)): Path<(String, String)>,
     Extension(auth): Extension<AuthContext>,
 ) -> AppResult<Response> {
-    let (mime, data) = state
+    let (mime, data, _) = state
         .agents
         .tools()
         .artifact_bytes(auth.user.id, &project, &id)

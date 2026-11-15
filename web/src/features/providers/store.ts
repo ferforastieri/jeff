@@ -100,6 +100,25 @@ export function modelGroup(model: { id: string; label: string; provider?: string
   return "custom";
 }
 
+/**
+ * The mark of the model itself before the connection's: a DeepSeek model on
+ * OpenCode Go still shows the whale, not the gateway's logo.
+ */
+export function modelBrand(model: { id: string; label?: string; provider?: string; connectionLabel?: string }): string {
+  const text = `${model.id} ${model.label ?? ""}`.toLowerCase();
+  if (/deepseek/.test(text)) return "deepseek";
+  if (/claude|anthropic/.test(text)) return "claude";
+  if (/gemini|gemma|google/.test(text)) return "google";
+  if (/grok|xai/.test(text)) return "xai";
+  if (/qwen|alibaba/.test(text)) return "qwen";
+  if (/glm|zhipu/.test(text)) return "glm";
+  if (/llama|meta\b/.test(text)) return "meta";
+  if (/mistral|mixtral/.test(text)) return "mistral";
+  if (/kimi|moonshot/.test(text)) return "moonshot";
+  if (/gpt|openai|codex/.test(text)) return "openai";
+  return modelGroup({ id: model.id, label: model.label ?? "", provider: model.provider, connectionLabel: model.connectionLabel });
+}
+
 export function providerLabel(provider?: string): string {
   switch (canonicalProvider(provider ?? "")) {
     case "openai": return "OpenAI";

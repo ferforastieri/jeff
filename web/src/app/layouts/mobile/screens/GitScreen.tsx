@@ -311,29 +311,29 @@ export default function GitScreen({ project, branch, onOpenDiff, onBranch }: Pro
             <strong className="text-body-2-medium text-text-primary">Commit</strong>
             <Badge color={staged.length > 0 ? "primary" : "neutral"}>{staged.length} preparada{staged.length === 1 ? "" : "s"}</Badge>
           </div>
-          <div className="relative">
-            <Input value={message} onChange={setMessage} placeholder="Mensagem do commit" aria-label="Mensagem do commit" fieldClassName="commit-message-input commit-message-input--roomy w-full" />
+          <Input value={message} onChange={setMessage} placeholder="Mensagem do commit" aria-label="Mensagem do commit" fieldClassName="commit-message-input commit-message-input--roomy w-full" />
+          <div className="mt-2 flex items-center gap-2">
             <Button
-              variant="ghost"
-              size="xs"
+              variant="secondary"
+              size="small"
               iconOnly
               leadingIcon={Sparkles}
               aria-label="Gerar mensagem com IA"
               title="Gerar mensagem com IA"
               disabled={Boolean(busy)}
               onClick={() => void generateMessage()}
-              className="absolute end-1 top-1/2 size-8 -translate-y-1/2 rounded-xl bg-background-secondary-default text-text-secondary shadow-none hover:bg-background-primary-hover hover:text-text-primary"
+              className="size-11 shrink-0 rounded-2xl"
             />
+            <Button
+              variant={staged.length === 0 ? "secondary" : "primary"}
+              className="h-11 min-w-0 flex-1 justify-center"
+              leadingIcon={Check}
+              disabled={!staged.length || Boolean(busy)}
+              onClick={() => void commit()}
+            >
+              {busy === "commit" ? "Commitando..." : busy === "generate" ? "Gerando..." : "Commit"}
+            </Button>
           </div>
-          <Button
-            variant={staged.length === 0 ? "secondary" : "primary"}
-            className="mt-2 h-11 w-full justify-center"
-            leadingIcon={Check}
-            disabled={!staged.length || Boolean(busy)}
-            onClick={() => void commit()}
-          >
-            {busy === "commit" ? "Commitando..." : busy === "generate" ? "Gerando..." : "Commit"}
-          </Button>
         </section>
       </div>
 

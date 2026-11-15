@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Check,
-  ChevronDown,
-  ChevronRight,
   GitBranch,
   Sparkles,
   Minus,
@@ -21,7 +19,6 @@ import { useAI } from "../../providers/store";
 import { Button } from "@toph/ui/app";
 import { IconButton } from "@toph/ui/app";
 import { Input } from "@toph/ui/app";
-import { Badge } from "@toph/ui/app";
 import FileIcon from "../../explorer/components/FileIcon";
 import GitStatusIcon from "./GitStatusIcon";
 import { useConfirm } from "../../../shared/ui/confirm";
@@ -68,7 +65,6 @@ export default function SourceControlPanel({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
-  const [changesOpen, setChangesOpen] = useState(true);
   const showBranch = view === "full" || view === "scm";
   const showCommit = view !== "changes";
   const showChanges = view !== "commit";
@@ -188,29 +184,6 @@ export default function SourceControlPanel({
     }
   }
 
-  async function discardAll() {
-    const paths = [...new Set([...staged, ...unstaged].map((change) => change.path))];
-    if (!paths.length) return;
-    const ok = await confirm({
-      title: "Discard all changes?",
-      message: `Discard all ${paths.length} changed file${paths.length === 1 ? "" : "s"}? This cannot be undone.`,
-      confirmLabel: "Discard all",
-      danger: true,
-    });
-    if (!ok) return;
-    setBusy("discard");
-    try {
-      await api.gitDiscard(project.id, paths, true);
-      await api.gitDiscard(project.id, paths, false);
-      await load();
-      notify("success", "All changes discarded.");
-    } catch (err) {
-      notify("error", err instanceof Error ? err.message : "Could not discard changes.");
-    } finally {
-      setBusy("");
-    }
-  }
-
   async function createBranch() {
     setBusy("branch");
     try {
@@ -308,9 +281,6 @@ export default function SourceControlPanel({
       {showBranch && (
         <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b px-2 py-1.5">
           {branchControl ? <div className="min-w-0 flex-1">{branchControl}</div> : <><GitBranch size={13} className="shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate text-xs">{parsed.branch || "detached"}</span></>}
-          <Badge color="neutral">{parsed.changes.length}</Badge>
-          <Button variant="ghost" size="xs" aria-label={changesOpen ? "Recolher alterações" : "Expandir alterações"} onClick={() => setChangesOpen((current) => !current)}>{changesOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</Button>
-          <Button variant="ghost" size="xs" aria-label="Discard all changes" disabled={Boolean(busy) || parsed.changes.length === 0} onClick={() => void discardAll()}><Undo2 size={13} /></Button>
           {!branchControl ? <Button variant="ghost" size="xs" aria-label="Create branch from pattern" disabled={Boolean(busy)} onClick={() => void createBranch()}><GitBranch size={13} /></Button> : null}
         </div>
       )}
@@ -337,8 +307,14 @@ export default function SourceControlPanel({
           className="flex shrink-0 flex-col gap-2 border-b p-2"
           onKeyDownCapture={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); void commit(); } }}
         >
-          <div className="relative w-full">
-            <Input value={message} onChange={setMessage} placeholder="Mensagem do commit" aria-label="Mensagem do commit" fieldClassName="commit-message-input w-full" />
+          <Input
+            label="Mensagem do commit"
+            value={message}
+            onChange={setMessage}
+            placeholder="Resuma a alteração"
+            fieldClassName="commit-message-input w-full"
+          />
+          <div className="flex items-center gap-1.5">
             <IconButton
               icon={Sparkles}
               size="small"
@@ -346,22 +322,22 @@ export default function SourceControlPanel({
               title="Gerar mensagem com IA"
               disabled={Boolean(busy)}
               onClick={() => void generateMessage()}
-              className="absolute end-1 top-1/2 size-7 -translate-y-1/2 rounded-lg bg-background-secondary-default text-text-secondary shadow-none hover:bg-background-primary-hover hover:text-text-primary [&_svg]:size-4"
+              className="size-8 shrink-0 rounded-lg border border-border-button-default bg-background-secondary-default text-text-secondary shadow-none hover:bg-background-primary-hover hover:text-text-primary [&_svg]:size-4"
             />
+            <Button
+              variant={staged.length === 0 ? "secondary" : "primary"}
+              size="small"
+              className="h-8 min-w-0 flex-1 justify-center"
+              disabled={staged.length === 0 || Boolean(busy)}
+              onClick={() => void commit()}
+              leadingIcon={Check}
+            >
+              Commit
+            </Button>
           </div>
-          <Button
-            variant={staged.length === 0 ? "secondary" : "primary"}
-            size="small"
-            className="h-8 w-full justify-center"
-            disabled={staged.length === 0 || Boolean(busy)}
-            onClick={() => void commit()}
-            leadingIcon={Check}
-          >
-            Commit
-          </Button>
         </div>
       )}
-      {showChanges && (view === "changes" || changesOpen) && (
+      {showChanges && (
         <div className="min-h-0 flex-1 overflow-y-auto">
           {conflicts.length > 0 && (
             <section className="border-b pb-1">

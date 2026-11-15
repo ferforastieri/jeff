@@ -942,18 +942,16 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 attachment.mime.as_str(),
                 "image/png" | "image/jpeg" | "image/webp" | "image/gif"
             );
-            if !image && (data.contains(&0) || std::str::from_utf8(&data).is_err()) {
-                return Err(bad_request(
-                    "This attachment format is not supported; use UTF-8 text or PNG/JPEG/WebP/GIF",
-                ));
-            }
+            // Text is embedded directly; anything else (zip, xlsx, binary) is
+            // stored as-is and the agent inspects it with its shell.
+            let text = !image && !data.contains(&0) && std::str::from_utf8(&data).is_ok();
             let id = self
                 .inner
                 .tools
                 .artifact(
                     ctx,
                     &attachment.name,
-                    if image {
+                    if image || !text {
                         &attachment.mime
                     } else {
                         "text/plain"
@@ -964,8 +962,16 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             if image {
                 parts
                     .push(json!({"type":"image_url","image_url":{"url":format!("artifact:{id}")}}));
+            } else if text {
+                parts.push(json!({"type":"text","text":format!(
+                    "Anexo {}: artifact {id}. O caminho do arquivo está no bloco de anexos do prompt; use o shell para ler.",
+                    attachment.name
+                )}));
             } else {
-                parts.push(json!({"type":"text","text":format!("Anexo {}: artifact {id}. Use read_artifact para consultar.",attachment.name)}));
+                parts.push(json!({"type":"text","text":format!(
+                    "Anexo {} ({}, {} bytes): artifact {id}. O caminho do arquivo está no bloco de anexos do prompt; inspecione com o shell (unzip -l, file, python).",
+                    attachment.name, attachment.mime, data.len()
+                )}));
             }
         }
         let id = new_id();
@@ -1387,7 +1393,13 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 ctx.agent.model.clone()
             };
             let system = Self::identity(&ctx.agent, &ctx.roster, &ctx.routed);
-            let prompt = ctx.request.clone();
+            let attachment_dir = cli::work_dir(&ctx.run.session_id).join("attachments");
+            let attachment_files = cli::attachment_files(&attachment_dir, attachments).await?;
+            let prompt = format!(
+                "{}{}",
+                ctx.request,
+                cli::attachments_note(attachments, &attachment_files)
+            );
             let opencode_session = format!("ses_{}", ctx.run.session_id);
             // One Toph per project and no per-Toph account picker anymore: an
             // empty selection means every account configured in Settings → Email.
@@ -1557,6 +1569,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                             &opencode_session,
                             &ctx.root,
                             attachments,
+                            &attachment_files,
                             &ctx.skills,
                             &mcp_servers,
                             cancel,

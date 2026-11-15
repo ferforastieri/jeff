@@ -311,7 +311,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
           </div>
         </form>
       </ComposerLoader>
-      {allowAttachments && <input ref={fileRef} type="file" hidden multiple accept="image/*,audio/*,.pdf,.txt,.md,.json,.csv,.log" onChange={(event) => void pickFiles(event.target.files)} />}
+      {allowAttachments && <input ref={fileRef} type="file" hidden multiple onChange={(event) => void pickFiles(event.target.files)} />}
     </div>
   );
 }

@@ -39,9 +39,9 @@ pub fn work_dir(session_id: &str) -> PathBuf {
     base.join(format!("toph-cli-{safe}"))
 }
 
-/// Writes image attachments into the private CLI home so OpenCode can attach
-/// them with `--file`. The prompt itself is plain text; without this the model
-/// only sees an `artifact:` reference and cannot inspect the image.
+/// Writes every attachment into the private CLI home, keeping its extension,
+/// so the harness can inspect any format (zip, xlsx, binary) by path. OpenCode
+/// still receives the images with `--file`.
 pub async fn attachment_files(dir: &Path, attachments: &[Attachment]) -> AppResult<Vec<PathBuf>> {
     if attachments.is_empty() {
         return Ok(Vec::new());
@@ -49,9 +49,6 @@ pub async fn attachment_files(dir: &Path, attachments: &[Attachment]) -> AppResu
     tokio::fs::create_dir_all(dir).await?;
     let mut files = Vec::new();
     for (index, attachment) in attachments.iter().enumerate() {
-        if !attachment.mime.starts_with("image/") {
-            continue;
-        }
         let Some((_, encoded)) = attachment.uri.split_once(";base64,") else {
             continue;
         };
@@ -61,7 +58,7 @@ pub async fn attachment_files(dir: &Path, attachments: &[Attachment]) -> AppResu
         let original = Path::new(&attachment.name)
             .file_name()
             .and_then(|name| name.to_str())
-            .unwrap_or("imagem");
+            .unwrap_or("anexo");
         let safe = original
             .chars()
             .map(|ch| {
@@ -76,7 +73,8 @@ pub async fn attachment_files(dir: &Path, attachments: &[Attachment]) -> AppResu
             "image/jpeg" => "jpg",
             "image/webp" => "webp",
             "image/gif" => "gif",
-            _ => "png",
+            "image/png" => "png",
+            _ => "bin",
         };
         let name = if Path::new(&safe).extension().is_some() {
             safe
@@ -88,6 +86,24 @@ pub async fn attachment_files(dir: &Path, attachments: &[Attachment]) -> AppResu
         files.push(path);
     }
     Ok(files)
+}
+
+/// The paths of the message's attachments, written for the harness's shell.
+pub fn attachments_note(attachments: &[Attachment], files: &[PathBuf]) -> String {
+    if files.is_empty() {
+        return String::new();
+    }
+    let mut note = String::from("\n\nArquivos anexados nesta mensagem (caminhos no servidor):");
+    for (attachment, path) in attachments.iter().zip(files) {
+        note.push_str(&format!(
+            "\n- {} ({}): {}",
+            attachment.name,
+            attachment.mime,
+            path.display()
+        ));
+    }
+    note.push_str("\nInspecione arquivos binários com o shell (file, unzip -l, python, etc.).");
+    note
 }
 
 /// Toph-only tools selected for one Toph (the email connector), exposed as a
@@ -905,6 +921,7 @@ pub async fn run_opencode<F, R, T>(
     session_id: &str,
     project: &Path,
     attachments: &[Attachment],
+    files: &[PathBuf],
     skills: &[ManagedSkill],
     mcp_servers: &[Server],
     cancel: &CancellationToken,
@@ -918,7 +935,6 @@ where
     T: FnMut(NativeTool) + Send,
 {
     let home = work_dir(session_id);
-    let files = attachment_files(&home.join("attachments"), attachments).await?;
     let skill_root = materialize_skills(&home, skills).await?;
     let mut envs = HashMap::new();
     let config = opencode_config(
@@ -954,8 +970,10 @@ where
         .arg("toph")
         .arg("-m")
         .arg(model);
-    for file in &files {
-        command.arg("--file").arg(file);
+    for (attachment, file) in attachments.iter().zip(files) {
+        if attachment.mime.starts_with("image/") {
+            command.arg("--file").arg(file);
+        }
     }
     hide_server_secrets(&mut command, envs.keys().map(String::as_str));
     command

@@ -156,7 +156,7 @@ impl Tools {
         user: i64,
         project: &str,
         id: &str,
-    ) -> AppResult<(String, Vec<u8>)> {
+    ) -> AppResult<(String, Vec<u8>, PathBuf)> {
         let row = sqlx::query(
             "SELECT path,mime FROM agent_artifacts WHERE id=? AND user_id=? AND project_id=?",
         )
@@ -166,10 +166,8 @@ impl Tools {
         .fetch_optional(self.store.pool())
         .await?
         .ok_or(AppError::NotFound)?;
-        Ok((
-            row.get("mime"),
-            tokio::fs::read(self.artifacts.join(row.get::<String, _>("path"))).await?,
-        ))
+        let path = self.artifacts.join(row.get::<String, _>("path"));
+        Ok((row.get("mime"), tokio::fs::read(&path).await?, path))
     }
 
     pub async fn execute(&self, ctx: &RunContext, name: &str, args: &Value) -> AppResult<Value> {
@@ -280,7 +278,7 @@ impl Tools {
             }
             "read_artifact" => {
                 let id = text(args, "id")?;
-                let (mime, bytes) = self
+                let (mime, bytes, path) = self
                     .artifact_bytes(ctx.user_id, &ctx.project_id, id)
                     .await?;
                 if mime.starts_with("image/") {
@@ -288,7 +286,17 @@ impl Tools {
                         json!({"id":id,"mime":mime,"url":format!("/api/projects/{}/agent/artifacts/{id}",ctx.project_id)}),
                     );
                 }
-                let source = String::from_utf8(bytes).map_err(|_| AppError::Binary)?;
+                let Ok(source) = std::str::from_utf8(&bytes) else {
+                    // Any file type is accepted: binary attachments stay on the
+                    // server and the agent inspects them with its shell.
+                    return Ok(json!({
+                        "id": id,
+                        "mime": mime,
+                        "bytes": bytes.len(),
+                        "path": path.display().to_string(),
+                        "note": "Arquivo binário; use o shell do projeto para inspecionar (file, unzip -l, python, etc.)."
+                    }));
+                };
                 let offset = args["offset"].as_u64().unwrap_or(0) as usize;
                 let limit = args["limit"].as_u64().unwrap_or(1800).clamp(1, 2000) as usize;
                 Ok(

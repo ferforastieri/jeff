@@ -230,14 +230,17 @@ html.theme-transitioning *::after {
 /* The commit box is the sidebar's compact field, not a full dialog input. */
 .commit-message-input {
   height: 36px;
+  border-radius: 8px;
 }
 .commit-message-input input {
   height: 100%;
-  padding-inline: 12px 42px;
+  padding-inline: 12px;
+  border-radius: 8px;
   font-size: 13px;
 }
 .commit-message-input--roomy {
   height: 44px;
+  border-radius: 16px;
 }
 
 /* Light mode: the amber details need a darker ink to read on white. */
@@ -294,5 +297,50 @@ html:not(.dark) .text-accent-600 {
   .db-columns {
     margin-inline-start: 52px;
     margin-inline-end: 4px;
+  }
+}
+
+/* The merged model + plan menu: compact, the list beside the usage on the web
+   and stacked on a phone. */
+.model-usage-menu {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.model-usage-models {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  border-bottom: 1px solid var(--color-separator-border);
+}
+.model-usage-list {
+  min-height: 0;
+  max-height: 38dvh;
+  overflow-y: auto;
+  padding: 0 6px 8px;
+}
+.model-usage-body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+}
+@media (min-width: 901px) {
+  .model-usage-popover {
+    width: 560px;
+  }
+  .model-usage-menu {
+    height: 370px;
+    flex-direction: row;
+  }
+  .model-usage-models {
+    width: 232px;
+    flex: none;
+    border-bottom: 0;
+    border-inline-end: 1px solid var(--color-separator-border);
+  }
+  .model-usage-list {
+    flex: 1;
+    max-height: none;
   }
 }

@@ -3,14 +3,14 @@ import { ArrowDown, Bot, LoaderCircle, Timer } from "@toph/icons";
 import type { Project } from "../../../shared/api";
 import { ApiError } from "../../../shared/api";
 import { chatDisplayName, chatTophs, sessionSubject, useChats } from "../store";
-import { defaultModel, findModel, useAI } from "../../providers/store";
+import { defaultModel, useAI } from "../../providers/store";
 import { useTophDrafts } from "../../agents/drafts";
 import { agentApi, isActive, type NativeMessage } from "../../agents/api";
 import { useAgentChat } from "../../agents/useAgentChat";
 import { AgentComposer, type AgentAttachment } from "./AgentComposer";
 import ChatMessages from "./ChatMessages";
-import ChatUsageMeter from "./ChatUsageMeter";
-import ConversationModelPicker from "./ConversationModelPicker";
+import ChatModelUsage from "./ChatModelUsage";
+import ConversationEffortPicker from "./ConversationEffortPicker";
 import ApprovalCard from "./ApprovalCard";
 import BotAvatar from "../../agents/components/BotAvatar";
 import { unlockBotSound } from "../sound";
@@ -54,9 +54,6 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   const touchStartTop = useRef(0);
   const pendingScroll = useRef<{ height: number; top: number } | null>(null);
   const pendingRequest = useRef<{ text: string; id: string } | null>(null);
-  const activeModel = tophs[0]?.model || config?.model || "";
-  const activeModelInfo = findModel(models, activeModel);
-  const activeModelDisplay = activeModelInfo ?? (activeModel ? { id: activeModel, label: activeModel.split("::").pop() ?? activeModel } : undefined);
   const lastRun = native.runs.find((run) => !run.parentId);
   // Stopping is not a failure: never keep "Execution cancelled" pinned below
   // the conversation as a red banner.
@@ -307,8 +304,8 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         <AgentComposer value={text} onChange={(value) => setDraft(draftKey, value)} onSend={(value, files) => void send(value, files)} onStop={() => void stop()} busy={busy}
           placeholder="Pergunte ao Toph…"
           history={native.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          leadingControls={<ConversationModelPicker projectId={project.id} chat={chat!} tophs={tophs} />}
-          modeControls={<ChatUsageMeter chatName={title} model={activeModelDisplay} />} members={tophs} />
+          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} tophs={tophs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} tophs={tophs} /></>}
+          members={tophs} />
       </div>}
     </section>
   </div>;
