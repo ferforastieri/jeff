@@ -344,3 +344,13 @@ html:not(.dark) .text-accent-600 {
   width: 100%;
   max-width: 560px;
 }
+
+/* The composer is one surface: the textarea inside it keeps no field fill or
+   focus ring of its own, so the inner box never looks glued to the card. */
+.ac-composer textarea.ac-input,
+.ac-composer textarea.ac-input:focus,
+.ac-composer textarea.ac-input:focus-visible {
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}

@@ -129,7 +129,7 @@ function ProjectNotificationBell({ projectId, projectName, count, size = 13 }: {
         event.stopPropagation();
         markProjectNotificationsRead(projectId);
       }}
-      className="flex items-center justify-center rounded-full bg-background-primary-default p-0.5 text-accent-500 shadow-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+      className="flex items-center justify-center text-accent-500 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
       aria-label={`${count} notificações de ${projectName} — marcar como lidas`}
       title={`${count} notificações — clique para marcar como lidas`}
     >
@@ -261,12 +261,12 @@ export default function TopBar({ onOpenProject, onCloseProject, project = null, 
                 className={cx(
                   "group relative flex h-8 shrink-0 items-center rounded-xl border pe-5 transition-colors",
                   active
-                    ? "border-accent-500/35 bg-accent-500/10 text-text-primary"
+                    ? "border-transparent bg-background-secondary-default text-text-primary"
                     : "border-transparent text-text-secondary hover:bg-background-primary-hover hover:text-text-primary",
                 )}
               >
                 <span className="absolute -start-0.5 -top-2 z-10">
-                  <ProjectAlert projectId={project.id} projectName={project.name} unread={unread} size={12} />
+                  <ProjectAlert projectId={project.id} projectName={project.name} unread={unread} size={10} />
                 </span>
                 <button
                   type="button"
@@ -287,7 +287,7 @@ export default function TopBar({ onOpenProject, onCloseProject, project = null, 
                     event.stopPropagation();
                     onCloseProject(project.id);
                   }}
-                  className="pointer-events-none absolute end-1 top-1/2 flex size-4 -translate-y-1/2 items-center justify-center rounded-full text-status-rose-text opacity-0 transition-opacity hover:bg-status-rose-background focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none group-hover:pointer-events-auto group-hover:opacity-100"
+                  className="pointer-events-none absolute end-1 top-1/2 flex size-3.5 -translate-y-1/2 items-center justify-center text-text-tertiary opacity-0 transition-[color,opacity] hover:text-text-primary focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring group-hover:pointer-events-auto group-hover:opacity-100"
                   aria-label={`Fechar ${project.name}`}
                   title={`Fechar ${project.name}`}
                 >
