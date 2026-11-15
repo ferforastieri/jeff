@@ -1,7 +1,8 @@
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use serde_json::{json, Value};
 use toph_server::ai::AiConfig;
 use toph_server::features::agents::{
-    cli::opencode_model,
+    cli::{attachment_files, attachments_note, opencode_model},
     engines,
     models::AgentSpec,
     tools::{mutating, needs_permission, shell},
@@ -158,4 +159,27 @@ async fn shell_timeout_kills_background_process_group() {
         .await
         .unwrap_err();
     assert!(error.to_string().contains("timed out"));
+}
+
+#[tokio::test]
+async fn accepts_and_writes_any_attachment_format() {
+    let dir = tempfile::tempdir().unwrap();
+    let bytes = vec![0x50, 0x4b, 0x03, 0x04, 0x00, 0x01, 0x02];
+    let attachment = toph_server::features::agents::models::Attachment {
+        name: "relatorio.xlsx".into(),
+        mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".into(),
+        uri: format!(
+            "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{}",
+            STANDARD.encode(&bytes)
+        ),
+    };
+    let files = attachment_files(dir.path(), &[attachment.clone()])
+        .await
+        .unwrap();
+    assert_eq!(files.len(), 1);
+    assert!(files[0].to_string_lossy().ends_with("0-relatorio.xlsx"));
+    assert_eq!(tokio::fs::read(&files[0]).await.unwrap(), bytes);
+    let note = attachments_note(&[attachment], &files);
+    assert!(note.contains("relatorio.xlsx"));
+    assert!(note.contains("unzip -l"));
 }
