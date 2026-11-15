@@ -311,7 +311,7 @@ export default function GitScreen({ project, branch, onOpenDiff, onBranch }: Pro
             <strong className="text-body-2-medium text-text-primary">Commit</strong>
             <Badge color={staged.length > 0 ? "primary" : "neutral"}>{staged.length} preparada{staged.length === 1 ? "" : "s"}</Badge>
           </div>
-          <Input value={message} onChange={setMessage} placeholder="Mensagem do commit" aria-label="Mensagem do commit" fieldClassName="commit-message-input commit-message-input--roomy w-full" />
+          <Input value={message} onChange={setMessage} placeholder="Mensagem do commit" aria-label="Mensagem do commit" fieldClassName="w-full" />
           <div className="mt-2 flex items-center gap-2">
             <Button
               variant="secondary"

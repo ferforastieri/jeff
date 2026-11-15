@@ -268,7 +268,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
             maxRows={6}
             resize="none"
             fieldClassName="flex min-h-[50px] items-start rounded-none bg-transparent p-0 ring-0 shadow-none"
-            className="min-h-[50px] px-4 pt-[13px] pb-1 text-[14px] leading-[1.55]"
+            className="min-h-[50px] px-4 text-[14px] leading-[1.55]"
           />
           <div className="agent-composer-footer flex min-w-0 items-center gap-2.5 px-4 pb-3 pt-2">
             {allowAttachments ? <Button type="button" variant="ghost" size="small" iconOnly leadingIcon={ImagePlus} aria-label="Anexar arquivo" title="Anexar arquivo (Ctrl+U)" onClick={() => fileRef.current?.click()} /> : null}

@@ -312,7 +312,7 @@ export default function SourceControlPanel({
             value={message}
             onChange={setMessage}
             placeholder="Resuma a alteração"
-            fieldClassName="commit-message-input w-full"
+            fieldClassName="w-full"
           />
           <div className="flex items-center gap-1.5">
             <IconButton

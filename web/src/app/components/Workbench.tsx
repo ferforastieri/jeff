@@ -14,7 +14,6 @@ import BotStudioTab from "../../features/conversations/components/BotStudioTab";
 import { featureEnabled, isDesktopClient, isTophOnly, sidebarFeature, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import Tabs from "./Tabs";
 import Toasts from "../../features/notifications/components/Toasts";
-import GlobalSearch from "../../features/search/components/GlobalSearch";
 import CloseProjectModal from "../../features/projects/components/CloseProjectModal";
 import BranchPicker from "../../features/git/components/BranchPicker";
 import TopBar from "./TopBar";
@@ -1022,8 +1021,6 @@ export default function Workbench() {
           </div>
         </section>
         <Toasts />
-      <GlobalSearch />
-        <GlobalSearch />
       </main>
     );
   }
@@ -1297,7 +1294,6 @@ export default function Workbench() {
         onConfirm={() => void confirmCloseProject()}
       />
       <Toasts />
-      <GlobalSearch />
     </div>
   );
 }

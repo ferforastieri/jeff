@@ -46,7 +46,7 @@
 .ac-composer > * textarea,
 .ac-composer textarea {
   min-height: 56px;
-  padding: 15px 16px 8px;
+  padding: 12px 16px;
   line-height: 20px;
 }
 .ac-composer textarea::placeholder {
@@ -227,22 +227,6 @@ html.theme-transitioning *::after {
   mask-position: center;
 }
 
-/* The commit box is the sidebar's compact field, not a full dialog input. */
-.commit-message-input {
-  height: 36px;
-  border-radius: 8px;
-}
-.commit-message-input input {
-  height: 100%;
-  padding-inline: 12px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-.commit-message-input--roomy {
-  height: 44px;
-  border-radius: 16px;
-}
-
 /* Light mode: the amber details need a darker ink to read on white. */
 html:not(.dark) .text-accent-500,
 html:not(.dark) .text-accent-600 {
@@ -343,4 +327,20 @@ html:not(.dark) .text-accent-600 {
     flex: 1;
     max-height: none;
   }
+}
+
+/* The phone's search: the same quick file/content search as the header, as a
+   sheet under the fixed top bar, above every toast. */
+.mobile-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  padding: calc(var(--safe-top) + 56px) 12px 24px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+}
+.mobile-search-card {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 560px;
 }

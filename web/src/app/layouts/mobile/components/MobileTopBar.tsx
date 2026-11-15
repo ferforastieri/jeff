@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Bell, MessageCircleQuestion, MessageSquare, Settings2, X } from "@toph/icons";
+import { Bell, MessageCircleQuestion, MessageSquare, Search, Settings2, X } from "@toph/icons";
 import type { Project } from "../../../../shared/api";
 import ProjectMonogram from "../../../../features/projects/components/ProjectMonogram";
 import { useProjectQuestion, useProjectRunning } from "../../../../features/agents/activity";
@@ -16,6 +16,7 @@ interface Props {
   hideTitle?: boolean;
   brandIcon?: boolean;
   onBrand?: () => void;
+  onSearch?: () => void;
 }
 
 /** Compact header shared by every mobile screen. */
@@ -31,6 +32,7 @@ export default function MobileTopBar({
   hideTitle = false,
   brandIcon = false,
   onBrand,
+  onSearch,
 }: Props) {
   const secondary = subtitle === undefined ? project.name : subtitle;
   const question = useProjectQuestion(project.id);
@@ -72,6 +74,17 @@ export default function MobileTopBar({
           </div>
         )}
         <div className="flex shrink-0 items-center gap-1.5">
+          {onSearch ? (
+            <button
+              type="button"
+              onClick={onSearch}
+              aria-label="Buscar"
+              title="Buscar"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-primary-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+            >
+              <Search className="size-4" />
+            </button>
+          ) : null}
           {onTophs ? (
             <button
               type="button"

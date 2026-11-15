@@ -22,6 +22,7 @@ import GitScreen from "./screens/GitScreen";
 import DatabasesScreen from "./screens/DatabasesScreen";
 import WebAppsScreen from "./screens/WebAppsScreen";
 import ProjectSwitcher from "../../../features/projects/components/ProjectSwitcher";
+import QuickOpen from "../../../features/explorer/components/QuickOpen";
 import CloseProjectModal from "../../../features/projects/components/CloseProjectModal";
 import MobileTopBar from "./components/MobileTopBar";
 import { latestChatForToph, useChats } from "../../../features/conversations/store";
@@ -33,7 +34,6 @@ import MobileBottomNav from "./MobileBottomNav";
 import { useMobileBack } from "./useMobileBack";
 import MobileMoreScreen from "./MobileMoreScreen";
 import { type MobileScreen } from "./mobile-nav";
-import GlobalSearch from "../../../features/search/components/GlobalSearch";
 import TophSettings from "../../../features/settings/components/TophSettings";
 
 export default function MobileApp() {
@@ -65,6 +65,8 @@ export default function MobileApp() {
   const [branchOpen, setBranchOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [conversationsOpen, setConversationsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchToken, setSearchToken] = useState(0);
   const pendingBot = useRef<{ projectId: string; botId: string; chatId?: string } | null>(null);
   const chatsHydrated = useChats((state) => activeProjectId ? state.byProject[activeProjectId]?.hydrated === true : false);
   const activeConversationId = useChats((state) => activeProjectId ? state.byProject[activeProjectId]?.activeChatId ?? null : null);
@@ -210,6 +212,11 @@ export default function MobileApp() {
     setConversationsOpen(false);
     setTerminalOpen(false);
     setScreen("bots");
+  }
+
+  function openSearch() {
+    setSearchOpen(true);
+    setSearchToken((token) => token + 1);
   }
 
   function openFile(path: string, line?: number) {
@@ -371,6 +378,7 @@ export default function MobileApp() {
         onProjects={openProjectSheet}
         brandIcon={screen === "bots"}
         onBrand={() => window.dispatchEvent(new CustomEvent("toph:open-settings", { detail: { section: "general" } }))}
+        onSearch={openSearch}
       />
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background-primary-default pb-2">
         {screen === "bots" ? (
@@ -473,6 +481,7 @@ export default function MobileApp() {
             icon={TerminalSquare}
             onProjects={() => { setTerminalOpen(false); openProjectSheet(); }}
             onClose={() => setTerminalOpen(false)}
+            onSearch={openSearch}
           />
           <div className="min-h-0 flex-1">
             <TerminalPanel project={project} onOpenFile={openFile} sheet onClose={() => setTerminalOpen(false)} />
@@ -526,7 +535,25 @@ export default function MobileApp() {
       />
       <MobileAccountSheet open={accountOpen} user={user} onClose={() => setAccountOpen(false)} />
       <TophSettings user={user} projectRoot={project.root} projectId={project.id} hideTrigger />
-      <GlobalSearch />
+      {searchOpen ? (
+        <div
+          className="mobile-search-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Buscar"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) setSearchOpen(false); }}
+          onKeyDown={(event) => { if (event.key === "Escape") setSearchOpen(false); }}
+        >
+          <div className="mobile-search-card">
+            <QuickOpen
+              project={project}
+              focusToken={searchToken}
+              onOpenFile={(path, line) => { setSearchOpen(false); openFile(path, line); }}
+              floating
+            />
+          </div>
+        </div>
+      ) : null}
       <CloseProjectModal
         open={Boolean(closeTarget)}
         project={closeTarget}

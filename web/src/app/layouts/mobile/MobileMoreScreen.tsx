@@ -8,7 +8,6 @@ import {
   Globe2,
   Moon,
   PlugZap,
-  Search,
   Settings2,
   Sparkles,
   Sun,
@@ -106,7 +105,6 @@ export default function MobileMoreScreen({
     { id: "web", label: "Web apps", description: "Sites e previews", icon: Globe2, onSelect: () => onScreen("web") },
     { id: "debug", label: "Debug", description: "Breakpoints e console", icon: Bug, onSelect: () => onScreen("debug") },
     { id: "terminal", label: "Terminal", description: "Shell do projeto", icon: TerminalSquare, onSelect: onTerminal },
-    { id: "search", label: "Busca global", description: "Sessões, tarefas e arquivos", icon: Search, onSelect: () => window.dispatchEvent(new CustomEvent("toph:global-search")) },
     { id: "workspace", label: "Trabalho", description: activeTitle ? `Aba: ${activeTitle}` : "Editor e abas", icon: Boxes, onSelect: () => onScreen("workspace") },
   ];
 
