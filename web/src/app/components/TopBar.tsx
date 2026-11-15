@@ -261,7 +261,7 @@ export default function TopBar({ onOpenProject, onCloseProject, project = null, 
                 className={cx(
                   "group relative flex h-8 shrink-0 items-center rounded-xl border pe-5 transition-colors",
                   active
-                    ? "border-transparent bg-background-secondary-default text-text-primary"
+                    ? "border-border-button-white bg-background-tertiary-default text-text-primary shadow-xs"
                     : "border-transparent text-text-secondary hover:bg-background-primary-hover hover:text-text-primary",
                 )}
               >
