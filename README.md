@@ -17,7 +17,7 @@ The installed server does not serve the landing page or documentation. The landi
 
 - Browse and edit project files with tabs, a file tree, unified search and live Git status. Source control changes and branch switching live in the Git modal.
 - Run a real terminal attached to the server, with a draggable terminal height and working keyboard input.
-- Open repositories from a searchable repository picker; names are derived automatically.
+- Open repositories from a searchable repository picker; names are derived automatically. The picker can also create a new folder under an allowed workspace root and initialize it as a Git repository.
 - Open projects as top-level tabs. Closing a project tab stops its terminal sessions and child processes without deleting the project.
 - Use the real VS Code Material Icon Theme, stage/unstage/discard/commit and branch creation from configurable patterns in the Git modal, side-by-side diff tabs and Git blame for the current editor line.
 - Search matches both file names and file content automatically with debounce, without pressing Enter.

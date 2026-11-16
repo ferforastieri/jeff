@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Bell, FolderGit2, LoaderCircle, X } from "@toph/icons";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Bell, FolderGit2, FolderPlus, LoaderCircle, X } from "@toph/icons";
 import { api, ApiError, type Repository } from "../../../shared/api";
 import { useApp } from "../../../app/store";
 import ProjectTophAvatar from "./ProjectTophAvatar";
-import { Button } from "@toph/ui/app";
+import { Button, Checkbox, Input, Select, SelectItem } from "@toph/ui/app";
 import { SearchField } from "@toph/ui";
 import NotificationBadge from "../../notifications/components/NotificationBadge";
 
@@ -33,6 +33,29 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
   const [reposLoading, setReposLoading] = useState(true);
   const [opening, setOpening] = useState("");
   const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [creatingBusy, setCreatingBusy] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [roots, setRoots] = useState<string[]>([]);
+  const [parent, setParent] = useState("");
+  const [newName, setNewName] = useState("");
+  const [initGit, setInitGit] = useState(true);
+
+  useEffect(() => {
+    // Only the create form needs the allowed folders, so the list waits for it.
+    if (onlyOpen || !creating) return;
+    let cancelled = false;
+    api.workspaceRoots()
+      .then((response) => {
+        if (cancelled) return;
+        setRoots(response.roots);
+        setParent((current) => current || response.roots[0] || "");
+      })
+      .catch((err) => {
+        if (!cancelled) setCreateError(err instanceof Error ? err.message : "Não foi possível listar as pastas permitidas.");
+      });
+    return () => { cancelled = true; };
+  }, [creating, onlyOpen]);
 
   useEffect(() => {
     // The open-projects rail never adds repositories, so it does not pay for it.
@@ -115,6 +138,26 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
     }
   }
 
+  /** Creates the folder (and its Git repository) and opens it right away. */
+  async function createRepo(event: FormEvent) {
+    event.preventDefault();
+    const name = newName.trim();
+    if (!name || !parent || creatingBusy) return;
+    setCreatingBusy(true);
+    setCreateError("");
+    try {
+      const repo = await api.createRepo(parent, name, initGit);
+      setNewName("");
+      setCreating(false);
+      setRepos((current) => [repo, ...current]);
+      await openRepo(repo);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Não foi possível criar o repositório.");
+    } finally {
+      setCreatingBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <SearchField
@@ -126,6 +169,69 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
         placeholder={onlyOpen ? "Pesquisar projeto" : "Pesquisar repositório"}
         aria-label={onlyOpen ? "Pesquisar projeto" : "Pesquisar repositório"}
       />
+      {onlyOpen ? null : creating ? (
+        <form
+          onSubmit={(event) => void createRepo(event)}
+          className="flex flex-col gap-2 rounded-xl border border-border-button-default bg-background-secondary-default/60 p-2.5"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 text-caption-1-medium text-text-primary">
+              <FolderPlus size={13} className="text-accent-500" /> Novo repositório
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              iconOnly
+              leadingIcon={X}
+              aria-label="Cancelar novo repositório"
+              title="Cancelar"
+              onClick={() => { setCreateError(""); setCreating(false); }}
+            />
+          </div>
+          {roots.length > 1 ? (
+            <Select
+              selectedKey={parent || null}
+              onSelectionChange={(key) => setParent(String(key))}
+              aria-label="Pasta onde criar"
+              className="w-full"
+            >
+              {roots.map((root) => <SelectItem key={root} id={root}>{root}</SelectItem>)}
+            </Select>
+          ) : (
+            <p className="truncate px-1 text-caption-2-regular text-text-tertiary" title={parent || undefined}>
+              {roots.length === 0 ? "Nenhuma pasta permitida em Configurações → Workspace." : parent}
+            </p>
+          )}
+          <Input
+            value={newName}
+            onChange={setNewName}
+            placeholder="nome-da-pasta"
+            aria-label="Nome da pasta"
+            autoFocus
+          />
+          <Checkbox isSelected={initGit} onChange={setInitGit} size="sm">Inicializar com Git</Checkbox>
+          {createError ? <p role="alert" className="rounded-lg border border-status-rose-border bg-status-rose-bg px-2 py-1.5 text-caption-2-regular text-status-rose-text">{createError}</p> : null}
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-caption-2-regular text-text-tertiary" title={parent && newName.trim() ? `${parent}/${newName.trim()}` : undefined}>
+              {parent && newName.trim() ? `${parent}/${newName.trim()}` : ""}
+            </span>
+            <Button type="submit" size="small" disabled={creatingBusy || !newName.trim() || !parent}>
+              {creatingBusy ? "Criando..." : "Criar e abrir"}
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <Button
+          variant="secondary"
+          size="small"
+          leadingIcon={FolderPlus}
+          className="w-full justify-start"
+          onClick={() => { setCreateError(""); setCreating(true); }}
+        >
+          Novo repositório
+        </Button>
+      )}
       {error ? <p role="alert" className="rounded-lg border border-status-rose-border bg-status-rose-bg px-2 py-1.5 text-caption-2-regular text-status-rose-text">{error}</p> : null}
       <div className="flex items-center justify-between px-1 text-caption-2-regular text-text-tertiary">
         <span>{heading || (onlyOpen ? "Abertos agora" : "Projetos")}</span>

@@ -557,6 +557,14 @@ export const api = {
     return response.repos;
   },
 
+  /** Creates a new folder under a workspace root, optionally as a Git repo. */
+  async createRepo(parent: string, name: string, initGit = true): Promise<Repository> {
+    return request<Repository>("/repos", {
+      method: "POST",
+      ...json({ parent, name, initGit }),
+    });
+  },
+
   async files(projectId: string, query = ""): Promise<string[]> {
     const suffix = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
     const response = await request<{ files: string[] }>(

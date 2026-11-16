@@ -458,6 +458,29 @@ pub(super) async fn list_repos(
     Ok(Json(json!({ "repos": repos })))
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct CreateRepoRequest {
+    /// Workspace root that receives the new folder.
+    parent: String,
+    /// Folder name, a single path segment.
+    name: String,
+    /// Initialize the folder as a Git repository (defaults to true).
+    #[serde(default)]
+    init_git: Option<bool>,
+}
+
+pub(super) async fn create_repo(
+    State(state): State<Arc<AppState>>,
+    Json(input): Json<CreateRepoRequest>,
+) -> AppResult<Response> {
+    let repo = state
+        .workspace
+        .create_repo(&input.parent, &input.name, input.init_git.unwrap_or(true))
+        .await?;
+    Ok((StatusCode::CREATED, Json(repo)).into_response())
+}
+
 pub(super) async fn list_workspace_roots(State(state): State<Arc<AppState>>) -> Json<Value> {
     Json(
         json!({ "roots": state.workspace.roots().iter().map(|path| path.to_string_lossy().to_string()).collect::<Vec<_>>() }),

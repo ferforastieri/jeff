@@ -178,7 +178,7 @@ function ProjectPicker({ open, onClose, onSelect }: { open: boolean; onClose: ()
       isOpen={open}
       onClose={onClose}
       title="Abrir projeto"
-      description="Escolha um repositório que ainda não está aberto."
+      description="Abra um repositório existente ou crie uma pasta nova no servidor."
       size="md"
       bodyClassName="p-4"
     >
@@ -243,7 +243,7 @@ export default function TopBar({ onOpenProject, onCloseProject, project = null, 
           iconOnly
           leadingIcon={Plus}
           aria-label="Abrir projeto"
-          title="Abrir projeto"
+          title="Abrir ou criar projeto"
           className="size-9 shrink-0 [&_svg]:size-5"
           onClick={() => setPickerOpen(true)}
         />
