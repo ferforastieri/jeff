@@ -50,6 +50,7 @@ export const FolderGit2 = glyph("repo");
 export const FolderOpen = glyph("drive");
 export const FolderPlus = glyph("drive");
 export const GitBranch = glyph("repo");
+export const GitPullRequest = glyph("pullRequest");
 export const Globe2 = glyph("globe");
 export const HardDrive = glyph("drive");
 export const History = glyph("clock");

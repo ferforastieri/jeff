@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Check,
-  GitBranch,
+  GitPullRequest,
   Sparkles,
   Minus,
   Plus,
@@ -239,7 +239,7 @@ export default function SourceControlPanel({
   return (
     <div className="flex min-h-0 flex-col">
       {!embedded && (
-        <SidebarHeader control={headerControl} icon={<GitBranch size={15} className="text-accent-500" />} title="Source Control" />
+        <SidebarHeader control={headerControl} icon={<GitPullRequest size={15} className="text-accent-500" />} title="Source Control" />
       )}
       {merging ? (
         <div className="mx-2 mt-1.5 rounded-md border border-status-amber-border bg-status-amber-bg px-2 py-1.5">

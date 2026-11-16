@@ -1,5 +1,5 @@
 import { useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { Bell, Bug, Database, Files, GitBranch, Globe2, MessageCircleQuestion, Moon, Plus, Settings2, Sun, TerminalSquare, X } from "@toph/icons";
+import { Bell, Bug, Database, Files, GitPullRequest, Globe2, MessageCircleQuestion, Moon, Plus, Settings2, Sun, TerminalSquare, X } from "@toph/icons";
 import { useApp, type Sidebar } from "../store";
 import { featureEnabled, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import type { Project } from "../../shared/api";
@@ -15,9 +15,9 @@ import { cx } from "@toph/ui";
 
 const activityItems: Array<{ id: Sidebar; feature: WorkspaceFeature; label: string; icon: ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }> }> = [
   { id: "files", feature: "files", label: "Explorer", icon: Files },
-  { id: "scm", feature: "sourceControl", label: "Source Control", icon: GitBranch },
-  { id: "db", feature: "databases", label: "Databases", icon: Database },
+  { id: "scm", feature: "sourceControl", label: "Source Control", icon: GitPullRequest },
   { id: "bots", feature: "bots", label: "Toph", icon: BrandGlyph },
+  { id: "db", feature: "databases", label: "Databases", icon: Database },
   { id: "debug", feature: "debug", label: "Debug", icon: Bug },
   { id: "web", feature: "webApps", label: "Web apps", icon: Globe2 },
 ];
@@ -76,6 +76,7 @@ function WorkspaceOptions({ vertical = false, onOpenAuxiliary }: { vertical?: bo
         .filter((item) => featureEnabled(workspaceFeatures, item.feature))
         .map((item) => {
           const active = sidebar === item.id;
+          const auxiliary = item.id !== "debug" && onOpenAuxiliary;
           return (
             <Button
               key={item.id}
@@ -86,19 +87,19 @@ function WorkspaceOptions({ vertical = false, onOpenAuxiliary }: { vertical?: bo
               className={cx(buttonClass, active && "text-accent-500")}
               aria-label={item.label}
               aria-pressed={active}
-              title={`${item.label} · botão direito ou Alt+clique abre na área auxiliar`}
+              title={auxiliary ? `${item.label} · botão direito ou Alt+clique abre na área auxiliar` : item.label}
               onClick={(event) => {
-                if (event.altKey && onOpenAuxiliary) {
+                if (event.altKey && auxiliary) {
                   event.preventDefault();
-                  onOpenAuxiliary(item.id);
+                  auxiliary(item.id);
                   return;
                 }
                 setSidebar(item.id);
               }}
               onContextMenu={(event) => {
-                if (!onOpenAuxiliary) return;
+                if (!auxiliary) return;
                 event.preventDefault();
-                onOpenAuxiliary(item.id);
+                auxiliary(item.id);
               }}
             />
           );
@@ -197,7 +198,6 @@ function ProjectPicker({ open, onClose, onSelect }: { open: boolean; onClose: ()
 
 /** Fixed workspace bar at the bottom: the current branch and open projects on the left, actions and Toph on the right. */
 export default function BottomBar({ onOpenProject, onCloseProject, project = null, onOpenFile = () => undefined, quickOpenToken = 0, onOpenAuxiliary, tophControl, leading }: Props) {
-  const setSidebar = useApp((state) => state.setSidebar);
   const projects = useApp((state) => state.projects);
   const openProjectIds = useApp((state) => state.openProjectIds);
   const activeProjectId = useApp((state) => state.activeProjectId);
@@ -230,21 +230,6 @@ export default function BottomBar({ onOpenProject, onCloseProject, project = nul
             <span className="h-5 w-px shrink-0 bg-separator-border" aria-hidden="true" />
           </>
         ) : null}
-        <button
-          type="button"
-          onClick={() => setSidebar("bots")}
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-text-primary transition-colors hover:bg-background-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
-          aria-label="Ir para o Toph"
-          title="Toph"
-        >
-          <img
-            src={`${import.meta.env.BASE_URL}brand/toph-mark.png?v=3`}
-            alt=""
-            className="size-7 object-contain"
-            draggable={false}
-          />
-        </button>
-
         <Button
           variant="ghost"
           size="medium"
