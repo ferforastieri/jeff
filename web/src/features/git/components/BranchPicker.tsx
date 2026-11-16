@@ -25,7 +25,7 @@ interface Props {
   listClassName?: string;
 }
 
-/** Shared branch dropdown used by the desktop header and the mobile branch sheet. */
+/** Shared branch list used by the desktop footer modal and the mobile branch sheet. */
 export default function BranchPicker({
   current,
   branches,

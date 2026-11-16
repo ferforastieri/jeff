@@ -16,8 +16,7 @@ import Tabs from "./Tabs";
 import Toasts from "../../features/notifications/components/Toasts";
 import CloseProjectModal from "../../features/projects/components/CloseProjectModal";
 import BranchPicker from "../../features/git/components/BranchPicker";
-import TopBar from "./TopBar";
-import ActivityPopover from "../../features/notifications/components/ActivityPopover";
+import BottomBar from "./BottomBar";
 import { handleAiCompletion, type AiCompletionPayload } from "../../features/notifications/completion";
 import { unlockBotSound } from "../../features/conversations/sound";
 import SidebarHeader from "./SidebarHeader";
@@ -274,6 +273,7 @@ export default function Workbench() {
   // Warm the branch list for the active project so opening the selector is instant.
   useEffect(() => {
     if (!activeProjectId || !sourceControlEnabled) return;
+    setBranchMenuOpen(false);
     setBranchInfo(null);
     setBranchError("");
     void loadBranches();
@@ -1034,7 +1034,7 @@ export default function Workbench() {
         filter={branchFilter}
         onFilterChange={setBranchFilter}
         onCheckout={(name) => void checkoutBranch(name)}
-        onCreate={() => { setNewBranchName(""); setBranchCreateOpen(true); }}
+        onCreate={() => { setBranchMenuOpen(false); setNewBranchName(""); setBranchCreateOpen(true); }}
         onDeleteOthers={() => void deleteOtherBranches()}
         onRetry={() => void loadBranches()}
         error={branchError}
@@ -1045,27 +1045,26 @@ export default function Workbench() {
       />
     );
   }
-  const activityBranchControl = sourceControlEnabled ? (
-    <ActivityPopover
-      open={branchMenuOpen}
-      onOpenChange={(next) => { setBranchMenuOpen(next); if (next) openBranchMenu(); }}
-      panelClassName="w-[min(460px,calc(100vw-64px))]"
-      trigger={
-        <Button variant={branchMenuOpen ? "secondary" : "ghost"} size="small" leadingIcon={GitBranch} className="w-full justify-start" aria-label={`Branch ${branch || "detached"}`} title={branch || "detached"} onClick={() => { const next = !branchMenuOpen; setBranchMenuOpen(next); if (next) openBranchMenu(); }}>
-          <span className="min-w-0 flex-1 truncate text-start">{branch || "detached"}</span>
-          <ChevronDown size={12} className="shrink-0" />
-        </Button>
-      }
+  const branchControl = sourceControlEnabled ? (
+    <Button
+      variant="ghost"
+      size="small"
+      leadingIcon={GitBranch}
+      className="max-w-[240px] justify-start"
+      aria-label={`Branch ${branch || "detached"}`}
+      title={`Branch atual: ${branch || "detached"}`}
+      onClick={openBranchMenu}
     >
-      <div className="max-h-[min(600px,calc(100dvh-24px))] overflow-y-auto">{branchPickerBody()}</div>
-    </ActivityPopover>
+      <span className="min-w-0 flex-1 truncate text-start">{branch || "detached"}</span>
+      <ChevronDown size={12} className="shrink-0" />
+    </Button>
   ) : null;
 
   const sidebarContent = (
     <>
       {project && sidebar === "files" && featureIsEnabled("files") && <ExplorerPanel project={project} onOpenFile={openFile} onStatusChange={setGitStatus} />}
       {project && sidebar === "db" && featureIsEnabled("databases") && <DatabasesPanel project={project} onOpenTable={openTable} />}
-      {project && sidebar === "scm" && featureIsEnabled("sourceControl") && <SourceControlPanel project={project} view="scm" branchControl={activityBranchControl} onOpenDiff={openDiff} onStatusChange={setGitStatus} />}
+      {project && sidebar === "scm" && featureIsEnabled("sourceControl") && <SourceControlPanel project={project} view="scm" onOpenDiff={openDiff} onStatusChange={setGitStatus} />}
       {project && sidebar === "web" && featureIsEnabled("webApps") && <WebSidebar onOpenWeb={openWeb} />}
       {project && sidebar === "bots" && <BotsSidebar project={project} />}
       {project && sidebar === "debug" && featureIsEnabled("debug") && (
@@ -1128,16 +1127,6 @@ export default function Workbench() {
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-[var(--side)]">
-      <TopBar
-        onOpenProject={switchProject}
-        onCloseProject={requestCloseProject}
-        onQuickOpen={() => setQuickOpenToken((current) => current + 1)}
-        onOpenAuxiliary={openAuxiliary}
-        project={project}
-        onOpenFile={openFile}
-        quickOpenToken={quickOpenToken}
-        tophControl={<TophSettings user={user} projectRoot={project.root} projectId={project.id} hideTrigger />}
-      />
       <div className="relative flex min-h-0 flex-1 gap-0 p-1">
         {primarySidebar}
         {primaryResize}
@@ -1209,6 +1198,29 @@ export default function Workbench() {
           </>
         ) : null}
       </div>
+
+      <BottomBar
+        onOpenProject={switchProject}
+        onCloseProject={requestCloseProject}
+        onQuickOpen={() => setQuickOpenToken((current) => current + 1)}
+        onOpenAuxiliary={openAuxiliary}
+        project={project}
+        onOpenFile={openFile}
+        quickOpenToken={quickOpenToken}
+        tophControl={<TophSettings user={user} projectRoot={project.root} projectId={project.id} hideTrigger />}
+        leading={branchControl}
+      />
+
+      <Modal
+        isOpen={branchMenuOpen && Boolean(project)}
+        onClose={() => setBranchMenuOpen(false)}
+        title="Branches"
+        description="Troque de branch, crie uma nova ou exclua as que não usa."
+        size="md"
+        bodyClassName="p-0"
+      >
+        <div className="max-h-[min(600px,calc(100dvh-24px))] overflow-y-auto">{branchPickerBody()}</div>
+      </Modal>
 
       <Modal
         isOpen={branchCreateOpen && Boolean(project)}

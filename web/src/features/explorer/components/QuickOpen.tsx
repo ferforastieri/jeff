@@ -13,15 +13,17 @@ interface Props {
   focusToken: number;
   onOpenFile: (path: string, line?: number) => void;
   floating?: boolean;
-  /** Header trigger shows a chevron that rotates with the dropdown. */
+  /** The trigger shows a chevron that rotates with the dropdown. */
   showChevron?: boolean;
+  /** Where the result panel opens: above the field when it lives in the footer. */
+  placement?: "below" | "above";
   className?: string;
 }
 
 type Result = { kind: "file"; path: string } | { kind: "match"; match: SearchMatch };
 const MAX_FILES = 30;
 
-export default function QuickOpen({ project, focusToken, onOpenFile, floating = false, showChevron = false, className }: Props) {
+export default function QuickOpen({ project, focusToken, onOpenFile, floating = false, showChevron = false, placement = "below", className }: Props) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 220);
   const [open, setOpen] = useState(false);
@@ -213,7 +215,7 @@ export default function QuickOpen({ project, focusToken, onOpenFile, floating = 
             shortcut={busy ? <Icon name="spinner" size={14} /> : showChevron ? <ChevronDown aria-hidden className={cx("size-4 text-foreground-icon-tertiary transition-[rotate] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]", open && "rotate-180")} /> : undefined}
           />
           {open && (
-            <div className="dropdown-reveal absolute inset-x-0 top-full z-[300] mt-1 max-h-80 overflow-y-auto rounded-2xl border border-border-button-default bg-background-primary-default p-1.5 shadow-dropdown">
+            <div className={cx("dropdown-reveal absolute inset-x-0 z-[300] max-h-80 overflow-y-auto rounded-2xl border border-border-button-default bg-background-primary-default p-1.5 shadow-dropdown", placement === "above" ? "bottom-full mb-1" : "top-full mt-1")}>
               {resultContent}
             </div>
           )}

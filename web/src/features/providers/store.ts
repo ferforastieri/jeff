@@ -56,12 +56,41 @@ function canonicalProvider(provider: string): string {
   return value;
 }
 
+const PREFERRED_MODEL_KEY = "toph_preferred_model";
+
+function preferredModel(): string {
+  try {
+    return localStorage.getItem(PREFERRED_MODEL_KEY)?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * The last model picked in a conversation, kept so a new task starts on the
+ * model the user already chose instead of the harness default.
+ */
+export function rememberModel(model: string): void {
+  const value = model.trim();
+  if (!value) return;
+  try {
+    localStorage.setItem(PREFERRED_MODEL_KEY, value);
+  } catch {
+    // Private mode or no storage: the configured default still applies.
+  }
+}
+
 /**
  * The model a conversation starts on when neither it nor its Toph names one:
- * the harness default (the first OpenCode Go model), with variants when it has
- * them so the effort control is there from the start.
+ * the last model picked in a task, then the harness default (the first
+ * OpenCode Go model), with variants when it has them so the effort control is
+ * there from the start.
  */
 export function defaultModel(models: AIModel[], config: AIConfig | null): string {
+  const remembered = preferredModel();
+  if (remembered && (models.length === 0 || models.some((model) => model.id === remembered))) {
+    return remembered;
+  }
   const configured = config?.model?.trim();
   if (configured) return configured;
   // The model the CLI's own sessions start on, when the harness still offers it.

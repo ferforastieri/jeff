@@ -31,6 +31,8 @@ interface Props {
   onOpenFile?: (path: string, line?: number) => void;
   quickOpenToken?: number;
   tophControl?: ReactNode;
+  /** The branch control, which sits in the footer's bottom-left corner. */
+  leading?: ReactNode;
 }
 
 function ThemeToggle() {
@@ -193,8 +195,8 @@ function ProjectPicker({ open, onClose, onSelect }: { open: boolean; onClose: ()
   );
 }
 
-/** Fixed workspace bar: open projects on the left, actions and Toph on the right. */
-export default function TopBar({ onOpenProject, onCloseProject, project = null, onOpenFile = () => undefined, quickOpenToken = 0, onOpenAuxiliary, tophControl }: Props) {
+/** Fixed workspace bar at the bottom: the current branch and open projects on the left, actions and Toph on the right. */
+export default function BottomBar({ onOpenProject, onCloseProject, project = null, onOpenFile = () => undefined, quickOpenToken = 0, onOpenAuxiliary, tophControl, leading }: Props) {
   const setSidebar = useApp((state) => state.setSidebar);
   const projects = useApp((state) => state.projects);
   const openProjectIds = useApp((state) => state.openProjectIds);
@@ -221,7 +223,13 @@ export default function TopBar({ onOpenProject, onCloseProject, project = null, 
 
   return (
     <>
-      <header className="relative z-50 mx-1 mt-1 flex h-11 shrink-0 items-center gap-1.5 rounded-3xl border border-border-button-white bg-background-primary-default px-2.5 shadow-sidebar">
+      <footer className="relative z-50 mx-1 mb-1 flex h-11 shrink-0 items-center gap-1.5 rounded-3xl border border-border-button-white bg-background-primary-default px-2.5 shadow-sidebar">
+        {leading ? (
+          <>
+            <div className="flex shrink-0 items-center">{leading}</div>
+            <span className="h-5 w-px shrink-0 bg-separator-border" aria-hidden="true" />
+          </>
+        ) : null}
         <button
           type="button"
           onClick={() => setSidebar("bots")}
@@ -299,7 +307,7 @@ export default function TopBar({ onOpenProject, onCloseProject, project = null, 
         </div>
 
         <div className="flex min-w-0 flex-1 items-center justify-center px-2">
-          <QuickOpen project={project} focusToken={quickOpenToken} onOpenFile={onOpenFile} className="max-w-[320px]" />
+          <QuickOpen project={project} focusToken={quickOpenToken} onOpenFile={onOpenFile} className="max-w-[320px]" placement="above" />
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
@@ -318,7 +326,7 @@ export default function TopBar({ onOpenProject, onCloseProject, project = null, 
           />
           {tophControl}
         </div>
-      </header>
+      </footer>
 
       <ProjectPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={openProject} />
     </>

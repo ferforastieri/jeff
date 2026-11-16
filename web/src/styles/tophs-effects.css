@@ -80,6 +80,13 @@
 }
 
 
+/* The workspace bar is a footer now: desktop notices sit above it. */
+@media (min-width: 641px) {
+  .ac-toasts {
+    bottom: 60px;
+  }
+}
+
 /* On a phone notices sit centred under the header, thin enough not to take
    the screen: the composer and the tab bar stay untouched. */
 @media (max-width: 640px) {

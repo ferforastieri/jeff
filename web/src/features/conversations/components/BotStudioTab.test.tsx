@@ -3,7 +3,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import BotStudioTab from "./BotStudioTab";
 import { DEFAULT_TOPH } from "../../agents/default-toph";
 import { useChats } from "../store";
-import { useAI } from "../../providers/store";
+import { defaultModel, useAI } from "../../providers/store";
 import { useTophDrafts } from "../../agents/drafts";
 import { agentApi, engineApi } from "../../agents/api";
 import type { Project } from "../../../shared/api";
@@ -25,6 +25,7 @@ beforeAll(() => {
   globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
 });
 beforeEach(() => {
+  localStorage.removeItem("toph_preferred_model");
   useChats.setState({ byProject: {}, messageWrites: {} });
   useChats.getState().load(project.id);
   firstId = useChats.getState().createToph(project.id, { ...DEFAULT_TOPH, name: "Fernando", model: "go::deepseek", agentMode: "build" })!.id;
@@ -97,6 +98,31 @@ describe("Toph chat controls", () => {
     expect(screen.queryByText("Equipe", { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Configurar Beto" })).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Mensagem para o agente" })).toBeVisible();
+  });
+
+  it("collapses and expands a provider's models with its chevron", async () => {
+    render(<BotStudioTab project={project} conversationId={chatId} />);
+    fireEvent.click(screen.getByRole("button", { name: "Modelo e consumo" }));
+    const dialog = await screen.findByRole("dialog", { name: "Modelo e consumo" });
+    const openai = within(dialog).getByRole("button", { name: /^OpenAI/ });
+    expect(openai).toHaveAttribute("aria-expanded", "true");
+    expect(within(dialog).getByText("GPT")).toBeVisible();
+
+    fireEvent.click(openai);
+    expect(openai).toHaveAttribute("aria-expanded", "false");
+    expect(within(dialog).queryByText("GPT")).not.toBeInTheDocument();
+
+    fireEvent.click(openai);
+    expect(within(dialog).getByText("GPT")).toBeVisible();
+  });
+
+  it("starts the next task on the model picked here", async () => {
+    render(<BotStudioTab project={project} conversationId={chatId} />);
+    fireEvent.click(screen.getByRole("button", { name: "Modelo e consumo" }));
+    const dialog = await screen.findByRole("dialog", { name: "Modelo e consumo" });
+    fireEvent.click(within(dialog).getByRole("button", { name: /GPT/ }));
+
+    expect(defaultModel(useAI.getState().models, null)).toBe("openai::gpt");
   });
 
   it("shows how much of the plan limit is left", async () => {
