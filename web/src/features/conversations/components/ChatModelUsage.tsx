@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ExternalLink, LoaderCircle, RefreshCw } from "@toph/icons";
+import { Check, ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "@toph/icons";
 import { cx } from "@toph/ui";
 import { engineApi, type UsageLimits, type UsageWindow } from "../../agents/api";
 import ProviderIcon from "../../providers/components/ProviderIcon";
@@ -10,6 +10,7 @@ import {
   modelDisplay,
   modelGroup,
   providerLabel,
+  rememberModel,
   useAI,
 } from "../../providers/store";
 import type { AIModel } from "../../../shared/api";
@@ -74,6 +75,7 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
   const member = tophs[0] ?? null;
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"model" | "usage">("model");
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [limits, setLimits] = useState<UsageLimits | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -149,41 +151,64 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
       model: item.id,
       ...(nextVariants.includes(effort) ? {} : { effort: "" }),
     });
+    // A new task starts on the last model picked here instead of the harness default.
+    rememberModel(item.id);
     setOpen(false);
+  }
+
+  function toggleGroup(provider: string) {
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (next.has(provider)) next.delete(provider);
+      else next.add(provider);
+      return next;
+    });
   }
 
   const modelList = (
     <div className="model-usage-list">
       {groups.length === 0 ? (
         <p className="px-2 py-3 text-caption-1-regular text-text-tertiary">Salve a configuração para carregar os modelos.</p>
-      ) : groups.map(([provider, items]) => (
-        <div key={provider} className="mb-1">
-          <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
-            <span className="truncate">{providerLabel(provider)}</span>
+      ) : groups.map(([provider, items]) => {
+        const expanded = !collapsed.has(provider);
+        return (
+          <div key={provider} className="mb-1">
+            <button
+              type="button"
+              onClick={() => toggleGroup(provider)}
+              aria-expanded={expanded}
+              aria-label={`${providerLabel(provider)} — ${expanded ? "recolher modelos" : "expandir modelos"}`}
+              title={`${expanded ? "Recolher" : "Expandir"} ${providerLabel(provider)}`}
+              className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1 text-start transition-colors hover:bg-background-secondary-hover"
+            >
+              <span className="min-w-0 flex-1 truncate text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">{providerLabel(provider)}</span>
+              <span className="shrink-0 rounded-full bg-background-tertiary-default px-1.5 text-[10px] text-text-tertiary">{items.length}</span>
+              <ChevronDown size={12} className={cx("shrink-0 text-text-tertiary transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]", expanded ? "rotate-180" : "")} />
+            </button>
+            {expanded ? items.map((item) => {
+              const active = item.id === model;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => choose(item)}
+                  className={cx(
+                    "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors",
+                    active
+                      ? "bg-background-secondary-hover text-text-primary"
+                      : "text-text-secondary hover:bg-background-secondary-hover hover:text-text-primary",
+                  )}
+                >
+                  <ProviderIcon provider={modelBrand({ id: item.id, label: item.label ?? item.id, provider: item.provider, connectionLabel: item.connectionLabel })} className="size-3.5 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate text-[12.5px]" title={item.label}>{item.label}</span>
+                  {active && item.variants?.length ? <span className="shrink-0 text-[10px] text-text-tertiary">{effortLabel(effort)}</span> : null}
+                  {active ? <Check size={13} className="shrink-0 text-accent-500" /> : null}
+                </button>
+              );
+            }) : null}
           </div>
-          {items.map((item) => {
-            const active = item.id === model;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => choose(item)}
-                className={cx(
-                  "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors",
-                  active
-                    ? "bg-background-secondary-hover text-text-primary"
-                    : "text-text-secondary hover:bg-background-secondary-hover hover:text-text-primary",
-                )}
-              >
-                <ProviderIcon provider={modelBrand({ id: item.id, label: item.label ?? item.id, provider: item.provider, connectionLabel: item.connectionLabel })} className="size-3.5 shrink-0" />
-                <span className="min-w-0 flex-1 truncate text-[12.5px]" title={item.label}>{item.label}</span>
-                {active && item.variants?.length ? <span className="shrink-0 text-[10px] text-text-tertiary">{effortLabel(effort)}</span> : null}
-                {active ? <Check size={13} className="shrink-0 text-accent-500" /> : null}
-              </button>
-            );
-          })}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 

@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useApp } from "../store";
 import { useSettings } from "../../features/settings/store";
-import TopBar from "./TopBar";
+import BottomBar from "./BottomBar";
 
 const project = (id: string, name: string) => ({
   id,
@@ -33,10 +33,10 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe("TopBar", () => {
+describe("BottomBar", () => {
   it("lists open projects and marks their notifications as read", () => {
     const open = vi.fn();
-    render(<TopBar onOpenProject={open} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
+    render(<BottomBar onOpenProject={open} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
 
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.queryByText("Beta")).not.toBeInTheDocument();
@@ -49,7 +49,7 @@ describe("TopBar", () => {
 
   it("opens the project picker with only projects that are not open", () => {
     const open = vi.fn();
-    render(<TopBar onOpenProject={open} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
+    render(<BottomBar onOpenProject={open} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Abrir projeto" }));
     const dialog = screen.getByRole("dialog");
@@ -62,25 +62,41 @@ describe("TopBar", () => {
   });
 
   it("toggles the theme next to the Toph mark", async () => {
-    render(<TopBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
+    render(<BottomBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
     const toggle = screen.getByRole("button", { name: "Ativar modo claro" });
     fireEvent.click(toggle);
     await waitFor(() => expect(useSettings.getState().theme).toBe("light"));
     expect(screen.getByRole("button", { name: "Abrir configurações" })).toBeInTheDocument();
   });
 
-  it("keeps the workspace actions in the header", () => {
-    render(<TopBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
+  it("keeps the workspace actions in the footer", () => {
+    render(<BottomBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Databases" }));
     expect(useApp.getState().sidebar).toBe("db");
     expect(screen.getByPlaceholderText("Buscar por nome ou conteúdo...")).toBeInTheDocument();
   });
 
+  it("puts the current branch in the bottom-left corner", () => {
+    render(
+      <BottomBar
+        onOpenProject={() => undefined}
+        onCloseProject={() => undefined}
+        onQuickOpen={() => undefined}
+        leading={<button type="button">feature/footer</button>}
+      />,
+    );
+
+    const branch = screen.getByRole("button", { name: "feature/footer" });
+    const footer = branch.closest("footer");
+    expect(footer).not.toBeNull();
+    expect(footer?.firstElementChild).toContainElement(branch);
+  });
+
   it("opens a nav item in the auxiliary area without changing the center", () => {
     useApp.setState({ sidebar: "bots" });
     const openAuxiliary = vi.fn();
-    render(<TopBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} onOpenAuxiliary={openAuxiliary} />);
+    render(<BottomBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} onOpenAuxiliary={openAuxiliary} />);
 
     const databases = screen.getByRole("button", { name: "Databases" });
     fireEvent.contextMenu(databases);

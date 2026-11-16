@@ -10,7 +10,7 @@ import {
   Undo2,
 } from "@toph/icons";
 import { api, type GitState, type Project } from "../../../shared/api";
-import { expandGitPattern, sanitizeBranchName } from "../../../shared/lib";
+import { expandGitPattern } from "../../../shared/lib";
 import { suggestGitChanges } from "../ai";
 import { parseGitStatus, statusLabel } from "../status";
 import { useSettings } from "../../settings/store";
@@ -42,7 +42,6 @@ interface Props {
   embedded?: boolean;
   onStatusChange?: (status: string) => void;
   view?: "full" | "changes" | "commit" | "scm";
-  branchControl?: ReactNode;
   headerControl?: ReactNode;
 }
 
@@ -52,7 +51,6 @@ export default function SourceControlPanel({
   embedded = false,
   onStatusChange,
   view = "full",
-  branchControl,
   headerControl,
 }: Props) {
   const notify = useApp((state) => state.notify);
@@ -65,7 +63,6 @@ export default function SourceControlPanel({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
-  const showBranch = view === "full" || view === "scm";
   const showCommit = view !== "changes";
   const showChanges = view !== "commit";
 
@@ -184,40 +181,6 @@ export default function SourceControlPanel({
     }
   }
 
-  async function createBranch() {
-    setBusy("branch");
-    try {
-      const diff = await collectDiff(false);
-      const suggestion = await suggestGitChanges(aiConfig, diff, parsed.branch);
-      const base = sanitizeBranchName(expandGitPattern(settings.gitBranchPattern, {
-        repo: project.name,
-        branch: parsed.branch,
-        user: user?.username ?? "",
-        task: suggestion.task,
-        slug: suggestion.slug || "update",
-        summary: suggestion.summary,
-      }));
-      let name = base;
-      for (let attempt = 2; attempt < 8; attempt += 1) {
-        try {
-          const created = await api.gitCreateBranch(project.id, name);
-          await load();
-          notify("success", `Branch ${created} created and checked out.`);
-          return;
-        } catch (err) {
-          const text = err instanceof Error ? err.message : "";
-          if (!/already exists|já existe/i.test(text)) throw err;
-          name = `${base}-${attempt}`;
-        }
-      }
-      throw new Error("Could not create a unique branch name.");
-    } catch (err) {
-      notify("error", err instanceof Error ? err.message : "Could not create branch.");
-    } finally {
-      setBusy("");
-    }
-  }
-
   async function discard(paths: string[], stagedChange: boolean) {
     if (!paths.length) return;
     const ok = await confirm({
@@ -277,12 +240,6 @@ export default function SourceControlPanel({
     <div className="flex min-h-0 flex-col">
       {!embedded && (
         <SidebarHeader control={headerControl} icon={<GitBranch size={15} className="text-accent-500" />} title="Source Control" />
-      )}
-      {showBranch && (
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b px-2 py-1.5">
-          {branchControl ? <div className="min-w-0 flex-1">{branchControl}</div> : <><GitBranch size={13} className="shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate text-xs">{parsed.branch || "detached"}</span></>}
-          {!branchControl ? <Button variant="ghost" size="xs" aria-label="Create branch from pattern" disabled={Boolean(busy)} onClick={() => void createBranch()}><GitBranch size={13} /></Button> : null}
-        </div>
       )}
       {merging ? (
         <div className="mx-2 mt-1.5 rounded-md border border-status-amber-border bg-status-amber-bg px-2 py-1.5">
