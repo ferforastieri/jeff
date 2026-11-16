@@ -237,11 +237,7 @@ impl DebugSession {
         } else if self.paused.load(Ordering::SeqCst) {
             // debugpy stays on the last stopped thread. Continue it so a
             // browser that went away never leaves the project frozen.
-            let thread = self
-                .last_thread
-                .lock()
-                .ok()
-                .and_then(|value| *value);
+            let thread = self.last_thread.lock().ok().and_then(|value| *value);
             if let Some(thread_id) = thread {
                 let _ = self.write_dap(&json!({
                     "seq": 9_000_001,
@@ -456,7 +452,9 @@ fn start_python(
         command.env("PYTHONPATH", path);
     }
     let mut child = command.spawn().map_err(|error| {
-        AppError::BadRequest(format!("could not launch the Python debug adapter: {error}"))
+        AppError::BadRequest(format!(
+            "could not launch the Python debug adapter: {error}"
+        ))
     })?;
     let stdout = child.stdout.take();
     let stderr = child.stderr.take();
@@ -513,7 +511,11 @@ fn python_adapter() -> AppResult<(String, Option<String>)> {
     if let Some(path) = &pythonpath {
         check.env("PYTHONPATH", path);
     }
-    if !check.status().map(|status| status.success()).unwrap_or(false) {
+    if !check
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
+    {
         return Err(AppError::BadRequest(
             "debugpy não está instalado no servidor. Reinstale o Toph com o pacote de debug ou defina TOPH_DEBUGPY_PATH."
                 .into(),

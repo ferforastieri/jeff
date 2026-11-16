@@ -221,7 +221,8 @@ fn preview_router_basepath(js: &str, prefix: &str) -> String {
     if !js.contains(needle) {
         return js.to_string();
     }
-    let basepath = serde_json::to_string(prefix.trim_end_matches('/')).unwrap_or_else(|_| "\"\"".into());
+    let basepath =
+        serde_json::to_string(prefix.trim_end_matches('/')).unwrap_or_else(|_| "\"\"".into());
     let mut out = String::with_capacity(js.len() + 32);
     let mut rest = js;
     let mut injected = false;
@@ -229,7 +230,10 @@ fn preview_router_basepath(js: &str, prefix: &str) -> String {
         let before = &rest[..index];
         let line_start = before.rfind('\n').map(|position| position + 1).unwrap_or(0);
         let line = &before[line_start..];
-        let app_router = !injected && (line.contains("const router") || line.contains("let router") || line.contains("var router"));
+        let app_router = !injected
+            && (line.contains("const router")
+                || line.contains("let router")
+                || line.contains("var router"));
         out.push_str(&rest[..index + needle.len()]);
         if app_router {
             out.push_str(&format!(" basepath: {basepath},"));
@@ -811,11 +815,19 @@ mod preview_proxy_tests {
             "/api/web-preview/token/app/"
         );
         assert_eq!(
-            preview_redirect_location("http://localhost:5173/app/", prefix, "http://localhost:5173"),
+            preview_redirect_location(
+                "http://localhost:5173/app/",
+                prefix,
+                "http://localhost:5173"
+            ),
             "/api/web-preview/token/app/"
         );
         assert_eq!(
-            preview_redirect_location("/api/web-preview/token/app/", prefix, "http://localhost:5173"),
+            preview_redirect_location(
+                "/api/web-preview/token/app/",
+                prefix,
+                "http://localhost:5173"
+            ),
             "/api/web-preview/token/app/"
         );
         assert_eq!(
@@ -830,7 +842,10 @@ mod preview_proxy_tests {
         let out = preview_router_basepath(js, "/api/web-preview/token");
         assert!(out.contains("createRouter({ basepath: \"/api/web-preview/token\","));
         let configured = "const router = createRouter({ basepath: \"/app\", routeTree });";
-        assert_eq!(preview_router_basepath(configured, "/api/web-preview/token"), configured);
+        assert_eq!(
+            preview_router_basepath(configured, "/api/web-preview/token"),
+            configured
+        );
         let other = "createRouter({});";
         assert!(!preview_router_basepath(other, "/api/web-preview/token").contains("basepath"));
     }
