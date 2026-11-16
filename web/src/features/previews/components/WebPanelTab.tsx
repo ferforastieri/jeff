@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, CircleAlert, ExternalLink, RefreshCw } from "@toph/icons";
 import { webPreviewUrl } from "../../../shared/api";
 import { normalizeHttpUrl } from "../../../shared/lib";
@@ -12,6 +12,9 @@ export default function WebPanelTab({ tab }: { tab: Tab }) {
   const [draftUrl, setDraftUrl] = useState(tab.url ?? "");
   const [activeUrl, setActiveUrl] = useState(tab.url ?? "");
   const [previewError, setPreviewError] = useState("");
+  const [blankPreview, setBlankPreview] = useState(false);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const blankTimer = useRef(0);
 
   useEffect(() => {
     setDraftUrl(tab.url ?? "");
@@ -27,6 +30,7 @@ export default function WebPanelTab({ tab }: { tab: Tab }) {
     const controller = new AbortController();
     let cancelled = false;
     setPreviewError("");
+    setBlankPreview(false);
     void fetch(webPreviewUrl(activeUrl), { credentials: "include", signal: controller.signal })
       .then(async (response) => {
         if (cancelled || response.ok) return;
@@ -47,8 +51,23 @@ export default function WebPanelTab({ tab }: { tab: Tab }) {
     if (!next) return;
     setDraftUrl(next);
     setActiveUrl(next);
+    setPreviewError("");
+    setBlankPreview(false);
     setReloadKey((value) => value + 1);
   }
+
+  function inspectFrame() {
+    window.clearTimeout(blankTimer.current);
+    blankTimer.current = window.setTimeout(() => {
+      const document = frameRef.current?.contentDocument;
+      if (!document) return;
+      const text = document.body?.innerText?.trim() ?? "";
+      const painted = document.querySelector("canvas, svg, video, img, iframe");
+      setBlankPreview(!text && !painted);
+    }, 2500);
+  }
+
+  useEffect(() => () => window.clearTimeout(blankTimer.current), []);
 
   if (!activeUrl) return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Nenhuma URL configurada.</div>;
   const serverLocal = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/i.test(activeUrl);
@@ -83,11 +102,19 @@ export default function WebPanelTab({ tab }: { tab: Tab }) {
           O preview abre pelo servidor Toph: <code>localhost</code> aqui é o servidor, não o seu computador. Se o dev server roda na sua máquina, use o endereço original ou exponha-o na rede/túnel.
         </p>
       ) : null}
+      {blankPreview && !previewError ? (
+        <div className="flex shrink-0 items-start gap-2 border-b border-separator-border bg-background-secondary-default px-2 py-1.5 text-caption-1-regular text-status-yellow-text">
+          <CircleAlert size={14} className="mt-0.5 shrink-0" />
+          <span className="min-w-0 flex-1">A página carregou, mas o app não desenhou nada. Ele pode depender de WebSocket (HMR/socket) ou de rotas na raiz; use “Abrir endereço original” para conferir.</span>
+        </div>
+      ) : null}
       <iframe
+        ref={frameRef}
         key={`${activeUrl}:${reloadKey}`}
         className="min-h-0 w-full flex-1 border-0 bg-background"
         src={webPreviewUrl(activeUrl)}
         title={tab.title}
+        onLoad={inspectFrame}
         sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-same-origin"
         referrerPolicy="no-referrer"
       />
