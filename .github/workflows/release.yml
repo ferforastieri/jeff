@@ -211,9 +211,10 @@ jobs:
 
   android:
     needs: prepare
-    # The phone's update toast downloads an APK. A release without one leaves
-    # the mobile client stuck on "no APK", even when only the server changed.
-    if: needs.prepare.outputs.release == 'true'
+    # The phone downloads the newest APK available (the server falls back to the
+    # latest release that shipped one); rebuild only when the Android shell or
+    # its shared packages actually change.
+    if: needs.prepare.outputs.release == 'true' && needs.prepare.outputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

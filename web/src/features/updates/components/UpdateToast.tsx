@@ -57,6 +57,31 @@ async function downloadApk(url: string, version: string) {
   link.remove();
 }
 
+function versions(left: string, right: string): number {
+  const a = left.replace(/^v/i, "").split(".").map(Number);
+  const b = right.replace(/^v/i, "").split(".").map(Number);
+  for (let index = 0; index < 3; index += 1) {
+    const x = Number.isFinite(a[index]) ? a[index] : 0;
+    const y = Number.isFinite(b[index]) ? b[index] : 0;
+    if (x !== y) return x < y ? -1 : 1;
+  }
+  return 0;
+}
+
+function apkVersion(url: string): string {
+  return /toph-v?(\d+\.\d+\.\d+)\.apk/i.exec(url)?.[1] ?? "";
+}
+
+async function installedAppVersion(): Promise<string> {
+  const internals = (window as unknown as { __TAURI_INTERNALS__?: TauriInternals }).__TAURI_INTERNALS__;
+  if (!internals?.invoke) return "";
+  try {
+    return String(await internals.invoke("plugin:app|version"));
+  } catch {
+    return "";
+  }
+}
+
 function isMobile(): boolean {
   return isMobileViewport();
 }
@@ -167,16 +192,11 @@ export default function UpdateToast() {
 
     setPhase("updating");
     setError("");
-    setDetail(mobileClient ? "Baixando o APK…" : installer ? "Baixando o instalador…" : "Atualizando o servidor…");
+    setDetail(mobileClient || !installer ? "Atualizando o servidor…" : "Baixando o instalador…");
     try {
       if (mobileClient) {
-        if (!status.apkUrl) {
-          setPhase("error");
-          setError("Esta versão não publicou um APK. Baixe pela página de releases do projeto.");
-          return;
-        }
-        // The phone also asks the server to update itself; the APK is the app's
-        // own new version, the server is where the release is served from.
+        // The server always updates, even when this release carries no APK:
+        // the APK is only the native shell's next version.
         let serverError = "";
         try {
           await api.startUpdate();
@@ -185,14 +205,33 @@ export default function UpdateToast() {
             serverError = err instanceof Error ? err.message : "O servidor não pôde ser atualizado.";
           }
         }
-        await downloadApk(status.apkUrl, target);
-        // The APK opens outside the app: say what happened and let the toast go.
-        useApp.getState().notify(
-          "info",
-          serverError
-            ? `Download do APK aberto. O servidor não pôde ser atualizado: ${serverError}`
-            : "Download do APK aberto e servidor atualizando. Autorize a instalação de apps desconhecidos, se pedido.",
-        );
+        const apkUrl = status.apkUrl ?? "";
+        const installed = await installedAppVersion();
+        const available = apkVersion(apkUrl);
+        const download = Boolean(apkUrl) && (!installed || !available || versions(available, installed) > 0);
+        if (download) {
+          await downloadApk(apkUrl, available || target);
+          useApp.getState().notify(
+            "info",
+            serverError
+              ? `Download do APK aberto. O servidor não pôde ser atualizado: ${serverError}`
+              : "Download do APK aberto e servidor atualizando. Autorize a instalação de apps desconhecidos, se pedido.",
+          );
+        } else if (apkUrl) {
+          useApp.getState().notify(
+            serverError ? "error" : "info",
+            serverError
+              ? `O servidor não pôde ser atualizado: ${serverError}`
+              : "Servidor atualizando. O app já está na versão mais recente disponível.",
+          );
+        } else {
+          useApp.getState().notify(
+            serverError ? "error" : "info",
+            serverError
+              ? `O servidor não pôde ser atualizado: ${serverError}`
+              : "Servidor atualizando. Esta release não trouxe APK; o app continua na versão instalada.",
+          );
+        }
         setPhase("idle");
         setDetail("");
         setStatus(null);
