@@ -319,13 +319,6 @@ async fn preview_proxy(
     if let Some(query) = &query {
         target.set_query(Some(query));
     }
-    let origin = {
-        let mut origin = target.clone();
-        origin.set_path("");
-        origin.set_query(None);
-        origin.set_fragment(None);
-        origin.as_str().trim_end_matches('/').to_string()
-    };
     let prefix = format!("/api/web-preview/{token}");
     let mut outgoing = state.preview_http.request(method.clone(), target.clone());
     for name in [
@@ -365,6 +358,16 @@ async fn preview_proxy(
                 StatusCode::BAD_GATEWAY,
             );
         }
+    };
+    // A dev server may redirect (Vite's `/` -> `/app/`, localhost -> 127.0.0.1).
+    // Rewrite against the URL that actually answered, not the one we asked for.
+    let final_url = response.url().clone();
+    let origin = {
+        let mut origin = final_url.clone();
+        origin.set_path("");
+        origin.set_query(None);
+        origin.set_fragment(None);
+        origin.as_str().trim_end_matches('/').to_string()
     };
     let status = response.status();
     let content_type = response
@@ -406,7 +409,7 @@ async fn preview_proxy(
     let rewritten = if !rewrite {
         None
     } else if lower_type.contains("text/html") {
-        let entry_path = target.path();
+        let entry_path = final_url.path();
         let directory = if entry_path.ends_with('/') {
             entry_path.to_string()
         } else {
@@ -440,7 +443,7 @@ async fn preview_proxy(
         .header(header::CACHE_CONTROL, "no-store");
     if let Some(location) = location {
         // A local app redirect keeps the browser inside the proxy prefix.
-        let location = location.replace(&origin, &prefix);
+        let location = preview_redirect_location(&location, &prefix, &origin);
         builder = builder.header(header::LOCATION, location);
     }
     for cookie in set_cookies {
@@ -632,6 +635,18 @@ fn preview_redirect(location: String) -> Response {
         .unwrap_or_else(|_| StatusCode::BAD_GATEWAY.into_response())
 }
 
+/// Keeps an app's redirect inside the proxy prefix. Dev servers often answer
+/// `Location: /app/`; without this the iframe would leave the preview and load
+/// the Toph app instead.
+fn preview_redirect_location(location: &str, prefix: &str, origin: &str) -> String {
+    let location = location.replace(origin, prefix);
+    if location.starts_with('/') && !location.starts_with(prefix) {
+        format!("{prefix}{location}")
+    } else {
+        location
+    }
+}
+
 pub(super) async fn web_preview(
     State(state): State<Arc<AppState>>,
     Query(query): Query<WebPreviewQuery>,
@@ -753,5 +768,26 @@ mod preview_proxy_tests {
         let replacement = if token.ends_with('0') { "1" } else { "0" };
         let forged = format!("{}{}", &token[..token.len() - 1], replacement);
         assert!(preview_origin_from_token(&forged).is_none());
+    }
+
+    #[test]
+    fn root_relative_redirect_stays_inside_the_preview_prefix() {
+        let prefix = "/api/web-preview/token";
+        assert_eq!(
+            preview_redirect_location("/app/", prefix, "http://localhost:5173"),
+            "/api/web-preview/token/app/"
+        );
+        assert_eq!(
+            preview_redirect_location("http://localhost:5173/app/", prefix, "http://localhost:5173"),
+            "/api/web-preview/token/app/"
+        );
+        assert_eq!(
+            preview_redirect_location("/api/web-preview/token/app/", prefix, "http://localhost:5173"),
+            "/api/web-preview/token/app/"
+        );
+        assert_eq!(
+            preview_redirect_location("https://example.com/x", prefix, "http://localhost:5173"),
+            "https://example.com/x"
+        );
     }
 }
