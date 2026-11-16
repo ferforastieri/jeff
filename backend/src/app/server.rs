@@ -790,7 +790,7 @@ fn router(state: Arc<AppState>) -> Router {
             "/api/projects/{project_id}/debug/release",
             post(release_debug),
         )
-        .route("/api/repos", get(list_repos))
+        .route("/api/repos", get(list_repos).post(create_repo))
         .route(
             "/api/workspaces/roots",
             get(list_workspace_roots)

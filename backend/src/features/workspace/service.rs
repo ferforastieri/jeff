@@ -365,6 +365,37 @@ impl WorkspaceService {
         Ok(files)
     }
 
+    /// Creates a new folder under a workspace root and, optionally, turns it
+    /// into a Git repository, so a project can start from an empty folder
+    /// without leaving the app.
+    pub async fn create_repo(
+        &self,
+        parent: &str,
+        name: &str,
+        init_git: bool,
+    ) -> AppResult<Repository> {
+        let parent = self.validate_root(Path::new(parent))?;
+        let name = validate_repo_name(name)?;
+        let path = parent.join(&name);
+        if path.exists() {
+            return Err(AppError::Conflict);
+        }
+        fs::create_dir(&path)?;
+        if init_git {
+            if let Err(error) = git_output(&path, &["init"]).await {
+                // A half-created folder would block the retry with a conflict.
+                let _ = fs::remove_dir_all(&path);
+                return Err(error);
+            }
+        }
+        Ok(Repository {
+            relative: name.clone(),
+            name,
+            path: path.to_string_lossy().to_string(),
+            root: parent.to_string_lossy().to_string(),
+        })
+    }
+
     pub fn find_repos(&self, query: &str, limit: usize) -> Vec<Repository> {
         let limit = if limit == 0 || limit > 500 {
             200
@@ -871,6 +902,31 @@ fn search_blocking(root: &Path, query: &str, max_results: usize) -> AppResult<Ve
     Ok(matches)
 }
 
+/// A new repository is one folder directly under a workspace root: a single
+/// path segment, never a dotted name (`.git`, `..`) and no separators.
+fn validate_repo_name(name: &str) -> AppResult<String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(crate::errors::bad_request("informe um nome para a pasta"));
+    }
+    let clean =
+        safe_relative(name).map_err(|_| crate::errors::bad_request("nome de pasta inválido"))?;
+    let mut components = clean.components();
+    let (Some(Component::Normal(value)), None) = (components.next(), components.next()) else {
+        return Err(crate::errors::bad_request(
+            "o nome deve ser uma única pasta, sem barras",
+        ));
+    };
+    let value = value.to_string_lossy().to_string();
+    if value.starts_with('.') || value.chars().any(char::is_control) {
+        return Err(crate::errors::bad_request("nome de pasta inválido"));
+    }
+    if value.len() > 64 {
+        return Err(crate::errors::bad_request("o nome da pasta é longo demais"));
+    }
+    Ok(value)
+}
+
 fn validate_git_path(path: &str) -> AppResult<String> {
     let clean = safe_relative(path)?;
     if clean.as_os_str().is_empty() {
@@ -930,5 +986,48 @@ mod tests {
         let files = service.files(dir.path(), "*", 100).unwrap();
         assert!(files.contains(&"a.txt".to_string()));
         assert!(files.contains(&"src/b.ts".to_string()));
+    }
+
+    #[tokio::test]
+    async fn create_repo_makes_a_folder_under_the_root() {
+        let dir = tempfile::tempdir().unwrap();
+        let service = WorkspaceService::new(vec![dir.path().to_path_buf()]).unwrap();
+        let root = dir.path().to_string_lossy().to_string();
+        let repo = service
+            .create_repo(&root, "  novo-projeto  ", false)
+            .await
+            .unwrap();
+        assert_eq!(repo.name, "novo-projeto");
+        assert_eq!(repo.relative, "novo-projeto");
+        assert!(dir.path().join("novo-projeto").is_dir());
+        assert!(!dir.path().join("novo-projeto/.git").exists());
+        // The same name cannot be created twice.
+        assert!(matches!(
+            service.create_repo(&root, "novo-projeto", false).await,
+            Err(AppError::Conflict)
+        ));
+    }
+
+    #[tokio::test]
+    async fn create_repo_rejects_names_that_are_not_one_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let service = WorkspaceService::new(vec![dir.path().to_path_buf()]).unwrap();
+        let root = dir.path().to_string_lossy().to_string();
+        for name in ["", "  ", ".", "..", ".git", "a/b", "../fora", "/abs"] {
+            assert!(
+                service.create_repo(&root, name, false).await.is_err(),
+                "{name:?} should be rejected"
+            );
+        }
+        assert!(!dir.path().join("fora").exists());
+    }
+
+    #[tokio::test]
+    async fn create_repo_initializes_git_when_asked() {
+        let dir = tempfile::tempdir().unwrap();
+        let service = WorkspaceService::new(vec![dir.path().to_path_buf()]).unwrap();
+        let root = dir.path().to_string_lossy().to_string();
+        let repo = service.create_repo(&root, "com-git", true).await.unwrap();
+        assert!(std::path::Path::new(&repo.path).join(".git").is_dir());
     }
 }
