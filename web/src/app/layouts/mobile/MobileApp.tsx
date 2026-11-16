@@ -12,7 +12,7 @@ import BotStudioTab from "../../../features/conversations/components/BotStudioTa
 import DbPanelTab from "../../../features/databases/components/DbPanelTab";
 import DiffPanelTab from "../../../features/editor/components/DiffPanelTab";
 import EditorPanel from "../../../features/editor/components/EditorPanel";
-import DebugPanel from "../../../features/debug/components/DebugPanel";
+import DebugStudio from "../../../features/debug/components/DebugStudio";
 import WebPanelTab from "../../../features/previews/components/WebPanelTab";
 import Tabs from "../../components/Tabs";
 import TerminalPanel from "../../../features/terminal/components/TerminalPanel";
@@ -417,7 +417,7 @@ export default function MobileApp() {
         ) : screen === "web" ? (
           <WebAppsScreen onOpenWeb={openWeb} />
         ) : screen === "debug" ? (
-          <DebugPanel project={project} mobile />
+          <DebugStudio key={project.id} project={project} mobile />
         ) : screen === "more" ? (
           <MobileMoreScreen
             activeTitle={activeTab?.title}

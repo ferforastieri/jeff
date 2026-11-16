@@ -59,6 +59,8 @@ pub struct DebugSession {
     stdin: Mutex<Option<ChildStdin>>,
     output: Mutex<Vec<u8>>,
     output_tx: broadcast::Sender<Vec<u8>>,
+    dap_tx: broadcast::Sender<String>,
+    last_thread: Mutex<Option<i64>>,
     pub paused: AtomicBool,
     pub clients: AtomicUsize,
     last_disconnect: Mutex<Instant>,
@@ -232,12 +234,21 @@ impl DebugSession {
             if let Some(url) = url {
                 let _ = resume_node(&url).await;
             }
-        } else if let Some(stdin) = self.stdin.lock().ok().and_then(|mut stdin| stdin.take()) {
-            let mut stdin = stdin;
-            let _ = stdin.write_all(b"continue\n");
-            let _ = stdin.flush();
-            if let Ok(mut slot) = self.stdin.lock() {
-                *slot = Some(stdin);
+        } else if self.paused.load(Ordering::SeqCst) {
+            // debugpy stays on the last stopped thread. Continue it so a
+            // browser that went away never leaves the project frozen.
+            let thread = self
+                .last_thread
+                .lock()
+                .ok()
+                .and_then(|value| *value);
+            if let Some(thread_id) = thread {
+                let _ = self.write_dap(&json!({
+                    "seq": 9_000_001,
+                    "type": "request",
+                    "command": "continue",
+                    "arguments": { "threadId": thread_id }
+                }));
             }
         }
         self.paused.store(false, Ordering::SeqCst);
@@ -267,22 +278,30 @@ impl DebugSession {
         Ok((initial, self.output_tx.subscribe()))
     }
 
+    pub fn subscribe_dap(&self) -> AppResult<broadcast::Receiver<String>> {
+        Ok(self.dap_tx.subscribe())
+    }
+
     pub fn client_disconnected(&self) {
         if let Ok(mut last) = self.last_disconnect.lock() {
             *last = Instant::now();
         }
     }
 
-    pub fn write_command(&self, command: &str) -> AppResult<()> {
+    /// Sends a DAP request to the Python adapter. The browser speaks JSON over
+    /// the socket; the adapter speaks the same messages with the DAP frame.
+    pub fn write_dap(&self, value: &Value) -> AppResult<()> {
+        let body = serde_json::to_vec(value)
+            .map_err(|error| crate::errors::internal(error.to_string()))?;
         let mut guard = self
             .stdin
             .lock()
             .map_err(|_| crate::errors::internal("debug stdin"))?;
         let Some(stdin) = guard.as_mut() else {
-            return Err(AppError::BadRequest("debug process has no stdin".into()));
+            return Err(AppError::BadRequest("debug adapter has no stdin".into()));
         };
-        stdin.write_all(command.as_bytes())?;
-        stdin.write_all(b"\n")?;
+        stdin.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
+        stdin.write_all(&body)?;
         stdin.flush()?;
         Ok(())
     }
@@ -420,31 +439,25 @@ fn start_python(
     project_id: &str,
     cwd: &Path,
     mode: &str,
-    input: &DebugStartInput,
+    _input: &DebugStartInput,
 ) -> AppResult<Arc<DebugSession>> {
-    if mode == "attach" {
-        return Err(AppError::BadRequest(
-            "Python attach still requires a DAP adapter. Use launch with Python.".into(),
-        ));
-    }
-    let script = python_script(&input.command);
-    if script.is_empty() {
-        return Err(AppError::BadRequest(
-            "launch requires a Python script".into(),
-        ));
-    }
-    let python = which_python();
+    // One adapter for both launch and attach: the browser sends the DAP
+    // `launch`/`attach` request with the program or the address.
+    let (python, pythonpath) = python_adapter()?;
     let mut command = Command::new(&python);
     command
-        .args(["-u", "-m", "pdb"])
-        .arg(&script)
+        .args(["-m", "debugpy.adapter"])
         .current_dir(cwd)
+        .env("PYDEVD_DISABLE_FILE_VALIDATION", "1")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let mut child = command
-        .spawn()
-        .map_err(|error| AppError::BadRequest(format!("could not launch Python: {error}")))?;
+    if let Some(path) = &pythonpath {
+        command.env("PYTHONPATH", path);
+    }
+    let mut child = command.spawn().map_err(|error| {
+        AppError::BadRequest(format!("could not launch the Python debug adapter: {error}"))
+    })?;
     let stdout = child.stdout.take();
     let stderr = child.stderr.take();
     let stdin = child.stdin.take();
@@ -452,14 +465,14 @@ fn start_python(
         project_id,
         "python",
         mode,
-        &format!("{} {}", python, script),
+        "debugpy",
         None,
         Some(child),
         stdin,
         None,
     );
     if let Some(stdout) = stdout {
-        spawn_reader(session.clone(), stdout);
+        spawn_dap_reader(session.clone(), stdout);
     }
     if let Some(stderr) = stderr {
         spawn_reader(session.clone(), stderr);
@@ -467,18 +480,116 @@ fn start_python(
     Ok(session)
 }
 
-fn python_script(command: &str) -> String {
-    let trimmed = command.trim();
-    if trimmed.is_empty() {
-        return String::new();
+/// The Python adapter is bundled in the image under /usr/local/lib/toph (or in
+/// the data dir for a source install). `TOPH_DEBUGPY_PATH` overrides both.
+fn python_adapter() -> AppResult<(String, Option<String>)> {
+    let python = std::env::var("TOPH_DEBUG_PYTHON")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(which_python);
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(path) = std::env::var("TOPH_DEBUGPY_PATH") {
+        if !path.trim().is_empty() {
+            candidates.push(PathBuf::from(path));
+        }
     }
-    let mut parts = trimmed.split_whitespace();
-    let first = parts.next().unwrap_or_default();
-    if first == "python" || first == "python3" {
-        parts.collect::<Vec<_>>().join(" ")
-    } else {
-        trimmed.to_string()
+    candidates.push(PathBuf::from("/usr/local/lib/toph/debug-adapters/python"));
+    if let Ok(dir) = std::env::var("TOPH_DATA_DIR") {
+        if !dir.trim().is_empty() {
+            candidates.push(PathBuf::from(dir).join("debug-adapters/python"));
+        }
     }
+    let pythonpath = candidates
+        .into_iter()
+        .find(|path| path.join("debugpy").is_dir())
+        .map(|path| path.to_string_lossy().to_string());
+    let mut check = Command::new(&python);
+    check
+        .args(["-c", "import debugpy"])
+        .env("PYDEVD_DISABLE_FILE_VALIDATION", "1")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    if let Some(path) = &pythonpath {
+        check.env("PYTHONPATH", path);
+    }
+    if !check.status().map(|status| status.success()).unwrap_or(false) {
+        return Err(AppError::BadRequest(
+            "debugpy não está instalado no servidor. Reinstale o Toph com o pacote de debug ou defina TOPH_DEBUGPY_PATH."
+                .into(),
+        ));
+    }
+    Ok((python, pythonpath))
+}
+
+fn spawn_dap_reader<R: Read + Send + 'static>(session: Arc<DebugSession>, mut reader: R) {
+    thread::spawn(move || {
+        let mut buffer: Vec<u8> = Vec::new();
+        let mut chunk = [0u8; 16 * 1024];
+        loop {
+            let count = match reader.read(&mut chunk) {
+                Ok(0) => break,
+                Ok(count) => count,
+                Err(_) => break,
+            };
+            buffer.extend_from_slice(&chunk[..count]);
+            loop {
+                let Some(header_end) = find_bytes(&buffer, b"\r\n\r\n") else {
+                    break;
+                };
+                let header = String::from_utf8_lossy(&buffer[..header_end]).to_string();
+                let length = header.lines().find_map(|line| {
+                    let (name, value) = line.split_once(':')?;
+                    if name.eq_ignore_ascii_case("Content-Length") {
+                        value.trim().parse::<usize>().ok()
+                    } else {
+                        None
+                    }
+                });
+                let Some(length) = length else {
+                    buffer.drain(..header_end + 4);
+                    continue;
+                };
+                if buffer.len() < header_end + 4 + length {
+                    break;
+                }
+                let body = buffer[header_end + 4..header_end + 4 + length].to_vec();
+                buffer.drain(..header_end + 4 + length);
+                let Ok(value) = serde_json::from_slice::<Value>(&body) else {
+                    continue;
+                };
+                match value.get("event").and_then(Value::as_str) {
+                    Some("stopped") => {
+                        session.paused.store(true, Ordering::SeqCst);
+                        if let Some(thread) = value
+                            .get("body")
+                            .and_then(|body| body.get("threadId"))
+                            .and_then(Value::as_i64)
+                        {
+                            if let Ok(mut slot) = session.last_thread.lock() {
+                                *slot = Some(thread);
+                            }
+                        }
+                    }
+                    Some("continued") | Some("terminated") | Some("exited") => {
+                        session.paused.store(false, Ordering::SeqCst);
+                    }
+                    _ => {}
+                }
+                let _ = session.dap_tx.send(value.to_string());
+            }
+        }
+        // The adapter is gone: the session must not be restored as if it were
+        // still alive on the next page load.
+        session.paused.store(false, Ordering::SeqCst);
+        session.closed.store(true, Ordering::SeqCst);
+    });
+}
+
+fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
 }
 
 fn which_python() -> String {
@@ -514,6 +625,7 @@ fn new_session(
     _unused: Option<()>,
 ) -> Arc<DebugSession> {
     let (output_tx, _) = broadcast::channel(256);
+    let (dap_tx, _) = broadcast::channel(256);
     Arc::new(DebugSession {
         id: new_id(),
         project_id: project_id.to_string(),
@@ -525,7 +637,9 @@ fn new_session(
         stdin: Mutex::new(stdin),
         output: Mutex::new(Vec::new()),
         output_tx,
-        paused: AtomicBool::new(language == "python"),
+        dap_tx,
+        last_thread: Mutex::new(None),
+        paused: AtomicBool::new(false),
         clients: AtomicUsize::new(0),
         last_disconnect: Mutex::new(Instant::now()),
         closed: AtomicBool::new(false),
@@ -660,19 +774,9 @@ pub async fn proxy_node(session: Arc<DebugSession>, socket: axum::extract::ws::W
 }
 
 pub async fn proxy_python(session: Arc<DebugSession>, mut socket: axum::extract::ws::WebSocket) {
-    let Ok((initial, mut output)) = session.subscribe() else {
+    let Ok(mut events) = session.subscribe_dap() else {
         return;
     };
-    if !initial.is_empty()
-        && socket
-            .send(axum::extract::ws::Message::Text(
-                String::from_utf8_lossy(&initial).to_string().into(),
-            ))
-            .await
-            .is_err()
-    {
-        return;
-    }
     let mut heartbeat = tokio::time::interval(Duration::from_secs(2));
     loop {
         tokio::select! {
@@ -680,24 +784,23 @@ pub async fn proxy_python(session: Arc<DebugSession>, mut socket: axum::extract:
                 match incoming {
                     Some(Ok(axum::extract::ws::Message::Text(text))) => {
                         if let Ok(value) = serde_json::from_str::<Value>(&text) {
-                            if let Some(command) = value.get("command").and_then(Value::as_str) {
-                                let _ = session.write_command(command);
-                                if matches!(command, "continue" | "c" | "next" | "n" | "step" | "s" | "return" | "r") {
-                                    session.paused.store(false, Ordering::SeqCst);
-                                }
-                            }
+                            let _ = session.write_dap(&value);
                         }
+                    }
+                    Some(Ok(axum::extract::ws::Message::Ping(data))) => {
+                        let _ = socket.send(axum::extract::ws::Message::Pong(data)).await;
                     }
                     Some(Ok(axum::extract::ws::Message::Close(_))) | None => break,
                     Some(Err(_)) => break,
                     _ => {}
                 }
             }
-            data = output.recv() => {
-                match data {
-                    Ok(data) => {
-                        let text = String::from_utf8_lossy(&data).to_string();
-                        if socket.send(axum::extract::ws::Message::Text(text.into())).await.is_err() { break; }
+            event = events.recv() => {
+                match event {
+                    Ok(text) => {
+                        if socket.send(axum::extract::ws::Message::Text(text.into())).await.is_err() {
+                            break;
+                        }
                     }
                     Err(broadcast::error::RecvError::Lagged(_)) => continue,
                     Err(broadcast::error::RecvError::Closed) => break,

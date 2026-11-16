@@ -47,7 +47,14 @@ pub(super) async fn get_debug_session(
     Path(project_id): Path<String>,
 ) -> Json<Value> {
     match state.debug.get(&project_id) {
-        Some(session) => Json(json!({ "session": session.info() })),
+        Some(session) => {
+            let info = session.info();
+            if info.status == "stopped" {
+                Json(json!({ "session": null }))
+            } else {
+                Json(json!({ "session": info }))
+            }
+        }
         None => Json(json!({ "session": null })),
     }
 }

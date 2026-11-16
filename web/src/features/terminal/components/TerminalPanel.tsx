@@ -25,7 +25,6 @@ import { useSettings } from "../../settings/store";
 import { useApp } from "../../../app/store";
 import { CODE_FONT_FAMILY } from "../../editor/themes";
 import { Button } from "@toph/ui/app";
-import { Textarea } from "@toph/ui/app";
 import { Badge } from "@toph/ui/app";
 import { Dropdown, DropdownDivider, DropdownGroup, DropdownItem, DropdownPopover, DropdownTrigger } from "@toph/ui/app";
 import { PillTab, PillTabList } from "@toph/ui/app";
@@ -44,7 +43,6 @@ interface Props {
 const terminalTabs = [
   { id: "problems", label: "Problems" },
   { id: "output", label: "Output" },
-  { id: "debug", label: "Debug Console" },
   { id: "terminal", label: "Terminal" },
   { id: "ports", label: "Ports" },
 ] as const;
@@ -52,7 +50,6 @@ const terminalTabs = [
 type TerminalTab = (typeof terminalTabs)[number]["id"];
 interface Session { id: string; shell: string; title: string; parentId?: string; }
 interface Diagnostic { path: string; line: number; column: number; severity: number; message: string; source: string; }
-interface DebugLine { kind: "input" | "output" | "error"; text: string; }
 
 function stripAnsi(value: string): string {
   return value
@@ -74,9 +71,6 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const [ports, setPorts] = useState<PortInfo[]>([]);
   const [portsLoading, setPortsLoading] = useState(false);
-  const [debugInput, setDebugInput] = useState("");
-  const [debugLines, setDebugLines] = useState<DebugLine[]>([]);
-  const [debugBusy, setDebugBusy] = useState(false);
   const [reconnectNonce, setReconnectNonce] = useState(0);
   const [clearNonce, setClearNonce] = useState(0);
   const [runRequest, setRunRequest] = useState<{ text: string; sessionId: string; nonce: number } | null>(null);
@@ -230,24 +224,6 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
     setActiveId("");
     setSplit(false);
     void createSession(shell).catch((err) => setError(err instanceof Error ? err.message : "Não foi possível abrir o terminal."));
-  }
-
-  async function runDebug() {
-    const code = debugInput.trim();
-    if (!code || debugBusy) return;
-    setDebugLines((current) => [...current, { kind: "input", text: code }]);
-    setDebugInput("");
-    setDebugBusy(true);
-    try {
-      const result = await api.debugEval(project.id, code);
-      if (result.stdout) setDebugLines((current) => [...current, { kind: "output", text: result.stdout.trimEnd() }]);
-      if (result.stderr) setDebugLines((current) => [...current, { kind: "error", text: result.stderr.trimEnd() }]);
-      if (!result.stdout && !result.stderr) setDebugLines((current) => [...current, { kind: "output", text: `(exit ${result.exitCode ?? 0})` }]);
-    } catch (err) {
-      setDebugLines((current) => [...current, { kind: "error", text: err instanceof Error ? err.message : "Falha ao avaliar." }]);
-    } finally {
-      setDebugBusy(false);
-    }
   }
 
   const selectedSession = sessions.find((session) => session.id === activeId) ?? sessions[0];
@@ -464,24 +440,6 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex h-8 shrink-0 items-center justify-end border-b px-2"><Button variant="ghost" size="xs" onClick={() => { outputRef.current = ""; setOutput(""); }}>Limpar</Button></div>
           <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words px-3 py-2 font-mono text-caption-1-regular text-text-secondary">{stripAnsi(output) || "Nenhuma saída ainda."}</pre>
-        </div>
-      )}
-
-      {tab === "debug" && (
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-auto p-2">
-            {debugLines.length === 0 && <p className="px-2 py-4 text-caption-1-regular text-text-secondary">Avalie JavaScript no contexto do projeto. Digite uma expressão abaixo.</p>}
-            {debugLines.map((line, index) => (
-              <div key={index} className={`flex gap-2 px-2 py-1 font-mono text-caption-1-regular ${line.kind === "input" ? "text-text-primary" : line.kind === "error" ? "text-text-error-primary" : "text-text-secondary"}`}>
-                <span className="shrink-0">{line.kind === "input" ? "›" : line.kind === "error" ? "!" : "‹"}</span>
-                <pre className="whitespace-pre-wrap break-words">{line.text}</pre>
-              </div>
-            ))}
-          </div>
-          <div className="flex shrink-0 items-end gap-2 border-t p-2" onKeyDownCapture={(event) => { if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void runDebug(); } }}>
-            <Textarea value={debugInput} onChange={setDebugInput} rows={1} placeholder="Ex.: Object.keys(require('./package.json'))" className="min-h-8 font-mono text-caption-1-regular" />
-            <Button size="small" disabled={debugBusy || !debugInput.trim()} onClick={() => void runDebug()}>{debugBusy ? "..." : "Executar"}</Button>
-          </div>
         </div>
       )}
 

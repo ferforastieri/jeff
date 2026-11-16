@@ -113,6 +113,28 @@ install_dev_components() {
   echo "Development environment installed."
 }
 
+# Python debugging uses debugpy, installed here so the running server never
+# downloads an adapter on demand. The Docker image bundles the same files.
+install_debug_adapters() {
+  local target=/usr/local/lib/toph/debug-adapters/python
+  if python3 -c "import debugpy" >/dev/null 2>&1; then
+    return 0
+  fi
+  install -d -m 0755 "$target"
+  if ! python3 -m pip --version >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-pip
+    else
+      echo "Warning: python3-pip is missing; Python debugging will remain unavailable." >&2
+      return 0
+    fi
+  fi
+  if ! python3 -m pip install --no-cache-dir --break-system-packages --target "$target" debugpy==1.8.22 \
+    && ! python3 -m pip install --no-cache-dir --target "$target" debugpy==1.8.22; then
+    echo "Warning: could not install debugpy; Python debugging will remain unavailable." >&2
+  fi
+}
+
 ARCH="$(uname -m)"
 case "$ARCH" in
   x86_64|amd64) ASSET="toph-linux-amd64" ;;
@@ -209,6 +231,7 @@ fi
 rm -f /tmp/toph-existing-health.json
 
 install -m 0755 "$TMP" /usr/local/bin/toph
+install_debug_adapters
 
 if [ -f "$ENV_FILE" ]; then
   if grep -q '^TOPH_BUILD_ID=' "$ENV_FILE"; then

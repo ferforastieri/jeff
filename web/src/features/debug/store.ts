@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api, type DebugBreakpoint, type DebugProjectConfig } from "../../shared/api";
+import type { DebugAiAction } from "./ai";
 
 const STORAGE_KEY = "toph-debug-configs-v1";
 const SAVE_DELAY = 500;
@@ -75,6 +76,7 @@ function persistLocal(configs: Record<string, DebugProjectConfig>) {
 
 interface DebugStore {
   byProject: Record<string, DebugProjectConfig>;
+  transcripts: Record<string, DebugTimelineItem[]>;
   loading: Record<string, boolean>;
   loaded: Record<string, boolean>;
   locations: Record<string, { path: string; line: number } | null>;
@@ -89,7 +91,21 @@ interface DebugStore {
   addWatch: (projectId: string, expression: string) => void;
   removeWatch: (projectId: string, index: number) => void;
   setLocation: (projectId: string, location: { path: string; line: number } | null) => void;
+  appendTimeline: (projectId: string, item: DebugTimelineItem) => void;
+  updateTimeline: (projectId: string, id: string, patch: Partial<DebugTimelineItem>) => void;
+  clearTimeline: (projectId: string) => void;
 }
+
+export interface DebugTimelineOption {
+  label: string;
+  description?: string;
+}
+
+export type DebugTimelineItem =
+  | { id: string; kind: "ai"; text: string; createdAt: number }
+  | { id: string; kind: "user"; text: string; createdAt: number }
+  | { id: string; kind: "action"; action: DebugAiAction; status: "running" | "done" | "error"; detail?: string; createdAt: number }
+  | { id: string; kind: "question"; question: string; options: DebugTimelineOption[]; answer?: string; createdAt: number };
 
 const saveTimers: Record<string, number> = {};
 
@@ -103,6 +119,7 @@ function scheduleSave(projectId: string, get: () => DebugStore["byProject"]) {
 
 export const useDebug = create<DebugStore>((set, get) => ({
   byProject: readStored(),
+  transcripts: {},
   loading: {},
   loaded: {},
   locations: {},
@@ -216,5 +233,29 @@ export const useDebug = create<DebugStore>((set, get) => ({
 
   setLocation: (projectId, location) => {
     set((state) => ({ locations: { ...state.locations, [projectId]: location } }));
+  },
+
+  appendTimeline: (projectId, item) => {
+    set((state) => ({
+      transcripts: {
+        ...state.transcripts,
+        [projectId]: [...(state.transcripts[projectId] ?? []), item].slice(-200),
+      },
+    }));
+  },
+
+  updateTimeline: (projectId, id, patch) => {
+    set((state) => ({
+      transcripts: {
+        ...state.transcripts,
+        [projectId]: (state.transcripts[projectId] ?? []).map((item) =>
+          item.id === id ? ({ ...item, ...patch } as DebugTimelineItem) : item,
+        ),
+      },
+    }));
+  },
+
+  clearTimeline: (projectId) => {
+    set((state) => ({ transcripts: { ...state.transcripts, [projectId]: [] } }));
   },
 }));

@@ -1,7 +1,7 @@
 import { useProjectStream } from "../../features/projects/hooks/useProjectStream";
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { Bot, Bug, ChevronDown, ChevronRight, GitBranch, X } from "@toph/icons";
+import { Bot, ChevronDown, ChevronRight, GitBranch, X } from "@toph/icons";
 import { api, getApiBase, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
 import { useApp, type Sidebar, type Tab } from "../store";
@@ -19,7 +19,6 @@ import BranchPicker from "../../features/git/components/BranchPicker";
 import BottomBar from "./BottomBar";
 import { handleAiCompletion, type AiCompletionPayload } from "../../features/notifications/completion";
 import { unlockBotSound } from "../../features/conversations/sound";
-import SidebarHeader from "./SidebarHeader";
 import { IconButton } from "@toph/ui/app";
 import BrandMark from "@toph/brand";
 import { Button } from "@toph/ui/app";
@@ -47,7 +46,7 @@ const DatabasesPanel = lazy(() => import("../../features/databases/components/Da
 const WebSidebar = lazy(() => import("../../features/previews/components/WebSidebar"));
 const EditorPanel = lazy(() => import("../../features/editor/components/EditorPanel"));
 const DbPanelTab = lazy(() => import("../../features/databases/components/DbPanelTab"));
-const DebugPanel = lazy(() => import("../../features/debug/components/DebugPanel"));
+const DebugStudio = lazy(() => import("../../features/debug/components/DebugStudio"));
 const BotsSidebar = lazy(() => import("../../features/agents/components/BotsSidebar"));
 const WebPanelTab = lazy(() => import("../../features/previews/components/WebPanelTab"));
 const DiffPanelTab = lazy(() => import("../../features/editor/components/DiffPanelTab"));
@@ -70,7 +69,6 @@ function rightPanelForSidebar(sidebar: Sidebar): RightPanel | null {
     case "scm":
     case "db":
     case "web":
-    case "debug":
     case "bots":
       return sidebar;
     default:
@@ -150,7 +148,7 @@ export default function Workbench() {
   const [rightPanel, setRightPanel] = useState<RightPanel>("files");
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const tabsVisible = workspaceFeatures.tabs;
-  const effectiveSidebarVisible = true;
+  const effectiveSidebarVisible = sidebar !== "debug";
   const panelAlignment = useSettings((state) => state.panelAlignment);
   const [branchInfo, setBranchInfo] = useState<{ current: string; branches: string[] } | null>(null);
   const [branchBusy, setBranchBusy] = useState("");
@@ -1067,12 +1065,6 @@ export default function Workbench() {
       {project && sidebar === "scm" && featureIsEnabled("sourceControl") && <SourceControlPanel project={project} view="scm" onOpenDiff={openDiff} onStatusChange={setGitStatus} />}
       {project && sidebar === "web" && featureIsEnabled("webApps") && <WebSidebar onOpenWeb={openWeb} />}
       {project && sidebar === "bots" && <BotsSidebar project={project} />}
-      {project && sidebar === "debug" && featureIsEnabled("debug") && (
-        <div className="flex h-full min-h-0 flex-col">
-          <SidebarHeader icon={<Bug size={15} className="text-accent-500" />} title="Debug" />
-          <p className="p-3 text-caption-1-regular leading-relaxed text-text-tertiary">A execução e as ferramentas de depuração aparecem no painel principal.</p>
-        </div>
-      )}
     </>
   );
 
@@ -1101,24 +1093,19 @@ export default function Workbench() {
       {rightPanel === "web" && featureIsEnabled("webApps") && (
         <WebSidebar headerControl={rightPanelControl} onOpenWeb={openWeb} />
       )}
-      {rightPanel === "debug" && featureIsEnabled("debug") && (
-        <DebugPanel project={project} headerControl={rightPanelControl} />
-      )}
       {rightPanel === "bots" && <BotsSidebar project={project} headerControl={rightPanelControl} />}
     </Suspense>
   ) : null;
 
-  const primarySidebar = (
+  const primarySidebar = effectiveSidebarVisible ? (
     <Suspense fallback={null}>
       <div className="relative z-40 flex min-h-0 shrink-0 overflow-visible rounded-3xl border border-border-button-white bg-background-secondary-default shadow-sidebar">
-        {effectiveSidebarVisible ? (
-          <aside className={cx("relative flex min-h-0 shrink-0 flex-col overflow-hidden rounded-[22px] bg-background-secondary-default", botsView ? "w-[clamp(220px,22vw,var(--sidebar-width))]" : "w-[var(--sidebar-width)]")}>
-            {sidebarContent}
-          </aside>
-        ) : null}
+        <aside className={cx("relative flex min-h-0 shrink-0 flex-col overflow-hidden rounded-[22px] bg-background-secondary-default", botsView ? "w-[clamp(220px,22vw,var(--sidebar-width))]" : "w-[var(--sidebar-width)]")}>
+          {sidebarContent}
+        </aside>
       </div>
     </Suspense>
-  );
+  ) : null;
   const primaryResize = effectiveSidebarVisible ? (
     <ResizeHandle className="sidebar-resize" orientation="vertical" value={sidebarWidth} min={220} max={320} label="Redimensionar barra lateral" onChange={(width) => document.documentElement.style.setProperty("--sidebar-width", `${width}px`)} onCommit={(width) => updateSettings({ sidebarWidth: width })} />
   ) : null;
@@ -1133,41 +1120,42 @@ export default function Workbench() {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-hidden">
           <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border-button-white bg-background-primary-default shadow-sidebar">
-            {sidebar === "debug" && project && featureIsEnabled("debug") ? (
-              <DebugPanel project={project} />
-            ) : (
-              <>
-                {tabsVisible ? <Tabs /> : null}
-                <div className="relative flex min-h-0 flex-1 overflow-hidden">
-                  {!activeTab && project && (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-8 text-center">
-                      <BrandMark size="large" />
-                      <h2 className="text-title-2-medium text-text-primary">{botsView ? "Nenhuma sessão aberta" : project.name}</h2>
-                      <p className="max-w-lg text-body-regular text-text-secondary">
-                        {botsView ? "Abra uma sessão na barra ao lado ou comece uma nova tarefa." : project.root}
-                      </p>
-                       <div className="flex flex-wrap items-center justify-center gap-2">
-                         {featureIsEnabled("files") && <Button variant="secondary" size="small" onClick={() => selectSidebar("files")}>Explorer</Button>}
-                         {featureIsEnabled("databases") && <Button variant="secondary" size="small" onClick={() => selectSidebar("db")}>Database</Button>}
-                         <Button variant="secondary" size="small" onClick={newConversation}>Nova tarefa</Button>
-                       </div>
-                    </div>
+            {project && featureIsEnabled("debug") ? (
+              <div className={cx("min-h-0 flex-1 flex-col", sidebar === "debug" ? "flex" : "hidden")}>
+                <DebugStudio key={project.id} project={project} />
+              </div>
+            ) : null}
+            <div className={cx("min-h-0 flex-1 flex-col", sidebar === "debug" ? "hidden" : "flex")}>
+              {tabsVisible ? <Tabs /> : null}
+              <div className="relative flex min-h-0 flex-1 overflow-hidden">
+                {!activeTab && project && (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-8 text-center">
+                    <BrandMark size="large" />
+                    <h2 className="text-title-2-medium text-text-primary">{botsView ? "Nenhuma sessão aberta" : project.name}</h2>
+                    <p className="max-w-lg text-body-regular text-text-secondary">
+                      {botsView ? "Abra uma sessão na barra ao lado ou comece uma nova tarefa." : project.root}
+                    </p>
+                     <div className="flex flex-wrap items-center justify-center gap-2">
+                       {featureIsEnabled("files") && <Button variant="secondary" size="small" onClick={() => selectSidebar("files")}>Explorer</Button>}
+                       {featureIsEnabled("databases") && <Button variant="secondary" size="small" onClick={() => selectSidebar("db")}>Database</Button>}
+                       <Button variant="secondary" size="small" onClick={newConversation}>Nova tarefa</Button>
+                     </div>
+                  </div>
+                )}
+                <Suspense fallback={null}>
+                  {tabsVisible && activeTab?.kind === "editor" && project && featureIsEnabled("files") && <EditorPanel debugEnabled={debugEnabled} tab={activeTab} project={project} onOpenChanges={(path) => openDiff(path, false)} />}
+                  {tabsVisible && activeTab?.kind === "db" && featureIsEnabled("databases") && <DbPanelTab tab={activeTab} />}
+                  {tabsVisible && activeTab?.kind === "web" && featureIsEnabled("webApps") && <WebPanelTab tab={activeTab} />}
+                  {tabsVisible && activeTab?.kind === "diff" && project && featureIsEnabled("files") && <DiffPanelTab tab={activeTab} project={project} />}
+                  {activeTab?.kind === "ai" && project && activeTab.chatId && (
+                    <BotStudioTab key={activeTab.chatId} project={project} conversationId={activeTab.chatId} />
                   )}
-                  <Suspense fallback={null}>
-                    {tabsVisible && activeTab?.kind === "editor" && project && featureIsEnabled("files") && <EditorPanel debugEnabled={debugEnabled} tab={activeTab} project={project} onOpenChanges={(path) => openDiff(path, false)} />}
-                    {tabsVisible && activeTab?.kind === "db" && featureIsEnabled("databases") && <DbPanelTab tab={activeTab} />}
-                    {tabsVisible && activeTab?.kind === "web" && featureIsEnabled("webApps") && <WebPanelTab tab={activeTab} />}
-                    {tabsVisible && activeTab?.kind === "diff" && project && featureIsEnabled("files") && <DiffPanelTab tab={activeTab} project={project} />}
-                    {activeTab?.kind === "ai" && project && activeTab.chatId && (
-                      <BotStudioTab key={activeTab.chatId} project={project} conversationId={activeTab.chatId} />
-                    )}
-                  </Suspense>
-                </div>
-              </>
-            )}
+                </Suspense>
+              </div>
+            </div>
           </main>
 
-          {project && terminalEnabled && terminalOpen ? (
+          {project && terminalEnabled && terminalOpen && sidebar !== "debug" ? (
             <Suspense fallback={null}>
               <div className="flex w-full min-w-0 shrink-0 overflow-hidden">
                 <TerminalPanel key={project.id} project={project} onOpenFile={openFile} />
