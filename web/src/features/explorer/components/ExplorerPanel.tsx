@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, Files, FilePlus2, FolderOpen, FolderPlus, RefreshCw } from "@toph/icons";
+import { Files, FilePlus2, FolderOpen, FolderPlus } from "@toph/icons";
 import { Button } from "@toph/ui/app";
 import { createPortal } from "react-dom";
 import { Modal } from "@toph/ui/app";
@@ -8,7 +8,7 @@ import { api } from "../../../shared/api";
 import { changeStatusByPath } from "../../git/status";
 import { useApp } from "../../../app/store";
 import { PROJECT_EVENT } from "../../projects/events";
-import FileTree, { clearTreeExpansion } from "./FileTree";
+import FileTree from "./FileTree";
 import FileIcon from "./FileIcon";
 import { basename, dirname } from "../../../shared/lib";
 import LoadingState from "../../../shared/ui/LoadingState";
@@ -131,7 +131,6 @@ export default function ExplorerPanel({
   const confirm = useConfirm();
   const [gitStatus, setGitStatus] = useState("");
   const [rootOpen, setRootOpen] = useState(true);
-  const [treeKey, setTreeKey] = useState(0);
   const [contextMenu, setContextMenu] = useState<ContextTarget | null>(null);
   const [selected, setSelected] = useState<FileEntry | null>(null);
   const [historyDialog, setHistoryDialog] = useState<{
@@ -516,8 +515,6 @@ export default function ExplorerPanel({
         <div className="flex items-center gap-0.5">
           <Button variant="ghost" size="xs" iconOnly className="max-[900px]:flex-1" leadingIcon={FilePlus2} aria-label="Novo arquivo" title="Novo arquivo" onClick={() => void newFile(rootEntry)} />
           <Button variant="ghost" size="xs" iconOnly className="max-[900px]:flex-1" leadingIcon={FolderPlus} aria-label="Nova pasta" title="Nova pasta" onClick={() => void newFolder(rootEntry)} />
-          <Button variant="ghost" size="xs" iconOnly className="max-[900px]:flex-1" leadingIcon={RefreshCw} aria-label="Atualizar" title="Atualizar" onClick={() => { setTreeKey((value) => value + 1); notify("info", "Explorer atualizado."); }} />
-          <Button variant="ghost" size="xs" iconOnly className="max-[900px]:flex-1" leadingIcon={ChevronDown} aria-label="Recolher tudo" title="Recolher tudo" onClick={() => { clearTreeExpansion(project.id); setTreeKey((value) => value + 1); }} />
         </div>
       } />
       {uploadProgress && (
@@ -541,7 +538,7 @@ export default function ExplorerPanel({
             triggerClassName="h-6 gap-1.5 px-2.5 py-0 text-caption-1-regular"
             contentClassName="p-0"
           >
-            <FileTree key={`${project.id}:${treeKey}`} project={project} onOpenFile={onOpenFile} embedded statuses={statuses} onSelect={setSelected} onContextMenu={openContextMenu} />
+            <FileTree key={project.id} project={project} onOpenFile={onOpenFile} embedded statuses={statuses} onSelect={setSelected} onContextMenu={openContextMenu} />
           </AccordionItem>
         </Accordion>
       </div>

@@ -1,9 +1,8 @@
 import { useRef, useState } from "react";
-import { ChevronDown, FilePlus2, FolderPlus, RefreshCw, Settings2, Upload } from "@toph/icons";
+import { FilePlus2, FolderPlus, Upload } from "@toph/icons";
 import { api, type Project } from "../../../../shared/api";
 import { useApp } from "../../../store";
-import ProjectSearch from "../../../../features/explorer/components/ProjectSearch";
-import FileTree, { clearTreeExpansion } from "../../../../features/explorer/components/FileTree";
+import FileTree from "../../../../features/explorer/components/FileTree";
 import { Button } from "@toph/ui/app";
 import { Input } from "@toph/ui/app";
 import { Modal } from "@toph/ui/app";
@@ -22,10 +21,9 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-/** Mobile file browser: search, create and refresh the project tree. */
+/** Mobile file browser: create, upload and open the project tree. */
 export default function FilesScreen({ project, onOpenFile }: Props) {
   const notify = useApp((state) => state.notify);
-  const [optionsOpen, setOptionsOpen] = useState(false);
   const [createKind, setCreateKind] = useState<"file" | "folder" | null>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,12 +31,6 @@ export default function FilesScreen({ project, onOpenFile }: Props) {
   const uploadRef = useRef<HTMLInputElement>(null);
 
   function refresh() {
-    setTreeKey((value) => value + 1);
-    notify("info", "Arquivos atualizados.");
-  }
-
-  function collapseAll() {
-    clearTreeExpansion(project.id);
     setTreeKey((value) => value + 1);
   }
 
@@ -77,7 +69,6 @@ export default function FilesScreen({ project, onOpenFile }: Props) {
   }
 
   function openCreate(kind: "file" | "folder") {
-    setOptionsOpen(false);
     setName("");
     setCreateKind(kind);
   }
@@ -92,19 +83,22 @@ export default function FilesScreen({ project, onOpenFile }: Props) {
         onChange={(event) => { void upload(event.target.files); event.target.value = ""; }}
       />
       <div className="relative z-20 flex shrink-0 items-center gap-2 bg-background-primary-default p-3 pb-2">
-        <div className="min-w-0 flex-1">
-          <ProjectSearch project={project} onOpenFile={onOpenFile} />
-        </div>
+        <Button variant="secondary" size="small" leadingIcon={FilePlus2} onClick={() => openCreate("file")} className="h-10 min-w-0 flex-1 justify-center">
+          <span className="truncate">Arquivo</span>
+        </Button>
+        <Button variant="secondary" size="small" leadingIcon={FolderPlus} onClick={() => openCreate("folder")} className="h-10 min-w-0 flex-1 justify-center">
+          <span className="truncate">Pasta</span>
+        </Button>
         <Button
           variant="secondary"
           size="small"
-          iconOnly
-          leadingIcon={Settings2}
-          aria-label="Opções do workspace"
-          title="Opções do workspace"
-          onClick={() => setOptionsOpen(true)}
-          className="size-10 shrink-0 rounded-2xl"
-        />
+          leadingIcon={Upload}
+          disabled={busy}
+          onClick={() => uploadRef.current?.click()}
+          className="h-10 min-w-0 flex-1 justify-center"
+        >
+          <span className="truncate">Enviar</span>
+        </Button>
       </div>
       <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
         <div className="px-1 pb-2 pt-1 text-caption-2-semibold uppercase tracking-[0.14em] text-text-tertiary">
@@ -114,16 +108,6 @@ export default function FilesScreen({ project, onOpenFile }: Props) {
           <FileTree key={`${project.id}:${treeKey}`} project={project} onOpenFile={onOpenFile} embedded />
         </div>
       </div>
-
-      <Modal isOpen={optionsOpen} onClose={() => setOptionsOpen(false)} title="Opções do workspace" description={project.name} size="sm" bodyClassName="p-3">
-        <div className="flex flex-col gap-1">
-          <Button variant="ghost" className="h-11 w-full justify-start" leadingIcon={FilePlus2} onClick={() => openCreate("file")}>Novo arquivo</Button>
-          <Button variant="ghost" className="h-11 w-full justify-start" leadingIcon={FolderPlus} onClick={() => openCreate("folder")}>Nova pasta</Button>
-          <Button variant="ghost" className="h-11 w-full justify-start" leadingIcon={Upload} disabled={busy} onClick={() => { setOptionsOpen(false); uploadRef.current?.click(); }}>Enviar arquivos</Button>
-          <Button variant="ghost" className="h-11 w-full justify-start" leadingIcon={RefreshCw} onClick={() => { setOptionsOpen(false); refresh(); }}>Atualizar</Button>
-          <Button variant="ghost" className="h-11 w-full justify-start" leadingIcon={ChevronDown} onClick={() => { setOptionsOpen(false); collapseAll(); }}>Recolher tudo</Button>
-        </div>
-      </Modal>
 
       <Modal isOpen={Boolean(createKind)} onClose={() => setCreateKind(null)} title={createKind === "folder" ? "Nova pasta" : "Novo arquivo"} description="Informe o caminho relativo ao projeto." size="sm" bodyClassName="p-3">
         <div className="flex flex-col gap-3">

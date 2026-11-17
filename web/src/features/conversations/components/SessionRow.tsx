@@ -1,4 +1,4 @@
-import { MessageSquare, Trash2 } from "@toph/icons";
+import { Bot, Trash2 } from "@toph/icons";
 import { PixelSpinner } from "@toph/ui";
 import { cx } from "@toph/ui";
 import { IconButton } from "@toph/ui/app";
@@ -41,12 +41,12 @@ export default function SessionRow({
       >
         <span
           className={cx(
-            "flex size-7 shrink-0 items-center justify-center rounded-lg",
-            running ? "bg-accent-500/12 text-accent-600" : "bg-background-secondary-default text-text-tertiary",
+            "flex size-8 shrink-0 items-center justify-center rounded-full",
+            running ? "bg-accent-500/12 text-accent-600" : "bg-accent-500/10 text-accent-600",
           )}
           aria-hidden
         >
-          {running ? <PixelSpinner size={14} /> : <MessageSquare className="size-3.5" />}
+          {running ? <PixelSpinner size={14} /> : <Bot className="size-4" />}
         </span>
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
           <span className="truncate text-caption-1-medium text-text-primary">{title}</span>

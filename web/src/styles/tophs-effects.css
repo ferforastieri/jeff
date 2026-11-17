@@ -91,7 +91,7 @@
    the screen: the composer and the tab bar stay untouched. */
 @media (max-width: 640px) {
   .ac-toasts {
-    top: calc(var(--safe-top) + 64px);
+    top: calc(var(--safe-top) + 8px);
     bottom: auto;
     left: 50%;
     right: auto;

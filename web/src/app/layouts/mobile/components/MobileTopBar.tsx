@@ -38,7 +38,7 @@ export default function MobileTopBar({
   const question = useProjectQuestion(project.id);
   const running = useProjectRunning(project.id);
   return (
-    <header className="mobile-topbar relative z-20 shrink-0 overflow-visible px-3.5 py-2.5 backdrop-blur-xl">
+    <header className="mobile-topbar relative z-20 shrink-0 overflow-visible px-3 py-2.5 backdrop-blur-xl">
       <div className="pointer-events-none absolute -right-12 -top-20 size-44 rounded-full bg-accent-500/10 blur-3xl" />
       <div className="relative flex w-full min-w-0 items-center gap-3">
         {brandIcon ? (
