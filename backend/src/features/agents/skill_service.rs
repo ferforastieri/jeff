@@ -1,8 +1,8 @@
-//! Managed skills: recipes stored per project and assigned to one or more
-//! Tophs. A skill with an empty `agents` list applies to every Toph; otherwise
-//! only the listed agent ids see it. The full body never goes into the prompt:
-//! the agent reads it on demand with `toph_read_skill`, and proposes new ones
-//! with `toph_propose_skill` for the user to approve.
+//! Managed skills: recipes available in every project. The row keeps the
+//! project it was created in as its origin only; lookups never filter by
+//! project, so switching projects never hides a skill. The full body never goes into the prompt: the agent reads it on demand with
+//! `toph_read_skill`, and proposes new ones with `toph_propose_skill` for the
+//! user to approve.
 
 use super::models::now;
 use crate::{
@@ -25,11 +25,12 @@ const MAX_NAME_CHARS: usize = 48;
 #[serde(rename_all = "camelCase")]
 pub struct ManagedSkill {
     pub id: String,
+    /// Where the skill was created. It is not a visibility scope.
     pub project_id: String,
     pub name: String,
     pub description: String,
     pub body: String,
-    /// Empty means every Toph in the project.
+    /// Legacy assignment list. Skills are global now; kept for stored data.
     pub agents: Vec<String>,
     /// active, pending or archived.
     pub state: String,
@@ -106,23 +107,22 @@ impl Service {
         })
     }
 
-    pub async fn list(&self, project: &str) -> AppResult<Vec<ManagedSkill>> {
+    /// Every skill, across all projects, in stable name order.
+    pub async fn list(&self) -> AppResult<Vec<ManagedSkill>> {
         let rows = sqlx::query(
             "SELECT id,project_id,name,description,body,agents,state,replaces,proposed_by,reason,source,created_at,updated_at \
-             FROM agent_skills WHERE project_id=? ORDER BY name",
+             FROM agent_skills ORDER BY name",
         )
-        .bind(project)
         .fetch_all(self.0.pool())
         .await?;
         rows.iter().map(Self::row).collect()
     }
 
-    pub async fn get(&self, project: &str, id: &str) -> AppResult<ManagedSkill> {
+    pub async fn get(&self, id: &str) -> AppResult<ManagedSkill> {
         let row = sqlx::query(
             "SELECT id,project_id,name,description,body,agents,state,replaces,proposed_by,reason,source,created_at,updated_at \
-             FROM agent_skills WHERE project_id=? AND id=?",
+             FROM agent_skills WHERE id=?",
         )
-        .bind(project)
         .bind(id)
         .fetch_optional(self.0.pool())
         .await?
@@ -130,45 +130,32 @@ impl Service {
         Self::row(&row)
     }
 
-    async fn active_by_name(&self, project: &str, name: &str) -> AppResult<Option<ManagedSkill>> {
+    async fn active_by_name(&self, name: &str) -> AppResult<Option<ManagedSkill>> {
         let row = sqlx::query(
             "SELECT id,project_id,name,description,body,agents,state,replaces,proposed_by,reason,source,created_at,updated_at \
-             FROM agent_skills WHERE project_id=? AND state='active' AND name=?",
+             FROM agent_skills WHERE state='active' AND name=?",
         )
-        .bind(project)
         .bind(name)
         .fetch_optional(self.0.pool())
         .await?;
         row.as_ref().map(Self::row).transpose()
     }
 
-    /// Active skills this Toph follows, in stable name order.
-    pub async fn for_agent(&self, project: &str, agent: &str) -> AppResult<Vec<ManagedSkill>> {
+    /// Active skills available to every Toph, in stable name order.
+    pub async fn available(&self) -> AppResult<Vec<ManagedSkill>> {
         Ok(self
-            .list(project)
+            .list()
             .await?
             .into_iter()
-            .filter(|skill| {
-                skill.state == "active"
-                    && (skill.agents.is_empty() || skill.agents.iter().any(|id| id == agent))
-            })
+            .filter(|skill| skill.state == "active")
             .collect())
     }
 
-    /// The managed skill with this name or id, when it applies to the agent.
-    pub async fn read_for_agent(
-        &self,
-        project: &str,
-        agent: &str,
-        name: &str,
-    ) -> AppResult<Option<ManagedSkill>> {
-        Ok(self
-            .for_agent(project, agent)
-            .await?
-            .into_iter()
-            .find(|skill| {
-                skill.name.eq_ignore_ascii_case(name) || skill.id.eq_ignore_ascii_case(name)
-            }))
+    /// The managed skill with this name or id, when it is active.
+    pub async fn read(&self, name: &str) -> AppResult<Option<ManagedSkill>> {
+        Ok(self.available().await?.into_iter().find(|skill| {
+            skill.name.eq_ignore_ascii_case(name) || skill.id.eq_ignore_ascii_case(name)
+        }))
     }
 
     async fn keep(&self, skill: &ManagedSkill, by: &str) -> AppResult<()> {
@@ -210,18 +197,15 @@ impl Service {
         let (name, description, body, agents) = Self::validated(&input)?;
         let at = now();
         if let Some(id) = input.id.as_deref() {
-            let previous = self.get(project, id).await?;
+            let previous = self.get(id).await?;
             if previous.source.is_some() {
-                sqlx::query(
-                    "UPDATE agent_skills SET agents=?,updated_at=? WHERE id=? AND project_id=?",
-                )
-                .bind(json!(agents).to_string())
-                .bind(at)
-                .bind(id)
-                .bind(project)
-                .execute(self.0.pool())
-                .await?;
-                return self.get(project, id).await;
+                sqlx::query("UPDATE agent_skills SET agents=?,updated_at=? WHERE id=?")
+                    .bind(json!(agents).to_string())
+                    .bind(at)
+                    .bind(id)
+                    .execute(self.0.pool())
+                    .await?;
+                return self.get(id).await;
             }
             if previous.state == "active"
                 && (previous.name != name
@@ -231,13 +215,13 @@ impl Service {
                 self.keep(&previous, "me").await?;
             }
             if previous.name != name {
-                if self.active_by_name(project, &name).await?.is_some() {
+                if self.active_by_name(&name).await?.is_some() {
                     return Err(bad_request("Já existe uma skill ativa com esse nome."));
                 }
             }
             sqlx::query(
                 "UPDATE agent_skills SET name=?,description=?,body=?,agents=?,state='active',replaces=NULL,proposed_by=NULL,reason=NULL,updated_at=? \
-                 WHERE id=? AND project_id=?",
+                 WHERE id=?",
             )
             .bind(&name)
             .bind(&description)
@@ -245,12 +229,11 @@ impl Service {
             .bind(json!(agents).to_string())
             .bind(at)
             .bind(id)
-            .bind(project)
             .execute(self.0.pool())
             .await?;
-            return self.get(project, id).await;
+            return self.get(id).await;
         }
-        if self.active_by_name(project, &name).await?.is_some() {
+        if self.active_by_name(&name).await?.is_some() {
             return Err(bad_request("Já existe uma skill ativa com esse nome."));
         }
         let id = new_id();
@@ -269,7 +252,7 @@ impl Service {
         .bind(at)
         .execute(self.0.pool())
         .await?;
-        self.get(project, &id).await
+        self.get(&id).await
     }
 
     /// Links a `SKILL.md` that already exists on the machine. The recipe is
@@ -287,24 +270,21 @@ impl Service {
         let canonical = canonical.display().to_string();
         let agents = unique(&agents);
         if let Some(existing) = self
-            .list(project)
+            .list()
             .await?
             .into_iter()
             .find(|skill| skill.source.as_deref() == Some(canonical.as_str()))
         {
-            sqlx::query(
-                "UPDATE agent_skills SET agents=?,state='active',updated_at=? WHERE id=? AND project_id=?",
-            )
-            .bind(json!(agents).to_string())
-            .bind(now())
-            .bind(&existing.id)
-            .bind(project)
-            .execute(self.0.pool())
-            .await?;
-            return self.get(project, &existing.id).await;
+            sqlx::query("UPDATE agent_skills SET agents=?,state='active',updated_at=? WHERE id=?")
+                .bind(json!(agents).to_string())
+                .bind(now())
+                .bind(&existing.id)
+                .execute(self.0.pool())
+                .await?;
+            return self.get(&existing.id).await;
         }
         let name = normalize_name(&found.name)?;
-        if self.active_by_name(project, &name).await?.is_some() {
+        if self.active_by_name(&name).await?.is_some() {
             return Err(bad_request(
                 "Já existe uma skill ativa com esse nome. Renomeie uma das duas.",
             ));
@@ -332,7 +312,7 @@ impl Service {
         .bind(at)
         .execute(self.0.pool())
         .await?;
-        self.get(project, &id).await
+        self.get(&id).await
     }
 
     /// Migrates a skill enabled through the old per-agent project list into a
@@ -349,7 +329,7 @@ impl Service {
         source: Option<&str>,
     ) -> AppResult<()> {
         let name = normalize_name(name)?;
-        if let Some(existing) = self.active_by_name(project, &name).await? {
+        if let Some(existing) = self.active_by_name(&name).await? {
             let same_source = match (existing.source.as_deref(), source) {
                 (None, None) => true,
                 (Some(left), Some(right)) => left == right,
@@ -363,15 +343,12 @@ impl Service {
             }
             let mut agents = existing.agents.clone();
             agents.push(agent.to_string());
-            sqlx::query(
-                "UPDATE agent_skills SET agents=?,state='active',updated_at=? WHERE id=? AND project_id=?",
-            )
-            .bind(json!(agents).to_string())
-            .bind(now())
-            .bind(&existing.id)
-            .bind(project)
-            .execute(self.0.pool())
-            .await?;
+            sqlx::query("UPDATE agent_skills SET agents=?,state='active',updated_at=? WHERE id=?")
+                .bind(json!(agents).to_string())
+                .bind(now())
+                .bind(&existing.id)
+                .execute(self.0.pool())
+                .await?;
             return Ok(());
         }
         let at = now();
@@ -415,9 +392,8 @@ impl Service {
             )));
         }
         let pending: i64 = sqlx::query_scalar(
-            "SELECT count(*) FROM agent_skills WHERE project_id=? AND state='pending' AND proposed_by=?",
+            "SELECT count(*) FROM agent_skills WHERE state='pending' AND proposed_by=?",
         )
-        .bind(project)
         .bind(agent)
         .fetch_one(self.0.pool())
         .await?;
@@ -426,16 +402,11 @@ impl Service {
                 "Você já tem {MAX_PENDING} propostas esperando revisão. Espere o usuário decidir."
             )));
         }
-        let current = self.active_by_name(project, &name).await?;
+        let current = self.active_by_name(&name).await?;
         if let Some(current) = &current {
             if current.source.is_some() {
                 return Err(bad_request(
                     "Essa skill vem de um arquivo do usuário: ela muda lá, não aqui.",
-                ));
-            }
-            if !current.agents.is_empty() && !current.agents.iter().any(|id| id == agent) {
-                return Err(bad_request(
-                    "Já existe uma skill com esse nome que não é sua: escolha outro nome.",
                 ));
             }
             if current.description == description && current.body == body {
@@ -443,9 +414,8 @@ impl Service {
             }
         }
         let waiting = sqlx::query(
-            "SELECT id FROM agent_skills WHERE project_id=? AND state='pending' AND proposed_by=? AND name=?",
+            "SELECT id FROM agent_skills WHERE state='pending' AND proposed_by=? AND name=?",
         )
-        .bind(project)
         .bind(agent)
         .bind(&name)
         .fetch_optional(self.0.pool())
@@ -455,7 +425,7 @@ impl Service {
             let id: String = row.get("id");
             sqlx::query(
                 "UPDATE agent_skills SET description=?,body=?,agents=?,replaces=?,reason=?,updated_at=? \
-                 WHERE id=? AND project_id=?",
+                 WHERE id=?",
             )
             .bind(&description)
             .bind(&body)
@@ -464,7 +434,6 @@ impl Service {
             .bind(if reason.is_empty() { None } else { Some(reason) })
             .bind(at)
             .bind(&id)
-            .bind(project)
             .execute(self.0.pool())
             .await?;
             id
@@ -489,7 +458,7 @@ impl Service {
             .await?;
             id
         };
-        let skill = self.get(project, &id).await?;
+        let skill = self.get(&id).await?;
         Ok(json!({
             "message": "Proposta enviada. Ela só vale depois que o usuário aprovar, na tela de Skills.",
             "skill": skill
@@ -497,56 +466,47 @@ impl Service {
     }
 
     /// The user approves or refuses a pending proposal.
-    pub async fn decide(
-        &self,
-        project: &str,
-        id: &str,
-        approve: bool,
-    ) -> AppResult<Option<ManagedSkill>> {
-        let pending = self.get(project, id).await?;
+    pub async fn decide(&self, id: &str, approve: bool) -> AppResult<Option<ManagedSkill>> {
+        let pending = self.get(id).await?;
         if pending.state != "pending" {
             return Err(AppError::NotFound);
         }
         if !approve {
-            self.remove(project, id).await?;
+            self.remove(id).await?;
             return Ok(None);
         }
         if let Some(target_id) = pending.replaces.as_deref() {
-            let target = self.get(project, target_id).await?;
+            let target = self.get(target_id).await?;
             if target.state == "active" {
                 self.keep(&target, pending.proposed_by.as_deref().unwrap_or("me"))
                     .await?;
-                sqlx::query(
-                    "UPDATE agent_skills SET description=?,body=?,updated_at=? WHERE id=? AND project_id=?",
-                )
-                .bind(&pending.description)
-                .bind(&pending.body)
-                .bind(now())
-                .bind(target_id)
-                .bind(project)
-                .execute(self.0.pool())
-                .await?;
-                self.remove(project, id).await?;
-                return Ok(Some(self.get(project, target_id).await?));
+                sqlx::query("UPDATE agent_skills SET description=?,body=?,updated_at=? WHERE id=?")
+                    .bind(&pending.description)
+                    .bind(&pending.body)
+                    .bind(now())
+                    .bind(target_id)
+                    .execute(self.0.pool())
+                    .await?;
+                self.remove(id).await?;
+                return Ok(Some(self.get(target_id).await?));
             }
         }
-        if self.active_by_name(project, &pending.name).await?.is_some() {
+        if self.active_by_name(&pending.name).await?.is_some() {
             return Err(bad_request("Já existe uma skill ativa com esse nome."));
         }
         sqlx::query(
             "UPDATE agent_skills SET state='active',replaces=NULL,proposed_by=NULL,reason=NULL,updated_at=? \
-             WHERE id=? AND project_id=?",
+             WHERE id=?",
         )
         .bind(now())
         .bind(id)
-        .bind(project)
         .execute(self.0.pool())
         .await?;
-        Ok(Some(self.get(project, id).await?))
+        Ok(Some(self.get(id).await?))
     }
 
-    pub async fn versions(&self, project: &str, id: &str) -> AppResult<Vec<ManagedSkillVersion>> {
-        self.get(project, id).await?;
+    pub async fn versions(&self, id: &str) -> AppResult<Vec<ManagedSkillVersion>> {
+        self.get(id).await?;
         let rows = sqlx::query(
             "SELECT id,skill_id,name,description,body,by,at FROM agent_skill_versions WHERE skill_id=? ORDER BY at DESC,id DESC",
         )
@@ -569,13 +529,8 @@ impl Service {
 
     /// Restores a previous version. The current one is kept too, so this can
     /// be undone as well.
-    pub async fn restore(
-        &self,
-        project: &str,
-        id: &str,
-        version_id: i64,
-    ) -> AppResult<ManagedSkill> {
-        let current = self.get(project, id).await?;
+    pub async fn restore(&self, id: &str, version_id: i64) -> AppResult<ManagedSkill> {
+        let current = self.get(id).await?;
         let version = sqlx::query(
             "SELECT name,description,body FROM agent_skill_versions WHERE id=? AND skill_id=?",
         )
@@ -585,57 +540,48 @@ impl Service {
         .await?
         .ok_or(AppError::NotFound)?;
         let name: String = version.get("name");
-        let name = if name != current.name && self.active_by_name(project, &name).await?.is_some() {
+        let name = if name != current.name && self.active_by_name(&name).await?.is_some() {
             current.name.clone()
         } else {
             name
         };
         self.keep(&current, "me").await?;
-        sqlx::query(
-            "UPDATE agent_skills SET name=?,description=?,body=?,updated_at=? WHERE id=? AND project_id=?",
-        )
-        .bind(&name)
-        .bind(version.get::<String, _>("description"))
-        .bind(version.get::<String, _>("body"))
-        .bind(now())
-        .bind(id)
-        .bind(project)
-        .execute(self.0.pool())
-        .await?;
-        self.get(project, id).await
+        sqlx::query("UPDATE agent_skills SET name=?,description=?,body=?,updated_at=? WHERE id=?")
+            .bind(&name)
+            .bind(version.get::<String, _>("description"))
+            .bind(version.get::<String, _>("body"))
+            .bind(now())
+            .bind(id)
+            .execute(self.0.pool())
+            .await?;
+        self.get(id).await
     }
 
-    pub async fn archive(
-        &self,
-        project: &str,
-        id: &str,
-        archived: bool,
-    ) -> AppResult<ManagedSkill> {
-        let skill = self.get(project, id).await?;
+    pub async fn archive(&self, id: &str, archived: bool) -> AppResult<ManagedSkill> {
+        let skill = self.get(id).await?;
         if skill.state == "pending" {
             return Err(AppError::NotFound);
         }
-        if !archived && self.active_by_name(project, &skill.name).await?.is_some() {
+        if !archived && self.active_by_name(&skill.name).await?.is_some() {
             return Err(bad_request("Já existe uma skill ativa com esse nome."));
         }
-        sqlx::query("UPDATE agent_skills SET state=?,updated_at=? WHERE id=? AND project_id=?")
+        sqlx::query("UPDATE agent_skills SET state=?,updated_at=? WHERE id=?")
             .bind(if archived { "archived" } else { "active" })
             .bind(now())
             .bind(id)
-            .bind(project)
             .execute(self.0.pool())
             .await?;
-        self.get(project, id).await
+        self.get(id).await
     }
 
-    pub async fn remove(&self, project: &str, id: &str) -> AppResult<()> {
+    pub async fn remove(&self, id: &str) -> AppResult<()> {
+        self.get(id).await?;
         sqlx::query("DELETE FROM agent_skill_versions WHERE skill_id=?")
             .bind(id)
             .execute(self.0.pool())
             .await?;
-        sqlx::query("DELETE FROM agent_skills WHERE id=? AND project_id=?")
+        sqlx::query("DELETE FROM agent_skills WHERE id=?")
             .bind(id)
-            .bind(project)
             .execute(self.0.pool())
             .await?;
         Ok(())

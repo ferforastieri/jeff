@@ -262,6 +262,7 @@ export default function DebugStudio({ project, mobile = false, headerControl }: 
   const addBreakpoint = useDebug((state) => state.addBreakpoint);
   const updateBreakpoint = useDebug((state) => state.updateBreakpoint);
   const removeBreakpoint = useDebug((state) => state.removeBreakpoint);
+  const clearBreakpoints = useDebug((state) => state.clearBreakpoints);
   const toggleBreakpoint = useDebug((state) => state.toggleBreakpoint);
   const addWatch = useDebug((state) => state.addWatch);
   const removeWatch = useDebug((state) => state.removeWatch);
@@ -298,8 +299,7 @@ export default function DebugStudio({ project, mobile = false, headerControl }: 
   const [configOpen, setConfigOpen] = useState(false);
   const [breakpointEditing, setBreakpointEditing] = useState<DebugBreakpoint | null>(null);
   const [breakpointDraft, setBreakpointDraft] = useState({ condition: "", logMessage: "" });
-  const [contextOpen, setContextOpen] = useState(true);
-  const [consoleOpen, setConsoleOpen] = useState(true);
+  const [consoleOpen, setConsoleOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"ai" | "code">("ai");
 
   const engineRef = useRef<DebugEngine | null>(null);
@@ -1043,33 +1043,27 @@ export default function DebugStudio({ project, mobile = false, headerControl }: 
           <Button variant="ghost" size="xs" iconOnly leadingIcon={Trash2} aria-label="Nova investigação" title="Nova investigação" onClick={resetInvestigation} />
         ) : null}
       </div>
-      <div className="shrink-0 border-b border-separator-border">
-        <button
-          type="button"
-          onClick={() => setContextOpen((value) => !value)}
-          className="flex w-full items-center gap-1.5 px-2 py-1.5 text-start text-caption-2-semibold uppercase tracking-[0.12em] text-text-tertiary hover:bg-background-primary-hover"
-        >
-          {contextOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-          Contexto do bug
-          <Badge color="neutral" className={cx("ms-auto", bug && reproduction ? "text-status-lime-text" : "text-status-yellow-text")}>{bug && reproduction ? "pronto" : "opcional"}</Badge>
-        </button>
-        {contextOpen ? (
-          <div className="flex flex-col gap-1.5 px-2 pb-2">
+      <div className="shrink-0 border-b border-separator-border p-2">
+        <div className="rounded-xl border border-border-button-default bg-background-secondary-default/40 p-2">
+          <p className="mb-1.5 flex items-center gap-1.5 text-caption-2-semibold uppercase tracking-[0.12em] text-text-tertiary">
+            <CircleAlert size={11} /> Relato do problema
+          </p>
+          <div className="flex flex-col gap-1.5">
             <Input value={bug} onChange={(value) => setConfig(project.id, { bug: value })} placeholder="O que está quebrado?" fieldClassName="h-7 text-caption-1" aria-label="Qual é o bug" />
             <Input value={reproduction} onChange={(value) => setConfig(project.id, { reproduction: value })} placeholder="Como reproduzir? (passos, comando, URL)" fieldClassName="h-7 text-caption-1" aria-label="Como reproduzir" />
-            <Button variant="secondary" size="xs" leadingIcon={Sparkles} disabled={aiBusy} onClick={() => runQuick("Investigar agora", "Investigue o problema descrito. Comece lendo o código relevante, defina breakpoints e inicie a sessão.")}>
-              Investigar agora
+            <Button variant="primary" size="xs" leadingIcon={Sparkles} disabled={aiBusy} onClick={() => runQuick("Investigar agora", "Investigue o problema descrito. Comece lendo o código relevante, defina breakpoints e inicie a sessão.")}>
+              Investigar
             </Button>
           </div>
-        ) : null}
+        </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {transcript.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border-button-default p-3 text-caption-1-regular text-text-secondary">
             <p className="mb-1 flex items-center gap-1.5 font-medium text-text-primary"><Sparkles size={13} className="text-accent-500" /> Eu conduzo a investigação</p>
-            <p>Eu crio breakpoints, inicio a sessão, leio variáveis e explico cada passo. Você acompanha e pode me guiar ou colocar breakpoints também.</p>
+            <p>Descreva o problema acima e clique em Investigar. Eu leio o código, defino breakpoints, inicio a sessão e explico cada passo.</p>
             <div className="mt-2 flex flex-wrap gap-1">
-              <Button variant="secondary" size="xs" disabled={aiBusy} onClick={() => runQuick("Investigar agora", "Comece a investigar o arquivo aberto. Se não houver breakpoint, defina um provável antes de iniciar.")}>Começar</Button>
+              <Button variant="ghost" size="xs" disabled={aiBusy} onClick={() => runQuick("Começar pelo arquivo aberto", "Comece a investigar o arquivo aberto. Se não houver breakpoint, defina um provável antes de iniciar.")}>Começar pelo arquivo</Button>
               <Button variant="ghost" size="xs" disabled={aiBusy || !paused} onClick={() => runQuick("Explique esta pausa", "Explique onde estamos, o que esta pausa significa e quais variáveis importam.")}>Explique a pausa</Button>
             </div>
           </div>
@@ -1103,7 +1097,6 @@ export default function DebugStudio({ project, mobile = false, headerControl }: 
         <div className="mb-1 flex flex-wrap gap-1">
           <button type="button" disabled={aiBusy} onClick={() => runQuick("Continue a investigação", "Continue a investigação a partir do estado atual.")} className="rounded-full bg-background-tertiary-default px-2 py-0.5 text-caption-2-regular text-text-secondary transition-colors hover:bg-background-primary-hover disabled:opacity-50">Continuar</button>
           <button type="button" disabled={aiBusy || !paused} onClick={() => runQuick("Explique esta pausa", "Explique esta pausa em linguagem simples e o que devo olhar.")} className="rounded-full bg-background-tertiary-default px-2 py-0.5 text-caption-2-regular text-text-secondary transition-colors hover:bg-background-primary-hover disabled:opacity-50">Explicar pausa</button>
-          <button type="button" disabled={aiBusy || !currentPath} onClick={() => { if (currentPath) { toggleBreakpoint(project.id, currentPath, cursorLine); appendUser(`Coloquei um breakpoint em ${currentPath}:${cursorLine}.`); } }} className="rounded-full bg-background-tertiary-default px-2 py-0.5 text-caption-2-regular text-text-secondary transition-colors hover:bg-background-primary-hover disabled:opacity-50">Breakpoint aqui</button>
           <button type="button" disabled={aiBusy || !paused} onClick={() => runQuick("Sugira uma correção", "Com base no estado atual, sugira uma causa provável e uma correção. Não escreva arquivos.")} className="rounded-full bg-background-tertiary-default px-2 py-0.5 text-caption-2-regular text-text-secondary transition-colors hover:bg-background-primary-hover disabled:opacity-50">Sugerir correção</button>
         </div>
         <div className="flex items-end gap-1.5">
@@ -1126,85 +1119,111 @@ export default function DebugStudio({ project, mobile = false, headerControl }: 
   );
 
   const statePane = (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <Section title="Sessão" icon={<Bug size={13} />} action={<span className={cx("size-2 rounded-full", statusTone(connected, paused))} />}>
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-caption-1-medium text-text-primary">{language === "python" ? "Python" : "Node"} · {mode === "attach" ? "attach" : "launch"}</p>
-            <p className="truncate text-caption-2-regular text-text-tertiary" title={session?.address || config.command}>{session?.address || config.command || "sem comando"}</p>
-          </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="shrink-0 border-b border-separator-border p-2.5">
+        <div className="flex items-center gap-2">
+          <span className={cx("size-2 shrink-0 rounded-full", statusTone(connected, paused))} />
+          <p className="min-w-0 flex-1 truncate text-caption-1-semibold text-text-primary">
+            {language === "python" ? "Python" : "Node"} · {mode === "attach" ? "attach" : "launch"}
+          </p>
           <Button variant="ghost" size="xs" iconOnly leadingIcon={Settings2} aria-label="Configurar debug" title="Configurar debug" onClick={() => setConfigOpen(true)} />
         </div>
-        {pauseReason ? <p className="mt-1 truncate text-caption-2-regular text-text-tertiary">motivo: {pauseReason}</p> : null}
-      </Section>
-      <Section title="Call stack" icon={<ListTree size={13} />}>
-        {frames.length ? frames.slice(0, 30).map((frame, index) => (
-          <button
-            key={`${frame.id}-${index}`}
-            type="button"
-            onClick={() => void selectFrame(index)}
-            className={cx(
-              "flex w-full items-center gap-1.5 rounded-lg px-1.5 py-1 text-start text-caption-1-regular",
-              index === selectedFrame ? "bg-accent-500/10 text-text-primary" : "text-text-secondary hover:bg-background-primary-hover",
-            )}
-          >
-            <CornerDownRight size={12} className="shrink-0 text-text-tertiary" />
-            <span className="min-w-0 flex-1 truncate">{frame.name || "(anonymous)"}</span>
-            <span className="shrink-0 text-caption-2-regular text-text-tertiary">{frame.path.split("/").pop()}:{frame.line}</span>
-          </button>
-        )) : <p className="text-caption-2-regular text-text-tertiary">Pause em um breakpoint para ver a stack.</p>}
-      </Section>
-      <Section title="Variáveis" icon={<Variable size={13} />}>
-        {scopes.length ? scopes.map((scope, index) => (
-          <ScopeBlock
-            key={`${scope.name}-${index}`}
-            scope={scope}
-            index={index}
-            load={(reference) => reference !== undefined && reference !== null && reference !== ""
-              ? (engineRef.current?.variables(reference) ?? Promise.resolve([]))
-              : Promise.resolve([])}
-          />
-        )) : <p className="text-caption-2-regular text-text-tertiary">Pause para inspecionar os valores.</p>}
-      </Section>
-      <Section title="Watches" icon={<CircleDot size={13} />}>
-        <div className="flex flex-col gap-1">
-          {watches.map((watch, index) => {
-            const result = watchResults.find((item) => item.expression === watch);
-            return (
-              <div key={`${watch}-${index}`} className="flex items-center gap-1.5 text-caption-2-regular">
-                <span className="min-w-0 flex-1 truncate text-accent-500" title={watch}>{watch}</span>
-                <span className={cx("min-w-0 max-w-[45%] truncate", result?.error ? "text-status-rose-text" : "text-text-secondary")} title={result?.value || result?.error || ""}>{result?.value || result?.error || "—"}</span>
-                <button type="button" aria-label="Remover watch" onClick={() => removeWatch(project.id, index)} className="text-text-tertiary hover:text-status-rose-text"><X size={11} /></button>
+        <p className="mt-1 truncate font-mono text-[11px] text-text-tertiary" title={session?.address || config.command}>
+          {session?.address || config.command || "configure o comando"}
+        </p>
+        <p className="mt-1 truncate text-caption-2-regular text-text-tertiary">
+          {!session ? "Sessão parada" : paused ? `Pausado${pauseReason ? ` · ${pauseReason}` : ""}` : "Executando"}
+        </p>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {paused ? (
+          <>
+            <Section title="Call stack" icon={<ListTree size={13} />}>
+              {frames.length ? frames.slice(0, 30).map((frame, index) => (
+                <button
+                  key={`${frame.id}-${index}`}
+                  type="button"
+                  onClick={() => void selectFrame(index)}
+                  className={cx(
+                    "flex w-full items-center gap-1.5 rounded-lg px-1.5 py-1 text-start text-caption-1-regular",
+                    index === selectedFrame ? "bg-accent-500/10 text-text-primary" : "text-text-secondary hover:bg-background-primary-hover",
+                  )}
+                >
+                  <CornerDownRight size={12} className="shrink-0 text-text-tertiary" />
+                  <span className="min-w-0 flex-1 truncate">{frame.name || "(anonymous)"}</span>
+                  <span className="shrink-0 text-caption-2-regular text-text-tertiary">{frame.path.split("/").pop()}:{frame.line}</span>
+                </button>
+              )) : <p className="text-caption-2-regular text-text-tertiary">A stack ainda está carregando.</p>}
+            </Section>
+            <Section title="Variáveis" icon={<Variable size={13} />}>
+              {scopes.length ? scopes.map((scope, index) => (
+                <ScopeBlock
+                  key={`${scope.name}-${index}`}
+                  scope={scope}
+                  index={index}
+                  load={(reference) => reference !== undefined && reference !== null && reference !== ""
+                    ? (engineRef.current?.variables(reference) ?? Promise.resolve([]))
+                    : Promise.resolve([])}
+                />
+              )) : <p className="text-caption-2-regular text-text-tertiary">Nenhuma variável neste ponto.</p>}
+            </Section>
+            <Section title="Watches" icon={<CircleDot size={13} />}>
+              <div className="flex flex-col gap-1">
+                {watches.map((watch, index) => {
+                  const result = watchResults.find((item) => item.expression === watch);
+                  return (
+                    <div key={`${watch}-${index}`} className="flex items-center gap-1.5 text-caption-2-regular">
+                      <span className="min-w-0 flex-1 truncate text-accent-500" title={watch}>{watch}</span>
+                      <span className={cx("min-w-0 max-w-[45%] truncate", result?.error ? "text-status-rose-text" : "text-text-secondary")} title={result?.value || result?.error || ""}>{result?.value || result?.error || "—"}</span>
+                      <button type="button" aria-label="Remover watch" onClick={() => removeWatch(project.id, index)} className="text-text-tertiary hover:text-status-rose-text"><X size={11} /></button>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center gap-1.5">
+                  <Input value={newWatch} onChange={setNewWatch} placeholder="expressão" fieldClassName="h-7 text-caption-1" onKeyDown={(event) => { if (event.key === "Enter" && newWatch.trim()) { addWatch(project.id, newWatch); setNewWatch(""); } }} />
+                  <Button variant="ghost" size="xs" iconOnly leadingIcon={Plus} aria-label="Adicionar watch" onClick={() => { if (newWatch.trim()) { addWatch(project.id, newWatch); setNewWatch(""); } }} className="size-7" />
+                </div>
               </div>
-            );
-          })}
-          <div className="flex items-center gap-1.5">
-            <Input value={newWatch} onChange={setNewWatch} placeholder="expressão" fieldClassName="h-7 text-caption-1" onKeyDown={(event) => { if (event.key === "Enter" && newWatch.trim()) { addWatch(project.id, newWatch); setNewWatch(""); } }} />
-            <Button variant="ghost" size="xs" iconOnly leadingIcon={Plus} aria-label="Adicionar watch" onClick={() => { if (newWatch.trim()) { addWatch(project.id, newWatch); setNewWatch(""); } }} className="size-7" />
+            </Section>
+          </>
+        ) : (
+          <p className="border-b border-separator-border px-3 py-2.5 text-caption-2-regular text-text-tertiary">
+            {session ? "A execução está rodando. Pare em um breakpoint para ver a stack e as variáveis." : "Inicie o debug e pare em um breakpoint para inspecionar a execução."}
+          </p>
+        )}
+
+        <Section
+          title="Breakpoints"
+          icon={<Braces size={13} />}
+          action={breakpoints.length ? (
+            <span className="flex items-center gap-1.5">
+              <Badge color="neutral">{breakpoints.length}</Badge>
+              <button type="button" onClick={() => clearBreakpoints(project.id)} className="text-caption-2-regular text-text-tertiary hover:text-status-rose-text">Limpar</button>
+            </span>
+          ) : undefined}
+        >
+          <div className="flex flex-col gap-0.5">
+            {breakpoints.length ? breakpoints.slice(0, 80).map((breakpoint) => (
+              <div key={breakpoint.id} className="group flex items-center gap-1 rounded-lg px-1 py-0.5 text-caption-2-regular">
+                <button
+                  type="button"
+                  onClick={() => updateBreakpoint(project.id, breakpoint.id, { enabled: breakpoint.enabled === false })}
+                  className={cx("size-2.5 shrink-0 rounded-full", breakpoint.enabled === false ? "bg-text-tertiary" : breakpoint.logMessage ? "bg-status-yellow-text" : breakpoint.condition ? "bg-status-blue-text" : "bg-status-rose-text")}
+                  aria-label={breakpoint.enabled === false ? "Ativar breakpoint" : "Desativar breakpoint"}
+                />
+                <button type="button" onClick={() => void openFile(breakpoint.path, breakpoint.line)} className="min-w-0 flex-1 truncate text-start text-text-secondary hover:text-text-primary" title={breakpoint.path}>
+                  {breakpoint.path.split("/").pop()}:{breakpoint.line}
+                </button>
+                {breakpoint.condition ? <span className="max-w-24 truncate text-status-blue-text" title={breakpoint.condition}>if</span> : null}
+                {breakpoint.logMessage ? <span className="max-w-24 truncate text-status-yellow-text" title={breakpoint.logMessage}>log</span> : null}
+                <button type="button" onClick={() => openBreakpointEditor(breakpoint)} className="text-text-tertiary opacity-0 hover:text-text-primary group-hover:opacity-100" aria-label="Editar breakpoint">✎</button>
+                <button type="button" onClick={() => removeBreakpoint(project.id, breakpoint.id)} className="text-text-tertiary opacity-0 hover:text-status-rose-text group-hover:opacity-100" aria-label="Remover breakpoint"><X size={11} /></button>
+              </div>
+            )) : <p className="text-caption-2-regular text-text-tertiary">Clique na gutter do editor para marcar uma linha.</p>}
           </div>
-        </div>
-      </Section>
-      <Section title="Breakpoints" icon={<Braces size={13} />} action={<Badge color="neutral">{breakpoints.length}</Badge>}>
-        <div className="flex flex-col gap-0.5">
-          {breakpoints.length ? breakpoints.slice(0, 80).map((breakpoint) => (
-            <div key={breakpoint.id} className="group flex items-center gap-1 rounded-lg px-1 py-0.5 text-caption-2-regular">
-              <button
-                type="button"
-                onClick={() => updateBreakpoint(project.id, breakpoint.id, { enabled: breakpoint.enabled === false })}
-                className={cx("size-2.5 shrink-0 rounded-full", breakpoint.enabled === false ? "bg-text-tertiary" : breakpoint.logMessage ? "bg-status-yellow-text" : breakpoint.condition ? "bg-status-blue-text" : "bg-status-rose-text")}
-                aria-label={breakpoint.enabled === false ? "Ativar breakpoint" : "Desativar breakpoint"}
-              />
-              <button type="button" onClick={() => void openFile(breakpoint.path, breakpoint.line)} className="min-w-0 flex-1 truncate text-start text-text-secondary hover:text-text-primary" title={breakpoint.path}>
-                {breakpoint.path.split("/").pop()}:{breakpoint.line}
-              </button>
-              {breakpoint.condition ? <span className="max-w-24 truncate text-status-blue-text" title={breakpoint.condition}>if</span> : null}
-              {breakpoint.logMessage ? <span className="max-w-24 truncate text-status-yellow-text" title={breakpoint.logMessage}>log</span> : null}
-              <button type="button" onClick={() => openBreakpointEditor(breakpoint)} className="text-text-tertiary opacity-0 hover:text-text-primary group-hover:opacity-100" aria-label="Editar breakpoint">✎</button>
-              <button type="button" onClick={() => removeBreakpoint(project.id, breakpoint.id)} className="text-text-tertiary opacity-0 hover:text-status-rose-text group-hover:opacity-100" aria-label="Remover breakpoint"><X size={11} /></button>
-            </div>
-          )) : <p className="text-caption-2-regular text-text-tertiary">Clique na gutter do editor ou use “Breakpoint”.</p>}
-        </div>
-      </Section>
+        </Section>
+      </div>
     </div>
   );
 
@@ -1235,11 +1254,16 @@ export default function DebugStudio({ project, mobile = false, headerControl }: 
             onSave={() => void saveFile()}
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Bug size={22} /></span>
-            <strong className="text-body-medium text-text-primary">Abra um arquivo para acompanhar</strong>
-            <p className="max-w-xs text-caption-1-regular text-text-secondary">O Toph pode abrir arquivos e definir breakpoints. Você também pode clicar na gutter à esquerda do número da linha.</p>
-            <Button variant="secondary" size="small" leadingIcon={Search} onClick={() => setFilesOpen(true)}>Buscar arquivo</Button>
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Bug size={20} /></span>
+            <strong className="text-body-medium text-text-primary">Comece pelo relato do problema</strong>
+            <p className="max-w-sm text-caption-1-regular text-text-secondary">
+              Descreva à direita o que está quebrado e como reproduzir. O Toph abre o código, marca breakpoints e conduz a sessão; você acompanha e guia.
+            </p>
+            <div className="mt-1 flex flex-wrap justify-center gap-2">
+              <Button variant="secondary" size="small" leadingIcon={Search} onClick={() => setFilesOpen(true)}>Buscar arquivo</Button>
+              <Button variant="primary" size="small" leadingIcon={Sparkles} disabled={aiBusy} onClick={() => runQuick("Investigar agora", "Investigue o problema descrito. Comece lendo o código relevante, defina breakpoints e inicie a sessão.")}>Investigar agora</Button>
+            </div>
           </div>
         )}
       </div>
@@ -1326,7 +1350,7 @@ export default function DebugStudio({ project, mobile = false, headerControl }: 
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="flex min-h-0 flex-1 flex-col">{editorPane}</div>
               <div className="max-h-[45%] shrink-0 overflow-y-auto border-t border-separator-border">{statePane}</div>
-              <div className="h-36 shrink-0 border-t border-separator-border">{consolePane}</div>
+              {consoleOpen ? <div className="h-36 shrink-0 border-t border-separator-border">{consolePane}</div> : null}
             </div>
           )}
         </div>

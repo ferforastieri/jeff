@@ -360,11 +360,7 @@ impl Runtime {
             .workspace
             .validate_root(std::path::Path::new(&project.root))?;
         let config = self.inner.ai.resolve(&agent.model).await?;
-        let skills = self
-            .inner
-            .skills
-            .for_agent(&item.project_id, &agent.id)
-            .await?;
+        let skills = self.inner.skills.available().await?;
         let prompt = format!(
             "O servidor foi reiniciado durante esta execução. Verifique o estado atual do projeto e continue a tarefa de onde parou. Não repita ações já concluídas.\n\nA mensagem original do usuário foi:\n{}\n\nSe o histórico da sessão já contém essa mensagem, não a trate como um novo pedido; apenas continue o trabalho.",
             item.prompt.trim()
@@ -701,7 +697,7 @@ impl Runtime {
                 .lock()
                 .unwrap()
                 .insert(run.id.clone(), token.clone());
-            let skills = self.inner.skills.for_agent(project, &responder.id).await?;
+            let skills = self.inner.skills.available().await?;
             let ctx = RunContext {
                 run: run.clone(),
                 user_id: user,
@@ -1844,7 +1840,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                         match self
                             .inner
                             .skills
-                            .read_for_agent(&ctx.project_id, &ctx.agent.id, wanted)
+                            .read(wanted)
                             .await?
                         {
                             Some(skill) => {
@@ -2031,11 +2027,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                     &target,
                 )
                 .await?;
-            let skills = self
-                .inner
-                .skills
-                .for_agent(&parent.project_id, &target.id)
-                .await?;
+            let skills = self.inner.skills.available().await?;
             let ctx = RunContext {
                 run: run.clone(),
                 user_id: parent.user_id,

@@ -1,6 +1,6 @@
 import { useProjectStream } from "../../features/projects/hooks/useProjectStream";
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
-import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { Bot, ChevronDown, ChevronRight, GitBranch, X } from "@toph/icons";
 import { api, getApiBase, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
@@ -24,9 +24,6 @@ import BrandMark from "@toph/brand";
 import { Button } from "@toph/ui/app";
 import { Input } from "@toph/ui/app";
 import { Avatar } from "@toph/ui/app";
-import { Checkbox } from "@toph/ui/app";
-import { Radio, RadioGroup } from "@toph/ui/app";
-import { Kbd } from "@toph/ui/app";
 import { Modal } from "@toph/ui/app";
 import ResizeHandle from "../../shared/ui/resize";
 import { isMobileViewport, useIsMobile } from "../../shared/ui/useIsMobile";
@@ -115,7 +112,6 @@ export default function Workbench() {
   const tabs = useApp((state) => state.tabs);
   const activeTabId = useApp((state) => state.activeTabId);
   const setTabs = useApp((state) => state.setTabs);
-  const setActiveTab = useApp((state) => state.setActiveTab);
   const openTab = useApp((state) => state.openTab);
   const sidebar = useApp((state) => state.sidebar);
   const setSidebar = useApp((state) => state.setSidebar);
@@ -144,12 +140,10 @@ export default function Workbench() {
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [branchCreateOpen, setBranchCreateOpen] = useState(false);
   const [quickOpenToken, setQuickOpenToken] = useState(0);
-  const [layoutOpen, setLayoutOpen] = useState(false);
   const [rightPanel, setRightPanel] = useState<RightPanel>("files");
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const tabsVisible = workspaceFeatures.tabs;
   const effectiveSidebarVisible = sidebar !== "debug";
-  const panelAlignment = useSettings((state) => state.panelAlignment);
   const [branchInfo, setBranchInfo] = useState<{ current: string; branches: string[] } | null>(null);
   const [branchBusy, setBranchBusy] = useState("");
   const [newBranchName, setNewBranchName] = useState("");
@@ -203,31 +197,6 @@ export default function Workbench() {
     setRightPanelOpen(true);
   }
 
-  function setWorkspaceFeature(feature: WorkspaceFeature, enabled: boolean): void {
-    if (feature === "bots") return;
-    updateSettings({ workspaceFeatures: { [feature]: enabled } });
-    const activeTabFeature = activeTab ? tabFeature(activeTab) : null;
-    if (!enabled && (feature === "tabs" || activeTabFeature === feature)) {
-      setActiveTab(null);
-      setSidebar("bots");
-    }
-    if (!enabled && feature === "terminal") {
-      setTerminalOpen(false);
-    }
-    if (!enabled && feature === "sourceControl") {
-      setBranchMenuOpen(false);
-      setBranchInfo(null);
-      setBranchError("");
-    }
-    if (!enabled && sidebarFeature(sidebar) === feature) {
-      setSidebar("bots");
-    }
-  }
-
-  function openLayoutSettings(): void {
-    setLayoutOpen(true);
-  }
-
   useEffect(() => {
     const selectedFeature = sidebarFeature(sidebar);
     if ((!selectedFeature && sidebar !== "bots") || (selectedFeature && !featureIsEnabled(selectedFeature))) {
@@ -246,12 +215,6 @@ export default function Workbench() {
     if (!terminalEnabled) void api.closeProjectTerminals(activeProjectId).catch(() => undefined);
     if (!debugEnabled) void api.debugStop(activeProjectId).catch(() => undefined);
   }, [activeProjectId, terminalEnabled, debugEnabled]);
-
-  useEffect(() => {
-    const openLayout = () => openLayoutSettings();
-    window.addEventListener("toph:layout-settings", openLayout);
-    return () => window.removeEventListener("toph:layout-settings", openLayout);
-  }, []);
 
   useEffect(() => {
     void loadAI().then(() => loadModels());
@@ -308,11 +271,6 @@ export default function Workbench() {
         event.preventDefault();
         if (!terminalEnabled) return;
         setTerminalOpen(!useApp.getState().terminalOpen);
-        return;
-      }
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "l") {
-        event.preventDefault();
-        setLayoutOpen(true);
         return;
       }
     };
@@ -1241,47 +1199,6 @@ export default function Workbench() {
         </form>
       </Modal>
 
-      <Modal
-        isOpen={layoutOpen}
-        onClose={() => setLayoutOpen(false)}
-        title="Recursos do workspace"
-        description="O Toph fica sempre ativo. Os demais recursos só são inicializados quando você os ativa."
-        size="md"
-        footer={<Button variant="secondary" onClick={() => setLayoutOpen(false)}>Concluir</Button>}
-      >
-        <div className="flex flex-col gap-0.5">
-          <div className="mb-1 px-2 text-caption-1-regular text-text-tertiary">Interface</div>
-          <LayoutRow label="Abas e conteúdo" checked={workspaceFeatures.tabs} onChange={(value) => setWorkspaceFeature("tabs", value)} />
-          <LayoutRow
-            label="Terminal e painel"
-            shortcut="Ctrl+J"
-            checked={workspaceFeatures.terminal}
-            onChange={(value) => {
-              setWorkspaceFeature("terminal", value);
-              if (value) setTerminalOpen(true);
-            }}
-          />
-        </div>
-
-        <LayoutSection label="Ferramentas">
-          <LayoutRow label="Explorer e editor" checked={workspaceFeatures.files} onChange={(value) => setWorkspaceFeature("files", value)} />
-          <LayoutRow label="Controle de código-fonte" checked={workspaceFeatures.sourceControl} onChange={(value) => setWorkspaceFeature("sourceControl", value)} />
-          <LayoutRow label="Bancos de dados" checked={workspaceFeatures.databases} onChange={(value) => setWorkspaceFeature("databases", value)} />
-          <LayoutRow label="Aplicativos web" checked={workspaceFeatures.webApps} onChange={(value) => setWorkspaceFeature("webApps", value)} />
-          <LayoutRow label="Debug" checked={workspaceFeatures.debug} onChange={(value) => setWorkspaceFeature("debug", value)} />
-          <LayoutRow label="Tophs" checked disabled onChange={() => undefined} />
-          <p className="px-2 pt-1 text-caption-2-regular text-text-tertiary">O Toph é o único recurso obrigatório e sempre começa ativo.</p>
-        </LayoutSection>
-
-        <LayoutSection label="Panel Alignment">
-          <RadioGroup className="flex flex-col gap-0.5" value={panelAlignment} onChange={(value) => updateSettings({ panelAlignment: value as "left" | "right" | "center" | "justify" })}>
-            <LayoutRadio value="left" label="Left" />
-            <LayoutRadio value="right" label="Right" />
-            <LayoutRadio value="center" label="Center" />
-            <LayoutRadio value="justify" label="Justify" />
-          </RadioGroup>
-        </LayoutSection>
-      </Modal>
 
       <CloseProjectModal
         open={Boolean(closeTarget)}
@@ -1294,45 +1211,5 @@ export default function Workbench() {
       />
       <Toasts />
     </div>
-  );
-}
-
-function LayoutRow({ label, shortcut, checked, disabled = false, onChange }: { label: string; shortcut?: string; checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) {
-  return (
-    <div className={cx("flex h-9 items-center justify-between rounded-lg px-2", disabled ? "opacity-70" : "hover:bg-background-primary-hover")}>
-      <Checkbox isSelected={checked} isDisabled={disabled} onChange={onChange}>{label}</Checkbox>
-      {shortcut && <Shortcut value={shortcut} />}
-    </div>
-  );
-}
-
-function LayoutSection({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <section className="mt-3 border-t border-separator-border pt-2">
-      <div className="px-2 pb-1 text-right text-caption-1-regular text-text-tertiary">{label}</div>
-      {children}
-    </section>
-  );
-}
-
-function LayoutRadio({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex h-8 items-center rounded-lg px-2 hover:bg-background-primary-hover">
-      <Radio value={value} className="w-full">{label}</Radio>
-    </div>
-  );
-}
-
-function Shortcut({ value }: { value: string }) {
-  const keys = value.split("+");
-  return (
-    <span className="flex items-center gap-1">
-      {keys.map((key, index) => (
-        <span key={`${key}-${index}`} className="flex items-center gap-1">
-          <Kbd>{key}</Kbd>
-          {index < keys.length - 1 && <span className="text-caption-2-regular text-text-tertiary">+</span>}
-        </span>
-      ))}
-    </span>
   );
 }

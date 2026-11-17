@@ -20,7 +20,7 @@ import { cx } from "@toph/ui";
 import { runThemeTransition } from "../../../shared/ui/theme-transition";
 import type { MobileScreen } from "./mobile-nav";
 
-type SettingsSection = "general" | "appearance" | "skills" | "harness" | "workspace";
+type SettingsSection = "general" | "skills" | "harness" | "workspace";
 
 interface Props {
   activeTitle?: string;
@@ -111,7 +111,7 @@ export default function MobileMoreScreen({
   const projectActions: Action[] = [
     { id: "projects", label: "Projetos", description: "Abrir ou fechar", icon: FolderGit2, onSelect: onProjects },
     { id: "branch", label: "Branch", description: "Trocar ou criar", icon: GitBranch, onSelect: onBranch },
-    { id: "settings", label: "Configurações", description: "Layout e ferramentas", icon: Settings2, onSelect: () => openSettings("general") },
+    { id: "settings", label: "Configurações", description: "Sua conta e o servidor", icon: Settings2, onSelect: () => openSettings("general") },
     { id: "account", label: "Conta", description: "Sessão e servidor", icon: UserRound, onSelect: onAccount },
   ];
 

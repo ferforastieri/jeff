@@ -7,19 +7,17 @@ import {
   Icon,
   Input,
   PageHeader,
-  Switch,
-  cx,
   type IconName,
 } from "@toph/ui";
 import { Modal } from "@toph/ui/app";
 import { api, getApiBase, probeServer, setApiBase, type User } from "../../../shared/api";
 import { useApp } from "../../../app/store";
-import { useSettings, type WorkspaceFeature } from "../store";
 const WorkspaceSettings = lazy(() => import("./WorkspaceSettings"));
 const SkillsPanel = lazy(() => import("../../skills/components/SkillsPanel"));
 const HarnessSettings = lazy(() => import("./HarnessSettings"));
+const ConnectorsSettings = lazy(() => import("./ConnectorsSettings"));
 
-type Section = "general" | "appearance" | "skills" | "harness" | "workspace";
+type Section = "general" | "skills" | "connectors" | "harness" | "workspace";
 
 interface Props {
   user: User | null;
@@ -38,16 +36,16 @@ interface SectionItem {
 /** The list of Settings sections, the Tophs settings' own left column. */
 const sections: SectionItem[] = [
   { id: "general", label: "Geral", icon: "person" },
-  { id: "appearance", label: "Layout e ferramentas", icon: "preference" },
   { id: "skills", label: "Skills", icon: "routines" },
+  { id: "connectors", label: "Conectores", icon: "link" },
   { id: "harness", label: "Harness", icon: "plug" },
   { id: "workspace", label: "Workspace", icon: "drive" },
 ];
 
 const copy: Record<Section, { title: string; meta: string }> = {
   general: { title: "Geral", meta: "Sua conta, o servidor e o que o Toph usa." },
-  appearance: { title: "Layout e ferramentas", meta: "Escolha diretamente o que aparece e é inicializado no workspace." },
-  skills: { title: "Skills", meta: "Receitas que o Toph lê sob demanda." },
+  skills: { title: "Skills", meta: "Receitas globais que o Toph lê sob demanda." },
+  connectors: { title: "Conectores", meta: "Serviços que o Toph usa em todos os projetos, por API token ou MCP." },
   harness: { title: "Harness", meta: "O CLI conduz o loop do agente; o Toph entrega contexto, ferramentas, permissões e aprovações." },
   workspace: { title: "Workspace", meta: "Pastas acessíveis pelo Toph." },
 };
@@ -55,8 +53,6 @@ const copy: Record<Section, { title: string; meta: string }> = {
 export default function TophSettings({ user, projectRoot, projectId, hideTrigger = false }: Props) {
   const setUser = useApp((state) => state.setUser);
   const notify = useApp((state) => state.notify);
-  const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
-  const updateSettings = useSettings((state) => state.update);
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<Section>("general");
   const [busy, setBusy] = useState(false);
@@ -120,7 +116,6 @@ export default function TophSettings({ user, projectRoot, projectId, hideTrigger
     }
   }
 
-  const setFeature = (feature: WorkspaceFeature, enabled: boolean) => updateSettings({ workspaceFeatures: { [feature]: enabled } });
   const current = copy[section];
   const initial = (user?.username ?? "T").trim().charAt(0);
   const sectionIcon = sections.find((item) => item.id === section)?.icon ?? "person";
@@ -236,17 +231,10 @@ export default function TophSettings({ user, projectRoot, projectId, hideTrigger
                     />
                   </Card>
                 </>
-              ) : section === "appearance" ? (
-                <>
-                  <Card>
-                    <CardHeader title="Layout" subtitle="O que o workspace mostra e inicializa." />
-                    <div className="settings-rows">
-                      <ToggleRow id="toph-tabs" icon="layers" label="Abas e conteúdo" checked={workspaceFeatures.tabs} onChange={(value) => setFeature("tabs", value)} />
-                    </div>
-                  </Card>
-                </>
               ) : section === "skills" ? (
                 <Card padded><SkillsPanel projectId={projectId} /></Card>
+              ) : section === "connectors" ? (
+                <Card padded><ConnectorsSettings /></Card>
               ) : section === "harness" ? (
                 <Card padded><HarnessSettings projectRoot={projectRoot} /></Card>
               ) : (
@@ -268,34 +256,6 @@ function ValueRow({ icon, label, value }: { icon: IconName; label: string; value
         <span className="settings-row__label">{label}</span>
       </span>
       <span className="settings-row__value">{value}</span>
-    </div>
-  );
-}
-
-function ToggleRow({
-  id,
-  icon,
-  label,
-  checked,
-  disabled = false,
-  onChange,
-}: {
-  id: string;
-  icon: IconName;
-  label: string;
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <div className={cx("settings-row ac-actrow settings-row--lead", !disabled && "settings-row--toggle")}>
-      <span className="settings-row__icon" aria-hidden="true"><Icon name={icon} size={16} /></span>
-      <span className="settings-row__text ac-actrow__text">
-        <label className="settings-row__label settings-row__hit" htmlFor={id}>{label}</label>
-      </span>
-      <span className="settings-row__end">
-        <Switch id={id} checked={checked} onCheckedChange={onChange} disabled={disabled} />
-      </span>
     </div>
   );
 }

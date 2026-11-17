@@ -5,14 +5,14 @@ import { useApp } from "../../../app/store";
 import { defaultWorkspaceFeatures, useSettings } from "../store";
 import { api } from "../../../shared/api";
 
-vi.mock("../../providers/components/ConnectionsHub", () => ({
-  default: () => <div data-testid="connections-hub">Conexões de modelos e MCP</div>,
-}));
 vi.mock("./WorkspaceSettings", () => ({
   default: () => <div data-testid="workspace-settings">Workspace</div>,
 }));
 vi.mock("./HarnessSettings", () => ({
-  default: () => <div><span data-testid="engine-settings">Motores</span><span data-testid="connections-hub">Modelos e MCP</span></div>,
+  default: () => <div data-testid="engine-settings">Motores</div>,
+}));
+vi.mock("./ConnectorsSettings", () => ({
+  default: () => <div data-testid="connectors-settings">Conectores</div>,
 }));
 
 beforeAll(() => {
@@ -37,7 +37,7 @@ afterEach(() => {
 });
 
 describe("TophSettings", () => {
-  it("keeps model/MCP connections and email in Settings", async () => {
+  it("keeps harness and connectors in their own tabs", async () => {
     render(<TophSettings user={{ id: 1, username: "admin", createdAt: "" }} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Abrir configurações" }));
@@ -45,8 +45,11 @@ describe("TophSettings", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Harness" }));
     expect(await screen.findByTestId("engine-settings")).toBeInTheDocument();
-    expect(await screen.findByTestId("connections-hub")).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("button", { name: "Conectores" }));
+    expect(await screen.findByTestId("connectors-settings")).toBeInTheDocument();
+
+    expect(screen.queryByRole("button", { name: "Layout e ferramentas" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Toph" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("toph-config")).not.toBeInTheDocument();
   });

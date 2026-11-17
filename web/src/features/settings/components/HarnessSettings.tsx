@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, Download, ExternalLink, LoaderCircle, RefreshCw } from "@toph/icons";
+import { Check, CircleAlert, Copy, Download, ExternalLink, LoaderCircle, RefreshCw } from "@toph/icons";
 import { engineApi, type EngineInfo, type EngineTest } from "../../agents/api";
 import { useApp } from "../../../app/store";
 import { useSettings } from "../store";
@@ -123,104 +123,130 @@ export default function HarnessSettings(_props: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h4 className="text-body-medium text-text-primary">Motores de agente</h4>
-            <p className="mt-0.5 text-caption-1-regular text-text-secondary">Conecte com a conta que você já usa. O login abre no terminal do app.</p>
-          </div>
-          <Button variant="ghost" size="small" leadingIcon={RefreshCw} onClick={() => void refresh()} disabled={loading || busy !== null}>
-            Recarregar
-          </Button>
+    <div className="flex flex-col gap-4">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className="text-body-medium text-text-primary">Motores de agente</h4>
+          <p className="mt-0.5 max-w-2xl text-caption-1-regular text-text-secondary">
+            Instale, entre e teste o CLI que executa o Toph. O login abre no terminal do app; skills e conectores chegam ao harness automaticamente.
+          </p>
         </div>
+        <Button variant="ghost" size="small" leadingIcon={RefreshCw} onClick={() => void refresh()} disabled={loading || busy !== null}>
+          Recarregar
+        </Button>
+      </header>
 
-        {error ? <p role="alert" className="rounded-xl border border-status-rose-border bg-status-rose-bg px-3 py-2 text-caption-1-regular text-status-rose-text">{error}</p> : null}
-        {loading ? <p role="status" className="flex items-center gap-2 text-caption-1-regular text-text-secondary"><LoaderCircle className="size-4 animate-spin" /> Procurando harnesses…</p> : null}
+      {error ? (
+        <p role="alert" className="flex items-center gap-2 rounded-xl border border-status-rose-border bg-status-rose-bg px-3 py-2 text-caption-1-regular text-status-rose-text">
+          <CircleAlert size={13} /> {error}
+        </p>
+      ) : null}
+      {loading ? (
+        <p role="status" className="flex items-center gap-2 text-caption-1-regular text-text-secondary">
+          <LoaderCircle className="size-4 animate-spin" /> Procurando harnesses…
+        </p>
+      ) : null}
 
-        <div className="grid gap-2 md:grid-cols-2">
-          {engines.map((engine) => {
+      {!loading && engines.length > 0 ? (
+        <div className="overflow-hidden rounded-2xl border border-border-button-default bg-background-primary-default">
+          {engines.map((engine, index) => {
             const working = busy?.id === engine.id;
             const result = tests[engine.id];
             const output = installs[engine.id];
             return (
-              <section key={engine.id} className={cx("flex h-full min-h-0 flex-col gap-3 rounded-2xl border p-3", engine.installed ? "border-accent-500/30 bg-accent-500/[0.035]" : "border-border-button-default bg-background-primary-default")}>
-                <div className="flex items-start gap-3">
-                  <span className={cx("flex size-11 shrink-0 items-center justify-center rounded-2xl", engine.installed ? "bg-accent-500/12" : "bg-background-tertiary-default")}>
-                    <HarnessIcon id={engine.id} className={cx("size-6", engine.installed ? "text-text-primary" : "text-text-secondary")} />
+              <div key={engine.id} className={cx("px-3 py-3", index > 0 && "border-t border-separator-border")}>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className={cx("flex size-9 shrink-0 items-center justify-center rounded-xl", engine.installed ? "bg-accent-500/12" : "bg-background-tertiary-default")}>
+                    <HarnessIcon id={engine.id} className={cx("size-5", engine.installed ? "text-text-primary" : "text-text-tertiary")} />
                   </span>
+
                   <div className="min-w-0 flex-1">
-                    <strong className="block truncate text-body-medium text-text-primary">{engine.label}</strong>
-                    <p className="mt-0.5 truncate text-caption-2-regular text-text-tertiary" title={engine.path ?? engine.binary}>
-                      {engine.installed ? engine.path ?? engine.binary : `Binário: ${engine.binary}`}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <strong className="truncate text-caption-1-semibold text-text-primary">{engine.label}</strong>
+                      <span className={cx("rounded-full px-1.5 py-px text-[10px] font-semibold", engine.installed ? "bg-status-lime-bg text-status-lime-text" : "bg-status-yellow-bg text-status-yellow-text")}>
+                        {engine.installed ? "instalado" : "não instalado"}
+                      </span>
+                      {engine.installed && !engine.supported ? (
+                        <span className="rounded-full bg-status-amber-bg px-1.5 py-px text-[10px] font-semibold text-status-amber-text">sem suporte no runtime</span>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 truncate font-mono text-[11px] text-text-tertiary" title={engine.path ?? engine.binary}>
+                      {engine.installed ? engine.path ?? engine.binary : `binário: ${engine.binary}`}
                     </p>
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap items-center gap-1">
+                    {engine.installed ? (
+                      <>
+                        <Button variant="primary" size="small" disabled={working} onClick={() => login(engine)}>Entrar</Button>
+                        <Button variant="secondary" size="small" disabled={working} leadingIcon={working && busy?.action === "test" ? LoaderCircle : Check} onClick={() => void test(engine)}>
+                          {working && busy?.action === "test" ? "Testando…" : "Testar"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="small"
+                          iconOnly
+                          disabled={working}
+                          leadingIcon={working && busy?.action === "update" ? LoaderCircle : RefreshCw}
+                          aria-label={`Atualizar ${engine.label}`}
+                          title={`Atualizar ${engine.label}`}
+                          onClick={() => void update(engine)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="small"
+                          iconOnly
+                          leadingIcon={copied === engine.id ? Check : Copy}
+                          aria-label={`Copiar login de ${engine.label}`}
+                          title={`Copiar: ${engine.login}`}
+                          onClick={() => void copy(engine)}
+                        />
+                      </>
+                    ) : (
+                      <Button variant="primary" size="small" disabled={working} leadingIcon={working && busy?.action === "install" ? LoaderCircle : Download} onClick={() => void install(engine)}>
+                        {working && busy?.action === "install" ? "Instalando…" : "Instalar"}
+                      </Button>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {engine.supported ? (
-                    <span className="rounded-full bg-accent-500/15 px-2 py-0.5 text-[10px] font-semibold text-accent-600">disponível</span>
-                  ) : (
-                    <span className="rounded-full bg-background-tertiary-default px-2 py-0.5 text-[10px] font-semibold text-text-tertiary">instalável</span>
-                  )}
-                  {engine.installed ? (
-                    <span className="rounded-full bg-status-lime-bg px-2 py-0.5 text-[10px] font-semibold text-status-lime-text">instalado</span>
-                  ) : (
-                    <span className="rounded-full bg-status-yellow-bg px-2 py-0.5 text-[10px] font-semibold text-status-yellow-text">não instalado</span>
-                  )}
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 ps-12 text-caption-2-regular text-text-tertiary">
+                  <span className="inline-flex min-w-0 items-center gap-1">
+                    <span className="text-text-secondary">Login:</span>
+                    <code className="truncate rounded bg-background-tertiary-default px-1 py-0.5 font-mono text-[10.5px] text-text-primary">{engine.login}</code>
+                  </span>
+                  {!engine.installed ? (
+                    <span className="inline-flex min-w-0 items-center gap-1">
+                      <span className="text-text-secondary">Instalar:</span>
+                      <code className="truncate rounded bg-background-tertiary-default px-1 py-0.5 font-mono text-[10.5px] text-text-primary">{engine.install}</code>
+                    </span>
+                  ) : null}
+                  <a href={engine.site} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-text-primary">
+                    Site <ExternalLink size={10} />
+                  </a>
                 </div>
-
-                <div className="mt-auto flex flex-wrap items-center gap-1.5 border-t border-separator-border pt-2.5">
-                  {engine.installed ? (
-                    <>
-                      <Button variant="primary" size="small" disabled={working} onClick={() => login(engine)}>Entrar</Button>
-                      <Button variant="secondary" size="small" disabled={working} leadingIcon={working && busy?.action === "test" ? LoaderCircle : Check} onClick={() => void test(engine)}>
-                        {working && busy?.action === "test" ? "Testando…" : "Testar"}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="small"
-                        iconOnly
-                        disabled={working}
-                        leadingIcon={working && busy?.action === "update" ? LoaderCircle : RefreshCw}
-                        aria-label={`Atualizar ${engine.label}`}
-                        title={`Atualizar ${engine.label}`}
-                        onClick={() => void update(engine)}
-                      />
-                      <Button variant="ghost" size="small" iconOnly leadingIcon={copied === engine.id ? Check : Copy} aria-label={`Copiar login de ${engine.label}`} title={`Copiar: ${engine.login}`} onClick={() => void copy(engine)} />
-                    </>
-                  ) : (
-                    <Button variant="primary" size="small" disabled={working} leadingIcon={working && busy?.action === "install" ? LoaderCircle : Download} onClick={() => void install(engine)}>
-                      {working && busy?.action === "install" ? "Instalando…" : "Instalar"}
-                    </Button>
-                  )}
-                </div>
-
-                {engine.installed && !engine.supported ? (
-                  <p className="rounded-lg bg-status-yellow-bg px-2 py-1.5 text-caption-2-regular text-status-yellow-text">Instalado, mas o runtime ainda não está ligado. Use OpenCode, Claude Code ou Codex.</p>
-                ) : null}
-
-                <p className="line-clamp-2 break-all text-caption-2-regular text-text-tertiary" title={`${engine.login}${engine.installed ? "" : ` · ${engine.install}`}`}>
-                  <span className="font-medium text-text-secondary">Login:</span> <code className="rounded bg-background-tertiary-default px-1 py-0.5 font-mono text-[11px] text-text-primary">{engine.login}</code>
-                  {!engine.installed ? <> · <span className="font-medium text-text-secondary">Instalar:</span> <code className="rounded bg-background-tertiary-default px-1 py-0.5 font-mono text-[11px] text-text-primary">{engine.install}</code></> : null}
-                </p>
 
                 {result ? (
-                  <p className={cx("rounded-lg px-2 py-1.5 text-caption-2-regular", result.ok ? "bg-status-lime-bg text-status-lime-text" : "bg-status-rose-bg text-status-rose-text")}>
+                  <p className={cx("mt-2 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-caption-2-regular", result.ok ? "bg-status-lime-bg text-status-lime-text" : "bg-status-rose-bg text-status-rose-text")}>
+                    {result.ok ? <Check size={11} /> : <CircleAlert size={11} />}
                     {result.message}
-                    {result.modelCount ? ` ${result.modelCount} modelos.` : ""}
+                    {result.modelCount ? ` · ${result.modelCount} modelos` : ""}
                   </p>
                 ) : null}
-                {output ? <pre className="max-h-32 overflow-auto rounded-lg bg-background-tertiary-default p-2 font-mono text-[10px] leading-relaxed text-text-secondary">{output}</pre> : null}
-
-                <a href={engine.site} target="_blank" rel="noreferrer" className="mt-auto inline-flex w-fit items-center gap-1 pt-1 text-caption-2-regular text-text-tertiary hover:text-text-primary">
-                  Site do harness <ExternalLink size={11} />
-                </a>
-              </section>
+                {output ? (
+                  <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-background-tertiary-default p-2 font-mono text-[10px] leading-relaxed text-text-secondary">{output}</pre>
+                ) : null}
+              </div>
             );
           })}
         </div>
-      </section>
+      ) : null}
+
+      {!loading && engines.length === 0 && !error ? (
+        <p className="rounded-2xl border border-dashed border-border-button-default px-4 py-6 text-center text-caption-1-regular text-text-tertiary">
+          Nenhum harness detectado.
+        </p>
+      ) : null}
     </div>
   );
 }

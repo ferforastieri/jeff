@@ -347,7 +347,7 @@ pub(super) async fn skills_list(
     Extension(_auth): Extension<AuthContext>,
 ) -> AppResult<Json<Value>> {
     state.store.project(&project).await?;
-    Ok(Json(json!(state.agents.skills().list(&project).await?)))
+    Ok(Json(json!(state.agents.skills().list().await?)))
 }
 pub(super) async fn save_skill(
     State(state): State<Arc<AppState>>,
@@ -372,11 +372,7 @@ pub(super) async fn decide_skill(
 ) -> AppResult<Json<Value>> {
     state.store.project(&project).await?;
     Ok(Json(json!(
-        state
-            .agents
-            .skills()
-            .decide(&project, &skill, input.approve)
-            .await?
+        state.agents.skills().decide(&skill, input.approve).await?
     )))
 }
 #[derive(Deserialize)]
@@ -394,7 +390,7 @@ pub(super) async fn archive_skill(
         state
             .agents
             .skills()
-            .archive(&project, &skill, input.archived)
+            .archive(&skill, input.archived)
             .await?
     )))
 }
@@ -404,7 +400,7 @@ pub(super) async fn remove_skill(
     Extension(_auth): Extension<AuthContext>,
 ) -> AppResult<Json<Value>> {
     state.store.project(&project).await?;
-    state.agents.skills().remove(&project, &skill).await?;
+    state.agents.skills().remove(&skill).await?;
     Ok(Json(json!({"ok":true})))
 }
 pub(super) async fn skill_versions(
@@ -413,9 +409,7 @@ pub(super) async fn skill_versions(
     Extension(_auth): Extension<AuthContext>,
 ) -> AppResult<Json<Value>> {
     state.store.project(&project).await?;
-    Ok(Json(json!(
-        state.agents.skills().versions(&project, &skill).await?
-    )))
+    Ok(Json(json!(state.agents.skills().versions(&skill).await?)))
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -433,7 +427,7 @@ pub(super) async fn restore_skill(
         state
             .agents
             .skills()
-            .restore(&project, &skill, input.version_id)
+            .restore(&skill, input.version_id)
             .await?
     )))
 }

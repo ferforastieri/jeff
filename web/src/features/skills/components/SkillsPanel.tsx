@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { BookOpen, Check, ChevronDown, ChevronRight, History, LoaderCircle, Pencil, Plus, Search, Sparkles, Trash2 } from "@toph/icons";
 import { useApp } from "../../../app/store";
-import { useChats } from "../../conversations/store";
 import { useConfirm } from "../../../shared/ui/confirm";
 import { Button } from "@toph/ui/app";
 import { Input } from "@toph/ui/app";
 import { Modal } from "@toph/ui/app";
 import { Textarea } from "@toph/ui/app";
-import { cx } from "@toph/ui";
 import { skillApi, type LocalSkill, type SkillDraft, type SkillRecord, type SkillVersion, type SuggestedSkill } from "../api";
 
 const RECOMMENDED = 10_000;
@@ -68,12 +66,10 @@ interface Props {
   projectId?: string;
 }
 
-/** Managed skills: recipes stored per project and assigned to Tophs. */
+/** Managed skills: user-wide recipes available in every project. */
 export default function SkillsPanel({ projectId }: Props) {
   const notify = useApp((state) => state.notify);
   const confirm = useConfirm();
-  const project = useChats((state) => (projectId ? state.byProject[projectId] : undefined));
-  const ensure = useChats((state) => state.ensure);
   const [skills, setSkills] = useState<SkillRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -94,12 +90,7 @@ export default function SkillsPanel({ projectId }: Props) {
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [discoverError, setDiscoverError] = useState("");
   const [pickedLocal, setPickedLocal] = useState<LocalSkill | null>(null);
-  const [linkAgents, setLinkAgents] = useState<string[]>([]);
   const [linking, setLinking] = useState(false);
-
-  useEffect(() => {
-    if (projectId) void ensure(projectId);
-  }, [ensure, projectId]);
 
   const load = useCallback(async () => {
     if (!projectId) {
@@ -134,7 +125,6 @@ export default function SkillsPanel({ projectId }: Props) {
       .finally(() => setDiscoverLoading(false));
   }, [discover, projectId]);
 
-  const members = project?.tophs ?? [];
   const existingNames = useMemo(() => new Set((skills ?? []).map((skill) => skill.name)), [skills]);
   const linkedSources = useMemo(() => new Set((skills ?? []).map((skill) => skill.source).filter((source): source is string => Boolean(source))), [skills]);
   const needle = discoverQuery.trim().toLowerCase();
@@ -144,16 +134,6 @@ export default function SkillsPanel({ projectId }: Props) {
   const pending = (skills ?? []).filter((skill) => skill.state === "pending");
   const archived = (skills ?? []).filter((skill) => skill.state === "archived");
   const selected = selectedId ? (skills ?? []).find((skill) => skill.id === selectedId) ?? null : null;
-
-  function agentName(id: string): string {
-    const agent = members.find((item) => item.id === id);
-    return agent ? agent.name : "Toph removido";
-  }
-
-  function who(ids: string[]): string {
-    if (ids.length === 0) return "Todos os Tophs";
-    return ids.map(agentName).join(", ");
-  }
 
   function open(skill: SkillRecord) {
     setSelectedId(skill.id);
@@ -246,13 +226,11 @@ export default function SkillsPanel({ projectId }: Props) {
     setDiscoverTab("suggested");
     setDiscoverQuery("");
     setPickedLocal(null);
-    setLinkAgents([]);
   }
 
   function closeDiscover() {
     setDiscover(false);
     setPickedLocal(null);
-    setLinkAgents([]);
   }
 
   function addSuggested(skill: SuggestedSkill) {
@@ -265,7 +243,7 @@ export default function SkillsPanel({ projectId }: Props) {
     if (!projectId || !pickedLocal) return;
     setLinking(true);
     try {
-      await skillApi.link(projectId, pickedLocal.source, linkAgents);
+      await skillApi.link(projectId, pickedLocal.source, []);
       closeDiscover();
       await load();
       notify("success", `Skill “${pickedLocal.name}” vinculada.`);
@@ -284,9 +262,9 @@ export default function SkillsPanel({ projectId }: Props) {
     <div className="flex flex-col gap-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-title-3-medium text-text-primary">Skills</p>
+          <p className="text-title-3-medium text-text-primary">Receitas</p>
           <p className="mt-0.5 text-caption-1-regular text-text-secondary">
-            Receitas que os Tophs seguem para um tipo de tarefa. Só o nome e o “quando usar” entram no prompt; o Toph lê a receita quando precisa. Escreva, escolha uma sugerida ou vincule uma skill do Claude Code, Codex, OpenCode ou do projeto.
+            Receitas que o Toph segue para um tipo de tarefa. Elas valem em todos os seus projetos: só o nome e o “quando usar” entram no prompt, e a receita é lida quando precisa. Escreva, escolha uma sugerida ou vincule uma skill do Claude Code, Codex, OpenCode ou do computador.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
@@ -319,7 +297,7 @@ export default function SkillsPanel({ projectId }: Props) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-caption-1-semibold text-text-primary">{skill.name}</span>
                 <span className="block truncate text-caption-2-regular text-text-tertiary">{skill.description}</span>
-                <span className="mt-0.5 block truncate text-caption-2-regular text-text-tertiary">{who(skill.agents)} · {skill.body.length.toLocaleString("pt-BR")} caracteres</span>
+                <span className="mt-0.5 block truncate text-caption-2-regular text-text-tertiary">Todos os projetos · {skill.body.length.toLocaleString("pt-BR")} caracteres</span>
               </span>
               <ChevronRight size={15} className="shrink-0 text-text-tertiary" />
             </button>
@@ -402,10 +380,7 @@ export default function SkillsPanel({ projectId }: Props) {
                   <p className="mt-0.5 text-caption-2-regular text-text-secondary">{pickedLocal.description || "Sem descrição no frontmatter."}</p>
                   <p className="mt-1 text-caption-2-regular text-text-tertiary">{pickedLocal.origin} · {pickedLocal.bodyLength.toLocaleString("pt-BR")} caracteres · {pickedLocal.files.length} arquivo{pickedLocal.files.length === 1 ? "" : "s"} de apoio{pickedLocal.scripts ? " · tem scripts" : ""}</p>
                 </div>
-                <div className="rounded-xl border border-border-button-default p-3">
-                  <p className="mb-2 text-caption-1-medium text-text-primary">Quem usa</p>
-                  <AgentPicker agents={members} value={linkAgents} onChange={setLinkAgents} />
-                </div>
+                <p className="text-caption-2-regular text-text-tertiary">A skill fica disponível em todos os seus projetos.</p>
                 <div className="flex justify-end gap-2">
                   <Button variant="ghost" onClick={() => setPickedLocal(null)}>Cancelar</Button>
                   <Button variant="primary" disabled={linking} onClick={() => void linkLocal()}>{linking ? "Vinculando…" : "Vincular skill"}</Button>
@@ -428,7 +403,7 @@ export default function SkillsPanel({ projectId }: Props) {
                         <p className="mt-0.5 text-caption-2-regular text-text-secondary">{skill.description || "Sem descrição no frontmatter."}</p>
                         <p className="mt-0.5 truncate text-caption-2-regular text-text-tertiary" title={skill.source}>{skill.bodyLength.toLocaleString("pt-BR")} caracteres · {skill.files.length} arquivo{skill.files.length === 1 ? "" : "s"} de apoio</p>
                       </div>
-                      <Button variant="secondary" size="small" disabled={linked} onClick={() => { setPickedLocal(skill); setLinkAgents([]); setDiscoverError(""); }}>{linked ? "Vinculada" : "Vincular"}</Button>
+                      <Button variant="secondary" size="small" disabled={linked} onClick={() => { setPickedLocal(skill); setDiscoverError(""); }}>{linked ? "Vinculada" : "Vincular"}</Button>
                     </div>
                   );
                 })}
@@ -444,7 +419,7 @@ export default function SkillsPanel({ projectId }: Props) {
           <Button variant="primary" disabled={saving || !draft?.name.trim() || !draft.description.trim() || !draft.body.trim()} onClick={() => void save()}>{saving ? "Salvando…" : draft?.id ? "Salvar" : "Criar skill"}</Button>
         </div>
       }>
-        {draft ? <SkillForm draft={draft} members={members} onChange={setDraft} error={formError} /> : null}
+        {draft ? <SkillForm draft={draft} onChange={setDraft} error={formError} /> : null}
       </Modal>
 
       <Modal isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.name ?? "Skill"} description={selected?.description} placement="center" size="lg" bodyClassName="p-4" footer={
@@ -456,7 +431,7 @@ export default function SkillsPanel({ projectId }: Props) {
       }>
         {selected ? <div className="flex flex-col gap-4">
           <dl className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-xl border border-border-button-default px-3 py-2"><dt className="text-caption-2-regular text-text-tertiary">Quem usa</dt><dd className="mt-0.5 text-caption-1-medium text-text-primary">{who(selected.agents)}</dd></div>
+            <div className="rounded-xl border border-border-button-default px-3 py-2"><dt className="text-caption-2-regular text-text-tertiary">Onde vale</dt><dd className="mt-0.5 text-caption-1-medium text-text-primary">Todos os seus projetos</dd></div>
             <div className="rounded-xl border border-border-button-default px-3 py-2"><dt className="text-caption-2-regular text-text-tertiary">Origem</dt><dd className="mt-0.5 text-caption-1-medium text-text-primary">{selected.source ? "Arquivo externo" : "Escrita aqui"}</dd></div>
           </dl>
           <section>
@@ -469,7 +444,7 @@ export default function SkillsPanel({ projectId }: Props) {
             {versionsLoading ? <p className="text-caption-2-regular text-text-tertiary">Buscando o histórico…</p> : versions.length === 0 ? <p className="text-caption-2-regular text-text-tertiary">Nenhuma mudança ainda: esta é a primeira versão.</p> : <div className="flex flex-col gap-2">
               {versions.map((version) => <div key={version.id} className="rounded-xl border border-border-button-default px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-0 flex-1 text-caption-2-regular text-text-secondary">Antes de {when(version.at)} · {version.by === "me" ? "mudada por você" : `proposta de ${agentName(version.by)}`}</span>
+                  <span className="min-w-0 flex-1 text-caption-2-regular text-text-secondary">Antes de {when(version.at)} · {version.by === "me" ? "mudada por você" : "proposta de um Toph"}</span>
                   <Button variant="ghost" size="xs" onClick={() => setShowingVersion(showingVersion === version.id ? null : version.id)}>{showingVersion === version.id ? "Esconder" : "Ver mudança"}</Button>
                   <Button variant="secondary" size="xs" onClick={() => void restore(selected, version.id)}>Restaurar</Button>
                 </div>
@@ -484,17 +459,16 @@ export default function SkillsPanel({ projectId }: Props) {
         <div className="flex flex-col gap-3">
           {pending.length === 0 ? <p className="text-caption-1-regular text-text-secondary">Nenhuma proposta esperando.</p> : pending.map((proposal) => {
             const current = proposal.replaces ? (skills ?? []).find((skill) => skill.id === proposal.replaces) : null;
-            const author = proposal.proposedBy ? agentName(proposal.proposedBy) : "Um Toph";
             return <section key={proposal.id} className="rounded-2xl border border-border-button-default p-3">
               <header className="flex flex-wrap items-center gap-2">
                 <strong className="text-caption-1-semibold text-text-primary">{current ? `Mudar ${proposal.name}` : `Nova: ${proposal.name}`}</strong>
-                <span className="text-caption-2-regular text-text-tertiary">{author} propôs {when(proposal.createdAt)}</span>
+                <span className="text-caption-2-regular text-text-tertiary">Um Toph propôs {when(proposal.createdAt)}</span>
               </header>
               {proposal.reason ? <p className="mt-1 text-caption-1-regular italic text-text-secondary">“{proposal.reason}”</p> : null}
               {current ? <div className="mt-2"><Diff before={`${current.description}\n\n${current.body}`} after={`${proposal.description}\n\n${proposal.body}`} /></div> : <div className="mt-2 flex flex-col gap-2">
                 <p className="text-caption-1-regular text-text-secondary"><span className="font-medium text-text-primary">Quando usar:</span> {proposal.description}</p>
                 <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-xl bg-background-secondary-default p-2 font-mono text-[11px] leading-5 text-text-secondary">{proposal.body}</pre>
-                <p className="text-caption-2-regular text-text-tertiary">Vale para {who(proposal.agents)}. Depois de aprovar, dá para liberar para outros Tophs.</p>
+                <p className="text-caption-2-regular text-text-tertiary">Vale para todos os seus projetos.</p>
               </div>}
               <div className="mt-3 flex justify-end gap-2">
                 <Button variant="ghost" size="small" leadingIcon={Trash2} onClick={() => void decide(proposal, false)}>Recusar</Button>
@@ -508,7 +482,7 @@ export default function SkillsPanel({ projectId }: Props) {
   );
 }
 
-function SkillForm({ draft, members, onChange, error }: { draft: SkillDraft; members: Array<{ id: string; name: string; handle: string }>; onChange: (draft: SkillDraft) => void; error: string }): ReactNode {
+function SkillForm({ draft, onChange, error }: { draft: SkillDraft; onChange: (draft: SkillDraft) => void; error: string }): ReactNode {
   return <div className="flex flex-col gap-3">
     <div className="grid gap-3 sm:grid-cols-2">
       <Input label="Nome" value={draft.name} onChange={(value) => onChange({ ...draft, name: value })} placeholder="testes do core" />
@@ -516,38 +490,7 @@ function SkillForm({ draft, members, onChange, error }: { draft: SkillDraft; mem
     </div>
     <Textarea label="Receita" rows={10} value={draft.body} onChange={(value) => onChange({ ...draft, body: value })} placeholder="Os passos, em Markdown: comandos exatos, armadilhas, como conferir." />
     {draft.body.length > RECOMMENDED ? <p className="text-caption-2-regular text-status-amber-text">Receita longa: {draft.body.length.toLocaleString("pt-BR")} caracteres. O recomendado é até {RECOMMENDED.toLocaleString("pt-BR")}; a receita inteira será mantida.</p> : null}
-    <div className="flex flex-col gap-2 rounded-xl border border-border-button-default p-3">
-      <p className="text-caption-1-medium text-text-primary">Quem usa</p>
-      <AgentPicker agents={members} value={draft.agents} onChange={(agents) => onChange({ ...draft, agents })} />
-    </div>
+    <p className="text-caption-2-regular text-text-tertiary">A skill fica disponível em todos os seus projetos, inclusive nos que você abrir depois.</p>
     {error ? <p role="alert" className="rounded-xl bg-status-rose-bg px-3 py-2 text-caption-1-regular text-status-rose-text">{error}</p> : null}
-  </div>;
-}
-
-
-function AgentPicker({ agents, value, onChange }: { agents: Array<{ id: string; name: string; handle: string }>; value: string[]; onChange: (ids: string[]) => void }): ReactNode {
-  const everyone = value.length === 0;
-  const toggle = (id: string): void => {
-    if (value.includes(id)) {
-      if (value.length === 1) return;
-      onChange(value.filter((item) => item !== id));
-    } else {
-      onChange([...value, id]);
-    }
-  };
-  return <div className="flex flex-col gap-2">
-    <div className="flex gap-1">
-      <Button variant={everyone ? "primary" : "ghost"} size="xs" onClick={() => onChange([])}>Todos</Button>
-      <Button variant={!everyone ? "primary" : "ghost"} size="xs" disabled={agents.length === 0} onClick={() => onChange(everyone ? [agents[0].id] : value)}>Só alguns</Button>
-    </div>
-    {everyone ? <p className="text-caption-2-regular text-text-tertiary">Todos os Tophs do projeto, inclusive os que forem criados depois.</p> : agents.length === 0 ? <p className="text-caption-2-regular text-text-tertiary">Nenhum Toph no projeto ainda. Crie um Toph primeiro.</p> : <div className="flex flex-wrap gap-1.5">
-      {agents.map((agent) => {
-        const selected = value.includes(agent.id);
-        return <button key={agent.id} type="button" onClick={() => toggle(agent.id)} className={cx("flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-caption-2-medium transition-colors", selected ? "border-accent-500 bg-accent-500/10 text-text-primary" : "border-border-button-default text-text-secondary hover:bg-background-primary-hover")}>
-          <span className={cx("flex size-3.5 items-center justify-center rounded-full border", selected ? "border-accent-500 bg-accent-500 text-white" : "border-border-button-default")}>{selected ? <Check size={9} /> : null}</span>
-          {agent.name} <span className="text-text-tertiary">@{agent.handle}</span>
-        </button>;
-      })}
-    </div>}
   </div>;
 }

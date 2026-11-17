@@ -86,6 +86,7 @@ interface DebugStore {
   addBreakpoint: (projectId: string, path: string, line: number, patch?: Partial<DebugBreakpoint>) => DebugBreakpoint;
   updateBreakpoint: (projectId: string, id: string, patch: Partial<DebugBreakpoint>) => void;
   removeBreakpoint: (projectId: string, id: string) => void;
+  clearBreakpoints: (projectId: string) => void;
   toggleBreakpoint: (projectId: string, path: string, line: number) => void;
   breakpointsFor: (projectId: string, path?: string) => DebugBreakpoint[];
   addWatch: (projectId: string, expression: string) => void;
@@ -204,6 +205,12 @@ export const useDebug = create<DebugStore>((set, get) => ({
     get().setConfig(projectId, {
       breakpoints: current.breakpoints.filter((item) => item.id !== id),
     });
+  },
+
+  clearBreakpoints: (projectId) => {
+    const current = get().byProject[projectId];
+    if (!current) return;
+    get().setConfig(projectId, { breakpoints: [] });
   },
 
   toggleBreakpoint: (projectId, path, line) => {
