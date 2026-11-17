@@ -24,6 +24,23 @@ pub(super) async fn create_terminal(
         .into_response())
 }
 
+/// The terminal a debug-mode agent drives. Created on demand so the UI can
+/// attach its WebSocket before the first command is sent.
+pub(super) async fn debug_terminal_info(
+    State(state): State<Arc<AppState>>,
+    Path(project_id): Path<String>,
+) -> AppResult<Json<Value>> {
+    let project = state.store.project(&project_id).await?;
+    let session = state
+        .terminals
+        .debug_session(&project_id, FsPath::new(&project.root))?;
+    Ok(Json(json!({
+        "id": session.id,
+        "projectId": project_id,
+        "shell": session.shell,
+    })))
+}
+
 pub(super) async fn list_terminals(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<String>,

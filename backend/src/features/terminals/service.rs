@@ -16,6 +16,8 @@ const RING_SIZE: usize = 128 * 1024;
 
 pub struct TerminalManager {
     sessions: Mutex<HashMap<String, Arc<TerminalSession>>>,
+    /// One visible PTY per project, used by debug-mode agent runs.
+    debug: Mutex<HashMap<String, Arc<TerminalSession>>>,
     shell: String,
 }
 
@@ -43,6 +45,7 @@ impl TerminalManager {
     pub fn new(shell: Option<String>) -> Self {
         Self {
             sessions: Mutex::new(HashMap::new()),
+            debug: Mutex::new(HashMap::new()),
             shell: shell.unwrap_or_else(default_shell),
         }
     }
@@ -134,6 +137,49 @@ impl TerminalManager {
         self.sessions.lock().ok()?.get(id).cloned()
     }
 
+    /// Returns the project's debug terminal, creating it on first use. The
+    /// frontend opens a WebSocket on the same session so the user sees every
+    /// command the agent runs and all of its output as it happens.
+    pub fn debug_session(&self, project_id: &str, cwd: &Path) -> AppResult<Arc<TerminalSession>> {
+        if let Some(session) = self
+            .debug
+            .lock()
+            .map_err(|_| crate::errors::internal("debug terminal lock"))?
+            .get(project_id)
+            .cloned()
+        {
+            return Ok(session);
+        }
+        let session = self.create(project_id, cwd, None)?;
+        self.debug
+            .lock()
+            .map_err(|_| crate::errors::internal("debug terminal lock"))?
+            .insert(project_id.to_string(), session.clone());
+        Ok(session)
+    }
+
+    pub fn debug_run(
+        &self,
+        project_id: &str,
+        cwd: &Path,
+        command: &str,
+    ) -> AppResult<serde_json::Value> {
+        let session = self.debug_session(project_id, cwd)?;
+        session.write(format!("{command}\n").as_bytes())?;
+        Ok(serde_json::json!({"ok": true, "terminalId": session.id}))
+    }
+
+    pub fn debug_output(&self, project_id: &str, tail: usize) -> AppResult<String> {
+        let session = self
+            .debug
+            .lock()
+            .map_err(|_| crate::errors::internal("debug terminal lock"))?
+            .get(project_id)
+            .cloned()
+            .ok_or_else(|| crate::errors::bad_request("Terminal de debug não iniciado"))?;
+        Ok(String::from_utf8_lossy(&session.output_tail(tail)).into_owned())
+    }
+
     pub fn list_project(&self, project_id: &str) -> Vec<TerminalInfo> {
         let Ok(sessions) = self.sessions.lock() else {
             return Vec::new();
@@ -184,6 +230,9 @@ impl TerminalManager {
         if let Ok(mut map) = self.sessions.lock() {
             map.retain(|_, session| session.project_id != project_id);
         }
+        if let Ok(mut map) = self.debug.lock() {
+            map.remove(project_id);
+        }
         sessions.len()
     }
 
@@ -197,6 +246,9 @@ impl TerminalManager {
             session.close();
         }
         if let Ok(mut map) = self.sessions.lock() {
+            map.clear();
+        }
+        if let Ok(mut map) = self.debug.lock() {
             map.clear();
         }
     }
@@ -229,6 +281,14 @@ impl TerminalSession {
             })
             .map_err(|error| AppError::Internal(error.into()))?;
         Ok(())
+    }
+
+    pub fn output_tail(&self, max: usize) -> Vec<u8> {
+        let Ok(buffer) = self.buffer.lock() else {
+            return Vec::new();
+        };
+        let start = buffer.len().saturating_sub(max);
+        buffer[start..].to_vec()
     }
 
     pub fn subscribe(&self) -> AppResult<(Vec<u8>, broadcast::Receiver<Vec<u8>>, Arc<AtomicBool>)> {

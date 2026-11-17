@@ -82,7 +82,7 @@ export interface EngineLimits {
 const root = (project: string) => `/projects/${encodeURIComponent(project)}/agent`;
 const post = (body: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(body) });
 export const agentApi = {
-  start: (project: string, input: { requestId: string; chatId: string; chatDescription?: string; agentId: string; text: string; agents: Array<ChatToph & { chatId: string }>; attachments?: AgentAttachment[] }) => request<AgentRun>(`${root(project)}/runs`, { ...post(input), signal: AbortSignal.timeout(120_000) }),
+  start: (project: string, input: { requestId: string; chatId: string; chatDescription?: string; agentId: string; text: string; agents: Array<ChatToph & { chatId: string }>; attachments?: AgentAttachment[]; mode?: "debug" }) => request<AgentRun>(`${root(project)}/runs`, { ...post(input), signal: AbortSignal.timeout(120_000) }),
   activeRuns: (project: string) => request<AgentRun[]>(`${root(project)}/runs`),
   pendingQuestions: (project: string) => request<PendingQuestion[]>(`${root(project)}/questions`),
   cancel: (project: string, run: string) => request(`${root(project)}/runs/${encodeURIComponent(run)}/cancel`, post({})),

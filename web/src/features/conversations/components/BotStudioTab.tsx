@@ -23,10 +23,11 @@ interface Props {
   mobile?: boolean;
   embedded?: boolean;
   compact?: boolean;
+  debug?: boolean;
   headerControl?: ReactNode;
 }
 
-export default function BotStudioTab({ project, conversationId, mobile = false, embedded = false, compact = false, headerControl }: Props) {
+export default function BotStudioTab({ project, conversationId, mobile = false, embedded = false, compact = false, debug = false, headerControl }: Props) {
   const stored = useChats((s) => s.byProject[project.id]);
   const chat = stored?.chats.find((item) => item.id === conversationId) ?? null;
   const tophs = useMemo(() => chatTophs(stored, conversationId), [stored?.tophs, stored?.chats, conversationId]);
@@ -171,6 +172,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         chatId: chat.id,
         agentId: "router",
         text: value,
+        mode: debug ? "debug" : undefined,
         agents: tophs.map((toph) => ({
           ...toph,
           model: settings[toph.id]?.model || toph.model || fallbackModel,
@@ -278,7 +280,9 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
             {native.hasMore && <Button variant="ghost" size="small" disabled={native.loading} onClick={older}>{native.loading ? <><LoaderCircle size={14} className="animate-spin" /> Carregando mensagens antigas…</> : "Carregar mensagens anteriores"}</Button>}
             {!stored?.hydrated ? <div className="my-auto flex items-center justify-center gap-2 py-8 text-caption-1-regular text-text-tertiary"><LoaderCircle size={16} className="animate-spin" /> Carregando conversas…</div>
               : !tophs.length ? <div className="my-auto flex flex-col items-center gap-3 px-6 py-10 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Bot size={22} /></span><strong className="text-title-3-medium">Esta conversa ficou sem Tophs.</strong><p className="max-w-sm text-caption-1-regular text-text-secondary">Adicione um Toph nas configurações da conversa.</p></div>
-              : !native.messages.length && !busy ? <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{tophs.slice(0, 4).map((toph) => <BotAvatar key={toph.id} bot={toph} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Escreva sua mensagem.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Pergunte, peça uma alteração ou anexe um arquivo. Cada conversa tem o próprio histórico.</p></div> : null}
+              : !native.messages.length && !busy ? (debug
+                  ? <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{tophs.slice(0, 4).map((toph) => <BotAvatar key={toph.id} bot={toph} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Conte o que está acontecendo.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Descreva o bug, o que esperava e como reproduzir. O Toph instrumenta o código, roda os comandos no terminal e mostra tudo em tempo real — você não precisa configurar breakpoints.</p></div>
+                  : <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{tophs.slice(0, 4).map((toph) => <BotAvatar key={toph.id} bot={toph} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Escreva sua mensagem.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Pergunte, peça uma alteração ou anexe um arquivo. Cada conversa tem o próprio histórico.</p></div>) : null}
             <ChatMessages messages={optimistic ? [...native.messages, optimistic] : native.messages} tophs={tophs} runs={native.runs} project={project} mobile={mobile} compact={compact} questions={native.questions} onAnswer={(id, answer) => { void agentApi.answer(project.id, id, answer).catch((e) => native.setError(String(e))); }} />
             {native.approvals.map((approval) => <ApprovalCard key={approval.id} agentName={tophs.find((a) => a.id === approval.agentId)?.name ?? "Toph"} name={approval.name} arguments={approval.arguments} onApprove={() => void agentApi.approve(project.id, approval.id, true).catch((e) => native.setError(String(e)))} onReject={() => void agentApi.approve(project.id, approval.id, false).catch((e) => native.setError(String(e)))} />)}
             {native.compacting && <p role="status" className="text-center text-caption-2-regular text-text-tertiary">Compactando contexto; histórico preservado…</p>}
@@ -302,9 +306,9 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
       {tophs.length > 0 && <div className="shrink-0">
         {modelError && <p role="alert" className="px-3 text-xs text-text-error-primary">{modelError}</p>}
         <AgentComposer value={text} onChange={(value) => setDraft(draftKey, value)} onSend={(value, files) => void send(value, files)} onStop={() => void stop()} busy={busy}
-          placeholder="Pergunte ao Toph…"
+          placeholder={debug ? "Descreva o bug e como ele acontece…" : "Pergunte ao Toph…"}
           history={native.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} tophs={tophs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} tophs={tophs} /></>}
+          leadingControls={debug ? undefined : <><ChatModelUsage projectId={project.id} chat={chat!} tophs={tophs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} tophs={tophs} /></>}
           members={tophs} />
       </div>}
     </section>

@@ -16,6 +16,18 @@ pub const GATEWAY_SUMMARY_BUDGET: usize = 2_000;
 pub const GATEWAY_SUMMARY_INPUT_BUDGET: usize = 8_000;
 pub const TOOL_PREVIEW_CHARS: usize = 2_400;
 
+/// Appended to the identity of a run started in debug mode. The user only
+/// describes the bug: the agent instruments the code and drives the terminal.
+pub const DEBUG_MODE_INSTRUCTIONS: &str = "\n\n[MODO DEBUG]\n\
+Você está conduzindo uma investigação de bug. O usuário relatou o que acontece e como acontece; a sua missão é encontrar a causa e corrigir, sem pedir instruções passo a passo.\n\
+- Use `debug_terminal_run` para executar comandos no terminal VISÍVEL para o usuário: rode o programa, testes e comandos de inspeção. Cada comando e sua saída aparecem em tempo real no terminal. Prefira esta ferramenta a qualquer ferramenta de shell nativa.\n\
+- Use `debug_terminal_output` para ler o final da saída do terminal, inclusive enquanto um comando ainda está rodando.\n\
+- Para instrumentar, use a ferramenta de edição de arquivos do seu harness para inserir console.log/print/console.error temporários nos pontos que você escolher. Você decide onde instrumentar; nunca peça ao usuário para adicionar logs ou breakpoints.\n\
+- Formule hipóteses, execute, leia a saída e aprofunde até isolar a causa. Remova a instrumentação temporária ao final, a menos que o usuário peça para mantê-la.\n\
+- Não peça ao usuário para colar saída de terminal nem para configurar debugger: isso é seu trabalho.\n\
+- Seja direto na conclusão: diga a causa provável, o arquivo e a linha, e aplique a correção quando ela for inequívoca.\n\
+- Use `ask_user` apenas quando faltar uma decisão real do usuário que mude o caminho da investigação.";
+
 /// Model-independent estimate, not billed usage. The margin covers wire-format
 /// overhead. Provider-reported counts are stored separately on every model call.
 pub fn estimate(value: &Value) -> usize {

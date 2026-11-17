@@ -8,7 +8,7 @@ use crate::{
 };
 use serde_json::{json, Value};
 use sqlx::Row;
-use std::{path::PathBuf, process::Stdio, time::Duration};
+use std::{path::PathBuf, process::Stdio, sync::Arc, time::Duration};
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 #[derive(Clone)]
@@ -20,6 +20,8 @@ pub struct Tools {
     pub artifacts: PathBuf,
     pub mcp: crate::features::integrations::mcp::Service,
     pub http: reqwest::Client,
+    /// Debug-mode runs drive a real PTY the user watches live.
+    pub terminals: Arc<crate::terminal::TerminalManager>,
 }
 
 /// A full `tools/list` payload easily passes 50 KB per server. The model only
@@ -103,10 +105,44 @@ pub fn ask_user_definition() -> Value {
     })
 }
 
+/// The visible terminal is only exposed to runs started in debug mode. The
+/// agent decides what to run; the user watches each command and its output.
+pub fn debug_terminal_definitions() -> Vec<Value> {
+    vec![
+        json!({
+            "name": "debug_terminal_run",
+            "description": "Run a command in the debug terminal the user is watching. Use it to start the program, run tests and inspect state. The command and its output appear in real time in the terminal.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "Shell command to execute in the project directory."}
+                },
+                "required": ["command"]
+            }
+        }),
+        json!({
+            "name": "debug_terminal_output",
+            "description": "Read the tail of the debug terminal output. Use after debug_terminal_run to see the result, including while a command is still running.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "tailBytes": {"type": "integer", "description": "How many bytes of recent output to return (default 16000)."}
+                }
+            }
+        }),
+    ]
+}
+
 pub fn mutating(name: &str) -> bool {
     matches!(
         name,
-        "write_file" | "edit_file" | "delete_file" | "shell" | "remember" | "email_send"
+        "write_file"
+            | "edit_file"
+            | "delete_file"
+            | "shell"
+            | "debug_terminal_run"
+            | "remember"
+            | "email_send"
     )
 }
 

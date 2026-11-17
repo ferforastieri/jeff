@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, ApiError, type DebugBreakpoint, type GitBlameLine, type Project } from "../../../shared/api";
+import { api, ApiError, type GitBlameLine, type Project } from "../../../shared/api";
 import { languageFor } from "../../../shared/lib";
 import { useApp, type Tab } from "../../../app/store";
 import CodeEditor from "./CodeEditor";
@@ -9,38 +9,28 @@ import ImagePreview from "./ImagePreview";
 import { Breadcrumb, BreadcrumbItem } from "@toph/ui/app";
 import { Badge } from "@toph/ui/app";
 import { useProjectEvents } from "../../projects/events";
-import { useDebug } from "../../debug/store";
 
 interface Props {
   tab: Tab;
   project: Project;
   onOpenChanges?: (path: string) => void;
   mobile?: boolean;
-  debugEnabled?: boolean;
 }
 
-const NO_BREAKPOINTS: DebugBreakpoint[] = [];
-
-export default function EditorPanel({ tab, project, onOpenChanges, mobile = false, debugEnabled = true }: Props) {
+export default function EditorPanel({ tab, project, onOpenChanges, mobile = false }: Props) {
   const updateTab = useApp((state) => state.updateTab);
   const notify = useApp((state) => state.notify);
   const [blame, setBlame] = useState<GitBlameLine[]>([]);
   const [stale, setStale] = useState(false);
   const [imageVersion, setImageVersion] = useState(0);
   const [contentError, setContentError] = useState<string | null>(null);
-  const loadDebug = useDebug((state) => state.load);
-  const breakpoints = useDebug((state) => state.byProject[project.id]?.breakpoints) ?? NO_BREAKPOINTS;
-  const debugLocation = useDebug((state) => state.locations[project.id] ?? null);
-  const toggleBreakpoint = useDebug((state) => state.toggleBreakpoint);
   const tabRef = useRef(tab);
   tabRef.current = tab;
   const image = isImagePath(tab.path);
 
   useEffect(() => {
-    if (!debugEnabled) return;
     setStale(false);
-    void loadDebug(project.id);
-  }, [debugEnabled, tab.id, tab.path, tab.hash, project.id, loadDebug]);
+  }, [tab.id, tab.path, tab.hash, project.id]);
 
   useProjectEvents(project.id, ["files", "git"], (event) => {
     if (!tab.path) return;
@@ -151,7 +141,7 @@ export default function EditorPanel({ tab, project, onOpenChanges, mobile = fals
         ) : contentError ? (
           <div className="flex h-full w-full items-center justify-center p-6 text-center text-sm text-text-tertiary">{contentError}</div>
         ) : (
-          <CodeEditor path={tab.path ?? tab.title} projectId={project.id} projectRoot={project.root} onOpenChanges={onOpenChanges} value={tab.content ?? ""} language={languageFor(tab.path ?? tab.title)} line={tab.line} blame={blame} breakpoints={breakpoints.filter((item) => item.path === tab.path)} debugLine={debugLocation?.path === tab.path ? debugLocation?.line : undefined} onToggleBreakpoint={tab.path ? (line) => toggleBreakpoint(project.id, tab.path!, line) : undefined} onChange={(content) => updateTab(tab.id, { content, dirty: true })} onCursorPosition={(line, column) => { window.dispatchEvent(new CustomEvent("toph:cursor", { detail: { line, column, language: languageFor(tab.path ?? tab.title) } })); }} onSave={() => void save()} />
+          <CodeEditor path={tab.path ?? tab.title} projectId={project.id} projectRoot={project.root} onOpenChanges={onOpenChanges} value={tab.content ?? ""} language={languageFor(tab.path ?? tab.title)} line={tab.line} blame={blame} onChange={(content) => updateTab(tab.id, { content, dirty: true })} onCursorPosition={(line, column) => { window.dispatchEvent(new CustomEvent("toph:cursor", { detail: { line, column, language: languageFor(tab.path ?? tab.title) } })); }} onSave={() => void save()} />
         )}
       </div>
     </div>

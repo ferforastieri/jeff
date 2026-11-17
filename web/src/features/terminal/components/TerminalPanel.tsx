@@ -472,7 +472,13 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
   );
 }
 
-function TerminalView({ session, theme, clearNonce, focusNonce, mobile, runRequest, onOutput, onOpenFile }: { session: Session; theme: "light" | "dark"; clearNonce: number; focusNonce: number; mobile: boolean; runRequest?: { text: string; sessionId: string; nonce: number } | null; onOutput: (text: string) => void; onOpenFile: (path: string, line?: number) => void; }) {
+export interface TerminalSessionView {
+  id: string;
+  shell: string;
+  title: string;
+}
+
+export function TerminalView({ session, theme, clearNonce, focusNonce, mobile, runRequest, onOutput, onOpenFile }: { session: TerminalSessionView; theme: "light" | "dark"; clearNonce: number; focusNonce: number; mobile: boolean; runRequest?: { text: string; sessionId: string; nonce: number } | null; onOutput: (text: string) => void; onOpenFile: (path: string, line?: number) => void; }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const sendRunRef = useRef<((text: string) => void) | null>(null);

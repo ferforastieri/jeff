@@ -17,7 +17,7 @@ The installed server does not serve the landing page or documentation. The landi
 
 - Browse and edit project files with tabs, a file tree, unified search and live Git status. Source control changes and branch switching live in the Git modal.
 - Run a real terminal attached to the server, with a draggable terminal height and working keyboard input.
-- Debug Node and Python in a dedicated studio: the Toph conducts the investigation, sets breakpoints, pauses, reads variables and explains each step, while you can guide it or add breakpoints yourself. Node uses the native inspector; Python uses debugpy bundled in the image, with call stack, scopes, watches and a debug console.
+- Debug with a focused agent: describe what happens and how it happens. The Toph decides where to instrument, inserts temporary logs with its file tools, runs commands in a terminal you watch in real time and iterates until it isolates the cause. The debug view is only the conversation plus that terminal — no breakpoints or watches to set. The old Node/Python inspector studio is no longer mounted.
 - Open repositories from a searchable repository picker; names are derived automatically. The picker can also create a new folder under an allowed workspace root and initialize it as a Git repository.
 - Open projects as top-level tabs. Closing a project tab stops its terminal sessions and child processes without deleting the project.
 - Use the real VS Code Material Icon Theme, stage/unstage/discard/commit and branch creation from configurable patterns in the Git modal, side-by-side diff tabs and Git blame for the current editor line.

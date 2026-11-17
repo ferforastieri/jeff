@@ -43,7 +43,7 @@ const DatabasesPanel = lazy(() => import("../../features/databases/components/Da
 const WebSidebar = lazy(() => import("../../features/previews/components/WebSidebar"));
 const EditorPanel = lazy(() => import("../../features/editor/components/EditorPanel"));
 const DbPanelTab = lazy(() => import("../../features/databases/components/DbPanelTab"));
-const DebugStudio = lazy(() => import("../../features/debug/components/DebugStudio"));
+const DebugPanel = lazy(() => import("../../features/debug/components/DebugPanel"));
 const BotsSidebar = lazy(() => import("../../features/agents/components/BotsSidebar"));
 const WebPanelTab = lazy(() => import("../../features/previews/components/WebPanelTab"));
 const DiffPanelTab = lazy(() => import("../../features/editor/components/DiffPanelTab"));
@@ -163,7 +163,6 @@ export default function Workbench() {
   const sourceControlEnabled = featureEnabled(workspaceFeatures, "sourceControl");
   const databasesEnabled = featureEnabled(workspaceFeatures, "databases");
   const terminalEnabled = featureEnabled(workspaceFeatures, "terminal");
-  const debugEnabled = featureEnabled(workspaceFeatures, "debug");
   const projectEventsEnabled = filesEnabled || sourceControlEnabled || databasesEnabled;
   const sortedBranches = branchInfo
     ? [...branchInfo.branches].sort((a, b) => {
@@ -213,8 +212,7 @@ export default function Workbench() {
   useEffect(() => {
     if (!activeProjectId) return;
     if (!terminalEnabled) void api.closeProjectTerminals(activeProjectId).catch(() => undefined);
-    if (!debugEnabled) void api.debugStop(activeProjectId).catch(() => undefined);
-  }, [activeProjectId, terminalEnabled, debugEnabled]);
+  }, [activeProjectId, terminalEnabled]);
 
   useEffect(() => {
     void loadAI().then(() => loadModels());
@@ -1080,7 +1078,7 @@ export default function Workbench() {
           <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border-button-white bg-background-primary-default shadow-sidebar">
             {project && featureIsEnabled("debug") ? (
               <div className={cx("min-h-0 flex-1 flex-col", sidebar === "debug" ? "flex" : "hidden")}>
-                <DebugStudio key={project.id} project={project} />
+                <DebugPanel key={project.id} project={project} onOpenFile={(path, line) => { openFile(path, line); selectSidebar("files"); }} />
               </div>
             ) : null}
             <div className={cx("min-h-0 flex-1 flex-col", sidebar === "debug" ? "hidden" : "flex")}>
@@ -1101,7 +1099,7 @@ export default function Workbench() {
                   </div>
                 )}
                 <Suspense fallback={null}>
-                  {tabsVisible && activeTab?.kind === "editor" && project && featureIsEnabled("files") && <EditorPanel debugEnabled={debugEnabled} tab={activeTab} project={project} onOpenChanges={(path) => openDiff(path, false)} />}
+                  {tabsVisible && activeTab?.kind === "editor" && project && featureIsEnabled("files") && <EditorPanel tab={activeTab} project={project} onOpenChanges={(path) => openDiff(path, false)} />}
                   {tabsVisible && activeTab?.kind === "db" && featureIsEnabled("databases") && <DbPanelTab tab={activeTab} />}
                   {tabsVisible && activeTab?.kind === "web" && featureIsEnabled("webApps") && <WebPanelTab tab={activeTab} />}
                   {tabsVisible && activeTab?.kind === "diff" && project && featureIsEnabled("files") && <DiffPanelTab tab={activeTab} project={project} />}

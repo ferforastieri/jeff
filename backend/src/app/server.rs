@@ -331,6 +331,7 @@ impl AppState {
                 email: email.clone(),
                 artifacts: config.data_dir.join("agent-artifacts"),
                 mcp: mcp.clone(),
+                terminals: terminals.clone(),
                 http: reqwest::Client::builder()
                     .timeout(Duration::from_secs(30))
                     .build()
@@ -771,6 +772,10 @@ fn router(state: Arc<AppState>) -> Router {
             get(list_terminals)
                 .post(create_terminal)
                 .delete(close_terminals),
+        )
+        .route(
+            "/api/projects/{project_id}/debug/terminal",
+            get(debug_terminal_info),
         )
         .route("/api/terminals/shells", get(terminal_shells))
         .route("/api/terminals/{terminal_id}", delete(close_terminal))

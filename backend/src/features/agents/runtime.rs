@@ -1,5 +1,7 @@
 use super::{
-    activity, cli, event,
+    activity, cli,
+    context::DEBUG_MODE_INSTRUCTIONS,
+    event,
     models::*,
     repository::{RecoveredRun, Repository},
     tools::{self, Tools},
@@ -386,6 +388,7 @@ impl Runtime {
             silent: false,
             routing_reason: "retomada após reinício".into(),
             request: prompt,
+            debug: false,
         };
         self.inner.repo.record_recovery(&ctx.run.id).await?;
         self.inner.repo.requeue(&ctx.run.id, "").await?;
@@ -559,7 +562,9 @@ impl Runtime {
             session_id,
             agents,
             attachments,
+            mode,
         } = input;
+        let debug = mode == "debug";
         let mut roster = agents;
         let (mut responders, routing_reason) = if agent_id.is_empty() || agent_id == "router" {
             self.route_agents(user, project, &chat_id, &roster, &text)
@@ -713,6 +718,7 @@ impl Runtime {
                 silent: silent && primary_responder,
                 routing_reason: routing_reason.clone(),
                 request: text.clone(),
+                debug,
             };
             let runtime = self.clone();
             let run_text = text.clone();
@@ -1325,7 +1331,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         ))
     }
 
-    fn identity(agent: &AgentSpec, roster: &[AgentSpec], routed: &[String]) -> String {
+    fn identity(agent: &AgentSpec, roster: &[AgentSpec], routed: &[String], debug: bool) -> String {
         let mut text = format!(
             "Você é {} (@{}), {}.\n{}\n{}\n{}",
             agent.name,
@@ -1364,6 +1370,9 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             text.push_str("\n\n");
             text.push_str(&brief);
         }
+        if debug {
+            text.push_str(DEBUG_MODE_INSTRUCTIONS);
+        }
         text
     }
 
@@ -1388,7 +1397,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             } else {
                 ctx.agent.model.clone()
             };
-            let system = Self::identity(&ctx.agent, &ctx.roster, &ctx.routed);
+            let system = Self::identity(&ctx.agent, &ctx.roster, &ctx.routed, ctx.debug);
             let attachment_dir = cli::work_dir(&ctx.run.session_id).join("attachments");
             let attachment_files = cli::attachment_files(&attachment_dir, attachments).await?;
             let prompt = format!(
@@ -1422,11 +1431,15 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             }
             // A per-run MCP endpoint exposes ask_user: the CLI keeps its native
             // tools and gains one that waits for the user instead of dead-ending.
+            let mut gateway_tools = vec![tools::ask_user_definition()];
+            if ctx.debug {
+                gateway_tools.extend(tools::debug_terminal_definitions());
+            }
             let mut gateway_handle = None;
             if let Ok((url, handle)) = super::gateway::Gateway::start(
                 self.clone(),
                 ctx.clone(),
-                vec![tools::ask_user_definition()],
+                gateway_tools,
                 cancel.clone(),
             )
             .await
@@ -1835,6 +1848,24 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 result=async {
                     if name == "ask_user" {
                         self.ask_user(ctx, &tid, &args, cancel).await
+                    } else if name == "debug_terminal_run" {
+                        let command = args["command"].as_str().unwrap_or("").trim();
+                        if command.is_empty() || command.len() > 8192 || command.contains('\0') {
+                            Err(bad_request("Comando inválido"))
+                        } else {
+                            self.inner
+                                .tools
+                                .terminals
+                                .debug_run(&ctx.project_id, &ctx.root, command)
+                        }
+                    } else if name == "debug_terminal_output" {
+                        let tail = args["tailBytes"].as_u64().unwrap_or(16_000) as usize;
+                        let tail = tail.clamp(1_000, 128_000);
+                        Ok(json!({ "output": self
+                            .inner
+                            .tools
+                            .terminals
+                            .debug_output(&ctx.project_id, tail)? }))
                     } else if name == "read_skill" {
                         let wanted = args["name"].as_str().unwrap_or("");
                         match self
@@ -2043,6 +2074,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 silent: false,
                 routing_reason: String::new(),
                 request: task.to_string(),
+                debug: parent.debug,
             };
             self.inner
                 .runs
@@ -2362,11 +2394,21 @@ mod tests {
     #[test]
     fn identity_adds_the_team_brief_only_for_the_routed_team() {
         let roster = vec![agent("a", "ana"), agent("b", "beto")];
-        let solo = Runtime::identity(&roster[0], &roster, &["a".into()]);
+        let solo = Runtime::identity(&roster[0], &roster, &["a".into()], false);
         assert!(!solo.contains("docs/team-plan.md"));
-        let team = Runtime::identity(&roster[0], &roster, &["a".into(), "b".into()]);
+        let team = Runtime::identity(&roster[0], &roster, &["a".into(), "b".into()], false);
         assert!(team.contains("docs/team-plan.md"));
         assert!(team.contains("Time nesta mensagem"));
+    }
+
+    #[test]
+    fn identity_adds_debug_instructions_only_in_debug_mode() {
+        let roster = vec![agent("a", "ana")];
+        let normal = Runtime::identity(&roster[0], &roster, &["a".into()], false);
+        assert!(!normal.contains("debug_terminal_run"));
+        let debug = Runtime::identity(&roster[0], &roster, &["a".into()], true);
+        assert!(debug.contains("debug_terminal_run"));
+        assert!(debug.contains("debug_terminal_output"));
     }
 
     #[test]

@@ -65,6 +65,10 @@ pub struct RunInput {
     pub agents: Vec<AgentSpec>,
     #[serde(default)]
     pub attachments: Vec<Attachment>,
+    /// "debug" turns the agent into an investigation partner: it instruments
+    /// the code itself and runs commands in the terminal the user can see.
+    #[serde(default)]
+    pub mode: String,
 }
 
 #[derive(Clone, Debug, Serialize, sqlx::FromRow)]
@@ -137,6 +141,9 @@ pub struct RunContext {
     pub routing_reason: String,
     /// The current request text, used when the session has no transcript yet.
     pub request: String,
+    /// Investigation mode: adds debugging instructions and exposes the visible
+    /// terminal tools to the harness.
+    pub debug: bool,
 }
 
 pub fn now() -> i64 {

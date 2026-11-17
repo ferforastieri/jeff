@@ -820,6 +820,10 @@ export const api = {
     return request("/ports");
   },
 
+  async debugTerminal(projectId: string): Promise<{ id: string; projectId: string; shell: string }> {
+    return request(`/projects/${encodeURIComponent(projectId)}/debug/terminal`);
+  },
+
   async debugEval(projectId: string, code: string): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     return request(`/projects/${encodeURIComponent(projectId)}/debug/eval`, {
       method: "POST",
