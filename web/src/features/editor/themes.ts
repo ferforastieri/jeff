@@ -114,7 +114,7 @@ const darkTheme: editor.IStandaloneThemeData = {
     "editorLineNumber.foreground": "#3C3C3C",
     "editorLineNumber.activeForeground": "#969696",
     "editorCursor.foreground": "#FF50FF",
-    "editorGhostText.foreground": "#F01F31DD",
+    "editorGhostText.foreground": "#0F766EDD",
     "editorGhostText.background": "#00000000",
     "editor.selectionBackground": "#96969659",
     "editor.selectionForeground": "#C8C8C8",

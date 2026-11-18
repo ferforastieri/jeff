@@ -240,17 +240,17 @@
     --default-font-family: "Source Sans 3 Variable", "Source Sans 3", "Segoe UI", system-ui, sans-serif;
     --default-mono-font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, Menlo, monospace;
     --color-neutral-925: #121212;
-    --color-accent-50: #FFF1F2;
-    --color-accent-100: #FFE0E3;
-    --color-accent-200: #FFC2C7;
-    --color-accent-300: #FF98A1;
-    --color-accent-400: #FF5C69;
-    --color-accent-500: #F01F31;
-    --color-accent-600: #D10E20;
-    --color-accent-700: #AD0A1A;
-    --color-accent-800: #8F0F1C;
-    --color-accent-900: #780F1A;
-    --color-accent-950: #42050A;
+    --color-accent-50: #ECFDF5;
+    --color-accent-100: #CCFBF1;
+    --color-accent-200: #99F6E4;
+    --color-accent-300: #5EEAD4;
+    --color-accent-400: #14B8A6;
+    --color-accent-500: #0F766E;
+    --color-accent-600: #115E59;
+    --color-accent-700: #134E4A;
+    --color-accent-800: #0F3D3A;
+    --color-accent-900: #0B2E2C;
+    --color-accent-950: #042F2E;
     --radius-2lg: 10px;
     --shadow-checkbox-selected: inset 0 2px 0 0 #ffffff40,
     inset 0 0 0 1px var(--color-accent-500);
@@ -5858,9 +5858,9 @@
   --ink2: #2a2a28;
   --muted: #5c5c58;
   --faint: #6f6f6a;
-  --agent: #F01F31;
-  --agent2: #FF5C69;
-  --agent-soft: #FFF1F2;
+  --agent: #0F766E;
+  --agent2: #14B8A6;
+  --agent-soft: #ECFDF5;
   --on-agent: #FFFFFF;
   --ok: #1f7a45;
   --warn: #9a5b00;
@@ -5915,10 +5915,10 @@
   --ink2: #d6d6d2;
   --muted: #a3a39e;
   --faint: #8f8f89;
-  --agent: #F01F31;
-  --agent2: #FF98A1;
-  --agent-soft: #3A0A10;
-  --on-agent: #FFFFFF;
+  --agent: #14B8A6;
+  --agent2: #5EEAD4;
+  --agent-soft: #062E2B;
+  --on-agent: #042F2E;
   --ok: #5fc48a;
   --warn: #e0a84a;
   --warn-soft: #33260e;
@@ -6972,11 +6972,11 @@ textarea.ac-input {
 }
 
 .ac-icon .ac-brain-body {
-  stroke: #F01F31;
+  stroke: #0F766E;
 }
 
 .ac-icon .ac-brain-eye {
-  fill: #F01F31;
+  fill: #0F766E;
   stroke: none;
 }
 
@@ -6989,11 +6989,11 @@ textarea.ac-input {
 }
 
 [data-theme="dark"] .ac-icon .ac-brain-body {
-  stroke: #FF5C69;
+  stroke: #14B8A6;
 }
 
 [data-theme="dark"] .ac-icon .ac-brain-eye {
-  fill: #FF5C69;
+  fill: #14B8A6;
 }
 
 .ac-brain-icon--off {
@@ -22007,17 +22007,17 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
   --visual-viewport-height: 100dvh;
   --visual-viewport-offset-top: 0px;
   --keyboard-inset: 0px;
-  --color-accent-50: #FFF1F2;
-  --color-accent-100: #FFE0E3;
-  --color-accent-200: #FFC2C7;
-  --color-accent-300: #FF98A1;
-  --color-accent-400: #FF5C69;
-  --color-accent-500: #F01F31;
-  --color-accent-600: #D10E20;
-  --color-accent-700: #AD0A1A;
-  --color-accent-800: #8F0F1C;
-  --color-accent-900: #780F1A;
-  --color-accent-950: #42050A;
+  --color-accent-50: #ECFDF5;
+  --color-accent-100: #CCFBF1;
+  --color-accent-200: #99F6E4;
+  --color-accent-300: #5EEAD4;
+  --color-accent-400: #14B8A6;
+  --color-accent-500: #0F766E;
+  --color-accent-600: #115E59;
+  --color-accent-700: #134E4A;
+  --color-accent-800: #0F3D3A;
+  --color-accent-900: #0B2E2C;
+  --color-accent-950: #042F2E;
   --background: var(--color-background-full);
   --foreground: var(--color-text-primary);
   --card: var(--color-background-primary-default);

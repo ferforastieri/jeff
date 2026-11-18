@@ -11,7 +11,7 @@ const project: Project = {
   id: "project",
   name: "Projeto",
   root: "/project",
-  color: "#F01F31",
+  color: "#0F766E",
   createdAt: "2026-11-13T10:00:00.000Z",
   updatedAt: "2026-11-13T10:00:00.000Z",
 };

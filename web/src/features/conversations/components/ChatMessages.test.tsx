@@ -5,7 +5,7 @@ import type { ChatToph } from "../store";
 import type { NativeMessage } from "../../agents/api";
 import ChatMessages from "./ChatMessages";
 
-const project: Project = { id: "p", name: "Projeto", root: "/projeto", color: "#F01F31", createdAt: "", updatedAt: "" };
+const project: Project = { id: "p", name: "Projeto", root: "/projeto", color: "#0F766E", createdAt: "", updatedAt: "" };
 const toph: ChatToph = {
   id: "toph",
   name: "Beto",

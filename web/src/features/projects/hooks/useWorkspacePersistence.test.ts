@@ -15,7 +15,7 @@ it("persists layout changes without writing layout for typing or message streami
   vi.useFakeTimers();
   const save = vi.spyOn(api, "saveLayout").mockResolvedValue(undefined);
   useChats.getState().load("p");
-  const toph = useChats.getState().createToph("p", { name: "Toph", role: "Dev", description: "", personality: "", prompt: "", color: "#F01F31", avatar: "toph-logo" })!;
+  const toph = useChats.getState().createToph("p", { name: "Toph", role: "Dev", description: "", personality: "", prompt: "", color: "#0F766E", avatar: "toph-logo" })!;
   const chat = useChats.getState().createConversation("p", [toph.id])!;
   const tab = { id: "file", kind: "editor", projectId: "p", path: "main.rs", title: "main.rs", content: "a" } as Tab;
   const { rerender, unmount } = renderHook(({ tabs }) => {

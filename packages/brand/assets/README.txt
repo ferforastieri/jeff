@@ -1,7 +1,7 @@
 TOPH — BRAND KIT
 ================
 
-Marca: mascote Toph vermelho vivo.
+Marca: mascote Toph teal.
 Os arquivos transparentes não têm sombra, halo ou fundo branco.
 
 Cores:
@@ -9,9 +9,9 @@ Background: #000000
 Surface: #141414
 Border: #282828
 Text: #F5F5F5
-Accent: #F01F31
-Accent 2: #FF5C69
-Accent 3: #D10E20
+Accent: #0F766E
+Accent 2: #14B8A6
+Accent 3: #115E59
 On accent: #FFFFFF
 
 Arquivos principais:

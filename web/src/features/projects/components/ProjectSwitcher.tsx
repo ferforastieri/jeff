@@ -120,7 +120,7 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
       let project = projects.find((item) => item.root === repo.path);
       if (!project) {
         try {
-          project = await api.createProject(repo.name, repo.path, "#F01F31");
+          project = await api.createProject(repo.name, repo.path, "#0F766E");
         } catch (err) {
           if (!(err instanceof ApiError) || err.status !== 409) throw err;
           const next = await api.projects();

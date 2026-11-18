@@ -2,5 +2,5 @@
 <resources>
     <color name="toph_background">#FF000000</color>
     <color name="toph_surface">#FF141414</color>
-    <color name="toph_accent">#FFF01F31</color>
+    <color name="toph_accent">#FF0F766E</color>
 </resources>

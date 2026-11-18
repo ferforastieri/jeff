@@ -18,7 +18,7 @@ const toph: ChatToph = {
   mcpServers: [],
   emailAccountIds: [],
   language: "auto",
-  color: "#F01F31",
+  color: "#0F766E",
   avatar: "toph-logo",
   notifications: true,
   createdAt: 1,

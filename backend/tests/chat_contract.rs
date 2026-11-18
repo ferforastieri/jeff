@@ -10,7 +10,7 @@ async fn usage_is_scoped_to_the_chat_and_keeps_each_toph_separate() {
         .create_user("owner", "unused-fixture-hash")
         .await
         .unwrap();
-    let project = store.create_project(serde_json::from_value(json!({"id":"project","name":"Project","root":dir.path().display().to_string(),"color":"#F01F31","createdAt":"","updatedAt":""})).unwrap()).await.unwrap();
+    let project = store.create_project(serde_json::from_value(json!({"id":"project","name":"Project","root":dir.path().display().to_string(),"color":"#0F766E","createdAt":"","updatedAt":""})).unwrap()).await.unwrap();
     let repo = Repository(store.clone());
     for (id, chat, input, output, context) in [
         ("first", "chat-one", 100i64, 20i64, 3000i64),

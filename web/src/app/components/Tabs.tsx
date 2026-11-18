@@ -220,7 +220,7 @@ export default function Tabs() {
               )}
             >
               {conversationTophs.length > 0 ? (
-                <BotAvatar bot={conversationTophs[0] ?? { name: "Toph", color: "#F01F31", avatar: "toph-logo" }} size={18} />
+                <BotAvatar bot={conversationTophs[0] ?? { name: "Toph", color: "#0F766E", avatar: "toph-logo" }} size={18} />
               ) : tab.kind === "editor" || (tab.kind === "diff" && tab.path)
                 ? <FileIcon name={tab.path ?? tab.title} path={tab.path} size={14} />
                 : <Icon size={14} className="shrink-0" />}

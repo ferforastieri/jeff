@@ -531,7 +531,7 @@ impl AppState {
             id: new_id(),
             name,
             root: root.to_string_lossy().to_string(),
-            color: "#F01F31".into(),
+            color: "#0F766E".into(),
             created_at: String::new(),
             updated_at: String::new(),
         };

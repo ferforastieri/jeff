@@ -1,4 +1,4 @@
-TOPH — RED
+TOPH — TEAL
 
 Background: #000000
 Surface: #141414
@@ -6,7 +6,7 @@ Surface 2: #1E1E1E
 Border: #282828
 Text: #F5F5F5
 Muted: #969696
-Accent: #F01F31
-Accent 2: #FF5C69
-Accent 3: #D10E20
+Accent: #0F766E
+Accent 2: #14B8A6
+Accent 3: #115E59
 On accent: #FFFFFF

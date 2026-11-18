@@ -7,7 +7,7 @@ export const DEFAULT_TOPH: TophPreset = {
   description: "",
   personality: "",
   prompt: "",
-  color: "#F01F31",
+  color: "#0F766E",
   avatar: "toph-logo",
   agentMode: "build",
   permissionMode: "yolo",

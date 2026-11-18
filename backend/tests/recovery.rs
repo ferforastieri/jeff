@@ -16,7 +16,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
                 "id":"project",
                 "name":"Project",
                 "root":dir.path().display().to_string(),
-                "color":"#F01F31",
+                "color":"#0F766E",
                 "createdAt":"",
                 "updatedAt":""
             }))
