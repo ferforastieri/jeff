@@ -111,9 +111,12 @@ export default function HarnessSettings(_props: Props) {
     // command, otherwise the click looks like it did nothing on mobile.
     // Antigravity runs on the server, so advertise an SSH-like environment to
     // force its manual URL/code OAuth flow instead of opening a browser there.
+    const inUserBin = ["antigravity", "codex", "pi"].includes(engine.id);
     const command = engine.id === "antigravity"
       ? "AGY_CLI_DISABLE_AUTO_UPDATE=true SSH_CONNECTION='toph 0 127.0.0.1 0' SSH_CLIENT='127.0.0.1 0 0' PATH=\"$HOME/.local/bin:$PATH\" agy"
-      : engine.login;
+      : inUserBin
+        ? `PATH="$HOME/.local/bin:$PATH" ${engine.login}`
+        : engine.login;
     let attempts = 0;
     const send = () => {
       if (document.querySelector(".xterm")) {
@@ -171,12 +174,12 @@ export default function HarnessSettings(_props: Props) {
             const output = installs[engine.id];
             return (
               <div key={engine.id} className={cx("px-3 py-3", index > 0 && "border-t border-separator-border")}>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <span className={cx("flex size-9 shrink-0 items-center justify-center rounded-xl", engine.installed ? "bg-accent-500/12" : "bg-background-tertiary-default")}>
                     <HarnessIcon id={engine.id} className={cx("size-5", engine.installed ? "text-text-primary" : "text-text-tertiary")} />
                   </span>
 
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 max-[640px]:basis-full">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <strong className="truncate text-caption-1-semibold text-text-primary">{engine.label}</strong>
                       <span className={cx("rounded-full px-1.5 py-px text-[10px] font-semibold", engine.installed ? "bg-status-lime-bg text-status-lime-text" : "bg-status-yellow-bg text-status-yellow-text")}>
@@ -191,7 +194,7 @@ export default function HarnessSettings(_props: Props) {
                     </p>
                   </div>
 
-                  <div className="flex shrink-0 flex-wrap items-center gap-1">
+                  <div className="flex shrink-0 flex-wrap items-center gap-1 max-[640px]:w-full">
                     {engine.installed ? (
                       <>
                         <Button variant="primary" size="small" disabled={working} onClick={() => login(engine)}>Entrar</Button>
@@ -226,7 +229,7 @@ export default function HarnessSettings(_props: Props) {
                   </div>
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 ps-12 text-caption-2-regular text-text-tertiary">
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 ps-12 text-caption-2-regular text-text-tertiary max-[640px]:ps-0">
                   <span className="inline-flex min-w-0 items-center gap-1">
                     <span className="text-text-secondary">Login:</span>
                     <code className="truncate rounded bg-background-tertiary-default px-1 py-0.5 font-mono text-[10.5px] text-text-primary">{engine.login}</code>

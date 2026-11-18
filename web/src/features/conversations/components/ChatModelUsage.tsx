@@ -107,7 +107,8 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
       const result = await engineApi.limits(engine);
       if (result.ok) {
         setLimits(result.data ?? null);
-        setError(result.data ? "" : `O ${engine === "opencode" ? "OpenCode" : "Antigravity CLI"} não está conectado a uma conta.`);
+        const engineLabel = engine === "opencode" ? "OpenCode" : engine === "antigravity" ? "Antigravity CLI" : "Codex";
+        setError(result.data ? "" : `O ${engineLabel} não está conectado a uma conta.`);
       } else {
         setError(result.message ?? "Limite do plano indisponível.");
       }

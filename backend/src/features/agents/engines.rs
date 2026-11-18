@@ -44,7 +44,7 @@ pub const ENGINES: &[Engine] = &[
         label: "Codex",
         binary: "codex",
         login: "codex login",
-        install: "npm install -g @openai/codex",
+        install: "npm install --prefix \"$HOME/.local\" @openai/codex@latest && mkdir -p \"$HOME/.local/bin\" && ln -sf \"$HOME/.local/node_modules/.bin/codex\" \"$HOME/.local/bin/codex\"",
         site: "https://github.com/openai/codex",
         supported: true,
     },
@@ -71,7 +71,7 @@ pub const ENGINES: &[Engine] = &[
         label: "Pi",
         binary: "pi",
         login: "pi",
-        install: "npm install -g @earendil-works/pi-coding-agent",
+        install: "npm install --prefix \"$HOME/.local\" @earendil-works/pi-coding-agent@latest && mkdir -p \"$HOME/.local/bin\" && ln -sf \"$HOME/.local/node_modules/.bin/pi\" \"$HOME/.local/bin/pi\"",
         site: "https://pi.dev",
         supported: false,
     },
@@ -202,6 +202,49 @@ async fn opencode_models(path: &Path) -> Option<(usize, Vec<String>)> {
     Some((models.len(), models.into_iter().take(12).collect()))
 }
 
+fn codex_models() -> Vec<Value> {
+    let mut ids: Vec<String> = Vec::new();
+    if let Some(home) = std::env::var_os("HOME") {
+        let config = PathBuf::from(home).join(".codex/config.toml");
+        if let Ok(text) = std::fs::read_to_string(config) {
+            for line in text.lines() {
+                let line = line.trim();
+                if let Some(value) = line
+                    .strip_prefix("model")
+                    .and_then(|rest| rest.trim_start().strip_prefix('='))
+                {
+                    let slug = value.trim().trim_matches('"').to_string();
+                    if !slug.is_empty() && !ids.contains(&slug) {
+                        ids.push(slug);
+                    }
+                }
+            }
+        }
+    }
+    for slug in [
+        "gpt-6.1-sol",
+        "gpt-5.4-pro",
+        "gpt-5-codex",
+        "gpt-5.4",
+        "gpt-5.1-codex-max",
+        "o4-mini",
+    ] {
+        if !ids.iter().any(|id| id == slug) {
+            ids.push(slug.to_string());
+        }
+    }
+    ids.into_iter()
+        .map(|id| {
+            json!({
+                "id": id,
+                "label": id,
+                "provider": "openai",
+                "variants": [],
+            })
+        })
+        .collect()
+}
+
 fn parse_antigravity_models(text: &str) -> Vec<Value> {
     text.lines()
         .filter_map(|line| {
@@ -250,6 +293,11 @@ pub async fn models_for(id: &str) -> Value {
     let Some(path) = find_binary(engine.binary) else {
         return json!({ "models": [] });
     };
+    // Codex has no machine-readable model catalogue yet; use the model saved
+    // in its config plus a small list of the current ChatGPT/API slugs.
+    if engine.id == "codex" {
+        return json!({ "models": codex_models() });
+    }
     let Ok(Ok(output)) = tokio::time::timeout(
         Duration::from_secs(30),
         Command::new(&path).arg("models").output(),
@@ -298,8 +346,8 @@ pub async fn test(id: &str) -> AppResult<Value> {
     let mut models = None;
     if engine.id == "opencode" {
         models = opencode_models(&path).await;
-    } else if engine.id == "antigravity" {
-        let listed = models_for("antigravity").await;
+    } else if engine.id == "antigravity" || engine.id == "codex" {
+        let listed = models_for(engine.id).await;
         let count = listed["models"].as_array().map(Vec::len).unwrap_or(0);
         if count > 0 {
             models = Some((count, Vec::new()));
@@ -536,9 +584,9 @@ pub async fn update(id: &str) -> AppResult<Value> {
         }
         "codex" => {
             let mut command = Command::new("sh");
-            command
-                .arg("-lc")
-                .arg("npm install -g @openai/codex@latest");
+            command.arg("-lc").arg(
+                "npm install --prefix \"$HOME/.local\" @openai/codex@latest && mkdir -p \"$HOME/.local/bin\" && ln -sf \"$HOME/.local/node_modules/.bin/codex\" \"$HOME/.local/bin/codex\"",
+            );
             command
         }
         "antigravity" => {
