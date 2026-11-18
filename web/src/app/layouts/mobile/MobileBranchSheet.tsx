@@ -74,6 +74,23 @@ export default function MobileBranchSheet({ open, projectId, onClose, onChanged 
     }
   }
 
+  async function push() {
+    if (busy) return;
+    setBusy("push");
+    try {
+      const output = await api.gitPush(projectId);
+      const last = output.trim().split("\n").pop() ?? "";
+      notify("success", last || "Branch enviada para o remoto.");
+      window.dispatchEvent(new Event("toph:git-changed"));
+      onChanged();
+      await load();
+    } catch (err) {
+      notify("error", err instanceof Error ? err.message : "Não foi possível enviar a branch.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function deleteOthers() {
     if (busy) return;
     const others = branches.filter((branch) => branch !== current);
@@ -131,6 +148,7 @@ export default function MobileBranchSheet({ open, projectId, onClose, onChanged 
           filter={filter}
           onFilterChange={setFilter}
           onCheckout={(branch) => void checkout(branch)}
+          onPush={() => void push()}
           onCreate={() => { setName(""); setCreateOpen(true); }}
           onDeleteOthers={() => void deleteOthers()}
           onRetry={() => void load()}

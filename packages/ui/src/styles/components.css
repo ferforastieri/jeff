@@ -946,12 +946,12 @@ textarea.ac-input {
 .ac-icon .ac-brain-cx {
   stroke: #1d7a82;
 }
-/* The agent's outline in Toph's amber (fixed, like the pixel agents), not the --agent accent token. */
+/* The agent's outline in Toph's red (fixed, like the pixel agents), not the --agent accent token. */
 .ac-icon .ac-brain-body {
-  stroke: #ffb547;
+  stroke: #F01F31;
 }
 .ac-icon .ac-brain-eye {
-  fill: #ffb547;
+  fill: #F01F31;
   stroke: none;
 }
 [data-theme="dark"] .ac-icon .ac-brain-cc {
@@ -961,10 +961,10 @@ textarea.ac-input {
   stroke: #5cc3bd;
 }
 [data-theme="dark"] .ac-icon .ac-brain-body {
-  stroke: #ffc45c;
+  stroke: #FF5C69;
 }
 [data-theme="dark"] .ac-icon .ac-brain-eye {
-  fill: #ffc45c;
+  fill: #FF5C69;
 }
 .ac-brain-icon--off {
   opacity: 0.45;

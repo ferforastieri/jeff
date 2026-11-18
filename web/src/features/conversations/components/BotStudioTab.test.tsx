@@ -16,7 +16,7 @@ const native = vi.hoisted(() => ({
 vi.mock("../../agents/useAgentChat", () => ({ useAgentChat: () => native }));
 
 
-const project: Project = { id: "project", name: "Project", root: "/project", color: "#FFB547", createdAt: "", updatedAt: "" };
+const project: Project = { id: "project", name: "Project", root: "/project", color: "#F01F31", createdAt: "", updatedAt: "" };
 let firstId: string;
 let memberId: string;
 let chatId: string;

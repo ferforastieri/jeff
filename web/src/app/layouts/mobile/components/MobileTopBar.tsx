@@ -51,7 +51,7 @@ export default function MobileTopBar({
             className="mobile-topbar__brand relative flex size-10 shrink-0 items-center justify-center rounded-2xl shadow-xs transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring disabled:active:scale-100"
           >
             <img
-              src={`${import.meta.env.BASE_URL}brand/toph-mark.png?v=3`}
+              src={`${import.meta.env.BASE_URL}brand/toph-mark.png?v=4`}
               alt=""
               className="size-7 object-contain"
               draggable={false}

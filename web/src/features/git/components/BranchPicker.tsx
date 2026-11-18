@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CircleAlert, GitBranch, Plus, Trash2 } from "@toph/icons";
+import { CircleAlert, GitBranch, LoaderCircle, Plus, Trash2, Upload } from "@toph/icons";
 import { Accordion, AccordionItem } from "@toph/ui/app";
 import { RadioDot } from "@toph/ui/app";
 import { SearchField } from "@toph/ui/app";
@@ -14,6 +14,7 @@ interface Props {
   onFilterChange: (value: string) => void;
   onCheckout: (branch: string) => void;
   onCreate: () => void;
+  onPush?: () => void;
   onDeleteOthers: () => void;
   onRetry: () => void;
   error?: string;
@@ -33,6 +34,7 @@ export default function BranchPicker({
   onFilterChange,
   onCheckout,
   onCreate,
+  onPush,
   onDeleteOthers,
   onRetry,
   error,
@@ -54,6 +56,19 @@ export default function BranchPicker({
           <p className="text-caption-2-regular text-text-tertiary">Branch atual</p>
           <p className="truncate text-caption-1-semibold text-text-primary">{current || "detached"}</p>
         </div>
+        {onPush ? (
+          <Button
+            variant="secondary"
+            size="xs"
+            leadingIcon={busy === "push" ? LoaderCircle : Upload}
+            disabled={Boolean(busy)}
+            onClick={onPush}
+            title="Enviar a branch atual para o remoto"
+            className="shrink-0"
+          >
+            {busy === "push" ? "Enviando…" : "Push"}
+          </Button>
+        ) : null}
       </div>
       <Accordion
         variant="divided"

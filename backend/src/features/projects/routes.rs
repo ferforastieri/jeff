@@ -72,7 +72,7 @@ pub(super) async fn create_project(
             name: input.name,
             root: root.to_string_lossy().to_string(),
             color: if input.color.is_empty() {
-                "#FFB547".into()
+                "#F01F31".into()
             } else {
                 input.color
             },

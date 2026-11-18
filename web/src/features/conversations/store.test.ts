@@ -16,7 +16,7 @@ const preset = (name: string, role: string): TophPreset => ({
   description: "",
   personality: "",
   prompt: "",
-  color: "#FFB547",
+  color: "#F01F31",
   avatar: "toph-logo",
 });
 
@@ -37,7 +37,7 @@ const legacyToph = (id: string, chatId: string, name: string): ChatToph & { chat
   mcpServers: [],
   emailAccountIds: [],
   language: "auto",
-  color: "#FFB547",
+  color: "#F01F31",
   avatar: "toph-logo",
   notifications: true,
   createdAt: 1,

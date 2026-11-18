@@ -328,6 +328,16 @@ pub(super) async fn git_commit(
     Ok(Json(json!({ "output": output })))
 }
 
+pub(super) async fn git_push(
+    State(state): State<Arc<AppState>>,
+    Path(project_id): Path<String>,
+) -> AppResult<Json<Value>> {
+    let project = state.store.project(&project_id).await?;
+    let output = state.workspace.git_push(FsPath::new(&project.root)).await?;
+    state.publish_git(&project_id, None);
+    Ok(Json(json!({ "output": output })))
+}
+
 pub(super) async fn git_diff(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<String>,

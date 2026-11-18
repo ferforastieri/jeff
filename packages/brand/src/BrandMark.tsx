@@ -8,8 +8,8 @@ interface Props {
 }
 
 const EYES = [
-  { left: "37.7%", top: "21.1%", rx: "12%", ry: "11%" },
-  { left: "61.9%", top: "21.1%", rx: "12%", ry: "11%" },
+  { left: "40.8%", top: "53.9%", rx: "7%", ry: "10%" },
+  { left: "59.8%", top: "53.9%", rx: "7%", ry: "10%" },
 ];
 
 const mask = ({ left, top, rx, ry }: (typeof EYES)[number]) =>
@@ -17,8 +17,8 @@ const mask = ({ left, top, rx, ry }: (typeof EYES)[number]) =>
 
 export default function BrandMark({ size = "small", className = "", look = true }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
-  const base = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=3`;
-  const eyes = `${import.meta.env.BASE_URL}brand/toph-mark.png?v=3`;
+  const base = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=4`;
+  const eyes = `${import.meta.env.BASE_URL}brand/toph-mark.png?v=4`;
   const pixels = size === "large" ? 56 : size === "small" ? 28 : undefined;
 
   useEffect(() => {

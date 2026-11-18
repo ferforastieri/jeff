@@ -240,17 +240,17 @@
     --default-font-family: "Source Sans 3 Variable", "Source Sans 3", "Segoe UI", system-ui, sans-serif;
     --default-mono-font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, Menlo, monospace;
     --color-neutral-925: #121212;
-    --color-accent-50: var(--color-blue-50);
-    --color-accent-100: var(--color-blue-100);
-    --color-accent-200: var(--color-blue-200);
-    --color-accent-300: var(--color-blue-300);
-    --color-accent-400: var(--color-blue-400);
-    --color-accent-500: var(--color-blue-500);
-    --color-accent-600: var(--color-blue-600);
-    --color-accent-700: var(--color-blue-700);
-    --color-accent-800: var(--color-blue-800);
-    --color-accent-900: var(--color-blue-900);
-    --color-accent-950: var(--color-blue-950);
+    --color-accent-50: #FFF1F2;
+    --color-accent-100: #FFE0E3;
+    --color-accent-200: #FFC2C7;
+    --color-accent-300: #FF98A1;
+    --color-accent-400: #FF5C69;
+    --color-accent-500: #F01F31;
+    --color-accent-600: #D10E20;
+    --color-accent-700: #AD0A1A;
+    --color-accent-800: #8F0F1C;
+    --color-accent-900: #780F1A;
+    --color-accent-950: #42050A;
     --radius-2lg: 10px;
     --shadow-checkbox-selected: inset 0 2px 0 0 #ffffff40,
     inset 0 0 0 1px var(--color-accent-500);
@@ -5858,10 +5858,10 @@
   --ink2: #2a2a28;
   --muted: #5c5c58;
   --faint: #6f6f6a;
-  --agent: #ffb547;
-  --agent2: #ffc45c;
-  --agent-soft: #fff8eb;
-  --on-agent: #1c1204;
+  --agent: #F01F31;
+  --agent2: #FF5C69;
+  --agent-soft: #FFF1F2;
+  --on-agent: #FFFFFF;
   --ok: #1f7a45;
   --warn: #9a5b00;
   --warn-soft: #fbeed5;
@@ -5915,10 +5915,10 @@
   --ink2: #d6d6d2;
   --muted: #a3a39e;
   --faint: #8f8f89;
-  --agent: #ffb547;
-  --agent2: #ffd08a;
-  --agent-soft: #3a2a0b;
-  --on-agent: #1c1204;
+  --agent: #F01F31;
+  --agent2: #FF98A1;
+  --agent-soft: #3A0A10;
+  --on-agent: #FFFFFF;
   --ok: #5fc48a;
   --warn: #e0a84a;
   --warn-soft: #33260e;
@@ -6972,11 +6972,11 @@ textarea.ac-input {
 }
 
 .ac-icon .ac-brain-body {
-  stroke: #ffb547;
+  stroke: #F01F31;
 }
 
 .ac-icon .ac-brain-eye {
-  fill: #ffb547;
+  fill: #F01F31;
   stroke: none;
 }
 
@@ -6989,11 +6989,11 @@ textarea.ac-input {
 }
 
 [data-theme="dark"] .ac-icon .ac-brain-body {
-  stroke: #ffc45c;
+  stroke: #FF5C69;
 }
 
 [data-theme="dark"] .ac-icon .ac-brain-eye {
-  fill: #ffc45c;
+  fill: #FF5C69;
 }
 
 .ac-brain-icon--off {
@@ -21999,7 +21999,7 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
   --title-cap-mid: 1.19px;
   --font-brand: "Funnel Display", var(--font-sans);
   --font-dot: "Doto", var(--font-mono);
-  --text-on-accent: #1c1204;
+  --text-on-accent: #FFFFFF;
   --safe-top: max(var(--native-safe-top, 0px), env(safe-area-inset-top, 0px));
   --safe-bottom: max(var(--native-safe-bottom, 0px), env(safe-area-inset-bottom, 0px));
   --safe-left: max(var(--native-safe-left, 0px), env(safe-area-inset-left, 0px));
@@ -22007,17 +22007,17 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
   --visual-viewport-height: 100dvh;
   --visual-viewport-offset-top: 0px;
   --keyboard-inset: 0px;
-  --color-accent-50: #fff8eb;
-  --color-accent-100: #ffefc9;
-  --color-accent-200: #ffdd94;
-  --color-accent-300: #ffd08a;
-  --color-accent-400: #ffc45c;
-  --color-accent-500: #ffb547;
-  --color-accent-600: #e07a00;
-  --color-accent-700: #b85c00;
-  --color-accent-800: #914600;
-  --color-accent-900: #6e3400;
-  --color-accent-950: #3f1c00;
+  --color-accent-50: #FFF1F2;
+  --color-accent-100: #FFE0E3;
+  --color-accent-200: #FFC2C7;
+  --color-accent-300: #FF98A1;
+  --color-accent-400: #FF5C69;
+  --color-accent-500: #F01F31;
+  --color-accent-600: #D10E20;
+  --color-accent-700: #AD0A1A;
+  --color-accent-800: #8F0F1C;
+  --color-accent-900: #780F1A;
+  --color-accent-950: #42050A;
   --background: var(--color-background-full);
   --foreground: var(--color-text-primary);
   --card: var(--color-background-primary-default);

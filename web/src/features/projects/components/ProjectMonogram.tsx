@@ -20,7 +20,7 @@ export function projectInitials(name: string): string {
 
 /** The project's own identity: initials on the project colour, never a Toph. */
 export default function ProjectMonogram({ project, size = 28, className }: Props) {
-  const color = project.color || "#FFB547";
+  const color = project.color || "#F01F31";
   return (
     <span
       className={cx("flex shrink-0 select-none items-center justify-center font-semibold leading-none", className)}

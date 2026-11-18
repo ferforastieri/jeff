@@ -1,4 +1,4 @@
-TOPH — AMBER
+TOPH — RED
 
 Background: #000000
 Surface: #141414
@@ -6,7 +6,7 @@ Surface 2: #1E1E1E
 Border: #282828
 Text: #F5F5F5
 Muted: #969696
-Accent: #FFB547
-Accent 2: #FF9D0A
-Accent 3: #FF6B4A
-On accent: #1C1204
+Accent: #F01F31
+Accent 2: #FF5C69
+Accent 3: #D10E20
+On accent: #FFFFFF

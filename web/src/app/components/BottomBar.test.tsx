@@ -8,7 +8,7 @@ const project = (id: string, name: string) => ({
   id,
   name,
   root: `/work/${name.toLowerCase()}`,
-  color: "#FFB547",
+  color: "#F01F31",
   createdAt: new Date(0).toISOString(),
   updatedAt: new Date(0).toISOString(),
 });

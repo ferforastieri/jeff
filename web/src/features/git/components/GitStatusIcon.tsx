@@ -5,7 +5,7 @@ const statusMap = {
   A: { icon: FilePlus2, className: "text-emerald-500", label: "Adicionado" },
   U: { icon: FilePlus2, className: "text-emerald-500", label: "Não rastreado" },
   "?": { icon: FilePlus2, className: "text-emerald-500", label: "Não rastreado" },
-  M: { icon: Pencil, className: "text-amber-500", label: "Modificado" },
+  M: { icon: Pencil, className: "text-accent-500", label: "Modificado" },
   D: { icon: Trash2, className: "text-rose-500", label: "Excluído" },
   R: { icon: ArrowRight, className: "text-sky-500", label: "Renomeado" },
   C: { icon: Files, className: "text-sky-500", label: "Copiado" },

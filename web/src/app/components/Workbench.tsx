@@ -668,6 +668,22 @@ export default function Workbench() {
     }
   }
 
+  async function pushBranch() {
+    if (!project || branchBusy) return;
+    setBranchBusy("push");
+    try {
+      const output = await api.gitPush(project.id);
+      const last = output.trim().split("\n").pop() ?? "";
+      notify("success", last || "Branch enviada para o remoto.");
+      window.dispatchEvent(new Event("toph:git-changed"));
+      await loadBranches();
+    } catch (error) {
+      notify("error", error instanceof Error ? error.message : "Não foi possível enviar a branch.");
+    } finally {
+      setBranchBusy("");
+    }
+  }
+
   async function collectBranchDiff(): Promise<string> {
     if (!project) return "";
     const parsed = parseGitStatus(await api.gitStatus(project.id));
@@ -988,6 +1004,7 @@ export default function Workbench() {
         filter={branchFilter}
         onFilterChange={setBranchFilter}
         onCheckout={(name) => void checkoutBranch(name)}
+        onPush={() => void pushBranch()}
         onCreate={() => { setBranchMenuOpen(false); setNewBranchName(""); setBranchCreateOpen(true); }}
         onDeleteOthers={() => void deleteOtherBranches()}
         onRetry={() => void loadBranches()}

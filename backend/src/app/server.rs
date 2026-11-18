@@ -531,7 +531,7 @@ impl AppState {
             id: new_id(),
             name,
             root: root.to_string_lossy().to_string(),
-            color: "#FFB547".into(),
+            color: "#F01F31".into(),
             created_at: String::new(),
             updated_at: String::new(),
         };
@@ -748,6 +748,7 @@ fn router(state: Arc<AppState>) -> Router {
         .route("/api/projects/{project_id}/git/stage", post(git_stage))
         .route("/api/projects/{project_id}/git/unstage", post(git_unstage))
         .route("/api/projects/{project_id}/git/commit", post(git_commit))
+        .route("/api/projects/{project_id}/git/push", post(git_push))
         .route(
             "/api/projects/{project_id}/git/branch",
             post(git_create_branch),

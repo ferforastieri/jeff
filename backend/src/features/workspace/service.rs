@@ -557,6 +557,41 @@ impl WorkspaceService {
         git_output(root, &["commit", "-m", message.trim()]).await
     }
 
+    /// Pushes the current branch. A branch without an upstream is published
+    /// with `-u origin`, so the first push from the branch picker just works.
+    pub async fn git_push(&self, root: &Path) -> AppResult<String> {
+        let branch = git_output(root, &["rev-parse", "--abbrev-ref", "HEAD"])
+            .await?
+            .trim()
+            .to_string();
+        if branch.is_empty() || branch == "HEAD" {
+            return Err(crate::errors::bad_request(
+                "Não há uma branch atual para enviar.",
+            ));
+        }
+        let has_upstream = Command::new("git")
+            .args([
+                "-C",
+                &root.to_string_lossy(),
+                "rev-parse",
+                "--abbrev-ref",
+                "--symbolic-full-name",
+                "@{u}",
+            ])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .await
+            .map(|status| status.success())
+            .unwrap_or(false);
+        let args = if has_upstream {
+            vec!["push"]
+        } else {
+            vec!["push", "-u", "origin", branch.as_str()]
+        };
+        git_output(root, &args).await
+    }
+
     pub async fn git_diff(&self, root: &Path, path: &str, staged: bool) -> AppResult<String> {
         let path = validate_git_path(path)?;
         let mut args = vec!["diff", "--no-color"];
@@ -1069,6 +1104,43 @@ mod tests {
             .await
             .unwrap();
         assert!(!root.join("docs/architecture").exists());
+    }
+
+    #[tokio::test]
+    async fn git_push_publishes_the_current_branch_to_origin() {
+        let work = tempfile::tempdir().unwrap();
+        let remote = tempfile::tempdir().unwrap();
+        git_checked(work.path(), &["init", "-q", "-b", "main"])
+            .await
+            .unwrap();
+        git_checked(remote.path(), &["init", "-q", "--bare"])
+            .await
+            .unwrap();
+        std::fs::write(work.path().join("a.txt"), "x").unwrap();
+        git_checked(work.path(), &["add", "--", "a.txt"])
+            .await
+            .unwrap();
+        git_checked(
+            work.path(),
+            &[
+                "-c",
+                "user.email=toph@example.com",
+                "-c",
+                "user.name=Toph",
+                "commit",
+                "-m",
+                "first",
+            ],
+        )
+        .await
+        .unwrap();
+        let remote_path = remote.path().to_string_lossy().to_string();
+        git_checked(work.path(), &["remote", "add", "origin", &remote_path])
+            .await
+            .unwrap();
+        let service = WorkspaceService::new(vec![work.path().to_path_buf()]).unwrap();
+        service.git_push(work.path()).await.unwrap();
+        assert!(remote.path().join("refs/heads/main").exists());
     }
 
     #[tokio::test]

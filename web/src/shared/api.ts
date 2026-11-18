@@ -758,6 +758,14 @@ export const api = {
     });
   },
 
+  async gitPush(projectId: string): Promise<string> {
+    const response = await request<{ output: string }>(
+      `/projects/${encodeURIComponent(projectId)}/git/push`,
+      { method: "POST" },
+    );
+    return response.output;
+  },
+
   async gitCommit(projectId: string, message: string): Promise<string> {
     const response = await request<{ output: string }>(
       `/projects/${encodeURIComponent(projectId)}/git/commit`,

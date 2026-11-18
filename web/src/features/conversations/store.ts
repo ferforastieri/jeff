@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { BOT_AVATARS, type BotAvatar, type BotLanguage } from "../agents/avatars";
 
-const DEFAULT_TOPH_COLOR = "#FFB547";
+const DEFAULT_TOPH_COLOR = "#F01F31";
 
 type TophAgentMode = "build" | "plan";
 type TophPermissionMode = "yolo" | "ask" | "deny";

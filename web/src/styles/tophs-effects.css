@@ -234,7 +234,7 @@ html.theme-transitioning *::after {
   mask-position: center;
 }
 
-/* Light mode: the amber details need a darker ink to read on white. */
+/* Light mode: the red details need a darker ink to read on white. */
 html:not(.dark) .text-accent-500,
 html:not(.dark) .text-accent-600 {
   color: var(--color-accent-700);

@@ -38,7 +38,7 @@ The installed server does not serve the landing page or documentation. The landi
 - Download the next desktop installer directly from the update toast, with checksum verification. Windows publishes both NSIS and MSI installers, and the toast prefers NSIS.
 - Run desktop local mode with optional LAN sharing, show a one-time pairing QR, and open the same local workspace from the Android app by scanning it.
 - Use a native-titlebar-only desktop shell with a VS Code-style header containing menus, project and branch selectors, editor status, and an agent rail.
-- Personalize the web app with light/dark themes, the Toph amber accent, sidebar width, editor and terminal typography, tab styles, and three global icon sets: Material, Phosphor Fill and Remix Fill. The icon choice applies to the entire interface and the file tree. Drag the sidebar, agent dock and terminal edges to resize them.
+- Personalize the web app with light/dark themes, the Toph red accent, sidebar width, editor and terminal typography, tab styles, and three global icon sets: Material, Phosphor Fill and Remix Fill. The icon choice applies to the entire interface and the file tree. Drag the sidebar, agent dock and terminal edges to resize them.
 
 ## Repository layout
 

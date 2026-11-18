@@ -75,7 +75,7 @@ export default function WorkspaceSettings() {
     setBusy(true);
     setError("");
     try {
-      const project = await api.createProject(projectName.trim() || basename(path), path, "#FFB547");
+      const project = await api.createProject(projectName.trim() || basename(path), path, "#F01F31");
       const next = await api.projects();
       setProjects(next);
       setActiveProject(project.id);

@@ -43,7 +43,7 @@ export default function ProjectTophAvatar({ project, size = 28, className, look 
           style={{
             width: badge,
             height: badge,
-            color: project.color || "#FFB547",
+            color: project.color || "#F01F31",
             fontSize: Math.max(7, Math.round(badge * 0.55)),
           }}
           aria-hidden="true"
@@ -60,8 +60,8 @@ export default function ProjectTophAvatar({ project, size = 28, className, look 
       style={{
         width: size,
         height: size,
-        backgroundColor: `${project.color || "#FFB547"}22`,
-        color: project.color || "#FFB547",
+        backgroundColor: `${project.color || "#F01F31"}22`,
+        color: project.color || "#F01F31",
         fontSize: Math.max(9, Math.round(size * 0.38)),
       }}
       aria-hidden="true"
