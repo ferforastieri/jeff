@@ -2,6 +2,13 @@ import { create } from "zustand";
 import { BOT_AVATARS, type BotAvatar, type BotLanguage } from "../agents/avatars";
 
 const DEFAULT_TOPH_COLOR = "#0F766E";
+const LEGACY_BRAND_COLORS = new Set(["#FFB547", "#F01F31", "#FF5C69", "#FF98A1"]);
+
+function currentBrandColor(color?: string): string {
+  const value = color?.trim();
+  if (!value) return DEFAULT_TOPH_COLOR;
+  return LEGACY_BRAND_COLORS.has(value.toUpperCase()) ? DEFAULT_TOPH_COLOR : value;
+}
 
 type TophAgentMode = "build" | "plan";
 type TophPermissionMode = "yolo" | "ask" | "deny";
@@ -152,7 +159,7 @@ function normalizeToph(toph: Partial<ChatToph>): ChatToph {
     mcpServers: Array.isArray(toph.mcpServers) ? toph.mcpServers.filter((item): item is string => typeof item === "string") : [],
     emailAccountIds: Array.isArray(toph.emailAccountIds) ? toph.emailAccountIds.filter((item): item is string => typeof item === "string") : [],
     language: toph.language === "pt" || toph.language === "en" || toph.language === "es" ? toph.language : "auto",
-    color: toph.color || DEFAULT_TOPH_COLOR,
+    color: currentBrandColor(toph.color),
     avatar: toph.avatar && BOT_AVATARS.includes(toph.avatar) ? toph.avatar : "toph-logo",
     notifications: toph.notifications !== false,
     createdAt: Number.isFinite(toph.createdAt) ? Number(toph.createdAt) : Date.now(),

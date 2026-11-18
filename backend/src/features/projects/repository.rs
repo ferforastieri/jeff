@@ -6,36 +6,60 @@ use crate::platform::store::map_not_found;
 use crate::platform::store::now;
 use crate::platform::store::Store;
 
+/// Old brand accents stay in rows created before the rebrand. Reads return the
+/// current teal so avatars and project marks never flash the retired amber/red.
+fn current_brand_color(color: String) -> String {
+    match color.trim().to_ascii_uppercase().as_str() {
+        "#FFB547" | "#F01F31" | "#FF5C69" | "#FF98A1" => "#0F766E".into(),
+        _ => color,
+    }
+}
+
 impl Store {
     pub async fn list_projects(&self) -> AppResult<Vec<Project>> {
-        Ok(sqlx::query_as::<_, Project>(
+        let rows = sqlx::query_as::<_, Project>(
             "SELECT id, name, root, color, created_at, updated_at FROM projects ORDER BY name",
         )
         .fetch_all(&self.pool)
-        .await?)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|project| Project {
+                color: current_brand_color(project.color),
+                ..project
+            })
+            .collect())
     }
 
     pub async fn project(&self, id: &str) -> AppResult<Project> {
-        sqlx::query_as::<_, Project>(
+        let mut project = sqlx::query_as::<_, Project>(
             "SELECT id, name, root, color, created_at, updated_at FROM projects WHERE id = ?",
         )
         .bind(id)
         .fetch_one(&self.pool)
         .await
-        .map_err(map_not_found)
+        .map_err(map_not_found)?;
+        project.color = current_brand_color(project.color);
+        Ok(project)
     }
 
     pub async fn project_by_root(&self, root: &str) -> AppResult<Project> {
-        sqlx::query_as::<_, Project>(
+        let mut project = sqlx::query_as::<_, Project>(
             "SELECT id, name, root, color, created_at, updated_at FROM projects WHERE root = ?",
         )
         .bind(root)
         .fetch_one(&self.pool)
         .await
-        .map_err(map_not_found)
+        .map_err(map_not_found)?;
+        project.color = current_brand_color(project.color);
+        Ok(project)
     }
 
     pub async fn create_project(&self, project: Project) -> AppResult<Project> {
+        let project = Project {
+            color: current_brand_color(project.color),
+            ..project
+        };
         let created = now();
         let result = sqlx::query(
             "INSERT INTO projects (id, name, root, color, created_at, updated_at)
@@ -61,6 +85,10 @@ impl Store {
     }
 
     pub async fn update_project(&self, project: Project) -> AppResult<Project> {
+        let project = Project {
+            color: current_brand_color(project.color),
+            ..project
+        };
         let updated = now();
         let result = sqlx::query(
             "UPDATE projects SET name = ?, root = ?, color = ?, updated_at = ? WHERE id = ?",
