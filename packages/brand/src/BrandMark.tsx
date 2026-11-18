@@ -8,8 +8,8 @@ interface Props {
 }
 
 const EYES = [
-  { left: "40.8%", top: "53.9%", rx: "7%", ry: "10%" },
-  { left: "59.8%", top: "53.9%", rx: "7%", ry: "10%" },
+  { left: "38.5%", top: "42.4%", rx: "6.5%", ry: "10%" },
+  { left: "60.9%", top: "42.4%", rx: "6.5%", ry: "10%" },
 ];
 
 const mask = ({ left, top, rx, ry }: (typeof EYES)[number]) =>
