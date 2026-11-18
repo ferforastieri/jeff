@@ -11,7 +11,7 @@ use tokio::process::Command;
 use tokio_util::sync::CancellationToken;
 
 use crate::ai::AiConfig;
-use crate::errors::{bad_request, AppResult};
+use crate::errors::{bad_request, AppError, AppResult};
 
 use super::models::{AgentSpec, Attachment};
 use super::skill_service::ManagedSkill;
@@ -911,6 +911,182 @@ pub async fn run_codex(
         )));
     }
     Ok((text, usage, thread_id))
+}
+
+/// Serializes updates to the shared Antigravity MCP config across runs.
+static AGY_MCP_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Antigravity reads MCP servers from `~/.gemini/config/mcp_config.json`. Toph
+/// owns only the `toph*` entries, so the user's own servers stay untouched.
+/// The long timeout matters: `ask_user` waits for a person, not for a tool.
+fn configure_antigravity_mcp(servers: &[Server]) -> AppResult<()> {
+    let _guard = AGY_MCP_LOCK
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    let Some(home) = std::env::var_os("HOME") else {
+        return Ok(());
+    };
+    let path = PathBuf::from(home).join(".gemini/config/mcp_config.json");
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(AppError::Io)?;
+    }
+    let mut root: Value = std::fs::read(&path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or_else(|| json!({}));
+    if !root.is_object() {
+        root = json!({});
+    }
+    let Some(root_map) = root.as_object_mut() else {
+        return Ok(());
+    };
+    let servers_value = root_map.entry("mcpServers").or_insert_with(|| json!({}));
+    let Some(configured) = servers_value.as_object_mut() else {
+        return Err(bad_request("mcp_config.json inválido."));
+    };
+    let managed: Vec<String> = configured
+        .keys()
+        .filter(|name| name.starts_with("toph_") || name.as_str() == "toph")
+        .cloned()
+        .collect();
+    for name in managed {
+        configured.remove(&name);
+    }
+    for server in servers {
+        let name = if server.id == "toph" {
+            "toph".to_string()
+        } else {
+            format!("toph_{}", safe_name(&server.id))
+        };
+        let entry = if server.transport == "http" {
+            let mut headers = serde_json::Map::new();
+            if !server.token.is_empty() {
+                headers.insert(
+                    "Authorization".to_string(),
+                    json!(format!("Bearer {}", server.token)),
+                );
+            }
+            json!({
+                "serverUrl": server.url,
+                "headers": Value::Object(headers),
+                "timeoutSeconds": 900,
+            })
+        } else {
+            let mut command_args = server.command.clone();
+            if command_args.is_empty() {
+                continue;
+            }
+            let command = command_args.remove(0);
+            let env: serde_json::Map<String, Value> = server
+                .env
+                .iter()
+                .map(|(key, value)| (key.clone(), json!(value)))
+                .collect();
+            json!({
+                "command": command,
+                "args": command_args,
+                "env": Value::Object(env),
+                "timeoutSeconds": 900,
+            })
+        };
+        configured.insert(name, entry);
+    }
+    let bytes = serde_json::to_vec_pretty(&root).map_err(|error| bad_request(error.to_string()))?;
+    std::fs::write(&path, bytes).map_err(AppError::Io)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
+    }
+    Ok(())
+}
+
+/// Runs one Antigravity CLI turn with the CLI's own Google login. Print mode
+/// returns a single JSON envelope; Toph keeps the conversation id as the
+/// session ledger so the next turn resumes the same thread.
+pub async fn run_antigravity(
+    model: &str,
+    system: &str,
+    prompt: &str,
+    cwd: &Path,
+    mcp_servers: &[Server],
+    conversation: Option<&str>,
+    cancel: &CancellationToken,
+) -> AppResult<(String, CliUsage, Option<String>)> {
+    let Some(binary) = super::engines::find_binary("agy") else {
+        return Err(bad_request("O Antigravity CLI não está instalado."));
+    };
+    configure_antigravity_mcp(mcp_servers)?;
+    let mut args = vec![
+        "--output-format".to_string(),
+        "json".to_string(),
+        "--dangerously-skip-permissions".to_string(),
+    ];
+    if let Some(slug) = provider_model(
+        model,
+        &[
+            "gemini",
+            "carbon",
+            "argon",
+            "hydrogen",
+            "orchestrator",
+            "claude",
+            "gpt",
+            "oss",
+        ],
+    ) {
+        args.push("--model".to_string());
+        args.push(slug);
+    }
+    if let Some(id) = conversation {
+        args.push("--conversation".to_string());
+        args.push(id.to_string());
+    }
+    // `agy -p` consumes the next argument as the prompt, so it goes last.
+    args.push("-p".to_string());
+    let full_prompt = if system.trim().is_empty() {
+        prompt.to_string()
+    } else {
+        format!("{system}\n\n{prompt}")
+    };
+    args.push(full_prompt);
+    let envs = [("AGY_CLI_DISABLE_AUTO_UPDATE", "true".to_string())];
+    let (stdout, stderr) = run_capture(&binary, &args, &envs, cwd, "", cancel).await?;
+    let value: Value = serde_json::from_str(stdout.trim()).map_err(|error| {
+        bad_request(format!(
+            "O Antigravity CLI devolveu uma resposta inválida: {error}. {}",
+            tail(&stderr)
+        ))
+    })?;
+    let status = value["status"].as_str().unwrap_or("");
+    if !status.eq_ignore_ascii_case("SUCCESS") {
+        let message = value["error"]
+            .as_str()
+            .map(str::to_owned)
+            .unwrap_or_else(|| tail(&stderr));
+        return Err(bad_request(format!(
+            "O Antigravity CLI falhou ({status}): {message}"
+        )));
+    }
+    let text = value["response"].as_str().unwrap_or("").to_string();
+    if text.trim().is_empty() {
+        return Err(bad_request(format!(
+            "O Antigravity CLI saiu sem resposta. {}",
+            tail(&stderr)
+        )));
+    }
+    let usage = &value["usage"];
+    let number = |key: &str| usage[key].as_u64().unwrap_or(0) as i64;
+    let thread = value["conversation_id"].as_str().map(str::to_owned);
+    Ok((
+        text,
+        CliUsage {
+            input: number("input_tokens"),
+            output: number("output_tokens"),
+            cached: number("cache_read_tokens"),
+        },
+        thread,
+    ))
 }
 
 /// Runs one OpenCode turn with its native harness. Native tools, project

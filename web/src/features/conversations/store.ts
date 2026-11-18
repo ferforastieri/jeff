@@ -41,8 +41,8 @@ export interface TophChat {
   description: string;
   /** One id is an individual task; two or more make a group. */
   participantIds: string[];
-  /** Model and effort chosen in this conversation, by Toph id: the same Toph can differ per task. */
-  tophSettings?: Record<string, { model?: string; effort?: string }>;
+  /** Model, effort and harness chosen in this conversation, by Toph id. */
+  tophSettings?: Record<string, { model?: string; effort?: string; engine?: string }>;
   createdAt: number;
   updatedAt: number;
 }
@@ -276,15 +276,16 @@ function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
   return { version: 5, chats, tophs, messages: mappedMessages, activeChatId, hydrated: true };
 }
 
-function normalizeTophSettings(raw: unknown): Record<string, { model?: string; effort?: string }> {
+function normalizeTophSettings(raw: unknown): Record<string, { model?: string; effort?: string; engine?: string }> {
   if (!raw || typeof raw !== "object") return {};
-  const next: Record<string, { model?: string; effort?: string }> = {};
+  const next: Record<string, { model?: string; effort?: string; engine?: string }> = {};
   for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!value || typeof value !== "object") continue;
-    const item = value as { model?: unknown; effort?: unknown };
+    const item = value as { model?: unknown; effort?: unknown; engine?: unknown };
     next[id] = {
       ...(typeof item.model === "string" && item.model ? { model: item.model } : {}),
       ...(typeof item.effort === "string" ? { effort: item.effort } : {}),
+      ...(typeof item.engine === "string" && item.engine ? { engine: item.engine } : {}),
     };
   }
   return next;
@@ -325,8 +326,8 @@ interface ChatStore {
   /** Creates a task with one Toph (individual) or several (group). */
   createConversation: (projectId: string, participantIds: string[], options?: { name?: string; description?: string }) => TophChat | null;
   updateChat: (projectId: string, chatId: string, patch: Partial<Pick<TophChat, "name" | "subject" | "description">>) => void;
-  /** The model/effort of one Toph in this conversation only. */
-  updateChatToph: (projectId: string, chatId: string, tophId: string, patch: { model?: string; effort?: string }) => void;
+  /** The model/effort/harness of one Toph in this conversation only. */
+  updateChatToph: (projectId: string, chatId: string, tophId: string, patch: { model?: string; effort?: string; engine?: string }) => void;
   deleteConversation: (projectId: string, chatId: string) => void;
   setActiveChat: (projectId: string, chatId: string | null) => void;
   createToph: (projectId: string, preset: TophPreset) => ChatToph | null;

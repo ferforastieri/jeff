@@ -8,7 +8,7 @@ interface AIState {
   loadingModels: boolean;
   error: string;
   load: () => Promise<void>;
-  loadModels: () => Promise<void>;
+  loadModels: (engine?: string) => Promise<void>;
   setConfig: (config: AIConfig | null) => void;
 }
 
@@ -27,15 +27,15 @@ export const useAI = create<AIState>((set) => ({
       set({ loading: false, error: error instanceof Error ? error.message : "Falha ao carregar configuração de IA" });
     }
   },
-  async loadModels() {
+  async loadModels(engine?: string) {
     set({ loadingModels: true });
     try {
       const seen = new Set<string>();
-      const models = (await api.aiModels()).models.filter((model) => {
+      const models = (await api.aiModels(engine)).models.filter((model) => {
         if (!model.id || seen.has(model.id)) return false;
         seen.add(model.id);
         return true;
-      });
+      }).map((model) => ({ ...model, engine: engine ?? model.engine ?? "opencode" }));
       set({ models, loadingModels: false, error: "" });
     } catch (error) {
       set({ models: [], loadingModels: false, error: error instanceof Error ? error.message : "Falha ao carregar modelos" });

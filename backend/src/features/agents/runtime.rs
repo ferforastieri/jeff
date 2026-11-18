@@ -1684,8 +1684,26 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                         .await
                         .map(|(text, usage)| (text, usage, None))
                     }
+                    "antigravity" => {
+                        let conversation = self
+                            .inner
+                            .repo
+                            .ledger(&ctx.run.session_id)
+                            .await
+                            .unwrap_or_default();
+                        cli::run_antigravity(
+                            &model,
+                            &system,
+                            &prompt,
+                            &ctx.root,
+                            &mcp_servers,
+                            (!conversation.trim().is_empty()).then_some(conversation.as_str()),
+                            cancel,
+                        )
+                        .await
+                    }
                     other => Err(bad_request(format!(
-                        "O harness {other} ainda não está ligado ao runtime. Use OpenCode, Claude Code ou Codex."
+                        "O harness {other} ainda não está ligado ao runtime. Use OpenCode, Claude Code, Codex ou Antigravity."
                     ))),
                 }
             };
@@ -1717,7 +1735,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         .bind(new_id())
         .bind(&ctx.run.id)
         .bind("engine")
-        .bind("opencode")
+        .bind(engine)
         .bind(&model)
         .bind(usage.input)
         .bind(usage.output)
@@ -1754,7 +1772,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         .bind(new_id())
         .bind(&ctx.run.id)
         .bind("engine")
-        .bind("opencode")
+        .bind(engine)
         .bind(&model)
         .bind(usage.input)
         .bind(usage.output)

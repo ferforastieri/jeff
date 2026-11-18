@@ -124,6 +124,8 @@ export interface AIModel {
   connectionLabel?: string;
   variants?: string[];
   inputs?: string[];
+  /** Which installed harness listed this model. */
+  engine?: string;
 }
 
 export type AIMessageContentPart =
@@ -977,9 +979,10 @@ export const api = {
     return request<AIConfig>("/ai/config");
   },
 
-  async aiModels(): Promise<{ models: AIModel[] }> {
-    // The installed harness is the source: its models and effort variants.
-    return request<{ models: AIModel[] }>("/ai/harness/models");
+  async aiModels(engine?: string): Promise<{ models: AIModel[] }> {
+    // The selected harness is the source: its login lists the models.
+    const query = engine && engine !== "opencode" ? `?engine=${encodeURIComponent(engine)}` : "";
+    return request<{ models: AIModel[] }>(`/ai/harness/models${query}`);
   },
 
 

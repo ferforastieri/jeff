@@ -85,7 +85,7 @@ pub const ENGINES: &[Engine] = &[
         login: "agy",
         install: "curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/toph-antigravity-install.sh && bash /tmp/toph-antigravity-install.sh",
         site: "https://antigravity.google/docs/cli/",
-        supported: false,
+        supported: true,
     },
 ];
 
@@ -202,10 +202,49 @@ async fn opencode_models(path: &Path) -> Option<(usize, Vec<String>)> {
     Some((models.len(), models.into_iter().take(12).collect()))
 }
 
+fn parse_antigravity_models(text: &str) -> Vec<Value> {
+    text.lines()
+        .filter_map(|line| {
+            let mut parts = line.splitn(2, '\t');
+            let id = parts.next()?.trim();
+            if id.is_empty() {
+                return None;
+            }
+            let label = parts
+                .next()
+                .map(str::trim)
+                .filter(|label| !label.is_empty())
+                .unwrap_or(id);
+            let provider = if id.starts_with("gemini") {
+                "google"
+            } else if id.starts_with("claude") {
+                "anthropic"
+            } else if id.starts_with("gpt") || id.starts_with("o3") || id.starts_with("o4") {
+                "openai"
+            } else {
+                "antigravity"
+            };
+            Some(json!({
+                "id": id,
+                "label": label,
+                "provider": provider,
+                "variants": [],
+            }))
+        })
+        .collect()
+}
+
 /// Every model the OpenCode CLI offers (`opencode models`), the only source the
-/// app lists from: the CLI is installed and logged in; no provider key passes here.
+/// app listed from originally: the CLI is installed and logged in; no provider
+/// key passes here.
 pub async fn models() -> Value {
-    let Ok(engine) = engine("opencode") else {
+    models_for("opencode").await
+}
+
+/// Model listing for one installed harness. The composer asks for the engine
+/// selected in the conversation, so each CLI's own login and catalogue are used.
+pub async fn models_for(id: &str) -> Value {
+    let Ok(engine) = engine(id) else {
         return json!({ "models": [] });
     };
     let Some(path) = find_binary(engine.binary) else {
@@ -223,22 +262,26 @@ pub async fn models() -> Value {
         return json!({ "models": [] });
     }
     let text = String::from_utf8_lossy(&output.stdout);
-    let models = text
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty() && line.contains('/'))
-        .map(|line| {
-            let mut parts = line.splitn(2, '/');
-            let provider = parts.next().unwrap_or("opencode");
-            let model = parts.next().unwrap_or(line);
-            json!({
-                "id": line,
-                "label": model,
-                "provider": provider,
-                "variants": [],
+    let models = if engine.id == "antigravity" {
+        // `agy models` prints `slug<TAB>Label` with no slash in the slug.
+        parse_antigravity_models(&text)
+    } else {
+        text.lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty() && line.contains('/'))
+            .map(|line| {
+                let mut parts = line.splitn(2, '/');
+                let provider = parts.next().unwrap_or("opencode");
+                let model = parts.next().unwrap_or(line);
+                json!({
+                    "id": line,
+                    "label": model,
+                    "provider": provider,
+                    "variants": [],
+                })
             })
-        })
-        .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+    };
     json!({ "models": models })
 }
 
@@ -255,6 +298,12 @@ pub async fn test(id: &str) -> AppResult<Value> {
     let mut models = None;
     if engine.id == "opencode" {
         models = opencode_models(&path).await;
+    } else if engine.id == "antigravity" {
+        let listed = models_for("antigravity").await;
+        let count = listed["models"].as_array().map(Vec::len).unwrap_or(0);
+        if count > 0 {
+            models = Some((count, Vec::new()));
+        }
     }
     let ok = version.is_some() || models.is_some();
     let message = if let Some((count, _)) = &models {
@@ -281,22 +330,99 @@ pub async fn test(id: &str) -> AppResult<Value> {
     Ok(value)
 }
 
+/// The Antigravity CLI reports quota through its `/usage` print command. Its
+/// groups share limits, so the most consumed window across groups is the one
+/// the user actually has left.
+async fn antigravity_limits(binary: &Path) -> AppResult<Value> {
+    let output = tokio::time::timeout(
+        Duration::from_secs(30),
+        Command::new(binary)
+            .args(["-p", "/usage", "--output-format", "json"])
+            .env("AGY_CLI_DISABLE_AUTO_UPDATE", "true")
+            .output(),
+    )
+    .await
+    .map_err(|_| bad_request("O Antigravity CLI demorou para responder o uso."))?
+    .map_err(AppError::Io)?;
+    if !output.status.success() {
+        let message = String::from_utf8_lossy(&output.stderr)
+            .trim()
+            .chars()
+            .take(500)
+            .collect::<String>();
+        return Ok(json!({
+            "ok": false,
+            "message": if message.is_empty() { "O Antigravity CLI não devolveu o uso.".to_string() } else { message },
+        }));
+    }
+    let parsed: Value = serde_json::from_slice(&output.stdout)
+        .map_err(|error| bad_request(format!("Resposta inválida do Antigravity CLI: {error}")))?;
+    let groups = parsed["command"]["data"]["groups"].as_array();
+    if groups.is_none() || groups.map(Vec::is_empty).unwrap_or(true) {
+        return Ok(
+            json!({ "ok": false, "message": "O Antigravity CLI não devolveu janelas de uso." }),
+        );
+    }
+    Ok(json!({
+        "ok": true,
+        "data": antigravity_usage_data(groups.unwrap()),
+    }))
+}
+
+fn antigravity_usage_data(groups: &[Value]) -> Value {
+    let mut rolling = json!({"percent": 0, "limited": false, "resetsAt": 0});
+    let mut weekly = json!({"percent": 0, "limited": false, "resetsAt": 0});
+    for group in groups {
+        for bucket in group["buckets"].as_array().into_iter().flatten() {
+            let target = match bucket["window"].as_str().unwrap_or("") {
+                "5h" => &mut rolling,
+                "weekly" => &mut weekly,
+                _ => continue,
+            };
+            let remaining = bucket["remaining_fraction"].as_f64().unwrap_or(1.0);
+            let percent = ((1.0 - remaining) * 100.0).round() as i64;
+            if percent > target["percent"].as_i64().unwrap_or(0) {
+                let resets_at = bucket["reset_time"]
+                    .as_str()
+                    .and_then(|text| chrono::DateTime::parse_from_rfc3339(text).ok())
+                    .map(|date| date.timestamp_millis())
+                    .unwrap_or(0);
+                *target = json!({
+                    "percent": percent,
+                    "limited": remaining <= 0.0,
+                    "resetsAt": resets_at,
+                });
+            }
+        }
+    }
+    json!({
+        "go": {
+            "rolling": rolling,
+            "weekly": weekly,
+            "monthly": {"percent": 0, "limited": false, "resetsAt": 0},
+        }
+    })
+}
+
 /// The OpenCode Go allowance. The local OpenCode service exposes the rolling,
 /// weekly and monthly windows as used percentages; Toph shows what is left.
 pub async fn limits(id: &str) -> AppResult<Value> {
     let engine = engine(id)?;
-    if engine.id != "opencode" {
-        return Ok(json!({
-            "ok": false,
-            "message": "Limite do plano disponível apenas para OpenCode.",
-        }));
-    }
     let Some(binary) = find_binary(engine.binary) else {
         return Ok(json!({
             "ok": false,
-            "message": "O OpenCode não está instalado.",
+            "message": format!("{} não está instalado.", engine.label),
         }));
     };
+    if engine.id == "antigravity" {
+        return antigravity_limits(&binary).await;
+    }
+    if engine.id != "opencode" {
+        return Ok(json!({
+            "ok": false,
+            "message": "Limite do plano disponível apenas para OpenCode e Antigravity.",
+        }));
+    }
     let output = tokio::time::timeout(
         Duration::from_secs(20),
         Command::new(&binary)
@@ -416,14 +542,9 @@ pub async fn update(id: &str) -> AppResult<Value> {
             command
         }
         "antigravity" => {
-            return Ok(json!({
-                "ok": true,
-                "installed": true,
-                "path": path.display().to_string(),
-                "version": version(&path).await,
-                "output": "",
-                "message": "O Antigravity CLI se atualiza sozinho ao iniciar.",
-            }));
+            let mut command = Command::new(&path);
+            command.arg("update");
+            command
         }
         _ => {
             return Ok(json!({
@@ -471,4 +592,35 @@ pub async fn update(id: &str) -> AppResult<Value> {
             )
         },
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn antigravity_models_use_the_whole_slug_as_the_id() {
+        let models = parse_antigravity_models(
+            "gemini-4-carbon-medium\tGemini 4 Carbon (Medium)\nclaude-sonnet-4-6\tClaude Sonnet 4.6\n",
+        );
+        assert_eq!(models.len(), 2);
+        assert_eq!(models[0]["id"], "gemini-4-carbon-medium");
+        assert_eq!(models[0]["label"], "Gemini 4 Carbon (Medium)");
+        assert_eq!(models[0]["provider"], "google");
+        assert_eq!(models[1]["provider"], "anthropic");
+    }
+
+    #[test]
+    fn antigravity_usage_maps_windows_to_the_usage_ring() {
+        let groups = json!([{
+            "buckets": [
+                {"window": "5h", "remaining_fraction": 0.4, "reset_time": "2026-11-18T16:00:00Z"},
+                {"window": "weekly", "remaining_fraction": 0.8, "reset_time": "2026-11-25T12:00:00Z"},
+            ]
+        }]);
+        let data = antigravity_usage_data(groups.as_array().unwrap());
+        assert_eq!(data["go"]["rolling"]["percent"], 60);
+        assert_eq!(data["go"]["weekly"]["percent"], 20);
+        assert!(data["go"]["rolling"]["resetsAt"].as_i64().unwrap() > 0);
+    }
 }

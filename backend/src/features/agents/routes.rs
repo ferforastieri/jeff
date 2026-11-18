@@ -21,8 +21,18 @@ pub(super) async fn engine_limits(Path(id): Path<String>) -> AppResult<Json<Valu
     Ok(Json(crate::features::agents::engines::limits(&id).await?))
 }
 
+#[derive(Deserialize)]
+pub(super) struct HarnessModelsQuery {
+    engine: Option<String>,
+}
+
 /// The models the installed harness itself lists, not the app's provider keys.
-pub(super) async fn harness_models() -> Json<Value> {
+/// Each engine uses its own login: OpenCode has a local service with a CLI
+/// fallback, the other CLIs are queried directly.
+pub(super) async fn harness_models(Query(query): Query<HarnessModelsQuery>) -> Json<Value> {
+    if let Some(engine) = query.engine.filter(|id| id != "opencode") {
+        return Json(crate::features::agents::engines::models_for(&engine).await);
+    }
     if let Some(models) = crate::features::agents::harness::models().await {
         if !models.is_empty() {
             return Json(json!({ "models": models }));
