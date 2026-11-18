@@ -63,9 +63,12 @@ export default function HarnessSettings(_props: Props) {
         ...current,
         [engine.id]: { ok: result.ok, installed: result.installed, path: result.path, message: result.message },
       }));
+      notify(result.ok ? "success" : "error", result.message);
       await refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : `A instalação de ${engine.label} falhou.`);
+      const message = caught instanceof Error ? caught.message : `A instalação de ${engine.label} falhou.`;
+      setError(message);
+      notify("error", message);
     } finally {
       setBusy(null);
     }
@@ -104,11 +107,24 @@ export default function HarnessSettings(_props: Props) {
     window.setTimeout(() => {
       if (!useApp.getState().terminalOpen) window.dispatchEvent(new Event("toph:open-terminal"));
     }, 150);
-    window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("toph:terminal-command", {
-        detail: { command: "login", text: engine.login },
-      }));
-    }, 900);
+    // The terminal mounts asynchronously. Wait for xterm before sending the
+    // command, otherwise the click looks like it did nothing on mobile.
+    // Antigravity runs on the server, so advertise an SSH-like environment to
+    // force its manual URL/code OAuth flow instead of opening a browser there.
+    const command = engine.id === "antigravity"
+      ? "AGY_CLI_DISABLE_AUTO_UPDATE=true SSH_CONNECTION='toph 0 127.0.0.1 0' SSH_CLIENT='127.0.0.1 0 0' PATH=\"$HOME/.local/bin:$PATH\" agy"
+      : engine.login;
+    let attempts = 0;
+    const send = () => {
+      if (document.querySelector(".xterm")) {
+        window.dispatchEvent(new CustomEvent("toph:terminal-command", {
+          detail: { command: "login", text: command },
+        }));
+      } else if (attempts++ < 20) {
+        window.setTimeout(send, 200);
+      }
+    };
+    window.setTimeout(send, 300);
   }
 
   async function copy(engine: EngineInfo) {

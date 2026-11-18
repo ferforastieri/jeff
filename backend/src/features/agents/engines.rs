@@ -75,13 +75,16 @@ pub const ENGINES: &[Engine] = &[
         site: "https://pi.dev",
         supported: false,
     },
+    // Gemini CLI for personal accounts was replaced by Antigravity CLI in
+    // June 2026. The official installer drops `agy` in ~/.local/bin, which the
+    // binary lookup below already checks even when the daemon PATH is stale.
     Engine {
-        id: "gemini",
-        label: "Gemini CLI",
-        binary: "gemini",
-        login: "gemini",
-        install: "npm install -g @google/gemini-cli",
-        site: "https://github.com/google-gemini/gemini-cli",
+        id: "antigravity",
+        label: "Antigravity CLI",
+        binary: "agy",
+        login: "agy",
+        install: "curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/toph-antigravity-install.sh && bash /tmp/toph-antigravity-install.sh",
+        site: "https://antigravity.google/docs/cli/",
         supported: false,
     },
 ];
@@ -411,6 +414,16 @@ pub async fn update(id: &str) -> AppResult<Value> {
                 .arg("-lc")
                 .arg("npm install -g @openai/codex@latest");
             command
+        }
+        "antigravity" => {
+            return Ok(json!({
+                "ok": true,
+                "installed": true,
+                "path": path.display().to_string(),
+                "version": version(&path).await,
+                "output": "",
+                "message": "O Antigravity CLI se atualiza sozinho ao iniciar.",
+            }));
         }
         _ => {
             return Ok(json!({
