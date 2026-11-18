@@ -83,6 +83,7 @@ export const Server = glyph("computer");
 export const Settings2 = glyph("cog");
 export const Sparkles = glyph("sparkles");
 export const Square = glyph("block");
+export const Stop = glyph("stop");
 export const Sun = glyph("sun");
 export const Table2 = glyph("table");
 export const TerminalSquare = glyph("code");

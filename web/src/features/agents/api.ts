@@ -87,6 +87,7 @@ export const agentApi = {
   pendingQuestions: (project: string) => request<PendingQuestion[]>(`${root(project)}/questions`),
   cancel: (project: string, run: string) => request(`${root(project)}/runs/${encodeURIComponent(run)}/cancel`, post({})),
   cancelAgent: (project: string, agentId: string) => request(`${root(project)}/cancel`, post({ agentId })),
+  cancelProject: (project: string) => request(`${root(project)}/cancel`, post({})),
   deleteChat: (project: string, chatId: string) => request(`${root(project)}/chats/${encodeURIComponent(chatId)}`, { method: "DELETE" }),
   snapshot: (project: string, chat: string, before?: number | null) => request<AgentSnapshot>(`${root(project)}/snapshot?chatId=${encodeURIComponent(chat)}${before == null ? "" : `&before=${before}`}`),
   searchMessages: (project: string, query: string) => request<AgentSearchResult[]>(`${root(project)}/search?q=${encodeURIComponent(query)}`),

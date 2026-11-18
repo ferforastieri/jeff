@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowUp, FilePlus2, ImagePlus, LoaderCircle, Mic, Square, X } from "@toph/icons";
+import { ArrowUp, FilePlus2, ImagePlus, LoaderCircle, Mic, Stop, X } from "@toph/icons";
 import { Button } from "@toph/ui/app";
 import { IconButton } from "@toph/ui/app";
 import { Textarea } from "@toph/ui/app";
@@ -278,22 +278,27 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
             {audio.processing ? (
               <Button type="button" variant="secondary" size="small" iconOnly leadingIcon={LoaderCircle} disabled aria-label="Processando áudio" title="Processando áudio" className="shrink-0 rounded-full [&_svg]:animate-spin" />
             ) : audio.recording ? (
-              <Button type="button" variant="danger" size="small" iconOnly leadingIcon={Square} onClick={() => audio.stop()} aria-label="Parar gravação" title="Parar gravação e transcrever" className="shrink-0 rounded-full" />
-            ) : value.trim() || attachments.length > 0 ? (
-              <Button type="submit" variant="primary" size="small" iconOnly leadingIcon={ArrowUp} aria-label={busy ? "Enfileirar mensagem" : "Enviar"} title={busy ? "Enviar quando a execução atual terminar" : "Enviar"} className="shrink-0 rounded-full" />
+              <Button type="button" variant="danger" size="small" iconOnly leadingIcon={Stop} onClick={() => audio.stop()} aria-label="Parar gravação" title="Parar gravação e transcrever" className="shrink-0 rounded-full" />
             ) : busy && onStop ? (
-              <Button
-                type="button"
-                variant="secondary"
-                size="small"
-                iconOnly
-                leadingIcon={Square}
-                onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
-                onClick={(event) => { event.preventDefault(); event.stopPropagation(); onStop(); }}
-                aria-label="Parar"
-                title="Parar execução"
-                className="shrink-0 rounded-full"
-              />
+              <div className="flex shrink-0 items-center gap-1">
+                {value.trim() || attachments.length > 0 ? (
+                  <Button type="submit" variant="primary" size="small" iconOnly leadingIcon={ArrowUp} aria-label="Enfileirar mensagem" title="Enviar quando a execução atual terminar" className="shrink-0 rounded-full" />
+                ) : null}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="small"
+                  iconOnly
+                  leadingIcon={Stop}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => { event.preventDefault(); event.stopPropagation(); onStop(); }}
+                  aria-label="Parar"
+                  title="Parar execução"
+                  className="shrink-0 rounded-full"
+                />
+              </div>
+            ) : value.trim() || attachments.length > 0 ? (
+              <Button type="submit" variant="primary" size="small" iconOnly leadingIcon={ArrowUp} aria-label="Enviar" title="Enviar" className="shrink-0 rounded-full" />
             ) : (
               <Button
                 type="button"

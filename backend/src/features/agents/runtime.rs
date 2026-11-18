@@ -35,6 +35,11 @@ type CompletionHandler = Arc<dyn Fn(CompletionNotice) + Send + Sync>;
 /// crash loop cannot relaunch the same side-effecting work forever.
 const MAX_AUTO_RESUMES: i64 = 5;
 
+/// A question must always settle. The harness has its own (longer) MCP timeout,
+/// so a prompt that is never answered ends here instead of leaving the run
+/// parked in `waiting` forever.
+const APPROVAL_TIMEOUT: Duration = Duration::from_secs(600);
+
 /// Stops the per-run MCP endpoint when the run finishes, however it finishes.
 struct GatewayHandle(Option<tokio::task::JoinHandle<()>>);
 impl Drop for GatewayHandle {
@@ -439,13 +444,37 @@ impl Runtime {
 
     pub async fn maintain(&self) {
         self.inner.tools.mcp.maintain().await;
+        // Safety net: if the task holding a question vanished (harness timeout,
+        // dropped MCP request), no timeout branch gets to run. Finish those
+        // runs so the chat stops waiting and the user can send again.
+        let cutoff = now() - (APPROVAL_TIMEOUT.as_secs() * 2 * 1000) as i64;
+        let stuck: Vec<(String, i64, String)> = sqlx::query_as(
+            "SELECT r.id,r.user_id,r.project_id FROM agent_runs r \
+             JOIN agent_tool_calls t ON t.run_id=r.id \
+             WHERE r.state='waiting' AND t.state='waiting' AND t.created_at<?",
+        )
+        .bind(cutoff)
+        .fetch_all(self.inner.repo.0.pool())
+        .await
+        .unwrap_or_default();
+        for (id, user, project) in stuck {
+            if let Ok(run) = self.inner.repo.get_run(user, &project, &id).await {
+                if let Err(error) = self.force_cancel(user, &project, &run).await {
+                    tracing::warn!(%error, run = %id, "failed to release stuck question");
+                }
+            }
+        }
     }
 
     fn event(&self, ctx: &RunContext, kind: &str, data: Value) {
+        self.emit(ctx.user_id, &ctx.project_id, &ctx.run.chat_id, kind, data);
+    }
+
+    fn emit(&self, user_id: i64, project_id: &str, chat_id: &str, kind: &str, data: Value) {
         let _ = self.inner.events.send(AgentEvent {
-            user_id: ctx.user_id,
-            project_id: ctx.project_id.clone(),
-            chat_id: ctx.run.chat_id.clone(),
+            user_id,
+            project_id: project_id.into(),
+            chat_id: chat_id.into(),
             kind: kind.into(),
             data,
         });
@@ -1031,9 +1060,76 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
     }
 
     pub async fn cancel(&self, user: i64, project: &str, id: &str) -> AppResult<()> {
-        self.inner.repo.get_run(user, project, id).await?;
-        if let Some(token) = self.inner.runs.lock().unwrap().get(id) {
+        let run = self.inner.repo.get_run(user, project, id).await?;
+        self.force_cancel(user, project, &run).await
+    }
+
+    /// Cancelling is authoritative even when the in-memory task is gone (for
+    /// example after the harness dropped an MCP question): resolve pending
+    /// prompts, persist a terminal state and notify clients so the chat stops
+    /// showing "Pensando" and accepts a new message.
+    async fn force_cancel(&self, user: i64, project: &str, run: &Run) -> AppResult<()> {
+        let pending: Vec<String> = sqlx::query_scalar(
+            "SELECT id FROM agent_tool_calls WHERE run_id=? AND state='waiting'",
+        )
+        .bind(&run.id)
+        .fetch_all(self.inner.repo.0.pool())
+        .await
+        .unwrap_or_default();
+        {
+            let mut approvals = self.inner.approvals.lock().unwrap();
+            for id in &pending {
+                if let Some(sender) = approvals.remove(id) {
+                    let _ = sender.send(json!({
+                        "approved": false,
+                        "cancelled": true,
+                        "answers": "",
+                    }));
+                }
+            }
+        }
+        if let Some(token) = self.inner.runs.lock().unwrap().get(&run.id) {
             token.cancel();
+        }
+        if matches!(run.state.as_str(), "queued" | "running" | "waiting") {
+            let _ = sqlx::query(
+                "UPDATE agent_tool_calls SET state='interrupted' WHERE run_id=? AND state IN ('pending','running','waiting')",
+            )
+            .bind(&run.id)
+            .execute(self.inner.repo.0.pool())
+            .await;
+            self.inner
+                .repo
+                .state(&run.id, "cancelled", "Execution cancelled")
+                .await?;
+            self.inner.runs.lock().unwrap().remove(&run.id);
+            self.inner.drafts.lock().unwrap().remove(&run.id);
+            for id in &pending {
+                self.emit(
+                    user,
+                    project,
+                    &run.chat_id,
+                    "approval.resolved",
+                    json!({"id": id}),
+                );
+            }
+            self.emit(
+                user,
+                project,
+                &run.chat_id,
+                "run",
+                json!({
+                    "id": run.id,
+                    "chatId": run.chat_id,
+                    "sessionId": run.session_id,
+                    "agentId": run.agent_id,
+                    "state": "cancelled",
+                    "error": "Execution cancelled",
+                    "parentId": run.parent_id,
+                    "createdAt": run.created_at,
+                    "finishedAt": now(),
+                }),
+            );
         }
         Ok(())
     }
@@ -1055,12 +1151,11 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         project: &str,
         agent: Option<&str>,
     ) -> AppResult<()> {
-        let ids:Vec<String>=sqlx::query_scalar("SELECT id FROM agent_runs WHERE project_id=? AND (? IS NULL OR user_id=?) AND (? IS NULL OR agent_id=?) AND state IN ('queued','running','waiting')")
+        let rows: Vec<(String, i64)> = sqlx::query_as("SELECT id,user_id FROM agent_runs WHERE project_id=? AND (? IS NULL OR user_id=?) AND (? IS NULL OR agent_id=?) AND state IN ('queued','running','waiting')")
             .bind(project).bind(user).bind(user).bind(agent).bind(agent).fetch_all(self.inner.repo.0.pool()).await?;
-        let runs = self.inner.runs.lock().unwrap();
-        for id in ids {
-            if let Some(token) = runs.get(&id) {
-                token.cancel();
+        for (id, owner) in rows {
+            if let Ok(run) = self.inner.repo.get_run(owner, project, &id).await {
+                self.force_cancel(owner, project, &run).await?;
             }
         }
         Ok(())
@@ -2305,6 +2400,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         self.event(ctx,"approval",json!({"id":id,"kind":"question","runId":ctx.run.id,"agentId":ctx.agent.id,"name":"ask_user","arguments":args.to_string(),"questions":questions}));
         let result = tokio::select! {
             _=cancel.cancelled()=>Err(bad_request("Execution cancelled")),
+            _=tokio::time::sleep(APPROVAL_TIMEOUT)=>Err(bad_request("A pergunta expirou sem resposta")),
             result=receiver=>result.map_err(|_| bad_request("Question cancelled")),
         };
         self.inner.approvals.lock().unwrap().remove(id);
@@ -2333,7 +2429,11 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             .await?;
         self.inner.repo.state(&ctx.run.id, "waiting", "").await?;
         self.event(ctx,"approval",json!({"id":id,"runId":ctx.run.id,"agentId":ctx.agent.id,"name":name,"arguments":args.to_string()}));
-        let result = tokio::select! {_=cancel.cancelled()=>Err(bad_request("Execution cancelled")),result=receiver=>result.map_err(|_|bad_request("Approval cancelled"))};
+        let result = tokio::select! {
+            _=cancel.cancelled()=>Err(bad_request("Execution cancelled")),
+            _=tokio::time::sleep(APPROVAL_TIMEOUT)=>Err(bad_request("A aprovação expirou sem resposta")),
+            result=receiver=>result.map_err(|_|bad_request("Approval cancelled")),
+        };
         self.inner.approvals.lock().unwrap().remove(id);
         self.inner.repo.state(&ctx.run.id, "running", "").await?;
         self.event(ctx, "approval.resolved", json!({"id":id}));

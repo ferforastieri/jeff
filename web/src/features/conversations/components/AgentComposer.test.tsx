@@ -104,7 +104,7 @@ describe("AgentComposer actions", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it("turns the stop button into queue-send once there is a draft", () => {
+  it("keeps stop available when there is a draft, alongside queue-send", () => {
     const onSend = vi.fn();
     const onStop = vi.fn();
     render(
@@ -118,10 +118,12 @@ describe("AgentComposer actions", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Parar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Parar" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Enfileirar mensagem" }));
     expect(onSend).toHaveBeenCalledWith("rascunho", []);
     expect(onStop).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Parar" }));
+    expect(onStop).toHaveBeenCalledOnce();
   });
 
   it("queues the next message on Enter while a run is active", () => {

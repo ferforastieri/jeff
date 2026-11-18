@@ -204,7 +204,9 @@ fn native_mcp(servers: &[Server], envs: &mut HashMap<String, String>) -> Value {
             name = format!("{base}_{suffix}");
             suffix += 1;
         }
-        let timeout = server.timeout_seconds.clamp(5, 600) * 1000;
+        // Questions wait up to 600s in the backend; the harness must not give
+        // up before the question itself expires.
+        let timeout = server.timeout_seconds.clamp(5, 1800) * 1000;
         let mut entry = if server.transport == "http" {
             let mut value = json!({
                 "type": "remote",

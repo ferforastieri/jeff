@@ -221,8 +221,16 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   }
   async function stop() {
     try {
-      await Promise.all(native.runs.filter(isActive).map((run) => agentApi.cancel(project.id, run.id)));
+      const active = native.runs.filter(isActive);
+      if (active.length > 0) {
+        await Promise.all(active.map((run) => agentApi.cancel(project.id, run.id)));
+      } else if (native.busy) {
+        // A run can be stuck in `waiting` with no live task token (for example
+        // after an MCP question timed out). Cancel by project in that case.
+        await agentApi.cancelProject(project.id);
+      }
       native.setError("");
+      await native.refresh(true);
     } catch (e) {
       native.setError(e instanceof Error ? e.message : "Falha ao cancelar");
     }
