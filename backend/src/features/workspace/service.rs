@@ -700,7 +700,32 @@ impl WorkspaceService {
                 .map(|status| status.success())
                 .unwrap_or(false);
             if !tracked {
-                let _ = fs::remove_file(root.join(&path));
+                // `git status --porcelain` collapses untracked directories, so
+                // `path` can be a folder. `git clean` handles both files and
+                // directories, and unlike remove_file it reports failures.
+                git_checked(root, &["clean", "-fd", "--", path.as_str()]).await?;
+                continue;
+            }
+            // A file newly added to the index has no HEAD version, so
+            // `git restore --staged` cannot undo it: unstage it first and then
+            // clean the file (or directory) from disk.
+            let added = git_output(
+                root,
+                &[
+                    "diff",
+                    "--cached",
+                    "--name-status",
+                    "--diff-filter=A",
+                    "--",
+                    path.as_str(),
+                ],
+            )
+            .await
+            .map(|text| !text.trim().is_empty())
+            .unwrap_or(false);
+            if staged && added {
+                git_checked(root, &["rm", "--cached", "-f", "--", path.as_str()]).await?;
+                git_checked(root, &["clean", "-fd", "--", path.as_str()]).await?;
                 continue;
             }
             let mut args = vec!["restore"];
@@ -1029,5 +1054,39 @@ mod tests {
         let root = dir.path().to_string_lossy().to_string();
         let repo = service.create_repo(&root, "com-git", true).await.unwrap();
         assert!(std::path::Path::new(&repo.path).join(".git").is_dir());
+    }
+
+    #[tokio::test]
+    async fn git_discard_removes_an_untracked_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        git_checked(root, &["init", "-q"]).await.unwrap();
+        std::fs::create_dir_all(root.join("docs/architecture")).unwrap();
+        std::fs::write(root.join("docs/architecture/README.md"), "draft").unwrap();
+        let service = WorkspaceService::new(vec![root.to_path_buf()]).unwrap();
+        service
+            .git_discard(root, &["docs/architecture/".to_string()], false)
+            .await
+            .unwrap();
+        assert!(!root.join("docs/architecture").exists());
+    }
+
+    #[tokio::test]
+    async fn git_discard_removes_a_newly_staged_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        git_checked(root, &["init", "-q"]).await.unwrap();
+        std::fs::write(root.join("novo.txt"), "draft").unwrap();
+        git_checked(root, &["add", "--", "novo.txt"]).await.unwrap();
+        let service = WorkspaceService::new(vec![root.to_path_buf()]).unwrap();
+        service
+            .git_discard(root, &["novo.txt".to_string()], true)
+            .await
+            .unwrap();
+        assert!(!root.join("novo.txt").exists());
+        let staged = git_output(root, &["diff", "--cached", "--name-only"])
+            .await
+            .unwrap();
+        assert!(staged.trim().is_empty());
     }
 }

@@ -21,24 +21,41 @@ pub(super) async fn engine_limits(Path(id): Path<String>) -> AppResult<Json<Valu
     Ok(Json(crate::features::agents::engines::limits(&id).await?))
 }
 
-#[derive(Deserialize)]
-pub(super) struct HarnessModelsQuery {
-    engine: Option<String>,
-}
-
-/// The models the installed harness itself lists, not the app's provider keys.
-/// Each engine uses its own login: OpenCode has a local service with a CLI
-/// fallback, the other CLIs are queried directly.
-pub(super) async fn harness_models(Query(query): Query<HarnessModelsQuery>) -> Json<Value> {
-    if let Some(engine) = query.engine.filter(|id| id != "opencode") {
-        return Json(crate::features::agents::engines::models_for(&engine).await);
-    }
-    if let Some(models) = crate::features::agents::harness::models().await {
-        if !models.is_empty() {
-            return Json(json!({ "models": models }));
+/// Every model from every installed harness. Each entry carries the engine
+/// that owns it, so the single composer picker can choose the model and the
+/// engine follows without a separate selector.
+pub(super) async fn harness_models() -> Json<Value> {
+    let mut models: Vec<Value> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let add = |items: Vec<Value>,
+               engine: &str,
+               models: &mut Vec<Value>,
+               seen: &mut std::collections::HashSet<String>| {
+        for mut item in items {
+            let id = item["id"].as_str().unwrap_or("").to_string();
+            if id.is_empty() || !seen.insert(format!("{engine}::{id}")) {
+                continue;
+            }
+            item["engine"] = json!(engine);
+            models.push(item);
         }
+    };
+    let mut opencode = crate::features::agents::harness::models()
+        .await
+        .unwrap_or_default();
+    if opencode.is_empty() {
+        opencode = crate::features::agents::engines::models().await["models"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
     }
-    Json(crate::features::agents::engines::models().await)
+    add(opencode, "opencode", &mut models, &mut seen);
+    for engine in ["antigravity", "codex", "claude"] {
+        let listed = crate::features::agents::engines::models_for(engine).await;
+        let items = listed["models"].as_array().cloned().unwrap_or_default();
+        add(items, engine, &mut models, &mut seen);
+    }
+    Json(json!({ "models": models }))
 }
 
 pub(super) async fn start_agent(

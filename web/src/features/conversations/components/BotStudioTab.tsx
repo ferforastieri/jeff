@@ -11,7 +11,6 @@ import { AgentComposer, type AgentAttachment } from "./AgentComposer";
 import ChatMessages from "./ChatMessages";
 import ChatModelUsage from "./ChatModelUsage";
 import ConversationEffortPicker from "./ConversationEffortPicker";
-import EnginePicker from "./EnginePicker";
 import ApprovalCard from "./ApprovalCard";
 import BotAvatar from "../../agents/components/BotAvatar";
 import { unlockBotSound } from "../sound";
@@ -318,7 +317,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         <AgentComposer value={text} onChange={(value) => setDraft(draftKey, value)} onSend={(value, files) => void send(value, files)} onStop={() => void stop()} busy={busy}
           placeholder={debug ? "Descreva o bug e como ele acontece…" : "Pergunte ao Toph…"}
           history={native.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          leadingControls={debug ? undefined : <><EnginePicker projectId={project.id} chat={chat!} tophs={tophs} /><ChatModelUsage projectId={project.id} chat={chat!} tophs={tophs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} tophs={tophs} /></>}
+          leadingControls={debug ? undefined : <><ChatModelUsage projectId={project.id} chat={chat!} tophs={tophs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} tophs={tophs} /></>}
           members={tophs} />
       </div>}
     </section>

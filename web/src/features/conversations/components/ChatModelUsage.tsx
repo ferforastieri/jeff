@@ -74,9 +74,7 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
   const mobile = useIsMobile();
   const member = tophs[0] ?? null;
   const override = member ? chat.tophSettings?.[member.id] ?? {} : {};
-  const engine = override.engine || member?.engine || "opencode";
   const [open, setOpen] = useState(false);
-  const [loadedEngine, setLoadedEngine] = useState("");
   const [tab, setTab] = useState<"model" | "usage">("model");
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [limits, setLimits] = useState<UsageLimits | null>(null);
@@ -85,15 +83,25 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const [error, setError] = useState("");
 
+  const model = override.model || member?.model || defaultModel(models, config);
+  const effort = override.effort ?? member?.effort ?? "";
+  const found = findModel(models, model);
+  // The engine follows the selected model, so there is no second selector.
+  const engine = found?.engine || override.engine || member?.engine || "opencode";
+  const info: { id: string; label?: string; provider?: string; connectionLabel?: string } | undefined = found ?? (model ? { id: model, label: model.split("::").pop() ?? model } : undefined);
+  const group = info ? modelGroup({ id: info.id, label: info.label ?? info.id, provider: info.provider, connectionLabel: info.connectionLabel }) : engine;
+  const brand = info ? modelBrand({ id: info.id, label: info.label ?? info.id, provider: info.provider, connectionLabel: info.connectionLabel }) : engine === "antigravity" ? "gemini" : engine;
+  const shortLabel = info?.label?.split(" ")[0] || "Modelo";
+
   useEffect(() => {
-    if (loadedEngine === engine) return;
-    // Tests and the settings screen can preload the list; don't wipe it on mount.
-    if (loadedEngine === "" && models.length > 0) {
-      setLoadedEngine(engine);
-      return;
-    }
-    void loadModels(engine).then(() => setLoadedEngine(engine));
-  }, [engine, loadedEngine, models.length, loadModels]);
+    if (models.length === 0) void loadModels();
+  }, [models.length, loadModels]);
+
+  // Older conversations stored only the model; keep the engine in sync with it.
+  useEffect(() => {
+    if (!member || !found?.engine || override.engine === found.engine) return;
+    updateChatToph(projectId, chat.id, member.id, { engine: found.engine });
+  }, [member, found?.engine, override.engine, projectId, chat.id, updateChatToph]);
 
   const load = useCallback(async (manual = false) => {
     if (engine !== "opencode") {
@@ -127,14 +135,6 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
     return () => window.clearInterval(timer);
   }, [load]);
 
-  const model = override.model || member?.model || defaultModel(models, config);
-  const effort = override.effort ?? member?.effort ?? "";
-  const found = findModel(models, model);
-  const info: { id: string; label?: string; provider?: string; connectionLabel?: string } | undefined = found ?? (model ? { id: model, label: model.split("::").pop() ?? model } : undefined);
-  const group = info ? modelGroup({ id: info.id, label: info.label ?? info.id, provider: info.provider, connectionLabel: info.connectionLabel }) : engine;
-  const brand = info ? modelBrand({ id: info.id, label: info.label ?? info.id, provider: info.provider, connectionLabel: info.connectionLabel }) : engine === "antigravity" ? "gemini" : "opencode";
-  const shortLabel = info?.label?.split(" ")[0] || "Modelo";
-
   const go = limits?.go;
   const windows = WINDOWS.map((item) => ({ ...item, window: go?.[item.key], left: remaining(go?.[item.key]) }));
   const tightest = useMemo(() => {
@@ -164,6 +164,7 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
     const nextVariants = item.variants ?? [];
     updateChatToph(projectId, chat.id, member!.id, {
       model: item.id,
+      engine: item.engine ?? "opencode",
       ...(nextVariants.includes(effort) ? {} : { effort: "" }),
     });
     // A new task starts on the last model picked here instead of the harness default.
