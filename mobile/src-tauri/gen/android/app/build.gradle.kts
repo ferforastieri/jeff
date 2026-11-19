@@ -31,8 +31,7 @@ android {
     }
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "true"
-        // Legacy application id: keeps Firebase/FCM and in-place updates working.
-        applicationId = "br.com.ferforastieri.toph"
+        applicationId = "br.com.ferforastieri.jeff"
         minSdk = 24
         targetSdk = 37
         versionCode = System.getenv("JEFF_VERSION_CODE")?.toInt()

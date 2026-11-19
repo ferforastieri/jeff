@@ -35,11 +35,11 @@ Repositories, databases and agent execution remain on the server. Database crede
 
 One command (Debian/Ubuntu/LXC):
 
-    curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh
+    curl -fsSL https://github.com/ferforastieri/jeff/releases/latest/download/install.sh | sudo sh
 
 Docker:
 
-    git clone https://github.com/ferforastieri/toph.git
+    git clone https://github.com/ferforastieri/jeff.git
     cd jeff
     JEFF_WORKSPACES_HOST=/srv/workspaces \
     JEFF_ADMIN_PASSWORD='strong-password' \
@@ -183,4 +183,4 @@ GET  /api/projects/:project/agent/snapshot
 
 ## Repository
 
-https://github.com/ferforastieri/toph
+https://github.com/ferforastieri/jeff

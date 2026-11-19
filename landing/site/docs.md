@@ -2,11 +2,11 @@
 
 > Jeff is a self-hosted AI agent workbench. One or more Jeffs work inside your project with the engine, model, tools and permissions you choose. Open source (Apache-2.0).
 
-- Site: https://ferforastieri.github.io/toph/
-- Docs: https://ferforastieri.github.io/toph/docs.html
-- Markdown docs: https://ferforastieri.github.io/toph/docs.md
-- Source: https://github.com/ferforastieri/toph
-- Releases: https://github.com/ferforastieri/toph/releases
+- Site: https://ferforastieri.github.io/jeff/
+- Docs: https://ferforastieri.github.io/jeff/docs.html
+- Markdown docs: https://ferforastieri.github.io/jeff/docs.md
+- Source: https://github.com/ferforastieri/jeff
+- Releases: https://github.com/ferforastieri/jeff/releases
 
 ## What it does
 
@@ -23,7 +23,7 @@
 
 ```bash
 # 1. install binary + systemd service
-curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh -s -- --no-components
+curl -fsSL https://github.com/ferforastieri/jeff/releases/latest/download/install.sh | sudo sh -s -- --no-components
 
 # 2. review the generated environment
 sudo sed -n '1,120p' /etc/jeff/jeff.env
@@ -52,7 +52,7 @@ Use `JEFF_SECURE_COOKIES=true` behind HTTPS. Set `JEFF_TRUSTED_PROXIES` to the r
 ## Docker
 
 ```bash
-git clone https://github.com/ferforastieri/toph.git
+git clone https://github.com/ferforastieri/jeff.git
 cd jeff
 JEFF_ADMIN_PASSWORD='change-me' docker compose -f deploy/compose.yaml up -d
 ```
@@ -125,7 +125,7 @@ Goal: install and verify Jeff on a Linux server.
 
 ```bash
 # 1. install
-curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh -s -- --no-components
+curl -fsSL https://github.com/ferforastieri/jeff/releases/latest/download/install.sh | sudo sh -s -- --no-components
 
 # 2. configure
 sudo sed -n '1,120p' /etc/jeff/jeff.env

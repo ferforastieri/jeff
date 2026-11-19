@@ -1,6 +1,6 @@
 # Jeff landing page
 
-Live at **[ferforastieri.github.io/jeff](https://ferforastieri.github.io/toph/)**. Static pages: `index.html` (CSS and JS inline), `docs.html` (served at `/docs.html`), `docs.md`, `llms.txt` and `assets/`. No build step.
+Live at **[ferforastieri.github.io/jeff](https://ferforastieri.github.io/jeff/)**. Static pages: `index.html` (CSS and JS inline), `docs.html` (served at `/docs.html`), `docs.md`, `llms.txt` and `assets/`. No build step.
 
 - **Preview:** open `index.html` in a browser. Every section is static HTML; the only JavaScript is the language switch, the scroll reveal, the copy button and the header state.
 - **Languages:** Portuguese and English. The page ships in Portuguese and an `EN` dictionary translates the labels; the choice is stored in `jeff-lang`. With no saved choice it opens in Portuguese if the browser is in Portuguese, otherwise in English.

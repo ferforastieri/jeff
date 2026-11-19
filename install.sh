@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="${JEFF_REPO:-ferforastieri/toph}"
+REPO="${JEFF_REPO:-ferforastieri/jeff}"
 VERSION="${JEFF_VERSION:-latest}"
 PORT="${JEFF_PORT:-8787}"
 WORKSPACES="${JEFF_WORKSPACES_DIR:-/srv/jeff/workspaces}"

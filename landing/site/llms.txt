@@ -2,15 +2,15 @@
 
 > Self-hosted AI agent workbench. One or more Jeffs work inside your project with the engine, model, tools and permissions you choose. Open source, Apache-2.0.
 
-Site: https://ferforastieri.github.io/toph/
-Docs: https://ferforastieri.github.io/toph/docs.html
-Markdown: https://ferforastieri.github.io/toph/docs.md
-Source: https://github.com/ferforastieri/toph
-Releases: https://github.com/ferforastieri/toph/releases
+Site: https://ferforastieri.github.io/jeff/
+Docs: https://ferforastieri.github.io/jeff/docs.html
+Markdown: https://ferforastieri.github.io/jeff/docs.md
+Source: https://github.com/ferforastieri/jeff
+Releases: https://github.com/ferforastieri/jeff/releases
 
 ## Install on Linux (root)
 
-1. `curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh -s -- --no-components`
+1. `curl -fsSL https://github.com/ferforastieri/jeff/releases/latest/download/install.sh | sudo sh -s -- --no-components`
 2. Review `/etc/jeff/jeff.env`:
    - `JEFF_ADDR=0.0.0.0:8787`
    - `JEFF_DATA_DIR=/var/lib/jeff`
@@ -45,4 +45,4 @@ Goal: install and verify Jeff.
 - Do not invent paths; use the values in `/etc/jeff/jeff.env`.
 - If a command fails, show the output and stop; do not claim success.
 - Report at the end: URL, version, data directory, database path and master key path.
-- Full guide: https://ferforastieri.github.io/toph/docs.md
+- Full guide: https://ferforastieri.github.io/jeff/docs.md

@@ -2,7 +2,7 @@ name: jeff
 
 services:
   jeff:
-    image: ghcr.io/ferforastieri/toph:latest
+    image: ghcr.io/ferforastieri/jeff:latest
     build:
       context: ..
       dockerfile: Dockerfile

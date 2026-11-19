@@ -53,7 +53,7 @@ export default function Landing() {
           <a href="#features">Features</a>
           <a href="#architecture">Architecture</a>
           <a href="/docs.html">Docs</a>
-          <a href="https://github.com/ferforastieri/toph" target="_blank" rel="noreferrer">
+          <a href="https://github.com/ferforastieri/jeff" target="_blank" rel="noreferrer">
             <Code2 size={15} /> GitHub
           </a>
           <a className="landing-open" href="/app">
@@ -212,7 +212,7 @@ export default function Landing() {
         <span>Jeff · MIT · self-hosted</span>
         <div>
           <a href="/docs.html">Docs</a>
-          <a href="https://github.com/ferforastieri/toph" target="_blank" rel="noreferrer">
+          <a href="https://github.com/ferforastieri/jeff" target="_blank" rel="noreferrer">
             GitHub
           </a>
         </div>

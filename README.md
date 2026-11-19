@@ -137,7 +137,7 @@ make build
 On a Debian/Ubuntu server or LXC:
 
 ```sh
-curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh
+curl -fsSL https://github.com/ferforastieri/jeff/releases/latest/download/install.sh | sudo sh
 ```
 
 The installer creates the `jeff` user, installs the binary, creates a systemd
@@ -180,7 +180,7 @@ toast. Installing the downloaded APK still requires the normal Android prompt.
 
 ### Desktop
 
-Install the Windows or Linux package from the [latest release](https://github.com/ferforastieri/toph/releases/latest). Desktop local mode embeds the Rust Jeff server and asks for a workspace folder; server mode asks only for a URL on first use and reconnects to the last server on later launches. The launcher also offers an optional development-environment installer for Git, Node.js, pnpm, Rust, Go and Python. The local backend uses the app data directory for SQLite and its generated admin password.
+Install the Windows or Linux package from the [latest release](https://github.com/ferforastieri/jeff/releases/latest). Desktop local mode embeds the Rust Jeff server and asks for a workspace folder; server mode asks only for a URL on first use and reconnects to the last server on later launches. The launcher also offers an optional development-environment installer for Git, Node.js, pnpm, Rust, Go and Python. The local backend uses the app data directory for SQLite and its generated admin password.
 
 The desktop and Android entrypoints share `packages/launcher/` and `packages/native/`; Android remains remote-only and does not compile the embedded server. Windows ships a Jeff-branded NSIS installer (per-user or per-machine, directory and shortcut choices, Portuguese/English/Spanish, MIT license) and an equivalent WiX MSI, both with the current brand artwork.
 
@@ -194,7 +194,7 @@ Mount the repositories you want to expose under `/workspaces` and keep `JEFF_DAT
 
 ### Desktop and Android
 
-Signed Android APKs are published on [GitHub Releases](https://github.com/ferforastieri/toph/releases). They are remote-only.
+Signed Android APKs are published on [GitHub Releases](https://github.com/ferforastieri/jeff/releases). They are remote-only.
 
 The Tauri entrypoints live in `desktop/` and `mobile/`. The desktop can connect to a Jeff server or run the embedded local Rust backend. On Android it is a remote-only client: the WebView connects to the Jeff server URL configured on the launcher, and no local server or terminal runs on the phone.
 
@@ -222,7 +222,7 @@ The generated Android project is committed in `src-tauri/gen/android`; release s
 | `JEFF_FIREBASE_CREDENTIALS_FILE` | empty | Firebase service-account JSON used by the server for Android push |
 | `JEFF_FIREBASE_PROJECT_ID` | service-account project | Firebase project ID for Cloud Messaging |
 | `JEFF_WEB_DIR` | embedded build | Serve a web build from disk in development |
-| `JEFF_UPDATE_REPO` | `ferforastieri/toph` | GitHub repository used by the in-app update check |
+| `JEFF_UPDATE_REPO` | `ferforastieri/jeff` | GitHub repository used by the in-app update check |
 | `JEFF_DEV_COMPONENTS` | empty | Server installer only: `git,node,pnpm,rust,go,python`, `all`, or `none` |
 
 ## Security
