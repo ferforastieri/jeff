@@ -1,5 +1,5 @@
 import { useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { Bell, Bug, Database, Files, GitPullRequest, Globe2, MessageCircleQuestion, Moon, Plus, Settings2, Sun, TerminalSquare, X } from "@jeff/icons";
+import { Bell, Database, Files, GitPullRequest, Globe2, MessageCircleQuestion, Moon, Plus, Settings2, Sun, TerminalSquare, X } from "@jeff/icons";
 import { useApp, type Sidebar } from "../store";
 import { featureEnabled, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import type { Project } from "../../shared/api";
@@ -18,7 +18,6 @@ const activityItems: Array<{ id: Sidebar; feature: WorkspaceFeature; label: stri
   { id: "scm", feature: "sourceControl", label: "Source Control", icon: GitPullRequest },
   { id: "bots", feature: "bots", label: "Jeff", icon: BrandGlyph },
   { id: "db", feature: "databases", label: "Databases", icon: Database },
-  { id: "debug", feature: "debug", label: "Debug", icon: Bug },
   { id: "web", feature: "webApps", label: "Web apps", icon: Globe2 },
 ];
 
@@ -76,7 +75,7 @@ function WorkspaceOptions({ vertical = false, onOpenAuxiliary }: { vertical?: bo
         .filter((item) => featureEnabled(workspaceFeatures, item.feature))
         .map((item) => {
           const active = sidebar === item.id;
-          const auxiliary = item.id !== "debug" && onOpenAuxiliary;
+          const auxiliary = onOpenAuxiliary;
           return (
             <Button
               key={item.id}

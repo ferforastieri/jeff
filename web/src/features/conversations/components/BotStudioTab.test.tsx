@@ -14,6 +14,7 @@ const native = vi.hoisted(() => ({
   usage: { inputTokens: 100, outputTokens: 20, cachedTokens: 40, calls: 1, byAgent: [] },
 }));
 vi.mock("../../agents/useAgentChat", () => ({ useAgentChat: () => native }));
+vi.mock("./AgentDebugWorkspace", () => ({ default: ({ children }: { children: unknown }) => children }));
 
 
 const project: Project = { id: "project", name: "Project", root: "/project", color: "#0063D1", createdAt: "", updatedAt: "" };
@@ -75,6 +76,18 @@ describe("Jeff chat controls", () => {
     expect(input.chatDescription).toBeUndefined();
     expect(input.agents.find((a) => a.id === firstId)).toMatchObject({ agentMode: "plan", model: "openai::gpt", effort: "high" });
     expect(input.agents.find((a) => a.id === memberId)).toMatchObject({ agentMode: "build", model: "openai::review" });
+  });
+
+  it("sends debug mode to the agent", async () => {
+    const start = vi.spyOn(agentApi, "start").mockResolvedValue({ id: "run", sessionId: "session", agentId: firstId, chatId, state: "queued", error: "", createdAt: 1 });
+    useChats.getState().updateChat(project.id, chatId, { mode: "debug" });
+    render(<BotStudioTab project={project} conversationId={chatId} />);
+    fireEvent.change(await screen.findByRole("textbox", { name: "Mensagem para o agente" }), { target: { value: "O login quebra no Safari" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
+    await waitFor(() => expect(start).toHaveBeenCalledOnce());
+    const input = start.mock.calls[0][1];
+    expect(input.mode).toBe("debug");
+    expect(input.agents.every((agent) => agent.agentMode === "build")).toBe(true);
   });
 
   it("queues a follow-up while a run is active and sends it after the run", async () => {

@@ -22,6 +22,9 @@ use terminals_routes::*;
 #[path = "../features/debug/routes.rs"]
 mod debug_routes;
 use debug_routes::*;
+#[path = "../features/browser/routes.rs"]
+mod browser_routes;
+use browser_routes::*;
 #[path = "../features/providers/routes.rs"]
 mod providers_routes;
 use providers_routes::*;
@@ -69,6 +72,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::ai::{AiService, CompleteInput, Message as AiMessage};
 use crate::auth::AuthManager;
+use crate::browser::BrowserManager;
 use crate::config::Config;
 use crate::crypto::new_id;
 use crate::database::{DatabaseService, ProfileInput, RowChange};
@@ -150,6 +154,7 @@ pub struct AppState {
     pub workspace: WorkspaceService,
     pub terminals: Arc<TerminalManager>,
     pub debug: Arc<DebugManager>,
+    pub browser: Arc<BrowserManager>,
     pub database: DatabaseService,
     pub email: EmailService,
     pub ai: AiService,
@@ -312,6 +317,7 @@ impl AppState {
         let workspace = WorkspaceService::new(roots)?;
         let terminals = Arc::new(TerminalManager::new(None));
         let debug = Arc::new(DebugManager::new());
+        let browser = Arc::new(BrowserManager::new(config.data_dir.clone()));
         let database = DatabaseService::new(store.clone(), &config.master_key_file)?;
         let email = EmailService::new(store.clone(), &config.data_dir, &config.master_key_file)?;
         let ai = AiService::new(store.clone(), &config.master_key_file)?;
@@ -332,6 +338,7 @@ impl AppState {
                 artifacts: config.data_dir.join("agent-artifacts"),
                 mcp: mcp.clone(),
                 terminals: terminals.clone(),
+                browser: browser.clone(),
                 http: reqwest::Client::builder()
                     .timeout(Duration::from_secs(30))
                     .build()
@@ -366,6 +373,7 @@ impl AppState {
             workspace,
             terminals,
             debug,
+            browser,
             database,
             email,
             ai,
@@ -593,6 +601,7 @@ impl EmbeddedServer {
             state.watcher.stop_all();
             state.terminals.close_all();
             state.debug.close_all_now();
+            state.browser.close_all_now();
         }
         if let Some(sender) = self.shutdown.take() {
             let _ = sender.send(());
@@ -666,6 +675,7 @@ pub async fn serve(config: Config) -> AppResult<()> {
     state.watcher.stop_all();
     state.terminals.close_all();
     state.debug.close_all().await;
+    state.browser.close_all().await;
     Ok(())
 }
 
@@ -777,6 +787,14 @@ fn router(state: Arc<AppState>) -> Router {
         .route(
             "/api/projects/{project_id}/debug/terminal",
             get(debug_terminal_info),
+        )
+        .route(
+            "/api/projects/{project_id}/debug/browser",
+            get(debug_browser_info),
+        )
+        .route(
+            "/api/projects/{project_id}/debug/browser/ws",
+            get(debug_browser_ws),
         )
         .route("/api/terminals/shells", get(terminal_shells))
         .route("/api/terminals/{terminal_id}", delete(close_terminal))
@@ -1011,6 +1029,7 @@ fn session_token(headers: &HeaderMap, uri: &Uri) -> Option<(String, bool)> {
     }
     if (uri.path().starts_with("/api/terminals/") && uri.path().ends_with("/ws"))
         || (uri.path().starts_with("/api/projects/") && uri.path().ends_with("/debug/ws"))
+        || (uri.path().starts_with("/api/projects/") && uri.path().ends_with("/debug/browser/ws"))
     {
         if let Some(token) = uri.query().and_then(|query| {
             query.split('&').find_map(|pair| {
@@ -1054,7 +1073,8 @@ async fn auth_middleware(
         || path == "/api/notifications/stream"
         || path.ends_with("/agent/events")
         || (path.starts_with("/api/terminals/") && path.ends_with("/ws"))
-        || (path.starts_with("/api/projects/") && path.ends_with("/debug/ws"));
+        || (path.starts_with("/api/projects/") && path.ends_with("/debug/ws"))
+        || (path.starts_with("/api/projects/") && path.ends_with("/debug/browser/ws"));
     if !long_lived
         && path.starts_with("/api/")
         && path != "/api/health"

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowDown, Bot, LoaderCircle, Timer } from "@jeff/icons";
 import type { Project } from "../../../shared/api";
 import { ApiError } from "../../../shared/api";
@@ -11,6 +11,8 @@ import { AgentComposer, type AgentAttachment } from "./AgentComposer";
 import ChatMessages from "./ChatMessages";
 import ChatModelUsage from "./ChatModelUsage";
 import ConversationEffortPicker from "./ConversationEffortPicker";
+import ConversationModePicker from "./ConversationModePicker";
+const AgentDebugWorkspace = lazy(() => import("./AgentDebugWorkspace"));
 import ApprovalCard from "./ApprovalCard";
 import BotAvatar from "../../agents/components/BotAvatar";
 import { unlockBotSound } from "../sound";
@@ -23,11 +25,11 @@ interface Props {
   mobile?: boolean;
   embedded?: boolean;
   compact?: boolean;
-  debug?: boolean;
   headerControl?: ReactNode;
+  onOpenFile?: (path: string, line?: number) => void;
 }
 
-export default function BotStudioTab({ project, conversationId, mobile = false, embedded = false, compact = false, debug = false, headerControl }: Props) {
+export default function BotStudioTab({ project, conversationId, mobile = false, embedded = false, compact = false, headerControl, onOpenFile }: Props) {
   const stored = useChats((s) => s.byProject[project.id]);
   const chat = stored?.chats.find((item) => item.id === conversationId) ?? null;
   const jeffs = useMemo(() => chatJeffs(stored, conversationId), [stored?.jeffs, stored?.chats, conversationId]);
@@ -62,6 +64,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   const lastError = /cancel|abort|interromp/i.test(lastRunError) ? "" : lastRunError;
   const bannerError = /cancel|abort|interromp/i.test(native.error) ? "" : native.error;
   const title = chatDisplayName(stored, chat);
+  const debug = chat?.mode === "debug";
 
   /** Pin to the end and ignore the scroll events this move generates. */
   function pinToBottom() {
@@ -175,6 +178,11 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         mode: debug ? "debug" : undefined,
         agents: jeffs.map((jeff) => ({
           ...jeff,
+          agentMode: chat.mode === "plan" || chat.mode === "build"
+            ? chat.mode
+            : chat.mode === "debug"
+              ? "build"
+              : jeff.agentMode,
           model: settings[jeff.id]?.model || jeff.model || fallbackModel,
           effort: settings[jeff.id]?.effort ?? jeff.effort,
           engine: settings[jeff.id]?.engine || jeff.engine || "opencode",
@@ -255,10 +263,11 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
     );
   }
 
-  return <div className="flex h-full min-h-0 w-full flex-1 gap-0 overflow-hidden" onPointerDown={unlockBotSound}>
+  const framed = !embedded && !debug;
+  const chatView = <div className="flex h-full min-h-0 w-full flex-1 gap-0 overflow-hidden" onPointerDown={unlockBotSound}>
     <section className={cx(
       "relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background-full",
-      !embedded && "max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:shadow-none min-[901px]:rounded-3xl min-[901px]:border min-[901px]:border-border-button-white min-[901px]:shadow-sidebar",
+      framed && "max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:shadow-none min-[901px]:rounded-3xl min-[901px]:border min-[901px]:border-border-button-white min-[901px]:shadow-sidebar",
     )}>
       {embedded && headerControl ? <div className="absolute end-2 top-2 z-20">{headerControl}</div> : null}
       <div className="relative flex min-h-0 flex-1 flex-col">
@@ -317,9 +326,17 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         <AgentComposer value={text} onChange={(value) => setDraft(draftKey, value)} onSend={(value, files) => void send(value, files)} onStop={() => void stop()} busy={busy}
           placeholder={debug ? "Descreva o bug e como ele acontece…" : "Pergunte ao Jeff…"}
           history={native.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          leadingControls={debug ? undefined : <><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /></>}
+          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationModePicker projectId={project.id} chat={chat!} jeffs={jeffs} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /></>}
           members={jeffs} />
       </div>}
     </section>
   </div>;
+  if (!debug) return chatView;
+  return (
+    <Suspense fallback={<div className="flex h-full items-center justify-center"><LoaderCircle size={18} className="animate-spin text-text-tertiary" /></div>}>
+      <AgentDebugWorkspace project={project} mobile={mobile} onOpenFile={onOpenFile}>
+        {chatView}
+      </AgentDebugWorkspace>
+    </Suspense>
+  );
 }

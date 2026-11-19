@@ -18,7 +18,6 @@ export const WORKSPACE_FEATURES = [
   "sourceControl",
   "databases",
   "webApps",
-  "debug",
   "bots",
 ] as const;
 
@@ -37,7 +36,6 @@ export const defaultWorkspaceFeatures: WorkspaceFeatures = {
   sourceControl: true,
   databases: true,
   webApps: true,
-  debug: true,
   bots: true,
 };
 
@@ -54,7 +52,6 @@ export const desktopWorkspaceFeatures: WorkspaceFeatures = {
   sourceControl: false,
   databases: false,
   webApps: false,
-  debug: false,
   bots: true,
 };
 
@@ -73,7 +70,6 @@ export function sidebarFeature(sidebar: string): WorkspaceFeature | null {
     case "scm": return "sourceControl";
     case "db": return "databases";
     case "web": return "webApps";
-    case "debug": return "debug";
     case "bots": return "bots";
     default: return null;
   }

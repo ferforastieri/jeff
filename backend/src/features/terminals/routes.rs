@@ -77,6 +77,7 @@ pub(super) async fn close_project(
     let terminals = state.terminals.close_project(&project_id);
     let had_debug = state.debug.get(&project_id).is_some();
     state.debug.close_project(&project_id).await;
+    state.browser.close_project(&project_id).await;
     let root = project.root.clone();
     let cleanup = tokio::task::spawn_blocking(move || {
         crate::processes::terminate_project_processes(FsPath::new(&root))

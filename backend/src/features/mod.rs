@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod auth;
+pub mod browser;
 pub mod conversations;
 pub mod database_connections;
 pub mod debug;

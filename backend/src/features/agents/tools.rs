@@ -22,6 +22,8 @@ pub struct Tools {
     pub http: reqwest::Client,
     /// Debug-mode runs drive a real PTY the user watches live.
     pub terminals: Arc<crate::terminal::TerminalManager>,
+    /// Debug-mode runs also drive a live Chromium the user watches.
+    pub browser: Arc<crate::browser::BrowserManager>,
 }
 
 /// A full `tools/list` payload easily passes 50 KB per server. The model only
@@ -133,6 +135,69 @@ pub fn debug_terminal_definitions() -> Vec<Value> {
     ]
 }
 
+/// The live browser is only exposed to runs started in debug mode. The agent
+/// decides what to do; the user watches the same Chromium in the app.
+pub fn debug_browser_definitions() -> Vec<Value> {
+    vec![
+        json!({
+            "name": "debug_browser_open",
+            "description": "Open a URL in the live Chromium the user is watching. Use it before inspecting a web app or reproducing a UI bug.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "http or https URL to open."}
+                },
+                "required": ["url"]
+            }
+        }),
+        json!({
+            "name": "debug_browser_read",
+            "description": "Read the current page: URL, title, visible text, recent console messages and failed network requests. Use it after opening or interacting with the page.",
+            "inputSchema": { "type": "object", "properties": {} }
+        }),
+        json!({
+            "name": "debug_browser_click",
+            "description": "Click an element in the live browser, visibly. Prefer a CSS selector; x/y are viewport pixels when no selector is given.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "selector": {"type": "string", "description": "CSS selector of the element to click."},
+                    "x": {"type": "number", "description": "Viewport x coordinate when no selector is used."},
+                    "y": {"type": "number", "description": "Viewport y coordinate when no selector is used."}
+                }
+            }
+        }),
+        json!({
+            "name": "debug_browser_type",
+            "description": "Type text into the focused element (or click a selector first) in the live browser. The user sees the text appear.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "selector": {"type": "string", "description": "Optional CSS selector to focus before typing."}
+                },
+                "required": ["text"]
+            }
+        }),
+        json!({
+            "name": "debug_browser_press",
+            "description": "Press a key in the live browser (Enter, Tab, Escape, Backspace, arrows, Home, End, PageUp, PageDown).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string"}
+                },
+                "required": ["key"]
+            }
+        }),
+        json!({
+            "name": "debug_browser_reload",
+            "description": "Reload the page in the live browser.",
+            "inputSchema": { "type": "object", "properties": {} }
+        }),
+    ]
+}
+
 pub fn mutating(name: &str) -> bool {
     matches!(
         name,
@@ -141,6 +206,10 @@ pub fn mutating(name: &str) -> bool {
             | "delete_file"
             | "shell"
             | "debug_terminal_run"
+            | "debug_browser_click"
+            | "debug_browser_type"
+            | "debug_browser_press"
+            | "debug_browser_reload"
             | "remember"
             | "email_send"
     )

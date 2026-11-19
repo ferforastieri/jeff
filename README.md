@@ -17,7 +17,7 @@ The installed server does not serve the landing page or documentation. The landi
 
 - Browse and edit project files with tabs, a file tree, unified search and live Git status. Source control changes and branch switching live in the Git modal.
 - Run a real terminal attached to the server, with a draggable terminal height and working keyboard input.
-- Debug with a focused agent: describe what happens and how it happens. The Jeff decides where to instrument, inserts temporary logs with its file tools, runs commands in a terminal you watch in real time and iterates until it isolates the cause. The debug view is only the conversation plus that terminal — no breakpoints or watches to set. The old Node/Python inspector studio is no longer mounted.
+- Debug mode inside the agent: choose **Debug** beside the effort picker and describe what happens. The Jeff decides where to instrument, inserts temporary logs with its file tools, runs every command in a terminal you watch in real time and drives a live Chromium panel next to the conversation, so you see what it sees. No breakpoints, watches or headless browser: the terminal and browser are part of the same agent screen, in the plan/build/debug mode selector. The old standalone debug screen and Node/Python inspector studio were removed.
 - Open repositories from a searchable repository picker; names are derived automatically. The picker can also create a new folder under an allowed workspace root and initialize it as a Git repository.
 - Open projects as top-level tabs. Closing a project tab stops its terminal sessions and child processes without deleting the project.
 - Use the real VS Code Material Icon Theme, stage/unstage/discard/commit and branch creation from configurable patterns in the Git modal, side-by-side diff tabs and Git blame for the current editor line.
@@ -222,6 +222,7 @@ The generated Android project is committed in `src-tauri/gen/android`; release s
 | `JEFF_FIREBASE_CREDENTIALS_FILE` | empty | Firebase service-account JSON used by the server for Android push |
 | `JEFF_FIREBASE_PROJECT_ID` | service-account project | Firebase project ID for Cloud Messaging |
 | `JEFF_WEB_DIR` | embedded build | Serve a web build from disk in development |
+| `JEFF_CHROMIUM` | auto-detected | Chromium binary used by the live browser in agent debug mode |
 | `JEFF_UPDATE_REPO` | `ferforastieri/jeff` | GitHub repository used by the in-app update check |
 | `JEFF_DEV_COMPONENTS` | empty | Server installer only: `git,node,pnpm,rust,go,python`, `all`, or `none` |
 

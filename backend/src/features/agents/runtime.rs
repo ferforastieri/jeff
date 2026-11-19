@@ -1529,6 +1529,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             let mut gateway_tools = vec![tools::ask_user_definition()];
             if ctx.debug {
                 gateway_tools.extend(tools::debug_terminal_definitions());
+                gateway_tools.extend(tools::debug_browser_definitions());
             }
             let mut gateway_handle = None;
             if let Ok((url, handle)) = super::gateway::Gateway::start(
@@ -1979,6 +1980,72 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                             .tools
                             .terminals
                             .debug_output(&ctx.project_id, tail)? }))
+                    } else if name == "debug_browser_open" {
+                        let url = args["url"].as_str().unwrap_or("").trim();
+                        if url.is_empty() || url.len() > 4096 {
+                            Err(bad_request("URL inválida"))
+                        } else {
+                            let session = self
+                                .inner
+                                .tools
+                                .browser
+                                .session(&ctx.project_id, &ctx.root)
+                                .await?;
+                            session.open(url).await
+                        }
+                    } else if name == "debug_browser_read" {
+                        let session = self
+                            .inner
+                            .tools
+                            .browser
+                            .session(&ctx.project_id, &ctx.root)
+                            .await?;
+                        session.read().await
+                    } else if name == "debug_browser_click" {
+                        let selector = args["selector"].as_str();
+                        let x = args["x"].as_f64();
+                        let y = args["y"].as_f64();
+                        if selector.is_none() && (x.is_none() || y.is_none()) {
+                            Err(bad_request("Informe um seletor ou x/y"))
+                        } else {
+                            let session = self
+                                .inner
+                                .tools
+                                .browser
+                                .session(&ctx.project_id, &ctx.root)
+                                .await?;
+                            session.click(selector, x, y).await
+                        }
+                    } else if name == "debug_browser_type" {
+                        let text = args["text"].as_str().unwrap_or("");
+                        if text.is_empty() || text.len() > 20_000 {
+                            Err(bad_request("Texto inválido"))
+                        } else {
+                            let session = self
+                                .inner
+                                .tools
+                                .browser
+                                .session(&ctx.project_id, &ctx.root)
+                                .await?;
+                            session.type_text(text, args["selector"].as_str()).await
+                        }
+                    } else if name == "debug_browser_press" {
+                        let key = args["key"].as_str().unwrap_or("Enter");
+                        let session = self
+                            .inner
+                            .tools
+                            .browser
+                            .session(&ctx.project_id, &ctx.root)
+                            .await?;
+                        session.press(key).await
+                    } else if name == "debug_browser_reload" {
+                        let session = self
+                            .inner
+                            .tools
+                            .browser
+                            .session(&ctx.project_id, &ctx.root)
+                            .await?;
+                        session.reload().await
                     } else if name == "read_skill" {
                         let wanted = args["name"].as_str().unwrap_or("");
                         match self
@@ -2527,6 +2594,8 @@ mod tests {
         let debug = Runtime::identity(&roster[0], &roster, &["a".into()], true);
         assert!(debug.contains("debug_terminal_run"));
         assert!(debug.contains("debug_terminal_output"));
+        assert!(debug.contains("debug_browser_open"));
+        assert!(debug.contains("debug_browser_read"));
     }
 
     #[test]

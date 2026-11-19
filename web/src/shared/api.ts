@@ -835,6 +835,10 @@ export const api = {
     return request(`/projects/${encodeURIComponent(projectId)}/debug/terminal`);
   },
 
+  async debugBrowser(projectId: string): Promise<{ id: string; projectId: string; pageUrl: string; wsUrl: string }> {
+    return request(`/projects/${encodeURIComponent(projectId)}/debug/browser`);
+  },
+
   async debugEval(projectId: string, code: string): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     return request(`/projects/${encodeURIComponent(projectId)}/debug/eval`, {
       method: "POST",
@@ -873,6 +877,11 @@ export const api = {
   debugSocketUrl(projectId: string): string {
     const base = (apiBase || window.location.origin).replace(/\/+$/, "");
     return `${base.replace(/^http:/i, "ws:").replace(/^https:/i, "wss:")}/api/projects/${encodeURIComponent(projectId)}/debug/ws`;
+  },
+
+  debugBrowserSocketUrl(projectId: string): string {
+    const base = (apiBase || window.location.origin).replace(/\/+$/, "");
+    return `${base.replace(/^http:/i, "ws:").replace(/^https:/i, "wss:")}/api/projects/${encodeURIComponent(projectId)}/debug/browser/ws`;
   },
 
   async dbProfiles(projectRoot?: string): Promise<DBProfile[]> {

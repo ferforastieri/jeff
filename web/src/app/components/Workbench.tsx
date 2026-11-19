@@ -43,20 +43,18 @@ const DatabasesPanel = lazy(() => import("../../features/databases/components/Da
 const WebSidebar = lazy(() => import("../../features/previews/components/WebSidebar"));
 const EditorPanel = lazy(() => import("../../features/editor/components/EditorPanel"));
 const DbPanelTab = lazy(() => import("../../features/databases/components/DbPanelTab"));
-const DebugPanel = lazy(() => import("../../features/debug/components/DebugPanel"));
 const BotsSidebar = lazy(() => import("../../features/agents/components/BotsSidebar"));
 const WebPanelTab = lazy(() => import("../../features/previews/components/WebPanelTab"));
 const DiffPanelTab = lazy(() => import("../../features/editor/components/DiffPanelTab"));
 const TerminalPanel = lazy(() => import("../../features/terminal/components/TerminalPanel"));
 const SourceControlPanel = lazy(() => import("../../features/git/components/SourceControlPanel"));
 
-type RightPanel = "files" | "scm" | "db" | "web" | "debug" | "bots";
+type RightPanel = "files" | "scm" | "db" | "web" | "bots";
 const rightPanelFeatures: Record<RightPanel, WorkspaceFeature | null> = {
   files: "files",
   scm: "sourceControl",
   db: "databases",
   web: "webApps",
-  debug: "debug",
   bots: null,
 };
 
@@ -91,7 +89,6 @@ function restoredSidebar(value: unknown): Sidebar {
     case "db":
     case "web":
     case "bots":
-    case "debug":
       return value;
     case "search":
     case "settings":
@@ -143,7 +140,6 @@ export default function Workbench() {
   const [rightPanel, setRightPanel] = useState<RightPanel>("files");
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const tabsVisible = workspaceFeatures.tabs;
-  const effectiveSidebarVisible = sidebar !== "debug";
   const [branchInfo, setBranchInfo] = useState<{ current: string; branches: string[] } | null>(null);
   const [branchBusy, setBranchBusy] = useState("");
   const [newBranchName, setNewBranchName] = useState("");
@@ -157,6 +153,11 @@ export default function Workbench() {
   const project = projects.find((item) => item.id === activeProjectId) ?? null;
   const branch = gitStatus.split("\n")[0]?.replace(/^##\s*/, "").split("...")[0] ?? "";
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
+  const activeChatMode = useChats((state) => {
+    if (activeTab?.kind !== "ai" || !activeTab.chatId || !activeProjectId) return undefined;
+    return state.byProject[activeProjectId]?.chats.find((chat) => chat.id === activeTab.chatId)?.mode;
+  });
+  const agentDebug = activeChatMode === "debug";
   const botsView = sidebar === "bots";
   const desktopClient = isDesktopClient();
   const filesEnabled = featureEnabled(workspaceFeatures, "files");
@@ -1070,7 +1071,7 @@ export default function Workbench() {
     </Suspense>
   ) : null;
 
-  const primarySidebar = effectiveSidebarVisible ? (
+  const primarySidebar = (
     <Suspense fallback={null}>
       <div className="relative z-40 flex min-h-0 shrink-0 overflow-visible rounded-3xl border border-border-button-white bg-background-secondary-default shadow-sidebar">
         <aside className={cx("relative flex min-h-0 shrink-0 flex-col overflow-hidden rounded-[22px] bg-background-secondary-default", botsView ? "w-[clamp(220px,22vw,var(--sidebar-width))]" : "w-[var(--sidebar-width)]")}>
@@ -1078,10 +1079,10 @@ export default function Workbench() {
         </aside>
       </div>
     </Suspense>
-  ) : null;
-  const primaryResize = effectiveSidebarVisible ? (
+  );
+  const primaryResize = (
     <ResizeHandle className="sidebar-resize" orientation="vertical" value={sidebarWidth} min={220} max={320} label="Redimensionar barra lateral" onChange={(width) => document.documentElement.style.setProperty("--sidebar-width", `${width}px`)} onCommit={(width) => updateSettings({ sidebarWidth: width })} />
-  ) : null;
+  );
 
   if (mobile) return <Suspense fallback={null}><MobileApp /></Suspense>;
 
@@ -1093,12 +1094,7 @@ export default function Workbench() {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-hidden">
           <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border-button-white bg-background-primary-default shadow-sidebar">
-            {project && featureIsEnabled("debug") ? (
-              <div className={cx("min-h-0 flex-1 flex-col", sidebar === "debug" ? "flex" : "hidden")}>
-                <DebugPanel key={project.id} project={project} onOpenFile={(path, line) => { openFile(path, line); selectSidebar("files"); }} />
-              </div>
-            ) : null}
-            <div className={cx("min-h-0 flex-1 flex-col", sidebar === "debug" ? "hidden" : "flex")}>
+            <div className="flex min-h-0 flex-1 flex-col">
               {tabsVisible ? <Tabs /> : null}
               <div className="relative flex min-h-0 flex-1 overflow-hidden">
                 {!activeTab && project && (
@@ -1121,14 +1117,14 @@ export default function Workbench() {
                   {tabsVisible && activeTab?.kind === "web" && featureIsEnabled("webApps") && <WebPanelTab tab={activeTab} />}
                   {tabsVisible && activeTab?.kind === "diff" && project && featureIsEnabled("files") && <DiffPanelTab tab={activeTab} project={project} />}
                   {activeTab?.kind === "ai" && project && activeTab.chatId && (
-                    <BotStudioTab key={activeTab.chatId} project={project} conversationId={activeTab.chatId} />
+                    <BotStudioTab key={activeTab.chatId} project={project} conversationId={activeTab.chatId} onOpenFile={(path, line) => openFile(path, line)} />
                   )}
                 </Suspense>
               </div>
             </div>
           </main>
 
-          {project && terminalEnabled && terminalOpen && sidebar !== "debug" ? (
+          {project && terminalEnabled && terminalOpen && !agentDebug ? (
             <Suspense fallback={null}>
               <div className="flex w-full min-w-0 shrink-0 overflow-hidden">
                 <TerminalPanel key={project.id} project={project} onOpenFile={openFile} />

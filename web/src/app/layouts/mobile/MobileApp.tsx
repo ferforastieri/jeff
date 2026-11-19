@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Boxes, Bug, Database, Files, GitBranch, Globe2, MoreHorizontal, Plus, TerminalSquare } from "@jeff/icons";
+import { Boxes, Database, Files, GitBranch, Globe2, MoreHorizontal, Plus, TerminalSquare } from "@jeff/icons";
 import { api, type Project, type SchemaTable, type WebTarget } from "../../../shared/api";
 import { useApp } from "../../store";
 import { useIsMobile } from "../../../shared/ui/useIsMobile";
@@ -13,7 +13,6 @@ import BotStudioTab from "../../../features/conversations/components/BotStudioTa
 import DbPanelTab from "../../../features/databases/components/DbPanelTab";
 import DiffPanelTab from "../../../features/editor/components/DiffPanelTab";
 import EditorPanel from "../../../features/editor/components/EditorPanel";
-import DebugPanel from "../../../features/debug/components/DebugPanel";
 import WebPanelTab from "../../../features/previews/components/WebPanelTab";
 import Tabs from "../../components/Tabs";
 import TerminalPanel from "../../../features/terminal/components/TerminalPanel";
@@ -78,11 +77,10 @@ export default function MobileApp() {
     scm: "Git",
     db: "Bancos",
     web: "Web apps",
-    debug: "Debug",
     workspace: activeTab?.title ?? "Trabalho",
     more: "Mais",
   };
-  const screenIcons = { bots: BrandGlyph, files: Files, scm: GitBranch, db: Database, web: Globe2, debug: Bug, workspace: Boxes, more: MoreHorizontal };
+  const screenIcons = { bots: BrandGlyph, files: Files, scm: GitBranch, db: Database, web: Globe2, workspace: Boxes, more: MoreHorizontal };
   const pageTitle = screenTitles[screen];
   const pageSubtitle = screen === "scm" && currentBranch ? currentBranch : (project?.name ?? "");
   const pageIcon = screenIcons[screen];
@@ -390,6 +388,7 @@ export default function MobileApp() {
                 project={project}
                 conversationId={activeConversationId}
                 mobile
+                onOpenFile={(path, line) => openFile(path, line)}
               />
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8 text-center">
@@ -417,8 +416,6 @@ export default function MobileApp() {
           <DatabasesScreen project={project} onOpenTable={openTable} />
         ) : screen === "web" ? (
           <WebAppsScreen onOpenWeb={openWeb} />
-        ) : screen === "debug" ? (
-          <DebugPanel key={project.id} project={project} mobile onOpenFile={openFile} />
         ) : screen === "more" ? (
           <MobileMoreScreen
             activeTitle={activeTab?.title}
@@ -453,7 +450,7 @@ export default function MobileApp() {
               {activeTab?.kind === "db" && <DbPanelTab tab={activeTab} />}
               {activeTab?.kind === "web" && <WebPanelTab tab={activeTab} />}
               {activeTab?.kind === "diff" && <DiffPanelTab tab={activeTab} project={project} />}
-              {activeTab?.kind === "ai" && activeTab.chatId && <BotStudioTab project={project} conversationId={activeTab.chatId} mobile />}
+              {activeTab?.kind === "ai" && activeTab.chatId && <BotStudioTab project={project} conversationId={activeTab.chatId} mobile onOpenFile={(path, line) => openFile(path, line)} />}
             </div>
           </>
         )}

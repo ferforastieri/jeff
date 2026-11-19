@@ -1,6 +1,5 @@
 import {
   Boxes,
-  Bug,
   GitBranch,
   ChevronRight,
   Database,
@@ -103,7 +102,6 @@ export default function MobileMoreScreen({
   const work: Action[] = [
     { id: "db", label: "Bancos de dados", description: "Conexões e queries", icon: Database, onSelect: () => onScreen("db") },
     { id: "web", label: "Web apps", description: "Sites e previews", icon: Globe2, onSelect: () => onScreen("web") },
-    { id: "debug", label: "Debug", description: "Breakpoints e console", icon: Bug, onSelect: () => onScreen("debug") },
     { id: "terminal", label: "Terminal", description: "Shell do projeto", icon: TerminalSquare, onSelect: onTerminal },
     { id: "workspace", label: "Trabalho", description: activeTitle ? `Aba: ${activeTitle}` : "Editor e abas", icon: Boxes, onSelect: () => onScreen("workspace") },
   ];

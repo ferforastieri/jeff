@@ -17,7 +17,7 @@ const tabs: Array<{ id: MobileScreen; label: string; icon: ComponentType<{ class
   { id: "more", label: "Mais", icon: MoreHorizontal },
 ];
 
-const moreScreens: MobileScreen[] = ["db", "web", "debug", "more"];
+const moreScreens: MobileScreen[] = ["db", "web", "more"];
 const MARK = `${import.meta.env.BASE_URL}brand/jeff-mark-eyeless.png?v=5`;
 
 /**
