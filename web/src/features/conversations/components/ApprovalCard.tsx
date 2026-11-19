@@ -14,12 +14,12 @@ export default function ApprovalCard({ agentName, name, arguments: args, onAppro
   return (
     <article className="toph-msg-in my-1 flex min-w-0 gap-3 py-1">
       <div className="flex w-[34px] shrink-0 justify-center">
-        <span className="mt-0.5 flex size-7 items-center justify-center rounded-full bg-status-amber-bg text-status-amber-text">
+        <span className="mt-0.5 flex size-7 items-center justify-center rounded-full bg-status-yellow-bg text-status-yellow-text">
           <AlertTriangle size={15} />
         </span>
       </div>
-      <div className="min-w-0 flex-1 rounded-2xl border border-status-amber-border bg-status-amber-bg/40 p-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-status-amber-text">Esperando você</p>
+      <div className="min-w-0 flex-1 rounded-2xl border border-status-yellow-border bg-status-yellow-bg/40 p-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-status-yellow-text">Esperando você</p>
         <p className="mt-1 text-caption-1-semibold text-text-primary">
           {agentName} quer usar <span className="font-mono text-[12px]">{name}</span>
         </p>

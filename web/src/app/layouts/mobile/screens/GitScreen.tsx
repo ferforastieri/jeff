@@ -233,9 +233,9 @@ export default function GitScreen({ project, branch, onOpenDiff, onBranch }: Pro
         </div>
 
         {merging ? (
-          <section className="rounded-3xl border border-status-amber-border bg-status-amber-bg p-3">
+          <section className="rounded-3xl border border-status-yellow-border bg-status-yellow-bg p-3">
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-status-amber-text/15 text-status-amber-text"><TriangleAlert size={15} /></span>
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-status-yellow-text/15 text-status-yellow-text"><TriangleAlert size={15} /></span>
               <div className="min-w-0 flex-1">
                 <strong className="block text-body-2-medium text-text-primary">Merge em andamento</strong>
                 <p className="text-caption-2-regular text-text-secondary">

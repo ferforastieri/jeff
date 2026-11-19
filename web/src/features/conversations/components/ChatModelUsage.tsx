@@ -57,7 +57,7 @@ function time(value: number): string {
 function tone(left: number | null): string {
   if (left == null) return "stroke-border-button-default";
   if (left <= 10) return "stroke-status-rose-text";
-  if (left <= 30) return "stroke-status-amber-text";
+  if (left <= 30) return "stroke-status-yellow-text";
   return "stroke-accent-500";
 }
 

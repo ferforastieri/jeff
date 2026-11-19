@@ -186,7 +186,7 @@ export default function HarnessSettings(_props: Props) {
                         {engine.installed ? "instalado" : "não instalado"}
                       </span>
                       {engine.installed && !engine.supported ? (
-                        <span className="rounded-full bg-status-amber-bg px-1.5 py-px text-[10px] font-semibold text-status-amber-text">sem suporte no runtime</span>
+                        <span className="rounded-full bg-status-yellow-bg px-1.5 py-px text-[10px] font-semibold text-status-yellow-text">sem suporte no runtime</span>
                       ) : null}
                     </div>
                     <p className="mt-0.5 truncate font-mono text-[11px] text-text-tertiary" title={engine.path ?? engine.binary}>

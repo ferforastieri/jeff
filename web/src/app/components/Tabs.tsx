@@ -227,7 +227,7 @@ export default function Tabs() {
               <span className="min-w-0 flex-1 truncate">{label}</span>
               {tab.kind === "ai" && tab.chatId ? <TabRunning projectId={tab.projectId} chatId={tab.chatId} /> : null}
               {tab.kind === "ai" && tab.chatId && unreadChats.has(tab.chatId) ? (
-                <span className="size-1.5 shrink-0 rounded-full bg-status-amber-text" title="Resposta nova" aria-label="Resposta nova" />
+                <span className="size-1.5 shrink-0 rounded-full bg-status-yellow-text" title="Resposta nova" aria-label="Resposta nova" />
               ) : null}
               {tab.dirty && <span className="size-1.5 shrink-0 rounded-full bg-accent-500" aria-label="Modificado" />}
               <IconButton

@@ -242,9 +242,9 @@ export default function SourceControlPanel({
         <SidebarHeader control={headerControl} icon={<GitPullRequest size={15} className="text-accent-500" />} title="Source Control" />
       )}
       {merging ? (
-        <div className="mx-2 mt-1.5 rounded-md border border-status-amber-border bg-status-amber-bg px-2 py-1.5">
+        <div className="mx-2 mt-1.5 rounded-md border border-status-yellow-border bg-status-yellow-bg px-2 py-1.5">
           <div className="flex items-center gap-1.5">
-            <TriangleAlert size={12} className="text-status-amber-text" />
+            <TriangleAlert size={12} className="text-status-yellow-text" />
             <span className="text-[11px] font-semibold text-text-primary">Merge em andamento</span>
           </div>
           <p className="mt-0.5 text-[11px] text-text-secondary">

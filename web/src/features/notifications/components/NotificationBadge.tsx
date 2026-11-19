@@ -17,7 +17,7 @@ export default function NotificationBadge({ count, size = 18, tone = "accent", c
       <span
         aria-hidden="true"
         className={cx(
-          "absolute -end-1.5 -top-1.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-accent-500 px-1 text-[9px] font-semibold leading-none tabular-nums text-[#1b1b1b] shadow-sm",
+          "absolute -end-1.5 -top-1.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-accent-500 px-1 text-[9px] font-semibold leading-none tabular-nums text-[var(--on-agent)] shadow-sm",
           tone === "light" ? "ring-2 ring-white/25" : "ring-2 ring-background-primary-default",
         )}
       >

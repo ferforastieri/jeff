@@ -397,7 +397,7 @@ export default function SkillsPanel({ projectId }: Props) {
                         <div className="flex flex-wrap items-center gap-1.5">
                           <strong className="text-caption-1-semibold text-text-primary">{skill.name}</strong>
                           <span className="rounded-full bg-background-tertiary-default px-1.5 text-[10px] text-text-tertiary">{skill.origin}</span>
-                          {skill.scripts ? <span className="rounded-full bg-status-amber-bg px-1.5 text-[10px] text-status-amber-text">scripts</span> : null}
+                          {skill.scripts ? <span className="rounded-full bg-status-yellow-bg px-1.5 text-[10px] text-status-yellow-text">scripts</span> : null}
                           {linked ? <span className="rounded-full bg-status-lime-bg px-1.5 text-[10px] text-status-lime-text">Vinculada</span> : null}
                         </div>
                         <p className="mt-0.5 text-caption-2-regular text-text-secondary">{skill.description || "Sem descrição no frontmatter."}</p>
@@ -437,7 +437,7 @@ export default function SkillsPanel({ projectId }: Props) {
           <section>
             <p className="mb-1.5 text-caption-1-semibold text-text-primary">Receita</p>
             <pre className="max-h-[40vh] overflow-auto whitespace-pre-wrap rounded-xl border border-border-button-default bg-background-secondary-default p-3 font-mono text-caption-2-regular text-text-secondary">{selected.body}</pre>
-            {selected.body.length > RECOMMENDED ? <p className="mt-1 text-caption-2-regular text-status-amber-text">Receita longa: {selected.body.length.toLocaleString("pt-BR")} caracteres. O recomendado é até {RECOMMENDED.toLocaleString("pt-BR")}.</p> : null}
+            {selected.body.length > RECOMMENDED ? <p className="mt-1 text-caption-2-regular text-status-yellow-text">Receita longa: {selected.body.length.toLocaleString("pt-BR")} caracteres. O recomendado é até {RECOMMENDED.toLocaleString("pt-BR")}.</p> : null}
           </section>
           <section>
             <p className="mb-1.5 flex items-center gap-1.5 text-caption-1-semibold text-text-primary"><History size={13} /> Histórico</p>
@@ -489,7 +489,7 @@ function SkillForm({ draft, onChange, error }: { draft: SkillDraft; onChange: (d
       <Input label="Quando usar" value={draft.description} onChange={(value) => onChange({ ...draft, description: value })} placeholder="Ao rodar ou consertar os testes do Core" />
     </div>
     <Textarea label="Receita" rows={10} value={draft.body} onChange={(value) => onChange({ ...draft, body: value })} placeholder="Os passos, em Markdown: comandos exatos, armadilhas, como conferir." />
-    {draft.body.length > RECOMMENDED ? <p className="text-caption-2-regular text-status-amber-text">Receita longa: {draft.body.length.toLocaleString("pt-BR")} caracteres. O recomendado é até {RECOMMENDED.toLocaleString("pt-BR")}; a receita inteira será mantida.</p> : null}
+    {draft.body.length > RECOMMENDED ? <p className="text-caption-2-regular text-status-yellow-text">Receita longa: {draft.body.length.toLocaleString("pt-BR")} caracteres. O recomendado é até {RECOMMENDED.toLocaleString("pt-BR")}; a receita inteira será mantida.</p> : null}
     <p className="text-caption-2-regular text-text-tertiary">A skill fica disponível em todos os seus projetos, inclusive nos que você abrir depois.</p>
     {error ? <p role="alert" className="rounded-xl bg-status-rose-bg px-3 py-2 text-caption-1-regular text-status-rose-text">{error}</p> : null}
   </div>;

@@ -57,7 +57,7 @@ function ActionCard({ action }: { action: Action }) {
           <Icon className="size-[17px]" />
         </span>
         {action.badge && action.badge > 0 ? (
-          <span className="flex min-w-4 items-center justify-center rounded-full bg-accent-500 px-1 text-[9px] font-semibold leading-4 text-[#1b1b1b]">
+          <span className="flex min-w-4 items-center justify-center rounded-full bg-accent-500 px-1 text-[9px] font-semibold leading-4 text-[var(--on-agent)]">
             {action.badge > 9 ? "9+" : action.badge}
           </span>
         ) : (
