@@ -82,10 +82,7 @@ impl BrowserManager {
             self.close_project(project_id).await;
         }
         let session = launch(project_id, root, &self.data_dir).await?;
-        let mut sessions = self
-            .sessions
-            .lock()
-            .map_err(|_| internal("browser lock"))?;
+        let mut sessions = self.sessions.lock().map_err(|_| internal("browser lock"))?;
         if let Some(existing) = sessions.get(project_id) {
             if !existing.closed.load(Ordering::SeqCst) {
                 session.close_now();
@@ -230,14 +227,22 @@ impl BrowserSession {
         self.read().await
     }
 
-    pub async fn click(&self, selector: Option<&str>, x: Option<f64>, y: Option<f64>) -> AppResult<Value> {
+    pub async fn click(
+        &self,
+        selector: Option<&str>,
+        x: Option<f64>,
+        y: Option<f64>,
+    ) -> AppResult<Value> {
         let (x, y) = if let Some(selector) = selector.filter(|value| !value.trim().is_empty()) {
             let expression = format!(
                 "(() => {{ const el = document.querySelector({}); if (!el) return null; el.scrollIntoView({{block:'center'}}); const r = el.getBoundingClientRect(); return {{x:r.left+r.width/2,y:r.top+r.height/2}}; }})()",
                 serde_json::to_string(selector).unwrap_or_else(|_| "\"\"".into())
             );
             let result = self
-                .command("Runtime.evaluate", json!({"expression": expression, "returnByValue": true}))
+                .command(
+                    "Runtime.evaluate",
+                    json!({"expression": expression, "returnByValue": true}),
+                )
                 .await
                 .map_err(AppError::Upstream)?;
             let value = &result["result"]["result"]["value"];
@@ -356,8 +361,15 @@ impl BrowserSession {
             .as_array()
             .cloned()
             .unwrap_or_default();
-        let index = if direction == "forward" { current + 1 } else { current - 1 };
-        let Some(entry) = usize::try_from(index).ok().and_then(|index| entries.get(index)) else {
+        let index = if direction == "forward" {
+            current + 1
+        } else {
+            current - 1
+        };
+        let Some(entry) = usize::try_from(index)
+            .ok()
+            .and_then(|index| entries.get(index))
+        else {
             return Ok(json!({ "ok": false, "reason": "Sem histórico nessa direção." }));
         };
         let entry_id = entry["id"].clone();
@@ -382,9 +394,7 @@ impl BrowserSession {
             )
             .await
             .map_err(AppError::Upstream)?;
-        let page_text = result["result"]["result"]["value"]
-            .as_str()
-            .unwrap_or("{}");
+        let page_text = result["result"]["result"]["value"].as_str().unwrap_or("{}");
         let page: Value = serde_json::from_str(page_text).unwrap_or_else(|_| json!({}));
         if let Some(url) = page["url"].as_str() {
             if let Ok(mut page_url) = self.page_url.lock() {
@@ -412,9 +422,7 @@ impl BrowserSession {
         if self.closed.swap(true, Ordering::SeqCst) {
             return;
         }
-        let _ = self
-            .command("Page.stopScreencast", json!({}))
-            .await;
+        let _ = self.command("Page.stopScreencast", json!({})).await;
         self.close_now();
     }
 
@@ -475,7 +483,11 @@ async fn launch(project_id: &str, root: &Path, data_dir: &Path) -> AppResult<Arc
     let mut devtools_port = 0u16;
     for _ in 0..150 {
         if let Ok(text) = std::fs::read_to_string(&port_file) {
-            if let Some(port) = text.lines().next().and_then(|line| line.trim().parse::<u16>().ok()) {
+            if let Some(port) = text
+                .lines()
+                .next()
+                .and_then(|line| line.trim().parse::<u16>().ok())
+            {
                 devtools_port = port;
                 break;
             }
@@ -560,7 +572,12 @@ async fn launch(project_id: &str, root: &Path, data_dir: &Path) -> AppResult<Arc
         child: Mutex::new(Some(child)),
     });
 
-    for method in ["Page.enable", "Runtime.enable", "Log.enable", "Network.enable"] {
+    for method in [
+        "Page.enable",
+        "Runtime.enable",
+        "Log.enable",
+        "Network.enable",
+    ] {
         if let Err(error) = session.command(method, json!({})).await {
             session.close_now();
             return Err(AppError::ServiceUnavailable(format!(
@@ -711,7 +728,9 @@ async fn actor(
         }
     }
     for (_, reply) in pending {
-        reply.send(Err("O navegador de debug encerrou.".into())).ok();
+        reply
+            .send(Err("O navegador de debug encerrou.".into()))
+            .ok();
     }
 }
 

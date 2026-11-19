@@ -38,7 +38,9 @@ pub(super) async fn debug_browser_ws(
         Ok(session) => session,
         Err(error) => return error.into_response(),
     };
-    session.clients.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    session
+        .clients
+        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     ws.on_upgrade(move |socket| browser_socket(socket, session))
 }
 
