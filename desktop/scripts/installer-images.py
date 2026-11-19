@@ -26,11 +26,11 @@ MARK = BRAND / "generated" / "jeff-mark.png"
 WORDMARK = BRAND / "logo" / "jeff-wordmark.png"
 
 SCALE = 4
-BACKGROUND = (5, 5, 5)
+BACKGROUND = (11, 19, 48)
 TEXT = (245, 245, 245)
 MUTED = (150, 150, 150)
-ACCENT = (255, 181, 71)
-ACCENT_DEEP = (255, 157, 10)
+ACCENT = (0, 99, 209)
+ACCENT_DEEP = (0, 62, 140)
 
 FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -72,11 +72,11 @@ def background(width: int, height: int) -> Image.Image:
         for x in range(width):
             distance = math.hypot(x - glow_x, y - glow_y) / glow_radius
             glow = max(0.0, 1.0 - distance) ** 2.4
-            base = 5 + int(4 * (y / max(1, height - 1)))
+            shade = int(6 * (y / max(1, height - 1)))
             pixels[x, y] = (
-                min(255, base + int(48 * glow)),
-                min(255, base + int(30 * glow)),
-                min(255, base + int(10 * glow)),
+                min(255, 11 + shade + int(10 * glow)),
+                min(255, 19 + shade + int(38 * glow)),
+                min(255, 48 + shade + int(92 * glow)),
             )
     return image
 
