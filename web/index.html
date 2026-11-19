@@ -4,17 +4,63 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
-    <link rel="icon" type="image/png" sizes="16x16" href="%BASE_URL%brand/favicon-16.png?v=4" />
-    <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%brand/favicon-32.png?v=4" />
-    <link rel="icon" type="image/png" sizes="48x48" href="%BASE_URL%brand/favicon-48.png?v=4" />
-    <link rel="icon" type="image/png" sizes="64x64" href="%BASE_URL%brand/favicon-64.png?v=4" />
-    <link rel="icon" href="%BASE_URL%brand/favicon.ico?v=4" sizes="any" />
-    <link rel="apple-touch-icon" href="%BASE_URL%brand/apple-touch-icon.png?v=4" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%BASE_URL%brand/favicon-16.png?v=5" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%brand/favicon-32.png?v=5" />
+    <link rel="icon" type="image/png" sizes="48x48" href="%BASE_URL%brand/favicon-48.png?v=5" />
+    <link rel="icon" type="image/png" sizes="64x64" href="%BASE_URL%brand/favicon-64.png?v=5" />
+    <link rel="icon" href="%BASE_URL%brand/favicon.ico?v=5" sizes="any" />
+    <link rel="apple-touch-icon" href="%BASE_URL%brand/apple-touch-icon.png?v=5" />
     <meta property="og:title" content="Toph" />
     <meta property="og:description" content="Self-hosted workbench for code, databases, AI and web apps." />
-    <meta property="og:image" content="%BASE_URL%brand/toph-og-1200x630.png" />
+    <meta property="og:image" content="%BASE_URL%brand/toph-og-1200x630.png?v=5" />
     <meta name="twitter:card" content="summary_large_image" />
     <title>Toph</title>
+    <style>
+      html, body { margin: 0; background: #0a0a09; }
+      html:not(.dark) body { background: #f6f9fd; }
+      #root { min-height: 100dvh; }
+      .toph-boot {
+        position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 18px;
+        padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+          max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+        background: #0a0a09;
+      }
+      html:not(.dark) .toph-boot { background: #f6f9fd; }
+      .toph-boot__stage { position: relative; display: grid; place-items: end center; width: 132px; height: 154px; }
+      .toph-boot__hop {
+        display: block; width: 96px; height: 96px; object-fit: contain; transform-origin: 50% 100%;
+        animation: toph-hop 1.15s cubic-bezier(.33,0,.3,1) infinite;
+        filter: drop-shadow(0 10px 14px rgba(0,0,0,.18));
+      }
+      .toph-boot__shadow {
+        position: absolute; bottom: 18px; width: 58px; height: 10px; border-radius: 999px;
+        background: rgba(0,0,0,.22); filter: blur(3px);
+        animation: toph-shadow 1.15s cubic-bezier(.33,0,.3,1) infinite;
+      }
+      .toph-boot__label {
+        margin: 0; color: #8f8f89; font: 600 11px/1 ui-monospace, monospace;
+        letter-spacing: .18em; text-transform: uppercase;
+      }
+      @keyframes toph-hop {
+        0%,100% { transform: translateY(0) scale(1,1); }
+        12% { transform: translateY(0) scale(1.08,.92); }
+        45% { transform: translateY(-40px) scale(.94,1.07); }
+        62% { transform: translateY(0) scale(1.06,.94); }
+        76% { transform: translateY(-11px) scale(.99,1.01); }
+        88% { transform: translateY(0) scale(1.02,.98); }
+      }
+      @keyframes toph-shadow {
+        0%,100% { transform: scaleX(1); opacity: .28; }
+        12% { transform: scaleX(1.08); opacity: .3; }
+        45% { transform: scaleX(.62); opacity: .12; }
+        62% { transform: scaleX(1.12); opacity: .32; }
+        76% { transform: scaleX(.9); opacity: .22; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .toph-boot__hop, .toph-boot__shadow { animation: none; }
+      }
+    </style>
   </head>
   <body>
     <script>
@@ -26,7 +72,15 @@
         document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
       } catch {}
     </script>
-    <div id="root"></div>
+    <div id="root">
+      <div class="toph-boot" role="status" aria-label="Carregando Toph">
+        <div class="toph-boot__stage" aria-hidden="true">
+          <img class="toph-boot__hop" src="%BASE_URL%brand/toph-mark.png?v=5" alt="" draggable="false" />
+          <span class="toph-boot__shadow"></span>
+        </div>
+        <p class="toph-boot__label">Toph</p>
+      </div>
+    </div>
     <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

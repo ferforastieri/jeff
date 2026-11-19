@@ -17,8 +17,8 @@ const mask = ({ left, top, rx, ry }: (typeof EYES)[number]) =>
 
 export default function BrandMark({ size = "small", className = "", look = true }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
-  const base = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=4`;
-  const eyes = `${import.meta.env.BASE_URL}brand/toph-mark.png?v=4`;
+  const base = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=5`;
+  const eyes = `${import.meta.env.BASE_URL}brand/toph-mark.png?v=5`;
   const pixels = size === "large" ? 56 : size === "small" ? 28 : undefined;
 
   useEffect(() => {

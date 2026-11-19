@@ -3,7 +3,7 @@ import { cx } from "@toph/ui";
 
 const EYE_TRANSFORM = "translate3d(var(--toph-look-x, 0px), var(--toph-look-y, 0px), 0)";
 
-const EYE_VERSION = "?v=2";
+const EYE_VERSION = "?v=3";
 
 export function avatarColorStyle(color: string, image: string): CSSProperties {
   return {

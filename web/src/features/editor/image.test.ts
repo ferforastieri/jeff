@@ -20,6 +20,6 @@ describe("isImagePath", () => {
 
   it("handles windows separators and query strings", () => {
     expect(isImagePath("C:\\repo\\assets\\shot.jpg")).toBe(true);
-    expect(isImagePath("assets/shot.png?v=2")).toBe(true);
+    expect(isImagePath("assets/shot.png?v=3")).toBe(true);
   });
 });

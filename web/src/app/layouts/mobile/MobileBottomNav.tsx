@@ -17,7 +17,7 @@ const tabs: Array<{ id: MobileScreen; label: string; icon: ComponentType<{ class
 ];
 
 const moreScreens: MobileScreen[] = ["db", "web", "debug", "more"];
-const MARK = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=4`;
+const MARK = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=5`;
 
 /**
  * The always-there mobile tab bar, in the native tab bar's shape: labels under

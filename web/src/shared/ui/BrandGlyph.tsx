@@ -13,7 +13,7 @@ export default function BrandGlyph({
   className?: string;
   "aria-hidden"?: boolean | "true" | "false";
 }) {
-  const mark = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=4`;
+  const mark = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=5`;
   return (
     <span
       className={cx("brand-glyph", className)}

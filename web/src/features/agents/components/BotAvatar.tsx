@@ -13,7 +13,7 @@ interface Props {
 }
 
 const AVATAR_BASE = `${import.meta.env.BASE_URL}tophs/`;
-const AVATAR_VERSION = "?v=6";
+const AVATAR_VERSION = "?v=7";
 /** The logo's Toph: the only character. */
 const AVATAR = "toph-logo";
 const CORE_AVATAR = `${AVATAR_BASE}${AVATAR}.png${AVATAR_VERSION}`;

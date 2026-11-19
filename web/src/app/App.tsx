@@ -8,7 +8,7 @@ import UpdateToast from "../features/updates/components/UpdateToast";
 const Workbench = lazy(() => import("./components/Workbench"));
 import MobileBoot from "./layouts/mobile/MobileBoot";
 import { isMobileViewport } from "../shared/ui/useIsMobile";
-import BrandMark from "@toph/brand";
+import TophBoot from "../shared/ui/TophBoot";
 
 const SERVER_KEY = "toph_server_url";
 
@@ -107,12 +107,7 @@ function AppShell() {
 
   if (!authReady) {
     if (isMobileViewport()) return <MobileBoot />;
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background">
-        <BrandMark size="large" />
-        <p className="text-sm text-muted-foreground">Conectando ao Toph...</p>
-      </div>
-    );
+    return <TophBoot />;
   }
 
   if (!serverUrl) {

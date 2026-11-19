@@ -133,8 +133,8 @@ export default function TophSettings({ user, projectRoot, projectId, hideTrigger
           <span
             className="toph-settings-trigger__mark"
             style={{
-              WebkitMaskImage: `url("${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=4")`,
-              maskImage: `url("${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=4")`,
+              WebkitMaskImage: `url("${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=5")`,
+              maskImage: `url("${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=5")`,
             }}
             aria-hidden="true"
           />
