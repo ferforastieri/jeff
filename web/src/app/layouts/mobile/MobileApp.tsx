@@ -345,12 +345,8 @@ export default function MobileApp() {
   if (!project) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-background-full p-4">
-        <section className="flex w-full flex-col items-center gap-4 rounded-3xl border border-border-button-white bg-background-primary-default p-6 text-center shadow-xs">
-          <BrandMark size="large" />
-          <h1 className="text-title-2-medium text-text-primary">Bem-vindo ao Jeff</h1>
-          <p className="text-body-regular text-text-secondary">
-            Crie um projeto pela interface para começar.
-          </p>
+        <section className="w-full max-w-md rounded-3xl border border-border-button-white bg-background-primary-default p-3 shadow-xs">
+          <ProjectSwitcher onSelect={selectProjectFromSheet} heading="Abrir projeto" />
         </section>
         <Toasts />
       </main>

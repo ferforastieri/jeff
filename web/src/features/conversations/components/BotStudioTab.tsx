@@ -326,7 +326,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         <AgentComposer value={text} onChange={(value) => setDraft(draftKey, value)} onSend={(value, files) => void send(value, files)} onStop={() => void stop()} busy={busy}
           placeholder={debug ? "Descreva o bug e como ele acontece…" : "Pergunte ao Jeff…"}
           history={native.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationModePicker projectId={project.id} chat={chat!} jeffs={jeffs} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /></>}
+          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /><ConversationModePicker projectId={project.id} chat={chat!} jeffs={jeffs} /></>}
           members={jeffs} />
       </div>}
     </section>

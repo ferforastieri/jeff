@@ -1,7 +1,7 @@
 import { useProjectStream } from "../../features/projects/hooks/useProjectStream";
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
-import { Bot, ChevronDown, ChevronRight, GitBranch, X } from "@jeff/icons";
+import { Bot, ChevronDown, GitBranch, X } from "@jeff/icons";
 import { api, getApiBase, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
 import { useApp, type Sidebar, type Tab } from "../store";
@@ -15,6 +15,7 @@ import { featureEnabled, isDesktopClient, isJeffOnly, sidebarFeature, useSetting
 import Tabs from "./Tabs";
 import Toasts from "../../features/notifications/components/Toasts";
 import CloseProjectModal from "../../features/projects/components/CloseProjectModal";
+import ProjectSwitcher from "../../features/projects/components/ProjectSwitcher";
 import BranchPicker from "../../features/git/components/BranchPicker";
 import BottomBar from "./BottomBar";
 import { handleAiCompletion, type AiCompletionPayload } from "../../features/notifications/completion";
@@ -23,7 +24,6 @@ import { IconButton } from "@jeff/ui/app";
 import BrandMark from "@jeff/brand";
 import { Button } from "@jeff/ui/app";
 import { Input } from "@jeff/ui/app";
-import { Avatar } from "@jeff/ui/app";
 import { Modal } from "@jeff/ui/app";
 import ResizeHandle from "../../shared/ui/resize";
 import { isMobileViewport, useIsMobile } from "../../shared/ui/useIsMobile";
@@ -147,6 +147,7 @@ export default function Workbench() {
   const [branchError, setBranchError] = useState("");
   const loadedProject = useRef<string | null>(null);
   const [projectEpoch, setProjectEpoch] = useState(0);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const forceJeffsOnLoad = useRef(false);
   const mobile = useIsMobile();
 
@@ -512,15 +513,29 @@ export default function Workbench() {
 
 
   useEffect(() => {
+    let cancelled = false;
     api
       .projects()
       .then((items) => {
-        setProjects(items);
+        if (!cancelled) setProjects(items);
       })
       .catch((error) => {
-        notify("error", error instanceof Error ? error.message : "Could not load projects.");
+        if (!cancelled) notify("error", error instanceof Error ? error.message : "Could not load projects.");
+      })
+      .finally(() => {
+        if (!cancelled) setProjectsLoaded(true);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [notify, setProjects]);
+
+  // The welcome page used to flash between projects loading. Pick the first
+  // project instead and only show a picker when the account really has none.
+  useEffect(() => {
+    if (!projectsLoaded || project || projects.length === 0) return;
+    setActiveProject(projects[0].id);
+  }, [projectsLoaded, project, projects, setActiveProject]);
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -939,63 +954,23 @@ export default function Workbench() {
     }
   }
 
-  if (projects.length === 0 || !project) {
-    const hasProjects = projects.length > 0;
-    return (
-      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-background-full p-4 sm:p-6">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-accent-500/[0.08] to-transparent" />
-        <section className="relative max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-border-button-white bg-background-primary-default shadow-2xl">
-          <div className="flex flex-col gap-6 p-6 sm:p-8">
-            <header className="flex flex-col items-center gap-4 text-center">
-              <span className="flex size-16 items-center justify-center rounded-2xl border border-accent-500/25 bg-accent-500/10 shadow-[0_0_32px_-18px_var(--color-accent-500)]">
-                <BrandMark size="large" />
-              </span>
-              <div className="space-y-2">
-                <h1 className="text-title-2-medium text-text-primary">Bem-vindo ao Jeff</h1>
-                <p className="mx-auto max-w-md text-body-regular text-text-secondary">
-                  {hasProjects ? "Retome um projeto recente ou abra outro repositório do servidor." : "Abra um repositório Git do servidor para começar."}
-                </p>
-              </div>
-            </header>
-
-            {hasProjects && (
-              <section className="flex min-h-0 flex-col gap-2">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-caption-2-semibold uppercase tracking-[0.14em] text-text-tertiary">Projetos disponíveis</span>
-                  <span className="text-caption-1-regular text-text-tertiary">{projects.length}</span>
-                </div>
-                <div className="grid max-h-[300px] gap-2 overflow-y-auto pe-1 sm:grid-cols-2">
-                  {projects.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => switchProject(item.id)}
-                      className="group flex min-w-0 items-center gap-3 rounded-xl border border-border-button-default bg-background-secondary-default/40 p-2.5 text-start transition-colors hover:border-accent-500/35 hover:bg-accent-500/[0.06]"
-                    >
-                      <Avatar size="sm" initials={item.name.slice(0, 1).toUpperCase()} className="bg-accent-500/15 text-caption-2-semibold text-accent-500" />
-                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span className="truncate text-body-2-medium text-text-primary">{item.name}</span>
-                        <span className="truncate text-caption-1-regular text-text-tertiary">{item.root}</span>
-                      </span>
-                      <ChevronRight size={14} className="shrink-0 text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100" />
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <footer className={cx("flex flex-col gap-3 border-t border-separator-border pt-5 sm:flex-row sm:items-center", hasProjects ? "sm:justify-between" : "sm:justify-center")}>
-              <p className="text-caption-1-regular text-text-tertiary">
-                {hasProjects ? "Escolha um cartão para continuar." : "Código, dados e IA no seu próprio servidor."}
-              </p>
-            </footer>
-          </div>
-        </section>
-        <Toasts />
-      </main>
-    );
+  if (!projectsLoaded) {
+    return <div className="min-h-dvh bg-background-full" />;
   }
 
+  if (!project) {
+    if (projects.length === 0) {
+      return (
+        <main className="relative flex min-h-dvh items-center justify-center bg-background-full p-4 sm:p-6">
+          <section className="w-full max-w-lg rounded-3xl border border-border-button-white bg-background-primary-default p-3 shadow-2xl">
+            <ProjectSwitcher onSelect={switchProject} heading="Abrir projeto" />
+          </section>
+          <Toasts />
+        </main>
+      );
+    }
+    return <div className="min-h-dvh bg-background-full" />;
+  }
 
   function branchPickerBody() {
     return (
