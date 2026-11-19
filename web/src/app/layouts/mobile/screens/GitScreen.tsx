@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronRight, GitBranch, Minus, Plus, RefreshCw, Settings2, Sparkles, Trash2, TriangleAlert, Undo2 } from "@toph/icons";
+import { Check, ChevronRight, GitBranch, Minus, Plus, RefreshCw, Settings2, Sparkles, Trash2, TriangleAlert, Undo2 } from "@jeff/icons";
 import { api, type GitState, type Project } from "../../../../shared/api";
 import { useProjectEvents } from "../../../../features/projects/events";
 import { useApp } from "../../../store";
@@ -11,11 +11,11 @@ import { suggestGitChanges } from "../../../../features/git/ai";
 import { useConfirm } from "../../../../shared/ui/confirm";
 import FileIcon from "../../../../features/explorer/components/FileIcon";
 import GitStatusIcon from "../../../../features/git/components/GitStatusIcon";
-import { Badge } from "@toph/ui/app";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
-import { cx } from "@toph/ui";
+import { Badge } from "@jeff/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
+import { cx } from "@jeff/ui";
 
 interface Props {
   project: Project;
@@ -60,8 +60,8 @@ export default function GitScreen({ project, branch, onOpenDiff, onBranch }: Pro
   useEffect(() => { void load(); }, [project.id]);
   useEffect(() => {
     const refresh = () => void load();
-    window.addEventListener("toph:git-changed", refresh);
-    return () => window.removeEventListener("toph:git-changed", refresh);
+    window.addEventListener("jeff:git-changed", refresh);
+    return () => window.removeEventListener("jeff:git-changed", refresh);
   }, [project.id]);
   // A merge or checkout run in the terminal changes files; follow the project
   // stream so the source control screen is never stale.

@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { HTMLAttributes, Ref } from "react";
-import { cx, sortCx } from "@toph/ui/app/utils/cx";
+import { cx, sortCx } from "@jeff/ui/app/utils/cx";
 
 /**
  * Figma source: Board UI → Avatar (styles Avatar/1…Avatar/26; used throughout

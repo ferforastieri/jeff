@@ -63,7 +63,7 @@ export interface LogoProps {
   style?: CSSProperties;
 }
 
-/** "agentes" logo: mark + wordmark in Funnel Display light (".chat" in Doto). Accessible name "agentes" (or "Tophs" expanded). */
+/** "agentes" logo: mark + wordmark in Funnel Display light (".chat" in Doto). Accessible name "agentes" (or "Jeffs" expanded). */
 export function Logo({ variant = "main", mono, size = 24, className, style }: LogoProps) {
   const expanded = variant === "expanded";
   return (
@@ -71,7 +71,7 @@ export function Logo({ variant = "main", mono, size = 24, className, style }: Lo
       className={cx("ac-logo", mono && "ac-logo--mono", className)}
       style={{ fontSize: size, ...style }}
       role="img"
-      aria-label={expanded ? "Tophs" : "agentes"}
+      aria-label={expanded ? "Jeffs" : "agentes"}
     >
       <LogoMark />
       {expanded ? (

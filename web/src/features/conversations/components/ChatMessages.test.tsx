@@ -1,13 +1,13 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Project } from "../../../shared/api";
-import type { ChatToph } from "../store";
+import type { ChatJeff } from "../store";
 import type { NativeMessage } from "../../agents/api";
 import ChatMessages from "./ChatMessages";
 
-const project: Project = { id: "p", name: "Projeto", root: "/projeto", color: "#0F766E", createdAt: "", updatedAt: "" };
-const toph: ChatToph = {
-  id: "toph",
+const project: Project = { id: "p", name: "Projeto", root: "/projeto", color: "#0063D1", createdAt: "", updatedAt: "" };
+const jeff: ChatJeff = {
+  id: "jeff",
   name: "Beto",
   handle: "beto",
   role: "Dev",
@@ -23,7 +23,7 @@ const toph: ChatToph = {
   emailAccountIds: [],
   language: "auto",
   color: "#8FB5F5",
-  avatar: "toph-logo",
+  avatar: "jeff-logo",
   notifications: true,
   createdAt: 1,
 };
@@ -33,15 +33,15 @@ afterEach(cleanup);
 describe("ChatMessages timeline", () => {
   it("renders messages and activity in seq order without tool cards", () => {
     const messages: NativeMessage[] = [
-      { id: "third", chatId: "chat", tophId: "toph", role: "assistant", content: "terceira resposta", status: "complete", createdAt: 3, seq: 30 },
-      { id: "first", chatId: "chat", tophId: "toph", role: "assistant", content: "primeira resposta", status: "complete", createdAt: 1, seq: 10 },
-      { id: "tool", chatId: "chat", tophId: "toph", role: "tool", title: "read_file", content: JSON.stringify({ path: "src/a.ts" }), status: "complete", createdAt: 2, seq: 20 },
+      { id: "third", chatId: "chat", jeffId: "jeff", role: "assistant", content: "terceira resposta", status: "complete", createdAt: 3, seq: 30 },
+      { id: "first", chatId: "chat", jeffId: "jeff", role: "assistant", content: "primeira resposta", status: "complete", createdAt: 1, seq: 10 },
+      { id: "tool", chatId: "chat", jeffId: "jeff", role: "tool", title: "read_file", content: JSON.stringify({ path: "src/a.ts" }), status: "complete", createdAt: 2, seq: 20 },
     ];
 
     render(
       <ChatMessages
         messages={messages}
-        tophs={[toph]}
+        jeffs={[jeff]}
         runs={[]}
         project={project}
         mobile={false}
@@ -61,8 +61,8 @@ describe("ChatMessages timeline", () => {
   it("renders agent replies as plain markdown, without a speech bubble", () => {
     render(
       <ChatMessages
-        messages={[{ id: "reply", chatId: "chat", tophId: "toph", role: "assistant", content: "**Resposta** do agente", status: "complete", createdAt: 1, seq: 10 }]}
-        tophs={[toph]}
+        messages={[{ id: "reply", chatId: "chat", jeffId: "jeff", role: "assistant", content: "**Resposta** do agente", status: "complete", createdAt: 1, seq: 10 }]}
+        jeffs={[jeff]}
         runs={[]}
         project={project}
         mobile={false}
@@ -79,7 +79,7 @@ describe("ChatMessages timeline", () => {
     render(
       <ChatMessages
         messages={[{ id: "mine", chatId: "chat", role: "user", content: "Olá", status: "complete", createdAt: 1, seq: 10 }]}
-        tophs={[toph]}
+        jeffs={[jeff]}
         runs={[]}
         project={project}
         mobile={false}
@@ -96,7 +96,7 @@ describe("ChatMessages timeline", () => {
       {
         id: "shell",
         chatId: "chat",
-        tophId: "toph",
+        jeffId: "jeff",
         role: "tool",
         title: "shell",
         content: JSON.stringify({ exitCode: 0, stdout: "ok\n", stderr: "" }),
@@ -111,7 +111,7 @@ describe("ChatMessages timeline", () => {
     render(
       <ChatMessages
         messages={messages}
-        tophs={[toph]}
+        jeffs={[jeff]}
         runs={[]}
         project={project}
         mobile={false}

@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Pencil, Play, Square, Rows3, Trash2 } from "@toph/icons";
+import { Check, Pencil, Play, Square, Rows3, Trash2 } from "@jeff/icons";
 import { api, type DBProfile, type QueryResult } from "../../../shared/api";
 import { useApp, type Tab } from "../../../app/store";
-import { ProgressCircle } from "@toph/ui/app";
+import { ProgressCircle } from "@jeff/ui/app";
 import CodeEditor from "../../editor/components/CodeEditor";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Badge } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
-import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Badge } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
+import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@jeff/ui/app";
 import { useConfirm } from "../../../shared/ui/confirm";
 import { useProjectEvents } from "../../projects/events";
 

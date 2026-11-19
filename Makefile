@@ -10,14 +10,14 @@ web-landing:
 
 build: web
 	mkdir -p bin
-	TOPH_VERSION="$${TOPH_VERSION:-0.0.0-dev}" cargo build --release --manifest-path backend/Cargo.toml --bin toph
-	cp backend/target/release/toph bin/toph
+	JEFF_VERSION="$${JEFF_VERSION:-0.0.0-dev}" cargo build --release --manifest-path backend/Cargo.toml --bin jeff
+	cp backend/target/release/jeff bin/jeff
 
 run:
-	cd backend && cargo run --bin toph
+	cd backend && cargo run --bin jeff
 
 dev:
-	@echo "API:     cd backend && cargo run --bin toph"
+	@echo "API:     cd backend && cargo run --bin jeff"
 	@echo "App:     npm run dev:web"
 	@echo "Landing: npm run dev:landing"
 

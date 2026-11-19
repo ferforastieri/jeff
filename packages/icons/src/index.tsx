@@ -1,13 +1,13 @@
 /**
- * The app's icon names, all drawn by the Tophs kit (`@toph/ui`'s `Icon`): the
+ * The app's icon names, all drawn by the Jeffs kit (`@jeff/ui`'s `Icon`): the
  * same 20px grid, 1.6 stroke and shapes as the screens' own set. Nothing here
  * comes from another icon library; the names are kept so the screens can ask
  * for "a bot", "a folder" or "a warning" in their own words.
  */
 import type { SVGProps } from "react";
-import { Icon, type IconName } from "@toph/ui";
+import { Icon, type IconName } from "@jeff/ui";
 
-export interface TophIconProps extends Omit<SVGProps<SVGSVGElement>, "ref" | "name"> {
+export interface JeffIconProps extends Omit<SVGProps<SVGSVGElement>, "ref" | "name"> {
   /** 20 by default, as the kit draws it; the class (`size-4`) wins when both are set. */
   size?: number | string;
   /** Kept for the screens that pass it: the kit's stroke is fixed at 1.6. */
@@ -15,7 +15,7 @@ export interface TophIconProps extends Omit<SVGProps<SVGSVGElement>, "ref" | "na
 }
 
 function glyph(name: IconName) {
-  return function TophGlyph({ size, className, strokeWidth: _strokeWidth, ...rest }: TophIconProps) {
+  return function JeffGlyph({ size, className, strokeWidth: _strokeWidth, ...rest }: JeffIconProps) {
     const px = typeof size === "number" && (size === 14 || size === 16 || size === 18 || size === 20) ? size : undefined;
     return <Icon name={name} size={px} className={className} {...rest} />;
   };

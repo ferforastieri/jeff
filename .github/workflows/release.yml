@@ -164,10 +164,10 @@ jobs:
         include:
           - runner: ubuntu-24.04
             artifact: amd64
-            output: toph-linux-amd64
+            output: jeff-linux-amd64
           - runner: ubuntu-24.04-arm
             artifact: arm64
-            output: toph-linux-arm64
+            output: jeff-linux-arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -194,11 +194,11 @@ jobs:
       - name: Build server binary
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-          TOPH_VERSION: ${{ needs.prepare.outputs.version }}
+          JEFF_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
-          cargo build --release --manifest-path backend/Cargo.toml --bin toph
-          cp backend/target/release/toph "${{ matrix.output }}"
+          cargo build --release --manifest-path backend/Cargo.toml --bin jeff
+          cp backend/target/release/jeff "${{ matrix.output }}"
 
       - name: Upload server artifacts
         uses: actions/upload-artifact@v4
@@ -261,29 +261,29 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          TOPH_VERSION_NAME: ${{ needs.prepare.outputs.version }}
+          JEFF_VERSION_NAME: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
           if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "::error::ANDROID_KEYSTORE_BASE64 is required. Debug APKs are not published."
             exit 1
           fi
-          export TOPH_VERSION_CODE="$((10000 + GITHUB_RUN_NUMBER))"
-          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/toph-release.jks"
+          export JEFF_VERSION_CODE="$((10000 + GITHUB_RUN_NUMBER))"
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/jeff-release.jks"
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE_PATH"
           export NDK_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/ndk/28.2.13676358"
           cd mobile
           npm run icons
-          npm run tauri -- android build --apk --target aarch64 --config "{\"version\":\"${TOPH_VERSION_NAME}\"}"
+          npm run tauri -- android build --apk --target aarch64 --config "{\"version\":\"${JEFF_VERSION_NAME}\"}"
           APK=$(find src-tauri/gen/android/app/build/outputs/apk -name 'app-universal-release.apk' -print -quit)
-          cp "$APK" "../toph-v${TOPH_VERSION_NAME}.apk"
-          "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/36.0.0/apksigner" verify "../toph-v${TOPH_VERSION_NAME}.apk"
+          cp "$APK" "../jeff-v${JEFF_VERSION_NAME}.apk"
+          "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/36.0.0/apksigner" verify "../jeff-v${JEFF_VERSION_NAME}.apk"
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: android
-          path: toph-v${{ needs.prepare.outputs.version }}.apk
+          path: jeff-v${{ needs.prepare.outputs.version }}.apk
           if-no-files-found: error
 
   desktop:
@@ -320,19 +320,19 @@ jobs:
           mkdir -p release
           cp install.sh release/
           if [ -d artifacts/server-amd64 ]; then
-            cp artifacts/server-amd64/toph-linux-amd64 release/
+            cp artifacts/server-amd64/jeff-linux-amd64 release/
           fi
           if [ -d artifacts/server-arm64 ]; then
-            cp artifacts/server-arm64/toph-linux-arm64 release/
+            cp artifacts/server-arm64/jeff-linux-arm64 release/
           fi
           if [ -d artifacts/android ]; then
             find artifacts/android -name '*.apk' -exec cp {} release/ \;
           fi
-          if [ -d artifacts/toph-client-desktop-ubuntu-24.04 ]; then
-            find artifacts/toph-client-desktop-ubuntu-24.04 -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' \) -exec cp {} release/ \;
+          if [ -d artifacts/jeff-client-desktop-ubuntu-24.04 ]; then
+            find artifacts/jeff-client-desktop-ubuntu-24.04 -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' \) -exec cp {} release/ \;
           fi
-          if [ -d artifacts/toph-client-desktop-windows-latest ]; then
-            find artifacts/toph-client-desktop-windows-latest -type f \( -name '*.msi' -o -name '*-setup.exe' \) -exec cp {} release/ \;
+          if [ -d artifacts/jeff-client-desktop-windows-latest ]; then
+            find artifacts/jeff-client-desktop-windows-latest -type f \( -name '*.msi' -o -name '*-setup.exe' \) -exec cp {} release/ \;
           fi
           ls -lh release
 
@@ -341,6 +341,6 @@ jobs:
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           target_commitish: ${{ github.event.workflow_run.head_sha }}
-          name: Toph ${{ needs.prepare.outputs.tag }}
+          name: Jeff ${{ needs.prepare.outputs.tag }}
           generate_release_notes: true
           files: release/*

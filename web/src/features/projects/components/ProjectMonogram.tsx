@@ -1,5 +1,5 @@
 import type { Project } from "../../../shared/api";
-import { cx } from "@toph/ui";
+import { cx } from "@jeff/ui";
 
 interface Props {
   project: Project;
@@ -7,7 +7,7 @@ interface Props {
   className?: string;
 }
 
-/** Always two letters when possible: "toph" → TO, "minha-api" → MA. */
+/** Always two letters when possible: "jeff" → TO, "minha-api" → MA. */
 export function projectInitials(name: string): string {
   const words = name
     .split(/[^\p{L}\p{N}]+/u)
@@ -18,9 +18,9 @@ export function projectInitials(name: string): string {
   return words[0].slice(0, 2).toUpperCase();
 }
 
-/** The project's own identity: initials on the project colour, never a Toph. */
+/** The project's own identity: initials on the project colour, never a Jeff. */
 export default function ProjectMonogram({ project, size = 28, className }: Props) {
-  const color = project.color || "#0F766E";
+  const color = project.color || "#0063D1";
   return (
     <span
       className={cx("flex shrink-0 select-none items-center justify-center font-semibold leading-none", className)}

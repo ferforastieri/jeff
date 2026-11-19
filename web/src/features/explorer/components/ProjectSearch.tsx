@@ -3,8 +3,8 @@ import LoadingState from "../../../shared/ui/LoadingState";
 import { api, type Project, type SearchMatch } from "../../../shared/api";
 import { basename, dirname } from "../../../shared/lib";
 import FileIcon from "./FileIcon";
-import { SearchField } from "@toph/ui/app";
-import { cx } from "@toph/ui";
+import { SearchField } from "@jeff/ui/app";
+import { cx } from "@jeff/ui";
 import { useDebouncedValue } from "../../../shared/ui/useDebouncedValue";
 
 interface Props {

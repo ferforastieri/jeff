@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use jeff_server::database::{DatabaseService, ProfileInput, RowChange};
+use jeff_server::store::Store;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
-use toph_server::database::{DatabaseService, ProfileInput, RowChange};
-use toph_server::store::Store;
 
 #[tokio::test]
 async fn sqlite_profiles_query_schema_and_edit_rows() {
@@ -27,7 +27,7 @@ async fn sqlite_profiles_query_schema_and_edit_rows() {
         .unwrap();
     pool.close().await;
 
-    let store = Store::open(&dir.path().join("toph.db")).await.unwrap();
+    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
     let service = DatabaseService::new(store.clone(), &dir.path().join("master.key")).unwrap();
     let profile = service
         .create(ProfileInput {

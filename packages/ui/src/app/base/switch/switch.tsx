@@ -3,7 +3,7 @@
 import type { ReactNode, Ref } from "react";
 import { Switch as AriaSwitch } from "react-aria-components";
 import type { SwitchProps as AriaSwitchProps } from "react-aria-components";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 
 /**
  * Figma source: Board UI → "Toogles" (node 3856:3807).

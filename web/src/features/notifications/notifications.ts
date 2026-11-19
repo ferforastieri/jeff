@@ -4,7 +4,7 @@ interface NotificationBridge {
 }
 
 export function nativePushToken(): string {
-  const bridge = (window as unknown as { TophNotifications?: NotificationBridge }).TophNotifications;
+  const bridge = (window as unknown as { JeffNotifications?: NotificationBridge }).JeffNotifications;
   try {
     return bridge?.token?.()?.trim() ?? "";
   } catch {
@@ -13,7 +13,7 @@ export function nativePushToken(): string {
 }
 
 export function requestMobileNotificationPermission(): void {
-  const bridge = (window as unknown as { TophNotifications?: NotificationBridge }).TophNotifications;
+  const bridge = (window as unknown as { JeffNotifications?: NotificationBridge }).JeffNotifications;
   if (bridge?.requestPermission) {
     try {
       bridge.requestPermission();

@@ -22,7 +22,7 @@ const features = [
   },
   {
     icon: Bot,
-    title: "Native Toph agents",
+    title: "Native Jeff agents",
     text: "Native sessions with streaming, tool calls and permission prompts.",
   },
   {
@@ -47,7 +47,7 @@ export default function Landing() {
     <main className="landing">
       <nav className="landing-nav">
         <a className="landing-brand" href="/">
-          <img className="landing-logo" src={`${import.meta.env.BASE_URL}brand/toph-logo-horizontal.png?v=5`} alt="Toph" />
+          <img className="landing-logo" src={`${import.meta.env.BASE_URL}brand/jeff-logo-horizontal.png?v=5`} alt="Jeff" />
         </a>
         <div className="landing-links">
           <a href="#features">Features</a>
@@ -57,7 +57,7 @@ export default function Landing() {
             <Code2 size={15} /> GitHub
           </a>
           <a className="landing-open" href="/app">
-            Open Toph <ArrowRight size={14} />
+            Open Jeff <ArrowRight size={14} />
           </a>
         </div>
       </nav>
@@ -71,12 +71,12 @@ export default function Landing() {
             <span>in one workbench.</span>
           </h1>
           <p>
-            Toph puts code, databases, AI agents, terminals and web apps in the same
+            Jeff puts code, databases, AI agents, terminals and web apps in the same
             workspace. It runs on your server, in your browser and on your phone.
           </p>
           <div className="hero-actions">
             <a className="primary landing-cta" href="/app">
-              Open Toph <ArrowRight size={16} />
+              Open Jeff <ArrowRight size={16} />
             </a>
             <a className="ghost landing-cta" href="/docs.html">
               Read the docs
@@ -100,7 +100,7 @@ export default function Landing() {
           <div className="mock-tabs">
             <span className="mock-tab active">app.tsx</span>
             <span className="mock-tab">database</span>
-            <span className="mock-tab">Toph</span>
+            <span className="mock-tab">Jeff</span>
             <span className="mock-tab">Grafana</span>
           </div>
           <div className="mock-body">
@@ -114,7 +114,7 @@ export default function Landing() {
             </div>
             <div className="mock-code">
               <span>
-                <i>const</i> workspace = <b>await</b> toph.open(
+                <i>const</i> workspace = <b>await</b> jeff.open(
               </span>
               <span className="indent">
                 <em>"workspace"</em>,
@@ -128,7 +128,7 @@ export default function Landing() {
           <div className="mock-terminal">
             <span className="prompt">~/workspace $</span> docker compose up -d
             <br />
-            <span className="ok">✓ toph ready on :8787</span>
+            <span className="ok">✓ jeff ready on :8787</span>
           </div>
         </div>
       </section>
@@ -138,7 +138,7 @@ export default function Landing() {
           <span className="eyebrow">What is inside</span>
           <h2>Less context switching. More work.</h2>
           <p>
-            Toph is not a dashboard with links. It is a real workbench with first-class
+            Jeff is not a dashboard with links. It is a real workbench with first-class
             tabs for the things you use every day.
           </p>
         </div>
@@ -170,7 +170,7 @@ export default function Landing() {
         │                          │
         └──── HTTPS / WSS ─────────┘
                      │
-                 toph (Go)
+                 jeff (Go)
         ├── auth + projects
         ├── files + git + search
         ├── PTY terminal
@@ -209,7 +209,7 @@ export default function Landing() {
       </section>
 
       <footer className="landing-footer">
-        <span>Toph · MIT · self-hosted</span>
+        <span>Jeff · MIT · self-hosted</span>
         <div>
           <a href="/docs.html">Docs</a>
           <a href="https://github.com/ferforastieri/toph" target="_blank" rel="noreferrer">

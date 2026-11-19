@@ -137,7 +137,7 @@ function shellSummary(value: unknown): { output?: string; error?: string } {
 }
 
 function toolName(message: NativeMessage): string {
-  return (message.title ?? "").toLowerCase().replace(/^toph[_-]/, "").replace(/^mcp__toph__/, "");
+  return (message.title ?? "").toLowerCase().replace(/^jeff[_-]/, "").replace(/^mcp__jeff__/, "");
 }
 
 function stringArg(args: Record<string, unknown>, keys: string[]): string {
@@ -227,7 +227,7 @@ export function toolStep(message: NativeMessage): ToolStepView {
     const busy = parse(result)?.busy === true;
     return {
       label: busy ? "Já estava respondendo" : "Passou para",
-      detail: agent ? `@${agent.replace(/^@/, "")}` : "outro Toph",
+      detail: agent ? `@${agent.replace(/^@/, "")}` : "outro Jeff",
     };
   }
   if (/email_send/.test(name)) {

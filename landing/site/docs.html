@@ -3,28 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Toph Docs · Instalação, Tophs, workbench e agentes</title>
-<meta name="description" content="Documentação do Toph: instalação, configuração, Tophs individuais e em grupo, motores, MCP, skills, aprovações, workbench, Git, bancos, debug, anexos e instruções para agentes de IA.">
-<meta property="og:title" content="Toph Docs · Instalação, Tophs e workbench">
-<meta property="og:description" content="Tudo o que o Toph faz e como usar, com um guia de instalação feito para agentes de IA.">
-<meta property="og:image" content="https://ferforastieri.github.io/toph/assets/brand/toph-og.png">
+<title>Jeff Docs · Instalação, Jeffs, workbench e agentes</title>
+<meta name="description" content="Documentação do Jeff: instalação, configuração, Jeffs individuais e em grupo, motores, MCP, skills, aprovações, workbench, Git, bancos, debug, anexos e instruções para agentes de IA.">
+<meta property="og:title" content="Jeff Docs · Instalação, Jeffs e workbench">
+<meta property="og:description" content="Tudo o que o Jeff faz e como usar, com um guia de instalação feito para agentes de IA.">
+<meta property="og:image" content="https://ferforastieri.github.io/toph/assets/brand/jeff-og.png">
 <meta property="og:url" content="https://ferforastieri.github.io/toph/docs.html">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#050505">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-<meta name="author" content="Toph">
-<meta property="og:site_name" content="Toph">
+<meta name="author" content="Jeff">
+<meta property="og:site_name" content="Jeff">
 <meta property="og:locale" content="pt_BR">
-<meta property="og:image:alt" content="Toph: seu time de agentes de IA. Suas regras.">
+<meta property="og:image:alt" content="Jeff: seu time de agentes de IA. Suas regras.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Toph Docs · Instalação, Tophs, workbench e agentes">
-<meta name="twitter:description" content="Tudo o que o Toph faz e como usar, com um guia de instalação feito para agentes de IA.">
-<meta name="twitter:image" content="https://ferforastieri.github.io/toph/assets/brand/toph-og.png">
-<meta name="twitter:image:alt" content="Toph Docs">
+<meta name="twitter:title" content="Jeff Docs · Instalação, Jeffs, workbench e agentes">
+<meta name="twitter:description" content="Tudo o que o Jeff faz e como usar, com um guia de instalação feito para agentes de IA.">
+<meta name="twitter:image" content="https://ferforastieri.github.io/toph/assets/brand/jeff-og.png">
+<meta name="twitter:image:alt" content="Jeff Docs">
 <link rel="sitemap" type="application/xml" href="https://ferforastieri.github.io/toph/sitemap.xml">
 <link rel="canonical" href="https://ferforastieri.github.io/toph/docs.html">
-<link rel="alternate" type="text/markdown" href="https://ferforastieri.github.io/toph/docs.md" title="Toph docs in Markdown">
-<link rel="alternate" type="text/plain" href="https://ferforastieri.github.io/toph/llms.txt" title="Toph for AI agents">
+<link rel="alternate" type="text/markdown" href="https://ferforastieri.github.io/toph/docs.md" title="Jeff docs in Markdown">
+<link rel="alternate" type="text/plain" href="https://ferforastieri.github.io/toph/llms.txt" title="Jeff for AI agents">
 <link rel="icon" type="image/png" href="assets/brand/favicon-32.png">
 <link rel="apple-touch-icon" href="assets/brand/favicon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,14 +34,14 @@
 :root {
   --bg: #050505; --panel: #12110F; --panel-2: #191714; --line: #2A261F; --line-2: #3A342A;
   --text: #F5F2ED; --muted: #A39B8F; --faint: #746D63;
-  --amber: #0F766E; --amber-2: #115E59; --coral: #14B8A6; --green: #7CE7B0;
+  --amber: #0063D1; --amber-2: #003E8C; --coral: #3D8BFF; --green: #7CE7B0;
   --display: 'Sora', system-ui, sans-serif; --body: 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--body); -webkit-font-smoothing: antialiased; }
-body::before { content: ''; position: fixed; inset: -25% 15% auto 15%; height: 60vh; background: radial-gradient(ellipse at 50% 0%, rgba(15,118,110,.11), transparent 66%); pointer-events: none; z-index: 0; }
+body::before { content: ''; position: fixed; inset: -25% 15% auto 15%; height: 60vh; background: radial-gradient(ellipse at 50% 0%, rgba(0,99,209,.11), transparent 66%); pointer-events: none; z-index: 0; }
 a { color: inherit; }
 img { display: block; }
 ::selection { background: var(--amber); color: #FFFFFF; }
@@ -50,7 +50,7 @@ img { display: block; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
 ::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: var(--amber); background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: #14B8A6; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: #3D8BFF; background-clip: padding-box; }
 ::-webkit-scrollbar-corner { background: transparent; }
 .wrap { width: min(1180px, 100% - 40px); margin: 0 auto; position: relative; z-index: 1; }
 .mono { font-family: var(--mono); }
@@ -65,9 +65,9 @@ header nav a:hover { color: var(--text); }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: 10px; text-decoration: none; font: 600 12.5px/1 var(--body); white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,.18); transition: background .25s, border-color .25s, color .25s, box-shadow .25s, transform .25s; }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: scale(.97); }
-.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px rgba(15,118,110,.55); }
-.btn.primary { background: linear-gradient(180deg, #14B8A6 0%, #0F766E 100%); color: #FFFFFF; border-color: rgba(15,118,110,.35); }
-.btn.primary:hover { background: linear-gradient(180deg, #5EEAD4 0%, #14B8A6 100%); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px rgba(0,99,209,.55); }
+.btn.primary { background: linear-gradient(180deg, #3D8BFF 0%, #0063D1 100%); color: #FFFFFF; border-color: rgba(0,99,209,.35); }
+.btn.primary:hover { background: linear-gradient(180deg, #8CC3FF 0%, #3D8BFF 100%); }
 .btn.ghost { border-color: var(--line); background: var(--panel); color: var(--text); box-shadow: none; }
 .btn.ghost:hover { border-color: var(--line-2); background: var(--panel-2); }
 .docs-layout { display: grid; grid-template-columns: 246px minmax(0, 1fr); gap: 54px; padding: 42px 0 78px; align-items: start; }
@@ -83,13 +83,13 @@ header nav a:hover { color: var(--text); }
 .toc a { display: block; padding: 6px 7px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: 12.5px; line-height: 1.35; }
 .toc a:hover { color: var(--text); background: rgba(255,255,255,.04); }
 .toc .toc-group { margin: 12px 0 4px; padding: 0 7px; color: var(--faint); font: 600 8.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
-.toc-ai { margin-top: 14px; padding: 10px; border: 1px solid rgba(15,118,110,.26); border-radius: 10px; background: rgba(15,118,110,.06); }
+.toc-ai { margin-top: 14px; padding: 10px; border: 1px solid rgba(0,99,209,.26); border-radius: 10px; background: rgba(0,99,209,.06); }
 .toc-ai b { display: block; color: var(--amber); font: 600 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .toc-ai a { margin-top: 6px; padding: 0; color: var(--muted); font-size: 11px; }
 .doc { min-width: 0; }
 .doc-hero { padding: 4px 0 34px; border-bottom: 1px solid var(--line); }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--amber); font: 600 10.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
-.eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px rgba(15,118,110,.12); }
+.eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px rgba(0,99,209,.12); }
 .doc-hero h1 { margin: 16px 0 0; font: 700 clamp(34px, 5vw, 56px)/1.02 var(--display); letter-spacing: -.05em; }
 .doc-hero p { margin: 16px 0 0; max-width: 720px; color: var(--muted); font-size: 16px; }
 .doc-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
@@ -110,7 +110,7 @@ pre .prompt { color: var(--amber); }
 .copy-wrap { position: relative; }
 .copy { position: absolute; top: 9px; right: 9px; height: 25px; padding: 0 8px; border: 1px solid var(--line); border-radius: 5px; background: #12110F; color: var(--muted); font: 600 9px/1 var(--mono); cursor: pointer; }
 .copy:hover, .copy.done { border-color: var(--amber); color: var(--amber); }
-.callout { margin: 16px 0 0; padding: 13px 15px; border: 1px solid rgba(15,118,110,.28); border-radius: 10px; background: rgba(15,118,110,.06); color: var(--muted); font-size: 13px; line-height: 1.55; }
+.callout { margin: 16px 0 0; padding: 13px 15px; border: 1px solid rgba(0,99,209,.28); border-radius: 10px; background: rgba(0,99,209,.06); color: var(--muted); font-size: 13px; line-height: 1.55; }
 .callout b { color: var(--amber); font-weight: 600; }
 .callout.ai { border-color: rgba(124,231,176,.28); background: rgba(124,231,176,.06); }
 .callout.ai b { color: var(--green); }
@@ -156,26 +156,26 @@ footer.site-footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
   "@graph": [
     {
       "@type": "TechArticle",
-      "headline": "Toph Docs · Instalação, Tophs, workbench e agentes",
-      "description": "Documentação do Toph: instalação, configuração, Tophs individuais e em grupo, motores, MCP, skills, aprovações, workbench, Git, bancos, debug, anexos e instruções para agentes de IA.",
+      "headline": "Jeff Docs · Instalação, Jeffs, workbench e agentes",
+      "description": "Documentação do Jeff: instalação, configuração, Jeffs individuais e em grupo, motores, MCP, skills, aprovações, workbench, Git, bancos, debug, anexos e instruções para agentes de IA.",
       "url": "https://ferforastieri.github.io/toph/docs.html",
       "mainEntityOfPage": "https://ferforastieri.github.io/toph/docs.html",
       "inLanguage": "pt-BR",
       "dateModified": "2026-11-09",
       "author": {
         "@type": "Organization",
-        "name": "Toph",
+        "name": "Jeff",
         "url": "https://ferforastieri.github.io/toph/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Toph",
+        "name": "Jeff",
         "url": "https://ferforastieri.github.io/toph/",
-        "logo": "https://ferforastieri.github.io/toph/assets/brand/toph-mark.png"
+        "logo": "https://ferforastieri.github.io/toph/assets/brand/jeff-mark.png"
       },
       "about": {
         "@type": "SoftwareApplication",
-        "name": "Toph",
+        "name": "Jeff",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "macOS, Linux, Windows",
         "url": "https://ferforastieri.github.io/toph/"
@@ -184,7 +184,7 @@ footer.site-footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
     {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Toph", "item": "https://ferforastieri.github.io/toph/" },
+        { "@type": "ListItem", "position": 1, "name": "Jeff", "item": "https://ferforastieri.github.io/toph/" },
         { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://ferforastieri.github.io/toph/docs.html" }
       ]
     }
@@ -198,9 +198,9 @@ footer.site-footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
 
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="./" aria-label="Toph">
-      <img src="assets/brand/toph-mark.png" alt="" width="30" height="30">
-      <b>toph</b>
+    <a class="brand" href="./" aria-label="Jeff">
+      <img src="assets/brand/jeff-mark.png" alt="" width="30" height="30">
+      <b>jeff</b>
     </a>
     <nav aria-label="Principal">
       <a href="./">Site</a>
@@ -218,9 +218,9 @@ footer.site-footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
     <a href="#comece">Comece aqui</a>
     <a href="#instalar">Instalar</a>
     <a href="#configurar">Configurar</a>
-    <a href="#primeiro-toph">Primeiro Toph</a>
+    <a href="#primeiro-jeff">Primeiro Jeff</a>
     <div class="toc-group">Usar</div>
-    <a href="#tophs">Tophs e grupos</a>
+    <a href="#jeffs">Jeffs e grupos</a>
     <a href="#motores">Motores</a>
     <a href="#ferramentas">Ferramentas e permissões</a>
     <a href="#workbench">Workbench</a>
@@ -240,29 +240,29 @@ footer.site-footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
   <main class="doc">
     <div class="doc-hero">
       <div class="eyebrow">Documentação</div>
-      <h1>Tudo o que o Toph faz.<br>E como usar.</h1>
-      <p>Instalação, Tophs individuais e em grupo, motores, MCP, skills, aprovações e o workbench completo. No fim, um guia feito para um agente de IA instalar o Toph sem adivinhar nada.</p>
+      <h1>Tudo o que o Jeff faz.<br>E como usar.</h1>
+      <p>Instalação, Jeffs individuais e em grupo, motores, MCP, skills, aprovações e o workbench completo. No fim, um guia feito para um agente de IA instalar o Jeff sem adivinhar nada.</p>
       <div class="doc-actions">
-        <a class="btn primary" href="#instalar">Instalar o Toph</a>
+        <a class="btn primary" href="#instalar">Instalar o Jeff</a>
         <a class="btn ghost" href="#ia">Guia para agentes de IA</a>
       </div>
     </div>
 
     <section class="doc-section" id="comece">
       <h2>Comece aqui <a class="anchor" href="#comece">#</a></h2>
-      <p><strong>Toph é um workbench de agentes de IA self-hosted.</strong> Você abre um projeto, cria um ou vários Tophs e cada um trabalha com o motor, o modelo, as ferramentas e as permissões que você escolher. O projeto e os arquivos ficam no seu computador ou servidor.</p>
+      <p><strong>Jeff é um workbench de agentes de IA self-hosted.</strong> Você abre um projeto, cria um ou vários Jeffs e cada um trabalha com o motor, o modelo, as ferramentas e as permissões que você escolher. O projeto e os arquivos ficam no seu computador ou servidor.</p>
       <div class="grid2">
-        <div class="mini"><b>Um Toph ou um time</b><p>Uma tarefa pode ter um Toph sozinho ou vários. Sem menção, o roteador escolhe quem responde; com <code>@handle</code>, você escolhe.</p></div>
+        <div class="mini"><b>Um Jeff ou um time</b><p>Uma tarefa pode ter um Jeff sozinho ou vários. Sem menção, o roteador escolhe quem responde; com <code>@handle</code>, você escolhe.</p></div>
         <div class="mini"><b>O projeto é o centro</b><p>Arquivos, editor, terminal, Git, bancos, debug e previews no mesmo lugar. O agente trabalha no projeto de verdade.</p></div>
-        <div class="mini"><b>Você manda nas ferramentas</b><p>Plan, Ask ou YOLO por Toph. Aprovações aparecem dentro da tarefa antes de escrever, apagar ou rodar algo.</p></div>
+        <div class="mini"><b>Você manda nas ferramentas</b><p>Plan, Ask ou YOLO por Jeff. Aprovações aparecem dentro da tarefa antes de escrever, apagar ou rodar algo.</p></div>
         <div class="mini"><b>Seu modelo, seu motor</b><p>OpenCode, Claude Code ou Codex. OpenAI, Anthropic, DeepSeek, OpenRouter, Ollama ou o gateway da sua empresa.</p></div>
       </div>
       <h3>Requisitos</h3>
       <ul>
         <li>Linux x86_64/arm64 para o servidor; Mac, Linux ou Windows para o app desktop.</li>
-        <li>Porta <code>8787</code> livre (ou outra definida em <code>TOPH_ADDR</code>).</li>
+        <li>Porta <code>8787</code> livre (ou outra definida em <code>JEFF_ADDR</code>).</li>
         <li>Git e, para editar o código, Node/pnpm e Rust. O instalador Linux pode instalar o toolchain de desenvolvimento.</li>
-        <li>Uma conexão de modelo (API key, gateway ou Ollama local) para os Tophs responderem.</li>
+        <li>Uma conexão de modelo (API key, gateway ou Ollama local) para os Jeffs responderem.</li>
       </ul>
     </section>
 
@@ -270,71 +270,71 @@ footer.site-footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
       <h2>Instalar <a class="anchor" href="#instalar">#</a></h2>
       <h3>Linux em uma linha</h3>
       <div class="copy-wrap"><button class="copy" data-copy="curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh">Copiar</button><pre><code><span class="prompt">$</span> curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh</code></pre></div>
-      <p>O instalador baixa o binário, cria o usuário de serviço, grava <code>/etc/toph/toph.env</code> e ativa o systemd. No fim, abra <code>http://localhost:8787</code> e entre com a senha de admin mostrada pelo instalador.</p>
-      <pre><code><span class="prompt">$</span> sudo systemctl status toph
-<span class="prompt">$</span> sudo journalctl -u toph -f
+      <p>O instalador baixa o binário, cria o usuário de serviço, grava <code>/etc/jeff/jeff.env</code> e ativa o systemd. No fim, abra <code>http://localhost:8787</code> e entre com a senha de admin mostrada pelo instalador.</p>
+      <pre><code><span class="prompt">$</span> sudo systemctl status jeff
+<span class="prompt">$</span> sudo journalctl -u jeff -f
 <span class="prompt">$</span> curl -fsS http://127.0.0.1:8787/api/health</code></pre>
       <h3>Docker</h3>
-      <div class="copy-wrap"><button class="copy" data-copy="git clone https://github.com/ferforastieri/toph.git && cd toph && TOPH_ADMIN_PASSWORD='troque-esta-senha' docker compose -f deploy/compose.yaml up -d">Copiar</button><pre><code>git clone https://github.com/ferforastieri/toph.git
-cd toph
-TOPH_ADMIN_PASSWORD='troque-esta-senha' docker compose -f deploy/compose.yaml up -d</code></pre></div>
+      <div class="copy-wrap"><button class="copy" data-copy="git clone https://github.com/ferforastieri/toph.git && cd jeff && JEFF_ADMIN_PASSWORD='troque-esta-senha' docker compose -f deploy/compose.yaml up -d">Copiar</button><pre><code>git clone https://github.com/ferforastieri/toph.git
+cd jeff
+JEFF_ADMIN_PASSWORD='troque-esta-senha' docker compose -f deploy/compose.yaml up -d</code></pre></div>
       <h3>Do código-fonte</h3>
       <pre><code>git clone https://github.com/ferforastieri/toph.git
-cd toph
-make build          <span class="comment"># builda o web e o binário em bin/toph</span>
-sudo install -m 755 bin/toph /usr/local/bin/toph</code></pre>
+cd jeff
+make build          <span class="comment"># builda o web e o binário em bin/jeff</span>
+sudo install -m 755 bin/jeff /usr/local/bin/jeff</code></pre>
       <p>Para desenvolvimento: <code>make dev</code> sobe a API e o app web separados. O binário embute o frontend de <code>web/dist</code>; rode <code>npm run build</code> em <code>web/</code> antes de buildar o backend se alterar a interface.</p>
     </section>
 
     <section class="doc-section" id="configurar">
       <h2>Configurar <a class="anchor" href="#configurar">#</a></h2>
-      <p>O serviço lê <code>/etc/toph/toph.env</code> (ou as variáveis do <code>docker compose</code>). As principais:</p>
+      <p>O serviço lê <code>/etc/jeff/jeff.env</code> (ou as variáveis do <code>docker compose</code>). As principais:</p>
       <table>
         <thead><tr><th>Variável</th><th>Para que serve</th></tr></thead>
         <tbody>
-          <tr><td><code>TOPH_ADDR</code></td><td>Endereço e porta. Padrão <code>0.0.0.0:8787</code>.</td></tr>
-          <tr><td><code>TOPH_DATA_DIR</code></td><td>Banco SQLite, chave mestra e artefatos. Padrão <code>/var/lib/toph</code>.</td></tr>
-          <tr><td><code>TOPH_WORKSPACES</code></td><td>Pastas permitidas para projetos. Padrão <code>/srv/toph/workspaces</code>.</td></tr>
-          <tr><td><code>TOPH_ADMIN_PASSWORD</code></td><td>Senha inicial do admin (só é usada no primeiro boot).</td></tr>
-          <tr><td><code>TOPH_SECURE_COOKIES</code></td><td><code>true</code> atrás de HTTPS; <code>false</code> em HTTP local.</td></tr>
-          <tr><td><code>TOPH_TRUSTED_PROXIES</code></td><td>IP/CIDR do proxy reverso, para ler <code>X-Forwarded-For</code>.</td></tr>
-          <tr><td><code>TOPH_FIREBASE_CREDENTIALS_FILE</code></td><td>Opcional: login Google/Firebase.</td></tr>
-          <tr><td><code>TOPH_FIREBASE_PROJECT_ID</code></td><td>Opcional: projeto Firebase.</td></tr>
-          <tr><td><code>TOPH_BUILD_ID</code></td><td>Identificador da build exibido em <code>/api/version</code>.</td></tr>
+          <tr><td><code>JEFF_ADDR</code></td><td>Endereço e porta. Padrão <code>0.0.0.0:8787</code>.</td></tr>
+          <tr><td><code>JEFF_DATA_DIR</code></td><td>Banco SQLite, chave mestra e artefatos. Padrão <code>/var/lib/jeff</code>.</td></tr>
+          <tr><td><code>JEFF_WORKSPACES</code></td><td>Pastas permitidas para projetos. Padrão <code>/srv/jeff/workspaces</code>.</td></tr>
+          <tr><td><code>JEFF_ADMIN_PASSWORD</code></td><td>Senha inicial do admin (só é usada no primeiro boot).</td></tr>
+          <tr><td><code>JEFF_SECURE_COOKIES</code></td><td><code>true</code> atrás de HTTPS; <code>false</code> em HTTP local.</td></tr>
+          <tr><td><code>JEFF_TRUSTED_PROXIES</code></td><td>IP/CIDR do proxy reverso, para ler <code>X-Forwarded-For</code>.</td></tr>
+          <tr><td><code>JEFF_FIREBASE_CREDENTIALS_FILE</code></td><td>Opcional: login Google/Firebase.</td></tr>
+          <tr><td><code>JEFF_FIREBASE_PROJECT_ID</code></td><td>Opcional: projeto Firebase.</td></tr>
+          <tr><td><code>JEFF_BUILD_ID</code></td><td>Identificador da build exibido em <code>/api/version</code>.</td></tr>
         </tbody>
       </table>
-      <div class="callout"><b>Proxy reverso:</b> encaminhe <code>/</code> e <code>/api/*</code> para a porta do Toph. downloads, SSE e WebSockets precisam passar. Se usar HTTPS, mantenha <code>TOPH_SECURE_COOKIES=true</code>.</div>
+      <div class="callout"><b>Proxy reverso:</b> encaminhe <code>/</code> e <code>/api/*</code> para a porta do Jeff. downloads, SSE e WebSockets precisam passar. Se usar HTTPS, mantenha <code>JEFF_SECURE_COOKIES=true</code>.</div>
     </section>
 
-    <section class="doc-section" id="primeiro-toph">
-      <h2>Primeiro Toph <a class="anchor" href="#primeiro-toph">#</a></h2>
+    <section class="doc-section" id="primeiro-jeff">
+      <h2>Primeiro Jeff <a class="anchor" href="#primeiro-jeff">#</a></h2>
       <ol>
         <li><strong>Conecte um modelo.</strong> Abra <strong>Configurações → Conexões</strong>, escolha o provedor, informe a URL/base e a API key. Para Ollama, use a URL local. O teste mostra os modelos disponíveis.</li>
-        <li><strong>Adicione um projeto.</strong> Use o botão <strong>+</strong> no topo: ele lista todos os repositórios Git encontrados nas pastas permitidas. Se o repo ainda não for um projeto, o Toph cria e abre na hora.</li>
-        <li><strong>Crie um Toph.</strong> Em <strong>Novo Toph</strong>, escolha um perfil (Toph, Leo, Nico, Nova, Bia, Pia, Atlas, Rafa) ou comece do zero. Ajuste nome, handle, papel, prompt, modelo, motor, esforço e ferramentas.</li>
+        <li><strong>Adicione um projeto.</strong> Use o botão <strong>+</strong> no topo: ele lista todos os repositórios Git encontrados nas pastas permitidas. Se o repo ainda não for um projeto, o Jeff cria e abre na hora.</li>
+        <li><strong>Crie um Jeff.</strong> Em <strong>Novo Jeff</strong>, escolha um perfil (Jeff, Leo, Nico, Nova, Bia, Pia, Atlas, Rafa) ou comece do zero. Ajuste nome, handle, papel, prompt, modelo, motor, esforço e ferramentas.</li>
         <li><strong>Escolha as permissões.</strong> <code>Plan</code> só lê e propõe; <code>Ask</code> pede aprovação antes de mexer; <code>YOLO</code> executa o que foi permitido sem interromper.</li>
         <li><strong>Abra uma tarefa e escreva.</strong> Você pode mencionar <code>@handle</code>, anexar imagens/arquivos ou usar áudio. O histórico fica na tarefa.</li>
       </ol>
     </section>
 
-    <section class="doc-section" id="tophs">
-      <h2>Tophs e grupos <a class="anchor" href="#tophs">#</a></h2>
-      <p>Cada tarefa tem um ou mais Tophs. <strong>Uma mensagem sem menção</strong> passa pelo roteador: ele escolhe de 0 a 2 Tophs, ou todos quando você pede para o grupo. <strong>Uma menção explícita</strong> (<code>@leo</code>) sempre vence e seleciona aquele Toph.</p>
+    <section class="doc-section" id="jeffs">
+      <h2>Jeffs e grupos <a class="anchor" href="#jeffs">#</a></h2>
+      <p>Cada tarefa tem um ou mais Jeffs. <strong>Uma mensagem sem menção</strong> passa pelo roteador: ele escolhe de 0 a 2 Jeffs, ou todos quando você pede para o grupo. <strong>Uma menção explícita</strong> (<code>@leo</code>) sempre vence e seleciona aquele Jeff.</p>
       <ul>
-        <li><strong>Um Toph sozinho:</strong> sessão, contexto e histórico próprios.</li>
-        <li><strong>Vários Tophs:</strong> cada um roda na própria sessão, com o histórico compartilhado da tarefa. Um pode chamar o outro com <code>delegate</code> ou mencionar <code>@handle</code>.</li>
+        <li><strong>Um Jeff sozinho:</strong> sessão, contexto e histórico próprios.</li>
+        <li><strong>Vários Jeffs:</strong> cada um roda na própria sessão, com o histórico compartilhado da tarefa. Um pode chamar o outro com <code>delegate</code> ou mencionar <code>@handle</code>.</li>
         <li><strong>Ninguém precisa responder:</strong> um agradecimento ou recado pode ficar sem resposta; a mensagem continua registrada.</li>
-        <li><strong>Nova mensagem durante uma execução:</strong> o Toph cancela a execução anterior, espera ela fechar e insere a nova mensagem abaixo da última saída.</li>
+        <li><strong>Nova mensagem durante uma execução:</strong> o Jeff cancela a execução anterior, espera ela fechar e insere a nova mensagem abaixo da última saída.</li>
       </ul>
     </section>
 
     <section class="doc-section" id="motores">
       <h2>Motores <a class="anchor" href="#motores">#</a></h2>
-      <p>O motor conduz o loop do agente; o Toph entrega contexto, ferramentas, permissões e aprovações. Cada Toph pode usar um motor diferente no mesmo projeto.</p>
+      <p>O motor conduz o loop do agente; o Jeff entrega contexto, ferramentas, permissões e aprovações. Cada Jeff pode usar um motor diferente no mesmo projeto.</p>
       <div class="grid2">
-        <div class="mini"><b>OpenCode</b><p>Roda localmente com o modelo e o provedor escolhidos. É o motor mais testado com o gateway de ferramentas do Toph.</p></div>
-        <div class="mini"><b>Claude Code</b><p>Usa a assinatura Claude que você já tem, com o gateway Toph como ferramenta.</p></div>
-        <div class="mini"><b>Codex</b><p>Sandbox isolado, com o gateway Toph como única fonte de ferramentas.</p></div>
+        <div class="mini"><b>OpenCode</b><p>Roda localmente com o modelo e o provedor escolhidos. É o motor mais testado com o gateway de ferramentas do Jeff.</p></div>
+        <div class="mini"><b>Claude Code</b><p>Usa a assinatura Claude que você já tem, com o gateway Jeff como ferramenta.</p></div>
+        <div class="mini"><b>Codex</b><p>Sandbox isolado, com o gateway Jeff como única fonte de ferramentas.</p></div>
         <div class="mini"><b>Outros CLIs</b><p>Antigravity CLI (agy) roda com o login do Google. Cursor, Grok e Pi aparecem para instalar/testar, mas o runtime ainda não está ligado.</p></div>
       </div>
       <p>Em <strong>Configurações → Harness</strong> você instala, testa e atualiza cada CLI. O OpenCode precisa ser <strong>2.2.6 ou mais recente</strong>: versões antigas perdem as ferramentas MCP na primeira resposta.</p>
@@ -342,15 +342,15 @@ sudo install -m 755 bin/toph /usr/local/bin/toph</code></pre>
 
     <section class="doc-section" id="ferramentas">
       <h2>Ferramentas e permissões <a class="anchor" href="#ferramentas">#</a></h2>
-      <p>As ferramentas são do Toph, não do projeto inteiro. Você escolhe o que cada um pode ler, escrever, rodar e acessar.</p>
+      <p>As ferramentas são do Jeff, não do projeto inteiro. Você escolhe o que cada um pode ler, escrever, rodar e acessar.</p>
       <ul>
         <li><strong>Arquivos e shell:</strong> ler, criar, editar, apagar e rodar comandos no projeto. O agente mostra o comando e a saída.</li>
-        <li><strong>Aprovações:</strong> no modo Ask, o Toph para antes de uma ação que muda o projeto. Você autoriza uma vez, sempre ou recusa.</li>
+        <li><strong>Aprovações:</strong> no modo Ask, o Jeff para antes de uma ação que muda o projeto. Você autoriza uma vez, sempre ou recusa.</li>
         <li><strong>Perguntas:</strong> o agente pode pedir uma decisão no meio da tarefa; a pergunta aparece no chat.</li>
-        <li><strong>MCP:</strong> conecte servidores em <strong>Configurações → Conexões → MCPs</strong> e selecione quais cada Toph pode usar. O agente lista as ferramentas com <code>mcp_list</code> e chama com <code>mcp_call</code>.</li>
-        <li><strong>Skills:</strong> receitas aprovadas para tipos de tarefa. O Toph lê a skill com <code>read_skill</code> e pode propor novas.</li>
+        <li><strong>MCP:</strong> conecte servidores em <strong>Configurações → Conexões → MCPs</strong> e selecione quais cada Jeff pode usar. O agente lista as ferramentas com <code>mcp_list</code> e chama com <code>mcp_call</code>.</li>
+        <li><strong>Skills:</strong> receitas aprovadas para tipos de tarefa. O Jeff lê a skill com <code>read_skill</code> e pode propor novas.</li>
         <li><strong>Memória:</strong> fatos duráveis do projeto, consultáveis por <code>search_memory</code>.</li>
-        <li><strong>Modelos por Toph:</strong> modelo, provedor, esforço e temperatura podem ser diferentes em cada Toph.</li>
+        <li><strong>Modelos por Jeff:</strong> modelo, provedor, esforço e temperatura podem ser diferentes em cada Jeff.</li>
       </ul>
     </section>
 
@@ -381,7 +381,7 @@ sudo install -m 755 bin/toph /usr/local/bin/toph</code></pre>
     <section class="doc-section" id="projetos">
       <h2>Projetos e repositórios <a class="anchor" href="#projetos">#</a></h2>
       <ul>
-        <li><strong>Pastas permitidas:</strong> em <strong>Configurações → Workspace</strong>, adicione as raízes que o Toph pode ler e escrever. O servidor não sai dessas pastas.</li>
+        <li><strong>Pastas permitidas:</strong> em <strong>Configurações → Workspace</strong>, adicione as raízes que o Jeff pode ler e escrever. O servidor não sai dessas pastas.</li>
         <li><strong>Botão +:</strong> lista os projetos existentes e todos os repositórios Git das raízes. Clicar em um repo ainda não aberto cria o projeto e abre.</li>
         <li><strong>Vários projetos:</strong> abra quantos quiser; cada um tem suas tarefas, terminais e configurações.</li>
         <li><strong>Fechar projeto:</strong> encerra terminais/debug daquele projeto sem apagar os arquivos.</li>
@@ -392,7 +392,7 @@ sudo install -m 755 bin/toph /usr/local/bin/toph</code></pre>
       <h2>Atualizar <a class="anchor" href="#atualizar">#</a></h2>
       <ul>
         <li><strong>CLIs:</strong> <strong>Configurações → Harness</strong> tem o botão de atualizar em cada motor instalado (OpenCode, Claude Code, Codex). O OpenCode roda <code>opencode upgrade</code>.</li>
-        <li><strong>Toph:</strong> o instalador cria um updater; releases novas aparecem no app. Para atualizar manualmente, rode o instalador de novo.</li>
+        <li><strong>Jeff:</strong> o instalador cria um updater; releases novas aparecem no app. Para atualizar manualmente, rode o instalador de novo.</li>
         <li><strong>Depois de atualizar o frontend:</strong> um <strong>Ctrl+Shift+R</strong> garante o bundle novo.</li>
       </ul>
     </section>
@@ -402,31 +402,31 @@ sudo install -m 755 bin/toph /usr/local/bin/toph</code></pre>
       <h3>O agente não tem ferramentas / só aparece “skill”</h3>
       <p>Atualize o OpenCode para 2.2.6+ em <strong>Configurações → Harness</strong>. Versões antigas montam a lista de ferramentas antes do MCP conectar.</p>
       <h3>MCP não lista</h3>
-      <p>Confira se o servidor está selecionado no Toph e se o token não expirou. O erro 401 significa token inválido; 404/“not selected” significa que o nome/id não pertence àquele Toph. Use o nome exato mostrado no prompt.</p>
+      <p>Confira se o servidor está selecionado no Jeff e se o token não expirou. O erro 401 significa token inválido; 404/“not selected” significa que o nome/id não pertence àquele Jeff. Use o nome exato mostrado no prompt.</p>
       <h3>Enviar imagem não faz nada</h3>
       <p>Atualize o app e dê Ctrl+Shift+R. O limite é 8 MB no total; acima disso a mensagem mostra um erro. A rota aceita 32 MB de corpo.</p>
       <h3>Download “não disponível”</h3>
-      <p>O Toph faz streaming de qualquer tamanho. Se estiver atrás de um proxy, ele precisa encaminhar <code>/api/projects/*/raw</code> e não bufferizar a resposta.</p>
+      <p>O Jeff faz streaming de qualquer tamanho. Se estiver atrás de um proxy, ele precisa encaminhar <code>/api/projects/*/raw</code> e não bufferizar a resposta.</p>
       <h3>Login/API 401 atrás de HTTPS</h3>
-      <p>Use <code>TOPH_SECURE_COOKIES=true</code> e configure <code>TOPH_TRUSTED_PROXIES</code> com o IP do proxy. O cookie é <code>SameSite=Strict</code>.</p>
+      <p>Use <code>JEFF_SECURE_COOKIES=true</code> e configure <code>JEFF_TRUSTED_PROXIES</code> com o IP do proxy. O cookie é <code>SameSite=Strict</code>.</p>
       <h3>Porta ocupada</h3>
-      <p>Veja <code>ss -ltnp | grep 8787</code> e ajuste <code>TOPH_ADDR</code> para outra porta.</p>
+      <p>Veja <code>ss -ltnp | grep 8787</code> e ajuste <code>JEFF_ADDR</code> para outra porta.</p>
     </section>
 
     <section class="doc-section" id="ia">
       <h2>Para agentes de IA <a class="anchor" href="#ia">#</a></h2>
       <div class="callout ai"><b>AI-friendly:</b> esta seção foi escrita para ser executada por um agente. Use os comandos exatos, verifique cada passo e não invente caminhos. Uma versão em Markdown está em <a href="docs.md"><code>docs.md</code></a> e o resumo para LLMs em <a href="llms.txt"><code>llms.txt</code></a>.</div>
       <h3>Objetivo</h3>
-      <p>Instalar o Toph em um servidor Linux x86_64/arm64, configurar a porta e a pasta de projetos, subir o serviço e verificar <code>/api/health</code>.</p>
+      <p>Instalar o Jeff em um servidor Linux x86_64/arm64, configurar a porta e a pasta de projetos, subir o serviço e verificar <code>/api/health</code>.</p>
       <h3>Passos (Linux, root)</h3>
       <div class="copy-wrap"><button class="copy" data-copy="# 1. instalar o binário e o serviço
 curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh -s -- --no-components
 
 # 2. revisar a configuração (o instalador já criou)
-sudo sed -n '1,120p' /etc/toph/toph.env
+sudo sed -n '1,120p' /etc/jeff/jeff.env
 
 # 3. subir e habilitar
-sudo systemctl enable --now toph
+sudo systemctl enable --now jeff
 
 # 4. verificar
 curl -fsS http://127.0.0.1:8787/api/health
@@ -434,33 +434,33 @@ curl -fsS http://127.0.0.1:8787/api/version">Copiar</button><pre><code><span cla
 <span class="prompt">$</span> curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh -s -- --no-components
 
 <span class="comment"># 2. revisar a configuração (o instalador já criou)</span>
-<span class="prompt">$</span> sudo sed -n '1,120p' /etc/toph/toph.env
+<span class="prompt">$</span> sudo sed -n '1,120p' /etc/jeff/jeff.env
 
 <span class="comment"># 3. subir e habilitar</span>
-<span class="prompt">$</span> sudo systemctl enable --now toph
+<span class="prompt">$</span> sudo systemctl enable --now jeff
 
 <span class="comment"># 4. verificar</span>
 <span class="prompt">$</span> curl -fsS http://127.0.0.1:8787/api/health
 <span class="prompt">$</span> curl -fsS http://127.0.0.1:8787/api/version</code></pre></div>
       <h3>Configuração mínima esperada</h3>
-      <pre><code>TOPH_ADDR=0.0.0.0:8787
-TOPH_DATA_DIR=/var/lib/toph
-TOPH_WORKSPACES=/srv/toph/workspaces
-TOPH_ADMIN_PASSWORD=&lt;senha-forte&gt;
-TOPH_SECURE_COOKIES=false   <span class="comment"># true atrás de HTTPS</span>
-TOPH_TRUSTED_PROXIES=        <span class="comment"># IP do proxy, se houver</span></code></pre>
+      <pre><code>JEFF_ADDR=0.0.0.0:8787
+JEFF_DATA_DIR=/var/lib/jeff
+JEFF_WORKSPACES=/srv/jeff/workspaces
+JEFF_ADMIN_PASSWORD=&lt;senha-forte&gt;
+JEFF_SECURE_COOKIES=false   <span class="comment"># true atrás de HTTPS</span>
+JEFF_TRUSTED_PROXIES=        <span class="comment"># IP do proxy, se houver</span></code></pre>
       <p>O instalador imprime a senha de admin gerada. Ela só é usada no primeiro boot; para redefinir, pare o serviço e remova o usuário admin do banco ou use a tela de login/recuperação conforme a versão.</p>
       <h3>Verificação de saúde</h3>
       <ul>
         <li><code>GET /api/health</code> deve retornar <code>{"ok":true,...}</code>.</li>
         <li><code>GET /api/version</code> deve retornar a versão/build.</li>
-        <li>O frontend fica em <code>/app</code>; o login usa cookie <code>toph_session</code>.</li>
-        <li>Os dados ficam em <code>TOPH_DATA_DIR/toph.db</code>; a chave mestra em <code>TOPH_DATA_DIR/master.key</code>. Faça backup dos dois juntos.</li>
+        <li>O frontend fica em <code>/app</code>; o login usa cookie <code>jeff_session</code>.</li>
+        <li>Os dados ficam em <code>JEFF_DATA_DIR/jeff.db</code>; a chave mestra em <code>JEFF_DATA_DIR/master.key</code>. Faça backup dos dois juntos.</li>
       </ul>
       <h3>Prompt pronto para uma IA</h3>
-      <div class="copy-wrap"><button class="copy" data-copy="Instale o Toph neste servidor Linux seguindo https://ferforastieri.github.io/toph/llms.txt e https://ferforastieri.github.io/toph/docs.md. Requisitos: root/sudo, porta 8787 livre, pasta de projetos em /srv/toph/workspaces. Execute a instalação, ajuste /etc/toph/toph.env, suba o serviço e valide /api/health e /api/version. Não invente caminhos; se um comando falhar, mostre a saída e pare. No fim, diga a URL, a versão e onde ficam o banco e a chave mestra.">Copiar</button><pre><code>Instale o Toph neste servidor Linux seguindo https://ferforastieri.github.io/toph/llms.txt e https://ferforastieri.github.io/toph/docs.md.
-Requisitos: root/sudo, porta 8787 livre, pasta de projetos em /srv/toph/workspaces.
-Execute a instalação, ajuste /etc/toph/toph.env, suba o serviço e valide /api/health e /api/version.
+      <div class="copy-wrap"><button class="copy" data-copy="Instale o Jeff neste servidor Linux seguindo https://ferforastieri.github.io/toph/llms.txt e https://ferforastieri.github.io/toph/docs.md. Requisitos: root/sudo, porta 8787 livre, pasta de projetos em /srv/jeff/workspaces. Execute a instalação, ajuste /etc/jeff/jeff.env, suba o serviço e valide /api/health e /api/version. Não invente caminhos; se um comando falhar, mostre a saída e pare. No fim, diga a URL, a versão e onde ficam o banco e a chave mestra.">Copiar</button><pre><code>Instale o Jeff neste servidor Linux seguindo https://ferforastieri.github.io/toph/llms.txt e https://ferforastieri.github.io/toph/docs.md.
+Requisitos: root/sudo, porta 8787 livre, pasta de projetos em /srv/jeff/workspaces.
+Execute a instalação, ajuste /etc/jeff/jeff.env, suba o serviço e valide /api/health e /api/version.
 Não invente caminhos; se um comando falhar, mostre a saída e pare.
 No fim, diga a URL, a versão e onde ficam o banco e a chave mestra.</code></pre></div>
     </section>
@@ -469,7 +469,7 @@ No fim, diga a URL, a versão e onde ficam o banco e a chave mestra.</code></pre
 
 <footer class="site-footer">
   <div class="wrap">
-    <span>Toph · documentação open source (Apache-2.0).</span>
+    <span>Jeff · documentação open source (Apache-2.0).</span>
     <nav>
       <a href="./">Site</a>
       <a href="llms.txt">llms.txt</a>

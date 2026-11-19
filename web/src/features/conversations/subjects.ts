@@ -1,14 +1,14 @@
 import { agentApi } from "../agents/api";
-import { sessionSubject, useChats, type TophChat } from "./store";
+import { sessionSubject, useChats, type JeffChat } from "./store";
 
 const attempted = new Set<string>();
 
 /**
- * Sessions created before subjects existed only know their Toph names. Read
+ * Sessions created before subjects existed only know their Jeff names. Read
  * their first user message once and remember it as the session subject, so
  * lists and tabs say what the conversation is about.
  */
-export async function ensureChatSubjects(projectId: string, chats: TophChat[]): Promise<void> {
+export async function ensureChatSubjects(projectId: string, chats: JeffChat[]): Promise<void> {
   const pending = chats.filter((chat) => !chat.subject?.trim() && !attempted.has(`${projectId}:${chat.id}`)).slice(0, 30);
   await Promise.all(
     pending.map(async (chat) => {

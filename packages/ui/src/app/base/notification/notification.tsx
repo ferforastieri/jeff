@@ -20,7 +20,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Avatar, type AvatarProps } from "../avatar/avatar";
 import { Button, type ButtonProps } from "../buttons/button";
 import { CloseButton } from "../buttons/close-button";
-import { cx, sortCx } from "@toph/ui/app/utils/cx";
+import { cx, sortCx } from "@jeff/ui/app/utils/cx";
 
 export type NotificationStatus = "neutral" | "information" | "success" | "error";
 

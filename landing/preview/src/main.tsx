@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "@fontsource-variable/inter";
 import "@fontsource/ibm-plex-mono";
-import "@toph/ui/styles.css";
+import "@jeff/ui/styles.css";
 import "./styles.css";
 import Landing from "./Landing";
 

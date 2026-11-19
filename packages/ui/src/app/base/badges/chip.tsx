@@ -1,5 +1,5 @@
 import type { HTMLAttributes, Ref } from "react";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 
 type ChipVariant = "bold" | "subtle" | "caption";
 type ChipColor = "orange" | "lime" | "rose" | "yellow" | "cyan" | "blue" | "purple" | "neutral" | "gray" | "soft";
@@ -23,7 +23,7 @@ const colorClass: Record<ChipColor, string> = {
   soft: "ac-chip--muted",
 };
 
-/** A status or role chip, drawn with the Tophs chip. */
+/** A status or role chip, drawn with the Jeffs chip. */
 export function Chip({ variant: _variant = "bold", color = "neutral", className, ref, ...props }: ChipProps) {
   void _variant;
   return <span ref={ref} className={cx("ac-chip", colorClass[color], className)} {...props} />;

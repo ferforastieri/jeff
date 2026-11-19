@@ -19,18 +19,18 @@ import {
   Trash2,
   TriangleAlert,
   X,
-} from "@toph/icons";
+} from "@jeff/icons";
 import { api, type PortInfo, type Project } from "../../../shared/api";
 import { useSettings } from "../../settings/store";
 import { useApp } from "../../../app/store";
 import { CODE_FONT_FAMILY } from "../../editor/themes";
-import { Button } from "@toph/ui/app";
-import { Badge } from "@toph/ui/app";
-import { Dropdown, DropdownDivider, DropdownGroup, DropdownItem, DropdownPopover, DropdownTrigger } from "@toph/ui/app";
-import { PillTab, PillTabList } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Badge } from "@jeff/ui/app";
+import { Dropdown, DropdownDivider, DropdownGroup, DropdownItem, DropdownPopover, DropdownTrigger } from "@jeff/ui/app";
+import { PillTab, PillTabList } from "@jeff/ui/app";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import ResizeHandle from "../../../shared/ui/resize";
-import { cx } from "@toph/ui";
+import { cx } from "@jeff/ui";
 import LoadingState from "../../../shared/ui/LoadingState";
 
 interface Props {
@@ -155,8 +155,8 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
       const detail = (event as CustomEvent<{ items?: Diagnostic[] }>).detail;
       if (detail?.items) setDiagnostics(detail.items);
     };
-    window.addEventListener("toph:diagnostics", handler);
-    return () => window.removeEventListener("toph:diagnostics", handler);
+    window.addEventListener("jeff:diagnostics", handler);
+    return () => window.removeEventListener("jeff:diagnostics", handler);
   }, []);
 
   useEffect(() => {
@@ -164,8 +164,8 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
       const text = (event as CustomEvent<{ text?: string }>).detail?.text;
       if (text) appendOutput(`${text}\n`);
     };
-    window.addEventListener("toph:output", handler);
-    return () => window.removeEventListener("toph:output", handler);
+    window.addEventListener("jeff:output", handler);
+    return () => window.removeEventListener("jeff:output", handler);
   }, [appendOutput]);
 
   useEffect(() => {
@@ -267,11 +267,11 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
       const next = (event as CustomEvent<{ tab?: string }>).detail?.tab;
       if (next && terminalTabs.some((item) => item.id === next)) setTab(next as TerminalTab);
     };
-    window.addEventListener("toph:terminal-command", handleCommand);
-    window.addEventListener("toph:terminal-tab", handleTab);
+    window.addEventListener("jeff:terminal-command", handleCommand);
+    window.addEventListener("jeff:terminal-tab", handleTab);
     return () => {
-      window.removeEventListener("toph:terminal-command", handleCommand);
-      window.removeEventListener("toph:terminal-tab", handleTab);
+      window.removeEventListener("jeff:terminal-command", handleCommand);
+      window.removeEventListener("jeff:terminal-tab", handleTab);
     };
   }, [activeSession?.id, createSession, selectedSession?.id, shell, sessions.length]);
 

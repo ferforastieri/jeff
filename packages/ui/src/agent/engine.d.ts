@@ -1,6 +1,6 @@
 /** Types for engine.js (plain JavaScript so plain HTML pages can import it as is). */
 
-export type AgentPresetColor = "sky" | "indigo" | "violet" | "rose" | "amber" | "green" | "teal" | "graphite";
+export type AgentPresetColor = "sky" | "indigo" | "violet" | "rose" | "amber" | "green" | "blue" | "graphite";
 /** A custom agent color, "#rrggbb". */
 export type HexColor = `#${string}`;
 /** A preset or a custom color. */

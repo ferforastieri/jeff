@@ -1,17 +1,17 @@
 [package]
-name = "toph-server"
+name = "jeff-server"
 version = "0.18.0"
 edition = "2021"
 rust-version = "1.90"
-description = "Toph backend and embedded local server"
+description = "Jeff backend and embedded local server"
 license = "MIT"
 
 [lib]
-name = "toph_server"
+name = "jeff_server"
 path = "src/lib.rs"
 
 [[bin]]
-name = "toph"
+name = "jeff"
 path = "src/main.rs"
 
 [dependencies]

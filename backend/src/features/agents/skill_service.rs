@@ -1,7 +1,7 @@
 //! Managed skills: recipes available in every project. The row keeps the
 //! project it was created in as its origin only; lookups never filter by
 //! project, so switching projects never hides a skill. The full body never goes into the prompt: the agent reads it on demand with
-//! `toph_read_skill`, and proposes new ones with `toph_propose_skill` for the
+//! `jeff_read_skill`, and proposes new ones with `jeff_propose_skill` for the
 //! user to approve.
 
 use super::models::now;
@@ -141,7 +141,7 @@ impl Service {
         row.as_ref().map(Self::row).transpose()
     }
 
-    /// Active skills available to every Toph, in stable name order.
+    /// Active skills available to every Jeff, in stable name order.
     pub async fn available(&self) -> AppResult<Vec<ManagedSkill>> {
         Ok(self
             .list()
@@ -371,7 +371,7 @@ impl Service {
         Ok(())
     }
 
-    /// `toph_propose_skill`: an agent proposes a new skill or a change to one
+    /// `jeff_propose_skill`: an agent proposes a new skill or a change to one
     /// of its own. The proposal only becomes active after the user approves it.
     pub async fn propose(
         &self,

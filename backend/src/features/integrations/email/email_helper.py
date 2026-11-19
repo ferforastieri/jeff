@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Toph email helper.
+"""Jeff email helper.
 
 The Rust server starts this script with ``python3`` and writes a single JSON
 request to stdin. The script writes a single JSON response to stdout. Only the

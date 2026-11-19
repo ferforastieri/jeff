@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, CircleAlert, Copy, Download, ExternalLink, LoaderCircle, RefreshCw } from "@toph/icons";
+import { Check, CircleAlert, Copy, Download, ExternalLink, LoaderCircle, RefreshCw } from "@jeff/icons";
 import { engineApi, type EngineInfo, type EngineTest } from "../../agents/api";
 import { useApp } from "../../../app/store";
 import { useSettings } from "../store";
 import HarnessIcon from "../../agents/components/HarnessIcon";
-import { Button } from "@toph/ui/app";
-import { cx } from "@toph/ui";
+import { Button } from "@jeff/ui/app";
+import { cx } from "@jeff/ui";
 
 type Busy = { id: string; action: "test" | "install" | "update" } | null;
 
@@ -101,11 +101,11 @@ export default function HarnessSettings(_props: Props) {
   function login(engine: EngineInfo) {
     // The harness login is interactive (it prints a URL and waits for a code):
     // run it in the app's own terminal, with the settings dialog out of the way.
-    window.dispatchEvent(new Event("toph:close-settings"));
+    window.dispatchEvent(new Event("jeff:close-settings"));
     const settings = useSettings.getState();
     if (!settings.workspaceFeatures.terminal) settings.update({ workspaceFeatures: { terminal: true } });
     window.setTimeout(() => {
-      if (!useApp.getState().terminalOpen) window.dispatchEvent(new Event("toph:open-terminal"));
+      if (!useApp.getState().terminalOpen) window.dispatchEvent(new Event("jeff:open-terminal"));
     }, 150);
     // The terminal mounts asynchronously. Wait for xterm before sending the
     // command, otherwise the click looks like it did nothing on mobile.
@@ -113,14 +113,14 @@ export default function HarnessSettings(_props: Props) {
     // force its manual URL/code OAuth flow instead of opening a browser there.
     const inUserBin = ["antigravity", "codex", "pi"].includes(engine.id);
     const command = engine.id === "antigravity"
-      ? "AGY_CLI_DISABLE_AUTO_UPDATE=true SSH_CONNECTION='toph 0 127.0.0.1 0' SSH_CLIENT='127.0.0.1 0 0' PATH=\"$HOME/.local/bin:$PATH\" agy"
+      ? "AGY_CLI_DISABLE_AUTO_UPDATE=true SSH_CONNECTION='jeff 0 127.0.0.1 0' SSH_CLIENT='127.0.0.1 0 0' PATH=\"$HOME/.local/bin:$PATH\" agy"
       : inUserBin
         ? `PATH="$HOME/.local/bin:$PATH" ${engine.login}`
         : engine.login;
     let attempts = 0;
     const send = () => {
       if (document.querySelector(".xterm")) {
-        window.dispatchEvent(new CustomEvent("toph:terminal-command", {
+        window.dispatchEvent(new CustomEvent("jeff:terminal-command", {
           detail: { command: "login", text: command },
         }));
       } else if (attempts++ < 20) {
@@ -147,7 +147,7 @@ export default function HarnessSettings(_props: Props) {
         <div className="min-w-0">
           <h4 className="text-body-medium text-text-primary">Motores de agente</h4>
           <p className="mt-0.5 max-w-2xl text-caption-1-regular text-text-secondary">
-            Instale, entre e teste o CLI que executa o Toph. O login abre no terminal do app; skills e conectores chegam ao harness automaticamente.
+            Instale, entre e teste o CLI que executa o Jeff. O login abre no terminal do app; skills e conectores chegam ao harness automaticamente.
           </p>
         </div>
         <Button variant="ghost" size="small" leadingIcon={RefreshCw} onClick={() => void refresh()} disabled={loading || busy !== null}>

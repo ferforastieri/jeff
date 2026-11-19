@@ -1,6 +1,6 @@
 //! Suggested skills: a bundled catalog based on the kinds of recipes that are
 //! most reused in the community. Nothing is installed or assigned until the
-//! user adds one; adding opens the normal skill form so they can pick the Tophs.
+//! user adds one; adding opens the normal skill form so they can pick the Jeffs.
 
 use serde::Serialize;
 
@@ -28,11 +28,11 @@ fn suggested(
         description: description.into(),
         body: body.trim().to_string(),
         category: category.into(),
-        source: "Catálogo Toph".into(),
+        source: "Catálogo Jeff".into(),
     }
 }
 
-/// Curated, dependency-free recipes. The browser one is the same skill Toph
+/// Curated, dependency-free recipes. The browser one is the same skill Jeff
 /// already ships for `chrome-devtools-mcp`.
 pub fn suggested_skills() -> Vec<SuggestedSkill> {
     let chrome = include_str!("../../../skills/chrome-devtools/SKILL.md");

@@ -10,7 +10,7 @@ export default defineConfig({
   base: "/",
   plugins: [
     {
-      name: "toph-brand-assets",
+      name: "jeff-brand-assets",
       configResolved() {
         syncBrand(resolve(here, "public/brand"));
       },

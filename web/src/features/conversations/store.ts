@@ -1,20 +1,20 @@
 import { create } from "zustand";
 import { BOT_AVATARS, type BotAvatar, type BotLanguage } from "../agents/avatars";
 
-const DEFAULT_TOPH_COLOR = "#0F766E";
-const LEGACY_BRAND_COLORS = new Set(["#FFB547", "#F01F31", "#FF5C69", "#FF98A1"]);
+const DEFAULT_JEFF_COLOR = "#0063D1";
+const LEGACY_BRAND_COLORS = new Set(["#FFB547", "#F01F31", "#FF5C69", "#FF98A1", "#0F766E", "#14B8A6", "#5EEAD4"]);
 
 function currentBrandColor(color?: string): string {
   const value = color?.trim();
-  if (!value) return DEFAULT_TOPH_COLOR;
-  return LEGACY_BRAND_COLORS.has(value.toUpperCase()) ? DEFAULT_TOPH_COLOR : value;
+  if (!value) return DEFAULT_JEFF_COLOR;
+  return LEGACY_BRAND_COLORS.has(value.toUpperCase()) ? DEFAULT_JEFF_COLOR : value;
 }
 
-type TophAgentMode = "build" | "plan";
-type TophPermissionMode = "yolo" | "ask" | "deny";
+type JeffAgentMode = "build" | "plan";
+type JeffPermissionMode = "yolo" | "ask" | "deny";
 
-export interface ChatToph {
-  /** A Toph belongs to the project, not to a conversation. */
+export interface ChatJeff {
+  /** A Jeff belongs to the project, not to a conversation. */
   id: string;
   name: string;
   handle: string;
@@ -26,8 +26,8 @@ export interface ChatToph {
   /** External CLI that owns the agent loop. */
   engine: string;
   effort: string;
-  agentMode: TophAgentMode;
-  permissionMode: TophPermissionMode;
+  agentMode: JeffAgentMode;
+  permissionMode: JeffPermissionMode;
   mcpServers: string[];
   emailAccountIds: string[];
   language: BotLanguage;
@@ -37,8 +37,8 @@ export interface ChatToph {
   createdAt: number;
 }
 
-/** A conversation (task) with one Toph or a group of them. */
-export interface TophChat {
+/** A conversation (task) with one Jeff or a group of them. */
+export interface JeffChat {
   id: string;
   /** Empty means "use the participants' names" in the UI. */
   name: string;
@@ -48,8 +48,8 @@ export interface TophChat {
   description: string;
   /** One id is an individual task; two or more make a group. */
   participantIds: string[];
-  /** Model, effort and harness chosen in this conversation, by Toph id. */
-  tophSettings?: Record<string, { model?: string; effort?: string; engine?: string }>;
+  /** Model, effort and harness chosen in this conversation, by Jeff id. */
+  jeffSettings?: Record<string, { model?: string; effort?: string; engine?: string }>;
   createdAt: number;
   updatedAt: number;
 }
@@ -58,7 +58,7 @@ export interface ChatMessage {
   id: string;
   chatId: string;
   role: "user" | "assistant" | "reasoning" | "tool" | "system" | "error" | "activity";
-  tophId?: string;
+  jeffId?: string;
   content: string;
   title?: string;
   detail?: string;
@@ -73,10 +73,10 @@ export interface ChatMessage {
 
 export interface ProjectChats {
   version: 5;
-  /** Tasks: each one has one Toph (individual) or several (group). */
-  chats: TophChat[];
-  /** Project-level Toph identities. The same Toph can join many tasks. */
-  tophs: ChatToph[];
+  /** Tasks: each one has one Jeff (individual) or several (group). */
+  chats: JeffChat[];
+  /** Project-level Jeff identities. The same Jeff can join many tasks. */
+  jeffs: ChatJeff[];
   messages: ChatMessage[];
   activeChatId: string | null;
   hydrated?: boolean;
@@ -84,7 +84,7 @@ export interface ProjectChats {
 
 type ProjectChatsSnapshot = Omit<ProjectChats, "messages" | "hydrated">;
 
-export interface TophPreset {
+export interface JeffPreset {
   name: string;
   role: string;
   description: string;
@@ -95,8 +95,8 @@ export interface TophPreset {
   model?: string;
   engine?: string;
   effort?: string;
-  agentMode?: TophAgentMode;
-  permissionMode?: TophPermissionMode;
+  agentMode?: JeffAgentMode;
+  permissionMode?: JeffPermissionMode;
   mcpServers?: string[];
   emailAccountIds?: string[];
   language?: BotLanguage;
@@ -109,7 +109,7 @@ function newId(prefix: string): string {
   return `${prefix}-${value}`;
 }
 
-function slugifyToph(value: string): string {
+function slugifyJeff(value: string): string {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -120,7 +120,7 @@ function slugifyToph(value: string): string {
 }
 
 function uniqueName(desired: string, used: Set<string>): string {
-  const base = desired.trim() || "Toph";
+  const base = desired.trim() || "Jeff";
   let name = base;
   let index = 2;
   while (used.has(name.toLowerCase())) {
@@ -131,7 +131,7 @@ function uniqueName(desired: string, used: Set<string>): string {
 }
 
 function uniqueHandle(desired: string, used: Set<string>): string {
-  const base = slugifyToph(desired) || "toph";
+  const base = slugifyJeff(desired) || "jeff";
   let handle = base;
   let index = 2;
   while (used.has(handle)) {
@@ -141,28 +141,28 @@ function uniqueHandle(desired: string, used: Set<string>): string {
   return handle;
 }
 
-function normalizeToph(toph: Partial<ChatToph>): ChatToph {
-  const name = toph.name?.trim() || "Toph";
+function normalizeJeff(jeff: Partial<ChatJeff>): ChatJeff {
+  const name = jeff.name?.trim() || "Jeff";
   return {
-    id: String(toph.id),
+    id: String(jeff.id),
     name,
-    handle: toph.handle || slugifyToph(name),
-    role: toph.role?.trim() || "Toph",
-    description: toph.description ?? "",
-    personality: toph.personality ?? "",
-    prompt: toph.prompt ?? "",
-    model: toph.model ?? "",
-    engine: typeof toph.engine === "string" && toph.engine ? toph.engine : "opencode",
-    effort: toph.effort ?? "",
-    agentMode: toph.agentMode === "plan" ? "plan" : "build",
-    permissionMode: toph.permissionMode === "ask" || toph.permissionMode === "deny" ? toph.permissionMode : "yolo",
-    mcpServers: Array.isArray(toph.mcpServers) ? toph.mcpServers.filter((item): item is string => typeof item === "string") : [],
-    emailAccountIds: Array.isArray(toph.emailAccountIds) ? toph.emailAccountIds.filter((item): item is string => typeof item === "string") : [],
-    language: toph.language === "pt" || toph.language === "en" || toph.language === "es" ? toph.language : "auto",
-    color: currentBrandColor(toph.color),
-    avatar: toph.avatar && BOT_AVATARS.includes(toph.avatar) ? toph.avatar : "toph-logo",
-    notifications: toph.notifications !== false,
-    createdAt: Number.isFinite(toph.createdAt) ? Number(toph.createdAt) : Date.now(),
+    handle: jeff.handle || slugifyJeff(name),
+    role: jeff.role?.trim() || "Jeff",
+    description: jeff.description ?? "",
+    personality: jeff.personality ?? "",
+    prompt: jeff.prompt ?? "",
+    model: jeff.model ?? "",
+    engine: typeof jeff.engine === "string" && jeff.engine ? jeff.engine : "opencode",
+    effort: jeff.effort ?? "",
+    agentMode: jeff.agentMode === "plan" ? "plan" : "build",
+    permissionMode: jeff.permissionMode === "ask" || jeff.permissionMode === "deny" ? jeff.permissionMode : "yolo",
+    mcpServers: Array.isArray(jeff.mcpServers) ? jeff.mcpServers.filter((item): item is string => typeof item === "string") : [],
+    emailAccountIds: Array.isArray(jeff.emailAccountIds) ? jeff.emailAccountIds.filter((item): item is string => typeof item === "string") : [],
+    language: jeff.language === "pt" || jeff.language === "en" || jeff.language === "es" ? jeff.language : "auto",
+    color: currentBrandColor(jeff.color),
+    avatar: jeff.avatar && BOT_AVATARS.includes(jeff.avatar) ? jeff.avatar : "jeff-logo",
+    notifications: jeff.notifications !== false,
+    createdAt: Number.isFinite(jeff.createdAt) ? Number(jeff.createdAt) : Date.now(),
   };
 }
 
@@ -193,9 +193,9 @@ function cappedMessage(message: ChatMessage): ChatMessage {
   };
 }
 
-/** A project starts empty: Tophs are created first, tasks open around them. */
+/** A project starts empty: Jeffs are created first, tasks open around them. */
 function freshProject(hydrated = false): ProjectChats {
-  return { version: 5, chats: [], tophs: [], messages: [], activeChatId: null, hydrated };
+  return { version: 5, chats: [], jeffs: [], messages: [], activeChatId: null, hydrated };
 }
 
 function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
@@ -203,42 +203,42 @@ function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
   const now = Date.now();
   const raw = input as unknown as {
     version?: number;
-    chat?: Partial<TophChat> & { kind?: string };
-    chats?: Array<Partial<TophChat> & { kind?: string; participantIds?: string[] }>;
-    tophs?: Array<Partial<ChatToph> & { chatId?: string }>;
+    chat?: Partial<JeffChat> & { kind?: string };
+    chats?: Array<Partial<JeffChat> & { kind?: string; participantIds?: string[] }>;
+    jeffs?: Array<Partial<ChatJeff> & { chatId?: string }>;
     messages?: ChatMessage[];
     activeChatId?: string | null;
   };
 
-  const rawTophs = Array.isArray(raw.tophs) ? raw.tophs : [];
-  const seenTophs = new Set<string>();
-  const tophs: ChatToph[] = [];
-  for (const item of rawTophs) {
-    if (!item || typeof item.id !== "string" || !item.id || seenTophs.has(item.id)) continue;
-    seenTophs.add(item.id);
-    tophs.push(normalizeToph(item));
+  const rawJeffs = Array.isArray(raw.jeffs) ? raw.jeffs : [];
+  const seenJeffs = new Set<string>();
+  const jeffs: ChatJeff[] = [];
+  for (const item of rawJeffs) {
+    if (!item || typeof item.id !== "string" || !item.id || seenJeffs.has(item.id)) continue;
+    seenJeffs.add(item.id);
+    jeffs.push(normalizeJeff(item));
   }
   const handles = new Set<string>();
-  for (const toph of tophs) {
-    toph.handle = uniqueHandle(toph.handle || toph.name, handles);
-    handles.add(toph.handle);
+  for (const jeff of jeffs) {
+    jeff.handle = uniqueHandle(jeff.handle || jeff.name, handles);
+    handles.add(jeff.handle);
   }
-  const tophIds = new Set(tophs.map((toph) => toph.id));
+  const jeffIds = new Set(jeffs.map((jeff) => jeff.id));
 
-  let rawChats: Array<Partial<TophChat> & { kind?: string; participantIds?: string[] }> = [];
+  let rawChats: Array<Partial<JeffChat> & { kind?: string; participantIds?: string[] }> = [];
   if (Array.isArray(raw.chats)) rawChats = raw.chats.filter((item) => item && typeof item.id === "string" && item.id);
   else if (raw.chat && typeof raw.chat.id === "string" && raw.chat.id) rawChats = [raw.chat];
 
   const seenChats = new Set<string>();
-  let chats: TophChat[] = rawChats.flatMap((item) => {
+  let chats: JeffChat[] = rawChats.flatMap((item) => {
     if (!item.id || seenChats.has(item.id)) return [];
     seenChats.add(item.id);
     const explicit = Array.isArray(item.participantIds)
-      ? item.participantIds.filter((id): id is string => typeof id === "string" && tophIds.has(id))
+      ? item.participantIds.filter((id): id is string => typeof id === "string" && jeffIds.has(id))
       : [];
-    const legacy = rawTophs
-      .filter((toph) => toph && typeof toph.id === "string" && tophIds.has(toph.id) && toph.chatId === item.id)
-      .map((toph) => toph.id!);
+    const legacy = rawJeffs
+      .filter((jeff) => jeff && typeof jeff.id === "string" && jeffIds.has(jeff.id) && jeff.chatId === item.id)
+      .map((jeff) => jeff.id!);
     const participantIds = [...new Set(explicit.length > 0 ? explicit : legacy)];
     const name = item.name?.trim() === "Equipe" ? "" : item.name?.trim() ?? "";
     return [{
@@ -247,19 +247,19 @@ function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
       subject: typeof item.subject === "string" ? item.subject.trim() : "",
       description: item.description ?? "",
       participantIds,
-      tophSettings: normalizeTophSettings(item.tophSettings),
+      jeffSettings: normalizeJeffSettings(item.jeffSettings),
       createdAt: Number.isFinite(item.createdAt) ? Number(item.createdAt) : now,
       updatedAt: Number.isFinite(item.updatedAt) ? Number(item.updatedAt) : now,
     }];
   });
 
-  if (chats.length === 0 && (tophs.length > 0 || (Array.isArray(raw.messages) && raw.messages.length > 0))) {
+  if (chats.length === 0 && (jeffs.length > 0 || (Array.isArray(raw.messages) && raw.messages.length > 0))) {
     chats = [{
       id: newId("chat"),
       name: "",
       subject: "",
       description: "",
-      participantIds: [...tophs.map((toph) => toph.id)],
+      participantIds: [...jeffs.map((jeff) => jeff.id)],
       createdAt: now,
       updatedAt: now,
     }];
@@ -270,7 +270,7 @@ function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
     .filter((message): message is ChatMessage => Boolean(
       message &&
       typeof message.id === "string" &&
-      (!message.tophId || tophIds.has(message.tophId)),
+      (!message.jeffId || jeffIds.has(message.jeffId)),
     ))
     .map((message) => normalizeMessage({
       ...message,
@@ -280,10 +280,10 @@ function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
     .sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
 
   const activeChatId = chats.some((chat) => chat.id === raw.activeChatId) ? raw.activeChatId! : chats[0]?.id ?? null;
-  return { version: 5, chats, tophs, messages: mappedMessages, activeChatId, hydrated: true };
+  return { version: 5, chats, jeffs, messages: mappedMessages, activeChatId, hydrated: true };
 }
 
-function normalizeTophSettings(raw: unknown): Record<string, { model?: string; effort?: string; engine?: string }> {
+function normalizeJeffSettings(raw: unknown): Record<string, { model?: string; effort?: string; engine?: string }> {
   if (!raw || typeof raw !== "object") return {};
   const next: Record<string, { model?: string; effort?: string; engine?: string }> = {};
   for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
@@ -330,19 +330,19 @@ interface ChatStore {
   snapshot: (projectId: string) => ProjectChatsSnapshot | null;
   unload: (projectId: string) => void;
   forget: (projectId: string) => void;
-  /** Creates a task with one Toph (individual) or several (group). */
-  createConversation: (projectId: string, participantIds: string[], options?: { name?: string; description?: string }) => TophChat | null;
-  updateChat: (projectId: string, chatId: string, patch: Partial<Pick<TophChat, "name" | "subject" | "description">>) => void;
-  /** The model/effort/harness of one Toph in this conversation only. */
-  updateChatToph: (projectId: string, chatId: string, tophId: string, patch: { model?: string; effort?: string; engine?: string }) => void;
+  /** Creates a task with one Jeff (individual) or several (group). */
+  createConversation: (projectId: string, participantIds: string[], options?: { name?: string; description?: string }) => JeffChat | null;
+  updateChat: (projectId: string, chatId: string, patch: Partial<Pick<JeffChat, "name" | "subject" | "description">>) => void;
+  /** The model/effort/harness of one Jeff in this conversation only. */
+  updateChatJeff: (projectId: string, chatId: string, jeffId: string, patch: { model?: string; effort?: string; engine?: string }) => void;
   deleteConversation: (projectId: string, chatId: string) => void;
   setActiveChat: (projectId: string, chatId: string | null) => void;
-  createToph: (projectId: string, preset: TophPreset) => ChatToph | null;
-  updateToph: (projectId: string, tophId: string, patch: Partial<ChatToph>) => void;
-  removeToph: (projectId: string, tophId: string) => void;
-  addParticipant: (projectId: string, chatId: string, tophId: string) => void;
+  createJeff: (projectId: string, preset: JeffPreset) => ChatJeff | null;
+  updateJeff: (projectId: string, jeffId: string, patch: Partial<ChatJeff>) => void;
+  removeJeff: (projectId: string, jeffId: string) => void;
+  addParticipant: (projectId: string, chatId: string, jeffId: string) => void;
   touchConversation: (projectId: string, chatId: string) => void;
-  removeParticipant: (projectId: string, chatId: string, tophId: string) => void;
+  removeParticipant: (projectId: string, chatId: string, jeffId: string) => void;
   addMessage: (projectId: string, message: ChatMessage) => void;
   appendMessage: (projectId: string, messageId: string, text: string) => void;
   updateMessage: (projectId: string, messageId: string, patch: Partial<ChatMessage>) => void;
@@ -373,7 +373,7 @@ export const useChats = create<ChatStore>((set, get) => ({
   snapshot: (projectId) => {
     const project = get().byProject[projectId];
     if (!project) return null;
-    return { version: 5, chats: project.chats, tophs: project.tophs, activeChatId: project.activeChatId };
+    return { version: 5, chats: project.chats, jeffs: project.jeffs, activeChatId: project.activeChatId };
   },
 
   unload: (projectId) =>
@@ -394,16 +394,16 @@ export const useChats = create<ChatStore>((set, get) => ({
 
   createConversation: (projectId, participantIds, options = {}) => {
     const project = get().ensure(projectId);
-    const unique = [...new Set(participantIds)].filter((id) => project.tophs.some((toph) => toph.id === id));
+    const unique = [...new Set(participantIds)].filter((id) => project.jeffs.some((jeff) => jeff.id === id));
     if (unique.length === 0) return null;
     const now = Math.max(Date.now(), ...project.chats.map((chat) => chat.updatedAt + 1));
-    const chat: TophChat = {
+    const chat: JeffChat = {
       id: newId("chat"),
       name: options.name?.trim() ?? "",
       subject: "",
       description: options.description?.trim() ?? "",
       participantIds: unique,
-      tophSettings: {},
+      jeffSettings: {},
       createdAt: now,
       updatedAt: now,
     };
@@ -441,7 +441,7 @@ export const useChats = create<ChatStore>((set, get) => ({
       };
     }),
 
-  updateChatToph: (projectId, chatId, tophId, patch) =>
+  updateChatJeff: (projectId, chatId, jeffId, patch) =>
     set((state) => {
       const project = state.byProject[projectId];
       if (!project) return state;
@@ -452,10 +452,10 @@ export const useChats = create<ChatStore>((set, get) => ({
             ...project,
             chats: project.chats.map((chat) => {
               if (chat.id !== chatId) return chat;
-              const current = chat.tophSettings?.[tophId] ?? {};
+              const current = chat.jeffSettings?.[jeffId] ?? {};
               return {
                 ...chat,
-                tophSettings: { ...(chat.tophSettings ?? {}), [tophId]: { ...current, ...patch } },
+                jeffSettings: { ...(chat.jeffSettings ?? {}), [jeffId]: { ...current, ...patch } },
                 updatedAt: Date.now(),
               };
             }),
@@ -486,15 +486,15 @@ export const useChats = create<ChatStore>((set, get) => ({
       return { byProject: { ...state.byProject, [projectId]: { ...project, activeChatId: next } } };
     }),
 
-  createToph: (projectId, preset) => {
+  createJeff: (projectId, preset) => {
     const project = get().ensure(projectId);
-    const role = preset.role.trim() || "Toph";
-    const names = new Set(project.tophs.map((toph) => toph.name.toLowerCase()));
-    const handles = new Set(project.tophs.map((toph) => toph.handle));
+    const role = preset.role.trim() || "Jeff";
+    const names = new Set(project.jeffs.map((jeff) => jeff.name.toLowerCase()));
+    const handles = new Set(project.jeffs.map((jeff) => jeff.handle));
     const name = uniqueName(preset.name, names);
     const handle = uniqueHandle(name, handles);
-    const toph: ChatToph = {
-      id: newId("toph"),
+    const jeff: ChatJeff = {
+      id: newId("jeff"),
       name,
       handle,
       role,
@@ -509,56 +509,56 @@ export const useChats = create<ChatStore>((set, get) => ({
       mcpServers: [...(preset.mcpServers ?? [])],
       emailAccountIds: [...(preset.emailAccountIds ?? [])],
       language: preset.language ?? "auto",
-      color: preset.color || DEFAULT_TOPH_COLOR,
-      avatar: BOT_AVATARS.includes(preset.avatar) ? preset.avatar : "toph-logo",
+      color: preset.color || DEFAULT_JEFF_COLOR,
+      avatar: BOT_AVATARS.includes(preset.avatar) ? preset.avatar : "jeff-logo",
       notifications: true,
       createdAt: Date.now(),
     };
     set((state) => ({
       byProject: {
         ...state.byProject,
-        [projectId]: { ...project, tophs: [...project.tophs, toph] },
+        [projectId]: { ...project, jeffs: [...project.jeffs, jeff] },
       },
     }));
-    return toph;
+    return jeff;
   },
 
-  updateToph: (projectId, tophId, patch) =>
+  updateJeff: (projectId, jeffId, patch) =>
     set((state) => {
       const project = state.byProject[projectId];
       if (!project) return state;
-      const target = project.tophs.find((toph) => toph.id === tophId);
+      const target = project.jeffs.find((jeff) => jeff.id === jeffId);
       if (!target) return state;
       const name = patch.name?.trim() || target.name;
-      const role = patch.role === undefined ? target.role : patch.role.trim() || "Toph";
-      const handles = new Set(project.tophs.filter((toph) => toph.id !== tophId).map((toph) => toph.handle));
+      const role = patch.role === undefined ? target.role : patch.role.trim() || "Jeff";
+      const handles = new Set(project.jeffs.filter((jeff) => jeff.id !== jeffId).map((jeff) => jeff.handle));
       const handle = patch.name ? uniqueHandle(name, handles) : target.handle;
       return {
         byProject: {
           ...state.byProject,
           [projectId]: {
             ...project,
-            tophs: project.tophs.map((toph) =>
-              toph.id === tophId ? { ...toph, ...patch, name, handle, role } : toph,
+            jeffs: project.jeffs.map((jeff) =>
+              jeff.id === jeffId ? { ...jeff, ...patch, name, handle, role } : jeff,
             ),
           },
         },
       };
     }),
 
-  removeToph: (projectId, tophId) =>
+  removeJeff: (projectId, jeffId) =>
     set((state) => {
       const project = state.byProject[projectId];
       if (!project) return state;
       const removedIds = new Set(
-        project.messages.filter((message) => message.tophId === tophId).map((message) => message.id),
+        project.messages.filter((message) => message.jeffId === jeffId).map((message) => message.id),
       );
       const pending = Object.fromEntries(
         Object.entries(state.messageWrites[projectId] ?? {}).filter(([id]) => !removedIds.has(id)),
       );
       const chats = project.chats
-        .map((chat) => chat.participantIds.includes(tophId)
-          ? { ...chat, participantIds: chat.participantIds.filter((id) => id !== tophId) }
+        .map((chat) => chat.participantIds.includes(jeffId)
+          ? { ...chat, participantIds: chat.participantIds.filter((id) => id !== jeffId) }
           : chat)
         .filter((chat) => chat.participantIds.length > 0);
       const chatIds = new Set(chats.map((chat) => chat.id));
@@ -567,9 +567,9 @@ export const useChats = create<ChatStore>((set, get) => ({
           ...state.byProject,
           [projectId]: {
             ...project,
-            tophs: project.tophs.filter((toph) => toph.id !== tophId),
+            jeffs: project.jeffs.filter((jeff) => jeff.id !== jeffId),
             chats,
-            messages: project.messages.filter((message) => message.tophId !== tophId && chatIds.has(message.chatId)),
+            messages: project.messages.filter((message) => message.jeffId !== jeffId && chatIds.has(message.chatId)),
             activeChatId: project.activeChatId && chatIds.has(project.activeChatId) ? project.activeChatId : chats[0]?.id ?? null,
           },
         },
@@ -577,18 +577,18 @@ export const useChats = create<ChatStore>((set, get) => ({
       };
     }),
 
-  addParticipant: (projectId, chatId, tophId) =>
+  addParticipant: (projectId, chatId, jeffId) =>
     set((state) => {
       const project = state.byProject[projectId];
-      if (!project || !project.tophs.some((toph) => toph.id === tophId)) return state;
+      if (!project || !project.jeffs.some((jeff) => jeff.id === jeffId)) return state;
       return {
         byProject: {
           ...state.byProject,
           [projectId]: {
             ...project,
             chats: project.chats.map((chat) =>
-              chat.id === chatId && !chat.participantIds.includes(tophId)
-                ? { ...chat, participantIds: [...chat.participantIds, tophId], updatedAt: Date.now() }
+              chat.id === chatId && !chat.participantIds.includes(jeffId)
+                ? { ...chat, participantIds: [...chat.participantIds, jeffId], updatedAt: Date.now() }
                 : chat,
             ),
           },
@@ -611,13 +611,13 @@ export const useChats = create<ChatStore>((set, get) => ({
       };
     }),
 
-  removeParticipant: (projectId, chatId, tophId) =>
+  removeParticipant: (projectId, chatId, jeffId) =>
     set((state) => {
       const project = state.byProject[projectId];
       if (!project) return state;
       const removedIds = new Set(
         project.messages
-          .filter((message) => message.chatId === chatId && message.tophId === tophId)
+          .filter((message) => message.chatId === chatId && message.jeffId === jeffId)
           .map((message) => message.id),
       );
       const pending = Object.fromEntries(
@@ -625,7 +625,7 @@ export const useChats = create<ChatStore>((set, get) => ({
       );
       const chats = project.chats
         .map((chat) => chat.id === chatId
-          ? { ...chat, participantIds: chat.participantIds.filter((id) => id !== tophId), updatedAt: Date.now() }
+          ? { ...chat, participantIds: chat.participantIds.filter((id) => id !== jeffId), updatedAt: Date.now() }
           : chat)
         .filter((chat) => chat.participantIds.length > 0);
       const chatIds = new Set(chats.map((chat) => chat.id));
@@ -758,37 +758,37 @@ export const useChats = create<ChatStore>((set, get) => ({
     set((state) => ({ messageWrites: removeWritesForChat(state.messageWrites, projectId, chatId) })),
 }));
 
-export function chatTophs(project: ProjectChats | undefined, chatId: string | null | undefined): ChatToph[] {
+export function chatJeffs(project: ProjectChats | undefined, chatId: string | null | undefined): ChatJeff[] {
   if (!project || !chatId) return [];
   const chat = project.chats.find((item) => item.id === chatId);
   if (!chat) return [];
-  const byId = new Map(project.tophs.map((toph) => [toph.id, toph]));
+  const byId = new Map(project.jeffs.map((jeff) => [jeff.id, jeff]));
   return chat.participantIds.flatMap((id) => byId.get(id) ?? []);
 }
 
-export function conversations(project: ProjectChats | undefined): TophChat[] {
+export function conversations(project: ProjectChats | undefined): JeffChat[] {
   return project?.chats ?? [];
 }
 
-function chatsForToph(project: ProjectChats | undefined, tophId: string | null | undefined): TophChat[] {
-  if (!project || !tophId) return [];
+function chatsForJeff(project: ProjectChats | undefined, jeffId: string | null | undefined): JeffChat[] {
+  if (!project || !jeffId) return [];
   return project.chats
-    .filter((chat) => chat.participantIds.includes(tophId))
+    .filter((chat) => chat.participantIds.includes(jeffId))
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export function latestChatForToph(project: ProjectChats | undefined, tophId: string | null | undefined): TophChat | null {
-  return chatsForToph(project, tophId)[0] ?? null;
+export function latestChatForJeff(project: ProjectChats | undefined, jeffId: string | null | undefined): JeffChat | null {
+  return chatsForJeff(project, jeffId)[0] ?? null;
 }
 
 /** Visible conversation name: a custom title, or the participants' names. */
-export function chatDisplayName(project: ProjectChats | undefined, chat: TophChat | null | undefined, maxNames = 0): string {
+export function chatDisplayName(project: ProjectChats | undefined, chat: JeffChat | null | undefined, maxNames = 0): string {
   if (!chat) return "";
   const title = chat.name.trim();
   if (title) return title;
-  const names = chatTophs(project, chat.id).map((toph) => toph.name);
-  // One Toph is not a participant to name: a conversation without a subject is
-  // just a new conversation, never "Toph".
+  const names = chatJeffs(project, chat.id).map((jeff) => jeff.name);
+  // One Jeff is not a participant to name: a conversation without a subject is
+  // just a new conversation, never "Jeff".
   if (names.length <= 1) return "Nova conversa";
   if (maxNames > 0 && names.length > maxNames) {
     return `${names.slice(0, maxNames).join(" + ")} +${names.length - maxNames}`;
@@ -814,13 +814,13 @@ export function sessionSubject(text: string): string {
 
 /**
  * What the conversation is about. Explicit titles win; sessions named after
- * their participants (`name = Toph`) fall back to the first user message, then
- * to the task description, so the list never reads like a Toph directory.
+ * their participants (`name = Jeff`) fall back to the first user message, then
+ * to the task description, so the list never reads like a Jeff directory.
  */
-export function chatSessionTitle(project: ProjectChats | undefined, chat: TophChat | null | undefined, maxNames = 2): string {
+export function chatSessionTitle(project: ProjectChats | undefined, chat: JeffChat | null | undefined, maxNames = 2): string {
   if (!chat) return "";
-  const members = chatTophs(project, chat.id);
-  const participants = members.map((toph) => toph.name).join(" + ");
+  const members = chatJeffs(project, chat.id);
+  const participants = members.map((jeff) => jeff.name).join(" + ");
   const fallback = chatDisplayName(project, chat, maxNames);
   const explicit = chat.name.trim();
   const autoNamed = !explicit || explicit === participants || explicit === (members[0]?.name ?? "") || explicit === fallback;

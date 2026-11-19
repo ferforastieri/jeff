@@ -7,7 +7,7 @@ import { initialsOf } from "../names";
 import { recipeOfUrl } from "../person/engine.js";
 import { canDrawPortraits, PersonPortrait } from "../person/PersonPortrait";
 import { type AgentAppearance, appearanceStyle } from "./AgentLook";
-import { tophCharacterOf } from "./toph";
+import { jeffCharacterOf } from "./jeff";
 import { type BadgePresence, PresenceBadge } from "./PresenceBadge";
 
 export type AvatarKind = "person" | "agent";
@@ -58,11 +58,11 @@ export interface AvatarProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * The agent itself: one of the Toph characters, a still PNG in `/tophs/` whose eyes follow the pointer
+ * The agent itself: one of the Jeff characters, a still PNG in `/jeffs/` whose eyes follow the pointer
  * (the `-eyes` layer moves a couple of pixels towards it), as the drawn agents used to.
  */
 function AgentBody({ appearance, name }: { appearance: AgentAppearance | undefined; name: string; state: AgentState; expression: Expression | undefined; reactionKey?: string; framed: boolean }) {
-  const id = tophCharacterOf(name, appearance?.color);
+  const id = jeffCharacterOf(name, appearance?.color);
   const face = useRef<HTMLSpanElement>(null);
   const [look, setLook] = useState({ x: 0, y: 0 });
   useEffect(() => {
@@ -77,11 +77,11 @@ function AgentBody({ appearance, name }: { appearance: AgentAppearance | undefin
     return () => window.removeEventListener("pointermove", move);
   }, []);
   return (
-    <span ref={face} className="ac-toph">
-      <img className="ac-avatar__toph" src={`/tophs/${id}-eyeless.png`} alt="" draggable={false} width={64} height={64} />
+    <span ref={face} className="ac-jeff">
+      <img className="ac-avatar__jeff" src={`/jeffs/${id}-eyeless.png`} alt="" draggable={false} width={64} height={64} />
       <img
-        className="ac-toph__eyes"
-        src={`/tophs/${id}-eyes.png`}
+        className="ac-jeff__eyes"
+        src={`/jeffs/${id}-eyes.png`}
         alt=""
         draggable={false}
         width={64}

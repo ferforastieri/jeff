@@ -12,7 +12,7 @@ export function useMobileBack(onBack: () => boolean) {
 
   useEffect(() => {
     function keep() {
-      window.history.pushState({ toph: true }, "");
+      window.history.pushState({ jeff: true }, "");
     }
     function pop() {
       if (handler.current()) keep();

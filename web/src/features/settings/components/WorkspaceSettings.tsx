@@ -1,12 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { AlertTriangle, FolderOpen, FolderPlus, HardDrive, Plus, Trash2 } from "@toph/icons";
+import { AlertTriangle, FolderOpen, FolderPlus, HardDrive, Plus, Trash2 } from "@jeff/icons";
 import { api } from "../../../shared/api";
 import { basename } from "../../../shared/lib";
 import { useApp } from "../../../app/store";
 import { useConfirm } from "../../../shared/ui/confirm";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Chip } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Chip } from "@jeff/ui/app";
 
 export default function WorkspaceSettings() {
   const projects = useApp((state) => state.projects);
@@ -75,7 +75,7 @@ export default function WorkspaceSettings() {
     setBusy(true);
     setError("");
     try {
-      const project = await api.createProject(projectName.trim() || basename(path), path, "#0F766E");
+      const project = await api.createProject(projectName.trim() || basename(path), path, "#0063D1");
       const next = await api.projects();
       setProjects(next);
       setActiveProject(project.id);

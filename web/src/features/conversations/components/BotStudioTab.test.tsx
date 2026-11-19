@@ -1,10 +1,10 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import BotStudioTab from "./BotStudioTab";
-import { DEFAULT_TOPH } from "../../agents/default-toph";
+import { DEFAULT_JEFF } from "../../agents/default-jeff";
 import { useChats } from "../store";
 import { defaultModel, useAI } from "../../providers/store";
-import { useTophDrafts } from "../../agents/drafts";
+import { useJeffDrafts } from "../../agents/drafts";
 import { agentApi, engineApi } from "../../agents/api";
 import type { Project } from "../../../shared/api";
 
@@ -16,7 +16,7 @@ const native = vi.hoisted(() => ({
 vi.mock("../../agents/useAgentChat", () => ({ useAgentChat: () => native }));
 
 
-const project: Project = { id: "project", name: "Project", root: "/project", color: "#0F766E", createdAt: "", updatedAt: "" };
+const project: Project = { id: "project", name: "Project", root: "/project", color: "#0063D1", createdAt: "", updatedAt: "" };
 let firstId: string;
 let memberId: string;
 let chatId: string;
@@ -25,14 +25,14 @@ beforeAll(() => {
   globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
 });
 beforeEach(() => {
-  localStorage.removeItem("toph_preferred_model");
+  localStorage.removeItem("jeff_preferred_model");
   useChats.setState({ byProject: {}, messageWrites: {} });
   useChats.getState().load(project.id);
-  firstId = useChats.getState().createToph(project.id, { ...DEFAULT_TOPH, name: "Fernando", model: "go::deepseek", agentMode: "build" })!.id;
-  memberId = useChats.getState().createToph(project.id, { ...DEFAULT_TOPH, name: "Beto", model: "openai::review", agentMode: "build" })!.id;
+  firstId = useChats.getState().createJeff(project.id, { ...DEFAULT_JEFF, name: "Fernando", model: "go::deepseek", agentMode: "build" })!.id;
+  memberId = useChats.getState().createJeff(project.id, { ...DEFAULT_JEFF, name: "Beto", model: "openai::review", agentMode: "build" })!.id;
   chatId = useChats.getState().createConversation(project.id, [firstId, memberId], { description: "Preservar os contratos da tarefa" })!.id;
   useAI.setState({ config: null, error: "", models: [{ id: "go::deepseek", label: "DeepSeek", provider: "custom" }, { id: "openai::gpt", label: "GPT", provider: "openai" }, { id: "openai::review", label: "Review", provider: "openai" }] });
-  useTophDrafts.setState({ drafts: {} });
+  useJeffDrafts.setState({ drafts: {} });
   native.busy = false;
   native.refresh.mockResolvedValue(undefined);
   vi.spyOn(engineApi, "limits").mockResolvedValue({
@@ -49,22 +49,22 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-describe("Toph chat controls", () => {
+describe("Jeff chat controls", () => {
   it.each([false, true])("keeps the model, the plan limit and the send controls in the composer (mobile=%s)", (mobile) => {
     render(<BotStudioTab project={project} conversationId={chatId} mobile={mobile} />);
     expect(screen.getByRole("button", { name: "Modelo e consumo" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Esforço" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Modo do agente" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Harness Toph · execução no servidor")).not.toBeInTheDocument();
+    expect(screen.queryByText("Harness Jeff · execução no servidor")).not.toBeInTheDocument();
     expect(screen.queryByText(/Sua mensagem entra na fila/)).not.toBeInTheDocument();
   });
 
-  it("sends each Toph's own settings", async () => {
+  it("sends each Jeff's own settings", async () => {
     const start = vi.spyOn(agentApi, "start").mockResolvedValue({ id: "run", sessionId: "session", agentId: firstId, chatId, state: "queued", error: "", createdAt: 1 });
-    useChats.getState().updateToph(project.id, firstId, { agentMode: "plan" });
-    useChats.getState().updateChatToph(project.id, chatId, firstId, { model: "openai::gpt", effort: "high" });
+    useChats.getState().updateJeff(project.id, firstId, { agentMode: "plan" });
+    useChats.getState().updateChatJeff(project.id, chatId, firstId, { model: "openai::gpt", effort: "high" });
     render(<BotStudioTab project={project} conversationId={chatId} />);
-    const members = useChats.getState().byProject[project.id].tophs;
+    const members = useChats.getState().byProject[project.id].jeffs;
     expect(members.find((a) => a.id === firstId)?.agentMode).toBe("plan");
     expect(members.find((a) => a.id === memberId)).toMatchObject({ model: "openai::review", agentMode: "build" });
     fireEvent.change(screen.getByRole("textbox", { name: "Mensagem para o agente" }), { target: { value: "Revise o projeto" } });

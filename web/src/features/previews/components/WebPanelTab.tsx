@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, CircleAlert, ExternalLink, RefreshCw } from "@toph/icons";
+import { ArrowRight, CircleAlert, ExternalLink, RefreshCw } from "@jeff/icons";
 import { webPreviewUrl } from "../../../shared/api";
 import { normalizeHttpUrl } from "../../../shared/lib";
 import type { Tab } from "../../../app/store";
-import { Button } from "@toph/ui/app";
-import { IconLinkButton } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { IconLinkButton } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
 
 export default function WebPanelTab({ tab }: { tab: Tab }) {
   const [reloadKey, setReloadKey] = useState(0);
@@ -99,7 +99,7 @@ export default function WebPanelTab({ tab }: { tab: Tab }) {
         </div>
       ) : serverLocal ? (
         <p className="shrink-0 border-b border-separator-border px-2 py-1 text-[10px] leading-relaxed text-text-tertiary">
-          O preview abre pelo servidor Toph: <code>localhost</code> aqui é o servidor, não o seu computador. Se o dev server roda na sua máquina, use o endereço original ou exponha-o na rede/túnel.
+          O preview abre pelo servidor Jeff: <code>localhost</code> aqui é o servidor, não o seu computador. Se o dev server roda na sua máquina, use o endereço original ou exponha-o na rede/túnel.
         </p>
       ) : null}
       {blankPreview && !previewError ? (

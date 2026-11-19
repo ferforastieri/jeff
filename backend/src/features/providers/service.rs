@@ -116,7 +116,7 @@ impl AiService {
             store,
             key: load_or_create_key(key_file)?,
             client: Client::builder()
-                .user_agent(format!("Toph/{}", crate::VERSION))
+                .user_agent(format!("Jeff/{}", crate::VERSION))
                 .timeout(Duration::from_secs(600))
                 .build()
                 .map_err(|error| AppError::Internal(error.into()))?,

@@ -3,7 +3,7 @@
 import type { ReactNode, Ref } from "react";
 import { Checkbox as AriaCheckbox } from "react-aria-components";
 import type { CheckboxProps as AriaCheckboxProps } from "react-aria-components";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 import { CheckboxGlyph, checkboxSizes } from "./checkbox-glyph";
 import type { CheckboxSize } from "./checkbox-glyph";
 

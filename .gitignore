@@ -3,7 +3,7 @@
 *.db-shm
 *.db-wal
 /bin/
-/toph
+/jeff
 .env
 .env.*
 !.env.example
@@ -39,10 +39,10 @@ web/public/onig.wasm
 mobile/src-tauri/gen/android/app/google-services.json
 
 # Chat images externalized from messages
-toph-generated/
+jeff-generated/
 
 # Agent screenshots and local artifacts
-.toph/artifacts/
+.jeff/artifacts/
 
 # Local Android builds
-/Toph-*.apk
+/Jeff-*.apk

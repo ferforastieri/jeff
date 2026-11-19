@@ -478,21 +478,21 @@ fn start_python(
     Ok(session)
 }
 
-/// The Python adapter is bundled in the image under /usr/local/lib/toph (or in
-/// the data dir for a source install). `TOPH_DEBUGPY_PATH` overrides both.
+/// The Python adapter is bundled in the image under /usr/local/lib/jeff (or in
+/// the data dir for a source install). `JEFF_DEBUGPY_PATH` overrides both.
 fn python_adapter() -> AppResult<(String, Option<String>)> {
-    let python = std::env::var("TOPH_DEBUG_PYTHON")
+    let python = std::env::var("JEFF_DEBUG_PYTHON")
         .ok()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(which_python);
     let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Ok(path) = std::env::var("TOPH_DEBUGPY_PATH") {
+    if let Ok(path) = std::env::var("JEFF_DEBUGPY_PATH") {
         if !path.trim().is_empty() {
             candidates.push(PathBuf::from(path));
         }
     }
-    candidates.push(PathBuf::from("/usr/local/lib/toph/debug-adapters/python"));
-    if let Ok(dir) = std::env::var("TOPH_DATA_DIR") {
+    candidates.push(PathBuf::from("/usr/local/lib/jeff/debug-adapters/python"));
+    if let Ok(dir) = std::env::var("JEFF_DATA_DIR") {
         if !dir.trim().is_empty() {
             candidates.push(PathBuf::from(dir).join("debug-adapters/python"));
         }
@@ -517,7 +517,7 @@ fn python_adapter() -> AppResult<(String, Option<String>)> {
         .unwrap_or(false)
     {
         return Err(AppError::BadRequest(
-            "debugpy não está instalado no servidor. Reinstale o Toph com o pacote de debug ou defina TOPH_DEBUGPY_PATH."
+            "debugpy não está instalado no servidor. Reinstale o Jeff com o pacote de debug ou defina JEFF_DEBUGPY_PATH."
                 .into(),
         ));
     }

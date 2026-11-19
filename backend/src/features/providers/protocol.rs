@@ -329,7 +329,7 @@ impl AiService {
             (endpoint(&config.base_url, "/chat/completions"), body)
         };
         let gateway = console_gateway(&config.base_url).is_some();
-        // Go routes and rate-limits by this header. A reused internal Toph id
+        // Go routes and rate-limits by this header. A reused internal Jeff id
         // can be permanently throttled by the gateway, so every run gets a
         // fresh `ses_` id instead of the long-lived chat/session id.
         let base_session = if gateway {

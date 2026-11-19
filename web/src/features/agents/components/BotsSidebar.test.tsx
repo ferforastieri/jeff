@@ -4,14 +4,14 @@ import type { Project } from "../../../shared/api";
 import { useApp, type AppNotification } from "../../../app/store";
 import { useAgentActivity } from "../activity";
 import { useChats } from "../../conversations/store";
-import { DEFAULT_TOPH } from "../default-toph";
+import { DEFAULT_JEFF } from "../default-jeff";
 import BotsSidebar from "./BotsSidebar";
 
 const project: Project = {
   id: "project",
   name: "Projeto",
   root: "/project",
-  color: "#0F766E",
+  color: "#0063D1",
   createdAt: "2026-11-13T10:00:00.000Z",
   updatedAt: "2026-11-13T10:00:00.000Z",
 };
@@ -20,8 +20,8 @@ beforeEach(() => {
   useChats.setState({ byProject: {}, messageWrites: {} });
   useApp.setState({ notifications: [] });
   useChats.getState().load(project.id);
-  const toph = useChats.getState().createToph(project.id, DEFAULT_TOPH)!;
-  const older = useChats.getState().createConversation(project.id, [toph.id], { name: toph.name })!;
+  const jeff = useChats.getState().createJeff(project.id, DEFAULT_JEFF)!;
+  const older = useChats.getState().createConversation(project.id, [jeff.id], { name: jeff.name })!;
   useChats.getState().updateChat(project.id, older.id, { subject: "Ajustar o build" });
   useChats.getState().addMessage(project.id, {
     id: "m-1",
@@ -31,12 +31,12 @@ beforeEach(() => {
     status: "running",
     createdAt: Date.now(),
   });
-  const newer = useChats.getState().createConversation(project.id, [toph.id], { name: toph.name })!;
+  const newer = useChats.getState().createConversation(project.id, [jeff.id], { name: jeff.name })!;
   useChats.getState().updateChat(project.id, newer.id, { subject: "Revisar login" });
   const notification: AppNotification = {
     id: "n-1",
     kind: "ai",
-    title: "Toph respondeu",
+    title: "Jeff respondeu",
     body: "Pronto",
     createdAt: Date.now(),
     read: false,
@@ -70,7 +70,7 @@ describe("BotsSidebar", () => {
     expect(screen.getByText("Revisar login")).toBeInTheDocument();
     expect(screen.getByLabelText("Resposta não lida")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Ajustar o build\. Rodando agora/ })).toBeInTheDocument();
-    expect(screen.queryByText("Configurar Toph")).not.toBeInTheDocument();
-    expect(screen.queryByText("Conversas do Toph")).not.toBeInTheDocument();
+    expect(screen.queryByText("Configurar Jeff")).not.toBeInTheDocument();
+    expect(screen.queryByText("Conversas do Jeff")).not.toBeInTheDocument();
   });
 });

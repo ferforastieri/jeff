@@ -230,7 +230,7 @@ impl WorkspaceService {
                 }
             })?;
         let mut temporary = tempfile::Builder::new()
-            .prefix(".toph-")
+            .prefix(".jeff-")
             .tempfile_in(parent)?;
         temporary.as_file().set_permissions(permissions)?;
         temporary.write_all(content.as_bytes())?;
@@ -251,7 +251,7 @@ impl WorkspaceService {
         let path = resolve_for_write(root, relative)?;
         let parent = path.parent().ok_or(AppError::Forbidden)?;
         let mut temporary = tempfile::Builder::new()
-            .prefix(".toph-")
+            .prefix(".jeff-")
             .tempfile_in(parent)?;
         temporary.write_all(content)?;
         temporary.as_file().sync_all()?;
@@ -1124,9 +1124,9 @@ mod tests {
             work.path(),
             &[
                 "-c",
-                "user.email=toph@example.com",
+                "user.email=jeff@example.com",
                 "-c",
-                "user.name=Toph",
+                "user.name=Jeff",
                 "commit",
                 "-m",
                 "first",

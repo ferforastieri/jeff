@@ -30,14 +30,14 @@ encadear cliques às cegas.
 
 ## Screenshots
 
-Screenshot inline em base64 estoura o limite de resposta do Toph. Sempre salve em
+Screenshot inline em base64 estoura o limite de resposta do Jeff. Sempre salve em
 arquivo:
 
 ```
-take_screenshot { "filePath": ".toph/artifacts/<nome>.png" }
+take_screenshot { "filePath": ".jeff/artifacts/<nome>.png" }
 ```
 
-O Toph lê imagens do projeto e mostra no chat automaticamente, então o usuário vê
+O Jeff lê imagens do projeto e mostra no chat automaticamente, então o usuário vê
 exatamente o que você vê. Use nomes descritivos e não sobrescreva prints de
 etapas diferentes.
 

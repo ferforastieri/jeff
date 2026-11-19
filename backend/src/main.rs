@@ -11,8 +11,8 @@ async fn main() {
         .init();
 
     if let Err(error) = run().await {
-        tracing::error!(%error, "toph stopped");
-        eprintln!("toph: {error:#}");
+        tracing::error!(%error, "jeff stopped");
+        eprintln!("jeff: {error:#}");
         std::process::exit(1);
     }
 }
@@ -22,10 +22,10 @@ async fn run() -> Result<()> {
         std::env::args().nth(1).as_deref(),
         Some("mcp-tools") | Some("mcp-email")
     ) {
-        toph_server::features::integrations::email::mcp::serve().await?;
+        jeff_server::features::integrations::email::mcp::serve().await?;
         return Ok(());
     }
-    let config = toph_server::config::Config::load()?;
-    toph_server::serve(config).await?;
+    let config = jeff_server::config::Config::load()?;
+    jeff_server::serve(config).await?;
     Ok(())
 }

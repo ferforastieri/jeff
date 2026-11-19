@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Bell, MessageCircleQuestion, MessageSquare, Search, X } from "@toph/icons";
+import { Bell, MessageCircleQuestion, MessageSquare, Search, X } from "@jeff/icons";
 import type { Project } from "../../../../shared/api";
 import ProjectMonogram from "../../../../features/projects/components/ProjectMonogram";
 import { useProjectQuestion, useProjectRunning } from "../../../../features/agents/activity";
@@ -11,7 +11,7 @@ interface Props {
   unreadCount: number;
   icon: ComponentType<{ className?: string }>;
   onProjects: () => void;
-  onTophs?: () => void;
+  onJeffs?: () => void;
   onClose?: () => void;
   hideTitle?: boolean;
   brandIcon?: boolean;
@@ -27,7 +27,7 @@ export default function MobileTopBar({
   unreadCount,
   icon: Icon,
   onProjects,
-  onTophs,
+  onJeffs,
   onClose,
   hideTitle = false,
   brandIcon = false,
@@ -51,7 +51,7 @@ export default function MobileTopBar({
             className="mobile-topbar__brand relative flex size-10 shrink-0 items-center justify-center rounded-2xl shadow-xs transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring disabled:active:scale-100"
           >
             <img
-              src={`${import.meta.env.BASE_URL}brand/toph-mark.png?v=5`}
+              src={`${import.meta.env.BASE_URL}brand/jeff-mark.png?v=5`}
               alt=""
               className="size-7 object-contain"
               draggable={false}
@@ -80,10 +80,10 @@ export default function MobileTopBar({
               <Search className="size-4" />
             </button>
           ) : null}
-          {onTophs ? (
+          {onJeffs ? (
             <button
               type="button"
-              onClick={onTophs}
+              onClick={onJeffs}
               aria-label="Abrir sessões"
               title="Sessões"
               className="mobile-topbar__sessions flex h-8 items-center gap-1.5 rounded-full px-2.5 text-caption-2-semibold text-text-secondary shadow-xs transition-[background-color,color,border-color,transform] duration-300 hover:text-text-primary active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"

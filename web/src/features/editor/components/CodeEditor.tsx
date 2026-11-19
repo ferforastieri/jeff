@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CancellationToken, IPosition, editor, languages } from "monaco-editor";
 import { useSettings } from "../../settings/store";
-import { Modal } from "@toph/ui/app";
+import { Modal } from "@jeff/ui/app";
 import { CODE_FONT_FAMILY, codeLineHeight, monacoThemeName, registerEditorThemes } from "../themes";
 import { relativeTime } from "../../../shared/lib";
 import { useAI } from "../../providers/store";
@@ -154,76 +154,76 @@ export default function CodeEditor({
       if (action) void action.run();
       else if (command === "undo" || command === "redo" || command === "actions.find") instance.trigger("menu", command, null);
     };
-    window.addEventListener("toph:editor-command", handleCommand);
-    return () => window.removeEventListener("toph:editor-command", handleCommand);
+    window.addEventListener("jeff:editor-command", handleCommand);
+    return () => window.removeEventListener("jeff:editor-command", handleCommand);
   }, []);
 
   function addContextActions(instance: editor.IStandaloneCodeEditor) {
     instance.addAction({
-      id: "toph.explain",
+      id: "jeff.explain",
       label: "Explain",
       contextMenuGroupId: "1_modification",
       contextMenuOrder: 10,
       run: () => void askAi("explain"),
     });
     instance.addAction({
-      id: "toph.review",
+      id: "jeff.review",
       label: "Review",
       contextMenuGroupId: "1_modification",
       contextMenuOrder: 11,
       run: () => void askAi("review"),
     });
     instance.addAction({
-      id: "toph.go-type-definition",
+      id: "jeff.go-type-definition",
       label: "Go to Type Definition",
       contextMenuGroupId: "navigation",
       contextMenuOrder: 2,
       run: () => instance.trigger("keyboard", "editor.action.goToTypeDefinition", null),
     });
     instance.addAction({
-      id: "toph.go-source-definition",
+      id: "jeff.go-source-definition",
       label: "Go to Source Definition",
       contextMenuGroupId: "navigation",
       contextMenuOrder: 3,
       run: () => instance.trigger("keyboard", "editor.action.revealDefinition", null),
     });
     instance.addAction({
-      id: "toph.find-all-references",
+      id: "jeff.find-all-references",
       label: "Find All References",
       contextMenuGroupId: "navigation",
       contextMenuOrder: 4,
       run: () => instance.trigger("keyboard", "editor.action.referenceSearch.trigger", null),
     });
     instance.addAction({
-      id: "toph.open-changes",
+      id: "jeff.open-changes",
       label: "Open Changes",
       contextMenuGroupId: "navigation",
       contextMenuOrder: 50,
       run: () => openChangesRef.current?.(pathRef.current),
     });
     instance.addAction({
-      id: "toph.open-remote",
+      id: "jeff.open-remote",
       label: "Open on Remote (Web)",
       contextMenuGroupId: "9_cutcopypaste",
       contextMenuOrder: 1,
       run: () => openRemote(),
     });
     instance.addAction({
-      id: "toph.file-annotations",
+      id: "jeff.file-annotations",
       label: "File Annotations",
       contextMenuGroupId: "navigation",
       contextMenuOrder: 60,
       run: () => toggleAnnotations(),
     });
     instance.addAction({
-      id: "toph.file-history",
+      id: "jeff.file-history",
       label: "File History",
       contextMenuGroupId: "navigation",
       contextMenuOrder: 61,
       run: () => void openHistory(),
     });
     instance.addAction({
-      id: "toph.copy-as",
+      id: "jeff.copy-as",
       label: "Copy As",
       contextMenuGroupId: "9_cutcopypaste",
       contextMenuOrder: 19,
@@ -235,14 +235,14 @@ export default function CodeEditor({
       },
     });
     instance.addAction({
-      id: "toph.copy-path",
+      id: "jeff.copy-path",
       label: "Copy Path",
       contextMenuGroupId: "9_cutcopypaste",
       contextMenuOrder: 20,
       run: () => copy(projectRootRef.current ? `${projectRootRef.current}/${pathRef.current}` : pathRef.current),
     });
     instance.addAction({
-      id: "toph.copy-relative-path",
+      id: "jeff.copy-relative-path",
       label: "Copy Relative Path",
       contextMenuGroupId: "9_cutcopypaste",
       contextMenuOrder: 21,
@@ -368,7 +368,7 @@ export default function CodeEditor({
     dom.textContent = `${current.author} · ${relativeTime(current.authorTime)} · ${current.summary}`;
     dom.title = `${current.commit.slice(0, 8)} · ${current.summary}`;
     const widget: editor.IContentWidget = {
-      getId: () => "toph-blame-widget",
+      getId: () => "jeff-blame-widget",
       getDomNode: () => dom,
       getPosition: () => ({
         position: {
@@ -466,13 +466,13 @@ export default function CodeEditor({
         message: marker.message,
         source: marker.source ?? "",
       }));
-      window.dispatchEvent(new CustomEvent("toph:diagnostics", { detail: { path, items: markers } }));
+      window.dispatchEvent(new CustomEvent("jeff:diagnostics", { detail: { path, items: markers } }));
     };
     const subscription = monaco.editor.onDidChangeMarkers(publish);
     publish();
     return () => {
       subscription.dispose();
-      window.dispatchEvent(new CustomEvent("toph:diagnostics", { detail: { path, items: [] } }));
+      window.dispatchEvent(new CustomEvent("jeff:diagnostics", { detail: { path, items: [] } }));
     };
   }, [monacoReady, path]);
 
@@ -485,12 +485,12 @@ export default function CodeEditor({
       options: {
         isWholeLine: false,
         glyphMarginClassName: breakpoint.enabled === false
-          ? "toph-breakpoint toph-breakpoint-disabled"
+          ? "jeff-breakpoint jeff-breakpoint-disabled"
           : breakpoint.logMessage
-            ? "toph-breakpoint toph-breakpoint-logpoint"
+            ? "jeff-breakpoint jeff-breakpoint-logpoint"
             : breakpoint.condition
-              ? "toph-breakpoint toph-breakpoint-conditional"
-              : "toph-breakpoint",
+              ? "jeff-breakpoint jeff-breakpoint-conditional"
+              : "jeff-breakpoint",
         glyphMarginHoverMessage: {
           value: breakpoint.logMessage
             ? `Logpoint: ${breakpoint.logMessage}`
@@ -516,8 +516,8 @@ export default function CodeEditor({
           range: new monaco.Range(debugLine, 1, debugLine, 1),
           options: {
             isWholeLine: true,
-            className: "toph-debug-active-line",
-            glyphMarginClassName: "toph-debug-active-glyph",
+            className: "jeff-debug-active-line",
+            glyphMarginClassName: "jeff-debug-active-glyph",
           },
         }]
       : [];
@@ -569,24 +569,24 @@ export default function CodeEditor({
           onMouseDown={(event) => event.stopPropagation()}
           onContextMenu={(event) => event.preventDefault()}
         >
-          <EditorContextAction label="Go to Type Definition" onClick={() => runContextAction("toph.go-type-definition")} />
-          <EditorContextAction label="Go to Source Definition" onClick={() => runContextAction("toph.go-source-definition")} />
-          <EditorContextAction label="Find All References" onClick={() => runContextAction("toph.find-all-references")} />
-          <EditorContextAction label="Open Changes" onClick={() => runContextAction("toph.open-changes")} />
-          <EditorContextAction label="File Annotations" onClick={() => runContextAction("toph.file-annotations")} />
-          <EditorContextAction label="File History" onClick={() => runContextAction("toph.file-history")} />
+          <EditorContextAction label="Go to Type Definition" onClick={() => runContextAction("jeff.go-type-definition")} />
+          <EditorContextAction label="Go to Source Definition" onClick={() => runContextAction("jeff.go-source-definition")} />
+          <EditorContextAction label="Find All References" onClick={() => runContextAction("jeff.find-all-references")} />
+          <EditorContextAction label="Open Changes" onClick={() => runContextAction("jeff.open-changes")} />
+          <EditorContextAction label="File Annotations" onClick={() => runContextAction("jeff.file-annotations")} />
+          <EditorContextAction label="File History" onClick={() => runContextAction("jeff.file-history")} />
           <EditorContextSeparator />
           <EditorContextAction label="Change All Occurrences" shortcut="Ctrl+F2" onClick={() => triggerContextAction("editor.action.changeAll")} />
-          <EditorContextAction label="Explain" onClick={() => runContextAction("toph.explain")} />
-          <EditorContextAction label="Review" onClick={() => runContextAction("toph.review")} />
+          <EditorContextAction label="Explain" onClick={() => runContextAction("jeff.explain")} />
+          <EditorContextAction label="Review" onClick={() => runContextAction("jeff.review")} />
           <EditorContextSeparator />
           <EditorContextAction label="Cut" shortcut="Ctrl+X" onClick={() => triggerContextAction("editor.action.clipboardCutAction")} />
           <EditorContextAction label="Copy" shortcut="Ctrl+C" onClick={() => triggerContextAction("editor.action.clipboardCopyAction")} />
           <EditorContextAction label="Paste" shortcut="Ctrl+V" onClick={() => triggerContextAction("editor.action.clipboardPasteAction")} />
-          <EditorContextAction label="Open Remote (Web)" onClick={() => runContextAction("toph.open-remote")} disabled={!projectId} />
-          <EditorContextAction label="Copy As" onClick={() => runContextAction("toph.copy-as")} />
-          <EditorContextAction label="Copy Path" onClick={() => runContextAction("toph.copy-path")} />
-          <EditorContextAction label="Copy Relative Path" onClick={() => runContextAction("toph.copy-relative-path")} />
+          <EditorContextAction label="Open Remote (Web)" onClick={() => runContextAction("jeff.open-remote")} disabled={!projectId} />
+          <EditorContextAction label="Copy As" onClick={() => runContextAction("jeff.copy-as")} />
+          <EditorContextAction label="Copy Path" onClick={() => runContextAction("jeff.copy-path")} />
+          <EditorContextAction label="Copy Relative Path" onClick={() => runContextAction("jeff.copy-relative-path")} />
           <EditorContextSeparator />
           <EditorContextAction label="Command Palette" shortcut="F1" onClick={() => triggerContextAction("editor.action.quickCommand")} />
         </div>

@@ -79,7 +79,7 @@ export function sidebarFeature(sidebar: string): WorkspaceFeature | null {
   }
 }
 
-export function isTophOnly(features: WorkspaceFeatures): boolean {
+export function isJeffOnly(features: WorkspaceFeatures): boolean {
   return WORKSPACE_FEATURES.every((feature) => feature === "bots" || !features[feature]);
 }
 
@@ -114,10 +114,10 @@ export type SettingsPatch = Partial<Omit<SettingsState, "update" | "setTheme" | 
   workspaceFeatures?: Partial<WorkspaceFeatures>;
 };
 
-const STORAGE_KEY = "toph_settings";
-const DESKTOP_INITIALIZED_KEY = "toph_desktop_workspace_initialized_v1";
-const DESKTOP_SIDEBAR_MIGRATED_KEY = "toph_desktop_sidebar_migrated_v1";
-const ACTIVITY_BAR_CONTROL_MIGRATED_KEY = "toph_activity_bar_control_migrated_v1";
+const STORAGE_KEY = "jeff_settings";
+const DESKTOP_INITIALIZED_KEY = "jeff_desktop_workspace_initialized_v1";
+const DESKTOP_SIDEBAR_MIGRATED_KEY = "jeff_desktop_sidebar_migrated_v1";
+const ACTIVITY_BAR_CONTROL_MIGRATED_KEY = "jeff_activity_bar_control_migrated_v1";
 
 export const defaultSettings = {
   theme: "dark" as Theme,
@@ -256,7 +256,7 @@ export function applyTheme(theme: Theme): void {
   root.classList.toggle("dark", theme !== "light");
   root.style.colorScheme = theme === "light" ? "light" : "dark";
   root.dataset.theme = theme;
-  const nativeTheme = (window as unknown as { TophTheme?: { setDarkTheme?: (dark: boolean) => void } }).TophTheme;
+  const nativeTheme = (window as unknown as { JeffTheme?: { setDarkTheme?: (dark: boolean) => void } }).JeffTheme;
   nativeTheme?.setDarkTheme?.(theme !== "light");
 }
 
@@ -332,5 +332,5 @@ export function initAppearance(): void {
   const settings = readSettings();
   applyTheme(settings.theme);
   applyLayout(settings);
-  localStorage.removeItem("toph_appearance");
+  localStorage.removeItem("jeff_appearance");
 }

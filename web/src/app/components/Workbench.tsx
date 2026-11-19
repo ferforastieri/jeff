@@ -1,17 +1,17 @@
 import { useProjectStream } from "../../features/projects/hooks/useProjectStream";
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
-import { Bot, ChevronDown, ChevronRight, GitBranch, X } from "@toph/icons";
+import { Bot, ChevronDown, ChevronRight, GitBranch, X } from "@jeff/icons";
 import { api, getApiBase, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
 import { useApp, type Sidebar, type Tab } from "../store";
-import { chatDisplayName, latestChatForToph, useChats, type ProjectChats, type TophChat } from "../../features/conversations/store";
+import { chatDisplayName, latestChatForJeff, useChats, type ProjectChats, type JeffChat } from "../../features/conversations/store";
 import { ensureChatSubjects } from "../../features/conversations/subjects";
 import { chatTabId } from "../../features/conversations/navigation";
 import { useAI } from "../../features/providers/store";
 import { PROJECT_EVENT, type ProjectEvent } from "../../features/projects/events";
 import BotStudioTab from "../../features/conversations/components/BotStudioTab";
-import { featureEnabled, isDesktopClient, isTophOnly, sidebarFeature, useSettings, type WorkspaceFeature } from "../../features/settings/store";
+import { featureEnabled, isDesktopClient, isJeffOnly, sidebarFeature, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import Tabs from "./Tabs";
 import Toasts from "../../features/notifications/components/Toasts";
 import CloseProjectModal from "../../features/projects/components/CloseProjectModal";
@@ -19,23 +19,23 @@ import BranchPicker from "../../features/git/components/BranchPicker";
 import BottomBar from "./BottomBar";
 import { handleAiCompletion, type AiCompletionPayload } from "../../features/notifications/completion";
 import { unlockBotSound } from "../../features/conversations/sound";
-import { IconButton } from "@toph/ui/app";
-import BrandMark from "@toph/brand";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Avatar } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
+import { IconButton } from "@jeff/ui/app";
+import BrandMark from "@jeff/brand";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Avatar } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
 import ResizeHandle from "../../shared/ui/resize";
 import { isMobileViewport, useIsMobile } from "../../shared/ui/useIsMobile";
 import { useConfirm } from "../../shared/ui/confirm";
 import { agentApi } from "../../features/agents/api";
 import { useAgentActivityBridge } from "../../features/agents/activity";
-import { useTophDrafts } from "../../features/agents/drafts";
-import { ensureSingleToph, ensureToph } from "../../features/agents/default-toph";
-import { cx } from "@toph/ui/app/utils/cx";
+import { useJeffDrafts } from "../../features/agents/drafts";
+import { ensureSingleJeff, ensureJeff } from "../../features/agents/default-jeff";
+import { cx } from "@jeff/ui/app/utils/cx";
 import { suggestGitChanges } from "../../features/git/ai";
 import { parseGitStatus } from "../../features/git/status";
-import TophSettings from "../../features/settings/components/TophSettings";
+import JeffSettings from "../../features/settings/components/JeffSettings";
 
 const MobileApp = lazy(() => import("../layouts/mobile/MobileApp"));
 const ExplorerPanel = lazy(() => import("../../features/explorer/components/ExplorerPanel"));
@@ -119,7 +119,7 @@ export default function Workbench() {
   const setTerminalOpen = useApp((state) => state.setTerminalOpen);
   const notify = useApp((state) => state.notify);
   const chatsHydrated = useChats((state) => activeProjectId ? state.byProject[activeProjectId]?.hydrated === true : false);
-  const pendingTophSelection = useRef<{ projectId: string; tophId: string; chatId?: string } | null>(null);
+  const pendingJeffSelection = useRef<{ projectId: string; jeffId: string; chatId?: string } | null>(null);
   const pendingChatOpen = useRef<{ projectId: string; chatId: string; title?: string } | null>(null);
   const loadChats = useChats((state) => state.load);
   const snapshotChats = useChats((state) => state.snapshot);
@@ -151,7 +151,7 @@ export default function Workbench() {
   const [branchError, setBranchError] = useState("");
   const loadedProject = useRef<string | null>(null);
   const [projectEpoch, setProjectEpoch] = useState(0);
-  const forceTophsOnLoad = useRef(false);
+  const forceJeffsOnLoad = useRef(false);
   const mobile = useIsMobile();
 
   const project = projects.find((item) => item.id === activeProjectId) ?? null;
@@ -240,8 +240,8 @@ export default function Workbench() {
 
   useEffect(() => {
     const openQuick = () => setQuickOpenToken((current) => current + 1);
-    window.addEventListener("toph:quick-open", openQuick);
-    return () => window.removeEventListener("toph:quick-open", openQuick);
+    window.addEventListener("jeff:quick-open", openQuick);
+    return () => window.removeEventListener("jeff:quick-open", openQuick);
   }, []);
 
   useEffect(() => {
@@ -249,15 +249,15 @@ export default function Workbench() {
       if (!terminalEnabled) return;
       setTerminalOpen(!useApp.getState().terminalOpen);
     };
-    window.addEventListener("toph:open-terminal", openTerminal);
-    return () => window.removeEventListener("toph:open-terminal", openTerminal);
+    window.addEventListener("jeff:open-terminal", openTerminal);
+    return () => window.removeEventListener("jeff:open-terminal", openTerminal);
   }, [setTerminalOpen, terminalEnabled]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "p") {
         event.preventDefault();
-        window.dispatchEvent(new CustomEvent("toph:editor-command", { detail: { command: "editor.action.quickCommand" } }));
+        window.dispatchEvent(new CustomEvent("jeff:editor-command", { detail: { command: "editor.action.quickCommand" } }));
         return;
       }
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "p") {
@@ -352,7 +352,7 @@ export default function Workbench() {
     return () => window.clearTimeout(timer);
   }, [openProjectIds]);
 
-  // Old sessions only know their Toph names; read their first message once so
+  // Old sessions only know their Jeff names; read their first message once so
   // the tab labels can show what each conversation is about.
   useEffect(() => {
     if (!activeProjectId || !chatsHydrated) return;
@@ -361,7 +361,7 @@ export default function Workbench() {
     const openChats = tabs
       .filter((tab) => tab.kind === "ai" && tab.chatId)
       .map((tab) => projectChats.chats.find((chat) => chat.id === tab.chatId))
-      .filter((chat): chat is TophChat => Boolean(chat));
+      .filter((chat): chat is JeffChat => Boolean(chat));
     void ensureChatSubjects(activeProjectId, openChats);
   }, [activeProjectId, chatsHydrated, tabs]);
 
@@ -404,16 +404,16 @@ export default function Workbench() {
     type PushPayload = AiCompletionPayload & { opened?: string };
     const handler = (payload: PushPayload) => {
       if (payload.opened === "true" && payload.projectId) {
-        window.setTimeout(() => window.dispatchEvent(new CustomEvent("toph:open-bot", { detail: payload })), 0);
+        window.setTimeout(() => window.dispatchEvent(new CustomEvent("jeff:open-bot", { detail: payload })), 0);
         return;
       }
       handleAiCompletion(payload);
     };
-    (window as unknown as { __tophPush?: (payload: PushPayload) => void }).__tophPush = handler;
+    (window as unknown as { __jeffPush?: (payload: PushPayload) => void }).__jeffPush = handler;
 
     if (typeof EventSource === "undefined") {
       return () => {
-        delete (window as unknown as { __tophPush?: (payload: PushPayload) => void }).__tophPush;
+        delete (window as unknown as { __jeffPush?: (payload: PushPayload) => void }).__jeffPush;
       };
     }
     const stream = new EventSource(`${getApiBase()}/api/notifications/stream`, {
@@ -431,7 +431,7 @@ export default function Workbench() {
     return () => {
       stream.removeEventListener("ai.done", onAI as EventListener);
       stream.close();
-      delete (window as unknown as { __tophPush?: (payload: { title?: string; body?: string }) => void }).__tophPush;
+      delete (window as unknown as { __jeffPush?: (payload: { title?: string; body?: string }) => void }).__jeffPush;
     };
   }, []);
 
@@ -447,10 +447,10 @@ export default function Workbench() {
       const switchingProject = state.activeProjectId !== payload.projectId;
       const chatId = (payload as { chatId?: string }).chatId;
       state.setActiveProject(payload.projectId);
-      forceTophsOnLoad.current = true;
+      forceJeffsOnLoad.current = true;
       if (payload.botId) {
-        if (switchingProject) pendingTophSelection.current = { projectId: payload.projectId, tophId: payload.botId, chatId };
-        else openTophConversation(payload.projectId, payload.botId, chatId);
+        if (switchingProject) pendingJeffSelection.current = { projectId: payload.projectId, jeffId: payload.botId, chatId };
+        else openJeffConversation(payload.projectId, payload.botId, chatId);
       } else if (chatId) {
         const chats = useChats.getState().byProject[payload.projectId];
         if (switchingProject || !chats?.hydrated) pendingChatOpen.current = { projectId: payload.projectId, chatId };
@@ -458,8 +458,8 @@ export default function Workbench() {
       }
       state.setSidebar("bots");
     };
-    window.addEventListener("toph:open-bot", onOpenBot as EventListener);
-    return () => window.removeEventListener("toph:open-bot", onOpenBot as EventListener);
+    window.addEventListener("jeff:open-bot", onOpenBot as EventListener);
+    return () => window.removeEventListener("jeff:open-bot", onOpenBot as EventListener);
   }, []);
 
   useEffect(() => {
@@ -481,8 +481,8 @@ export default function Workbench() {
       openConversation(detail.projectId, detail.chatId, detail.title);
       state.setSidebar("bots");
     };
-    window.addEventListener("toph:open-chat", onOpenChat);
-    return () => window.removeEventListener("toph:open-chat", onOpenChat);
+    window.addEventListener("jeff:open-chat", onOpenChat);
+    return () => window.removeEventListener("jeff:open-chat", onOpenChat);
   }, []);
 
   useEffect(() => {
@@ -493,9 +493,9 @@ export default function Workbench() {
   }, [activeProjectId, chatsHydrated]);
 
   useEffect(() => {
-    const pending = pendingTophSelection.current;
+    const pending = pendingJeffSelection.current;
     if (!pending || pending.projectId !== activeProjectId || !chatsHydrated) return;
-    openTophConversation(pending.projectId, pending.tophId, pending.chatId);
+    openJeffConversation(pending.projectId, pending.jeffId, pending.chatId);
   }, [activeProjectId, chatsHydrated]);
 
   // A deleted conversation (or a deleted participant) must not leave a dead tab.
@@ -529,7 +529,7 @@ export default function Workbench() {
     setTabs([]);
     const initialFeatures = useSettings.getState().workspaceFeatures;
     const initialEnabled = (feature: WorkspaceFeature) => featureEnabled(initialFeatures, feature);
-    const initialTopOnly = isTophOnly(initialFeatures);
+    const initialTopOnly = isJeffOnly(initialFeatures);
     setTerminalOpen(initialEnabled("terminal") && !initialTopOnly && !desktopClient);
     setSidebar("bots");
     api
@@ -538,7 +538,7 @@ export default function Workbench() {
         if (cancelled) return;
         const features = useSettings.getState().workspaceFeatures;
         const enabled = (feature: WorkspaceFeature) => featureEnabled(features, feature);
-        const currentTopOnly = isTophOnly(features);
+        const currentTopOnly = isJeffOnly(features);
         const restored = (Array.isArray(layout.tabs) ? (layout.tabs as Tab[]) : []).filter(
           (tab) =>
             tab &&
@@ -552,12 +552,12 @@ export default function Workbench() {
           : null;
         setTabs(restored.map((tab) => ({ ...tab, projectId: activeProjectId })), restoredActive);
         const storedChats = layout.chats as ProjectChats | null | undefined;
-        const migratingTophs = !storedChats || storedChats.version !== 5;
+        const migratingJeffs = !storedChats || storedChats.version !== 5;
         loadChats(activeProjectId, storedChats);
-        const { removedIds } = ensureSingleToph(activeProjectId);
-        for (const id of removedIds) void agentApi.deleteToph(activeProjectId, id).catch(() => undefined);
-        if (currentTopOnly || forceTophsOnLoad.current || migratingTophs) {
-          forceTophsOnLoad.current = false;
+        const { removedIds } = ensureSingleJeff(activeProjectId);
+        for (const id of removedIds) void agentApi.deleteJeff(activeProjectId, id).catch(() => undefined);
+        if (currentTopOnly || forceJeffsOnLoad.current || migratingJeffs) {
+          forceJeffsOnLoad.current = false;
           setSidebar("bots");
         } else if (layout.sidebar) {
           const savedSidebar = restoredSidebar(layout.sidebar);
@@ -578,8 +578,8 @@ export default function Workbench() {
       })
       .catch((error) => {
         if (!cancelled) {
-          if (forceTophsOnLoad.current) {
-            forceTophsOnLoad.current = false;
+          if (forceJeffsOnLoad.current) {
+            forceJeffsOnLoad.current = false;
             setSidebar("bots");
           }
           notify("error", error instanceof Error ? error.message : "Could not restore workspace.");
@@ -620,7 +620,7 @@ export default function Workbench() {
         chats: snapshotChats(project.id),
       });
     }
-    forceTophsOnLoad.current = true;
+    forceJeffsOnLoad.current = true;
     loadedProject.current = null;
     setActiveProject(next);
   }
@@ -659,7 +659,7 @@ export default function Workbench() {
     try {
       await api.gitCheckout(project.id, name);
       setGitStatus(await api.gitStatus(project.id));
-      window.dispatchEvent(new Event("toph:git-changed"));
+      window.dispatchEvent(new Event("jeff:git-changed"));
       setBranchMenuOpen(false);
     } catch (error) {
       notify("error", error instanceof Error ? error.message : "Não foi possível trocar de branch.");
@@ -675,7 +675,7 @@ export default function Workbench() {
       const output = await api.gitPush(project.id);
       const last = output.trim().split("\n").pop() ?? "";
       notify("success", last || "Branch enviada para o remoto.");
-      window.dispatchEvent(new Event("toph:git-changed"));
+      window.dispatchEvent(new Event("jeff:git-changed"));
       await loadBranches();
     } catch (error) {
       notify("error", error instanceof Error ? error.message : "Não foi possível enviar a branch.");
@@ -745,7 +745,7 @@ export default function Workbench() {
       const deleted = await api.gitDeleteOtherBranches(project.id);
       setBranchInfo(await api.gitBranches(project.id));
       setGitStatus(await api.gitStatus(project.id));
-      window.dispatchEvent(new Event("toph:git-changed"));
+      window.dispatchEvent(new Event("jeff:git-changed"));
       notify("success", `${deleted} branch${deleted === 1 ? "" : "es"} excluída${deleted === 1 ? "" : "s"}.`);
     } catch (error) {
       notify("error", error instanceof Error ? error.message : "Não foi possível excluir as branches.");
@@ -765,7 +765,7 @@ export default function Workbench() {
       setBranchCreateOpen(false);
       setGitStatus(await api.gitStatus(project.id));
       setBranchInfo(await api.gitBranches(project.id));
-      window.dispatchEvent(new Event("toph:git-changed"));
+      window.dispatchEvent(new Event("jeff:git-changed"));
     } catch (error) {
       notify("error", error instanceof Error ? error.message : "Não foi possível criar a branch.");
     } finally {
@@ -858,26 +858,26 @@ export default function Workbench() {
 
   function newConversation() {
     if (!project) return;
-    const toph = ensureToph(project.id);
-    if (!toph) return;
-    const chat = useChats.getState().createConversation(project.id, [toph.id], { name: toph.name });
-    if (chat) openConversation(project.id, chat.id, toph.name);
+    const jeff = ensureJeff(project.id);
+    if (!jeff) return;
+    const chat = useChats.getState().createConversation(project.id, [jeff.id], { name: jeff.name });
+    if (chat) openConversation(project.id, chat.id, jeff.name);
   }
 
-  function openTophConversation(projectId: string, tophId: string, chatId?: string) {
+  function openJeffConversation(projectId: string, jeffId: string, chatId?: string) {
     const chats = useChats.getState().byProject[projectId];
     if (!chats?.hydrated) {
-      pendingTophSelection.current = { projectId, tophId, chatId };
+      pendingJeffSelection.current = { projectId, jeffId, chatId };
       return;
     }
-    if (!chats.tophs.some((item) => item.id === tophId)) {
-      pendingTophSelection.current = null;
+    if (!chats.jeffs.some((item) => item.id === jeffId)) {
+      pendingJeffSelection.current = null;
       return;
     }
-    const chat = (chatId ? chats.chats.find((item) => item.id === chatId && item.participantIds.includes(tophId)) : null)
-      ?? latestChatForToph(chats, tophId)
-      ?? useChats.getState().createConversation(projectId, [tophId]);
-    pendingTophSelection.current = null;
+    const chat = (chatId ? chats.chats.find((item) => item.id === chatId && item.participantIds.includes(jeffId)) : null)
+      ?? latestChatForJeff(chats, jeffId)
+      ?? useChats.getState().createConversation(projectId, [jeffId]);
+    pendingJeffSelection.current = null;
     if (chat) openConversation(projectId, chat.id);
   }
 
@@ -919,9 +919,9 @@ export default function Workbench() {
       }
       const result = await api.closeProject(id);
       useChats.getState().forget(id);
-      useTophDrafts.getState().clearProject(id);
+      useJeffDrafts.getState().clearProject(id);
       if (activeProjectId === id) {
-        forceTophsOnLoad.current = true;
+        forceJeffsOnLoad.current = true;
         loadedProject.current = null;
       }
       closeProjectTab(id);
@@ -950,7 +950,7 @@ export default function Workbench() {
                 <BrandMark size="large" />
               </span>
               <div className="space-y-2">
-                <h1 className="text-title-2-medium text-text-primary">Bem-vindo ao Toph</h1>
+                <h1 className="text-title-2-medium text-text-primary">Bem-vindo ao Jeff</h1>
                 <p className="mx-auto max-w-md text-body-regular text-text-secondary">
                   {hasProjects ? "Retome um projeto recente ou abra outro repositório do servidor." : "Abra um repositório Git do servidor para começar."}
                 </p>
@@ -1168,7 +1168,7 @@ export default function Workbench() {
         project={project}
         onOpenFile={openFile}
         quickOpenToken={quickOpenToken}
-        tophControl={<TophSettings user={user} projectRoot={project.root} projectId={project.id} hideTrigger />}
+        jeffControl={<JeffSettings user={user} projectRoot={project.root} projectId={project.id} hideTrigger />}
         leading={branchControl}
       />
 

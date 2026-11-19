@@ -1,34 +1,34 @@
-name: toph
+name: jeff
 
 services:
-  toph:
+  jeff:
     image: ghcr.io/ferforastieri/toph:latest
     build:
       context: ..
       dockerfile: Dockerfile
-    container_name: toph
+    container_name: jeff
     restart: unless-stopped
     init: true
     ports:
-      - "127.0.0.1:${TOPH_PORT:-8787}:8787"
+      - "127.0.0.1:${JEFF_PORT:-8787}:8787"
     environment:
-      TOPH_ADDR: 0.0.0.0:8787
-      TOPH_DATA_DIR: /data
-      TOPH_WORKSPACES: /workspaces
-      TOPH_ADMIN_PASSWORD: ${TOPH_ADMIN_PASSWORD:-}
-      TOPH_SECURE_COOKIES: ${TOPH_SECURE_COOKIES:-false}
-      TOPH_TRUSTED_PROXIES: ${TOPH_TRUSTED_PROXIES:-}
-      TOPH_BUILD_ID: ${TOPH_BUILD_ID:-}
-      TOPH_FIREBASE_CREDENTIALS_FILE: ${TOPH_FIREBASE_CREDENTIALS_FILE:-}
-      TOPH_FIREBASE_PROJECT_ID: ${TOPH_FIREBASE_PROJECT_ID:-}
+      JEFF_ADDR: 0.0.0.0:8787
+      JEFF_DATA_DIR: /data
+      JEFF_WORKSPACES: /workspaces
+      JEFF_ADMIN_PASSWORD: ${JEFF_ADMIN_PASSWORD:-}
+      JEFF_SECURE_COOKIES: ${JEFF_SECURE_COOKIES:-false}
+      JEFF_TRUSTED_PROXIES: ${JEFF_TRUSTED_PROXIES:-}
+      JEFF_BUILD_ID: ${JEFF_BUILD_ID:-}
+      JEFF_FIREBASE_CREDENTIALS_FILE: ${JEFF_FIREBASE_CREDENTIALS_FILE:-}
+      JEFF_FIREBASE_PROJECT_ID: ${JEFF_FIREBASE_PROJECT_ID:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - toph-data:/data
-      - ${TOPH_WORKSPACES_HOST:-/srv/workspaces}:/workspaces
+      - jeff-data:/data
+      - ${JEFF_WORKSPACES_HOST:-/srv/workspaces}:/workspaces
     security_opt:
       - no-new-privileges:true
 
 volumes:
-  toph-data:
-    name: toph-data
+  jeff-data:
+    name: jeff-data

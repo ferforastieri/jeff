@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { ArrowRight, Server } from "@toph/icons";
+import { ArrowRight, Server } from "@jeff/icons";
 import { probeServer } from "../../../shared/api";
-import BrandMark from "@toph/brand";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Chip } from "@toph/ui/app";
+import BrandMark from "@jeff/brand";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Chip } from "@jeff/ui/app";
 
 interface Props {
   defaultUrl: string;
@@ -30,11 +30,11 @@ export default function ServerSetup({ defaultUrl, onConnected }: Props) {
       <section className="bg-background-primary-default flex w-full max-w-sm flex-col gap-6 rounded-3xl p-7 shadow-xs">
         <header className="flex flex-col items-center gap-2 text-center">
           <BrandMark size="large" />
-          <h1 className="text-title-2-medium text-text-primary">Toph</h1>
+          <h1 className="text-title-2-medium text-text-primary">Jeff</h1>
           <p className="text-body-regular text-text-secondary">Conecte ao seu workbench self-hosted.</p>
         </header>
         <form className="flex flex-col gap-4" onSubmit={submit}>
-          <Input label="URL do servidor" value={url} onChange={setUrl} placeholder="https://toph.example.com" leadingIcon={Server} autoFocus />
+          <Input label="URL do servidor" value={url} onChange={setUrl} placeholder="https://jeff.example.com" leadingIcon={Server} autoFocus />
           {error && <Chip color="rose" variant="subtle" className="justify-start whitespace-normal px-2 py-1.5">{error}</Chip>}
           <Button type="submit" disabled={busy || !url.trim()} trailingIcon={ArrowRight} className="w-full">
             {busy ? "Conectando..." : "Conectar"}

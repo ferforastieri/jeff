@@ -1,5 +1,5 @@
-//! A tiny stdio MCP server that exposes the Toph-only tools selected for one
-//! Toph (email accounts) to its native harness. It is configuration glue, not a
+//! A tiny stdio MCP server that exposes the Jeff-only tools selected for one
+//! Jeff (email accounts) to its native harness. It is configuration glue, not a
 //! gateway: the harness talks MCP directly to this process and executes the
 //! tools itself.
 
@@ -63,7 +63,7 @@ async fn call(email: &EmailService, accounts: &[String], params: &Value) -> Valu
     let account = args["accountId"].as_str().unwrap_or("");
     if email_tool && !accounts.iter().any(|id| id == account) {
         return json!({
-            "content": [{"type": "text", "text": "Conta de e-mail não autorizada para este Toph."}],
+            "content": [{"type": "text", "text": "Conta de e-mail não autorizada para este Jeff."}],
             "isError": true
         });
     }
@@ -110,7 +110,7 @@ async fn call(email: &EmailService, accounts: &[String], params: &Value) -> Valu
 }
 
 pub async fn serve() -> anyhow::Result<()> {
-    let accounts = std::env::var("TOPH_EMAIL_ACCOUNTS")
+    let accounts = std::env::var("JEFF_EMAIL_ACCOUNTS")
         .unwrap_or_default()
         .split(',')
         .map(str::trim)
@@ -118,7 +118,7 @@ pub async fn serve() -> anyhow::Result<()> {
         .map(str::to_string)
         .collect::<Vec<_>>();
     let config = Config::load()?;
-    let store = Store::open(&config.data_dir.join("toph.db")).await?;
+    let store = Store::open(&config.data_dir.join("jeff.db")).await?;
     let email = EmailService::new(store, &config.data_dir, &config.master_key_file)?;
     let authorized = email
         .list()
@@ -129,10 +129,10 @@ pub async fn serve() -> anyhow::Result<()> {
         .collect::<Vec<_>>();
     let mut instructions = Vec::new();
     if authorized.is_empty() {
-        instructions.push("Este Toph não tem contas de e-mail autorizadas.".to_string());
+        instructions.push("Este Jeff não tem contas de e-mail autorizadas.".to_string());
     } else {
         instructions.push(format!(
-            "Contas de e-mail autorizadas para este Toph:\n{}\nUse o id da conta no campo accountId.",
+            "Contas de e-mail autorizadas para este Jeff:\n{}\nUse o id da conta no campo accountId.",
             authorized.join("\n")
         ));
     }
@@ -165,7 +165,7 @@ pub async fn serve() -> anyhow::Result<()> {
             "initialize" => Ok(json!({
                 "protocolVersion": "2025-11-25",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "toph_tools", "version": env!("CARGO_PKG_VERSION")},
+                "serverInfo": {"name": "jeff_tools", "version": env!("CARGO_PKG_VERSION")},
                 "instructions": instructions
             })),
             "ping" => Ok(json!({})),

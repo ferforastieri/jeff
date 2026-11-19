@@ -18,8 +18,8 @@ COPY web ./web
 RUN npm run build:web
 
 FROM rust:1-bookworm AS build
-ARG TOPH_VERSION=dev
-ENV TOPH_VERSION=${TOPH_VERSION}
+ARG JEFF_VERSION=dev
+ENV JEFF_VERSION=${JEFF_VERSION}
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates pkg-config \
     && rm -rf /var/lib/apt/lists/*
@@ -28,7 +28,7 @@ COPY backend/Cargo.toml backend/Cargo.lock backend/build.rs ./backend/
 COPY backend/src ./backend/src
 COPY backend/skills ./backend/skills
 COPY --from=web /src/web/dist ./web/dist
-RUN cargo build --release --manifest-path backend/Cargo.toml --bin toph
+RUN cargo build --release --manifest-path backend/Cargo.toml --bin jeff
 
 FROM python:3.11-slim AS pydebug
 RUN pip install --no-cache-dir --target /debugpy debugpy==1.8.22
@@ -37,16 +37,16 @@ FROM debian:bookworm-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates bash git ripgrep openssh-client tini libsqlite3-0 python3 \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --create-home --uid 1000 --shell /bin/bash toph \
+    && useradd --create-home --uid 1000 --shell /bin/bash jeff \
     && mkdir -p /data /workspaces \
-    && chown -R toph:toph /data /workspaces
-COPY --from=build /src/backend/target/release/toph /usr/local/bin/toph
-COPY --from=pydebug /debugpy /usr/local/lib/toph/debug-adapters/python
-USER toph
-WORKDIR /home/toph
-ENV TOPH_ADDR=0.0.0.0:8787 \
-    TOPH_DATA_DIR=/data \
-    TOPH_WORKSPACES=/workspaces
+    && chown -R jeff:jeff /data /workspaces
+COPY --from=build /src/backend/target/release/jeff /usr/local/bin/jeff
+COPY --from=pydebug /debugpy /usr/local/lib/jeff/debug-adapters/python
+USER jeff
+WORKDIR /home/jeff
+ENV JEFF_ADDR=0.0.0.0:8787 \
+    JEFF_DATA_DIR=/data \
+    JEFF_WORKSPACES=/workspaces
 EXPOSE 8787
 VOLUME ["/data", "/workspaces"]
-ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/toph"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/jeff"]

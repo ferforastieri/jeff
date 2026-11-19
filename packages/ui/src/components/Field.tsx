@@ -256,7 +256,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
 });
 
 /**
- * Input with a fixed prefix, e.g. "Tophs/" + address, or a small action inside its end (a ghost `sm` icon
+ * Input with a fixed prefix, e.g. "Jeffs/" + address, or a small action inside its end (a ghost `sm` icon
  * button: the + that adds what's typed).
  */
 export const AffixInput = forwardRef<HTMLInputElement, InputProps & { prefix?: ReactNode; action?: ReactNode }>(

@@ -11,7 +11,7 @@ import {
 } from "react-aria-components";
 import type { DisclosureGroupProps as AriaDisclosureGroupProps, DisclosureProps as AriaDisclosureProps } from "react-aria-components";
 import { Icon as KitIcon } from "../../../icons/Icon";
-import { cx, sortCx } from "@toph/ui/app/utils/cx";
+import { cx, sortCx } from "@jeff/ui/app/utils/cx";
 
 /**
  * Accordion — stacked sections that expand in place: FAQs, settings groups,

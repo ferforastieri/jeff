@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { LoaderCircle, TerminalSquare } from "@toph/icons";
+import { LoaderCircle, TerminalSquare } from "@jeff/icons";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { api, type Project } from "../../../shared/api";
 import { useChats } from "../../conversations/store";
-import { ensureToph } from "../../agents/default-toph";
+import { ensureJeff } from "../../agents/default-jeff";
 import BotStudioTab from "../../conversations/components/BotStudioTab";
 import { TerminalView } from "../../terminal/components/TerminalPanel";
 import { useSettings } from "../../settings/store";
@@ -14,7 +14,7 @@ interface Props {
   onOpenFile?: (path: string, line?: number) => void;
 }
 
-const debugChatKey = (projectId: string) => `toph-debug-chat:${projectId}`;
+const debugChatKey = (projectId: string) => `jeff-debug-chat:${projectId}`;
 
 /**
  * Debug is just a conversation plus the terminal the agent drives. The user
@@ -56,10 +56,10 @@ export default function DebugPanel({ project, mobile = false, onOpenFile }: Prop
   useEffect(() => {
     if (!projectChats?.hydrated) return;
     if (chatId && projectChats.chats.some((chat) => chat.id === chatId)) return;
-    const toph = projectChats.tophs[0] ?? ensureToph(project.id);
-    if (!toph) return;
+    const jeff = projectChats.jeffs[0] ?? ensureJeff(project.id);
+    if (!jeff) return;
     const previousActive = projectChats.activeChatId;
-    const chat = useChats.getState().createConversation(project.id, [toph.id], { name: "Debug" });
+    const chat = useChats.getState().createConversation(project.id, [jeff.id], { name: "Debug" });
     if (!chat) return;
     setChatId(chat.id);
     if (previousActive) useChats.getState().setActiveChat(project.id, previousActive);
@@ -68,7 +68,7 @@ export default function DebugPanel({ project, mobile = false, onOpenFile }: Prop
     } catch {
       /* storage may be unavailable; the chat still lives in the store */
     }
-  }, [project.id, projectChats?.hydrated, projectChats?.chats, projectChats?.tophs, chatId]);
+  }, [project.id, projectChats?.hydrated, projectChats?.chats, projectChats?.jeffs, chatId]);
 
   const ready = Boolean(chatId && terminal);
 

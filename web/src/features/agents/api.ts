@@ -1,5 +1,5 @@
 import { request, getApiBase } from "../../shared/api";
-import type { ChatMessage, ChatToph } from "../conversations/store";
+import type { ChatMessage, ChatJeff } from "../conversations/store";
 import type { AgentAttachment } from "../conversations/components/AgentComposer";
 import type { AgentQuestion } from "../conversations/components/AgentQuestionCard";
 
@@ -22,8 +22,8 @@ export interface AgentSnapshot { messages: NativeMessage[]; drafts: NativeMessag
 export interface AgentSearchResult { id: string; sessionId: string; chatId: string; agentId: string; role: "user" | "assistant"; text: string; createdAt: number }
 /** A live session of the installed harness (its own id), which the session list reads. */
 export interface HarnessSession { id: string; chatId: string; agentId: string; title: string; archived: boolean; createdAt: number; updatedAt: number }
-export interface TophUsage { agentId: string; inputTokens: number; outputTokens: number; cachedTokens: number; calls: number }
-export interface AgentUsage { inputTokens: number; outputTokens: number; cachedTokens: number; calls: number; byAgent?: TophUsage[] }
+export interface JeffUsage { agentId: string; inputTokens: number; outputTokens: number; cachedTokens: number; calls: number }
+export interface AgentUsage { inputTokens: number; outputTokens: number; cachedTokens: number; calls: number; byAgent?: JeffUsage[] }
 export interface Connection { id: string; label: string; provider: string; baseUrl: string; model: string; hasKey: boolean }
 export interface McpServer { id: string; name: string; transport: "stdio" | "http"; url: string; command: string[]; token?: string; env?: Record<string, string>; envKeys?: string[]; hasToken: boolean; timeoutSeconds?: number; autoApprove?: boolean }
 
@@ -82,7 +82,7 @@ export interface EngineLimits {
 const root = (project: string) => `/projects/${encodeURIComponent(project)}/agent`;
 const post = (body: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(body) });
 export const agentApi = {
-  start: (project: string, input: { requestId: string; chatId: string; chatDescription?: string; agentId: string; text: string; agents: Array<ChatToph & { chatId: string }>; attachments?: AgentAttachment[]; mode?: "debug" }) => request<AgentRun>(`${root(project)}/runs`, { ...post(input), signal: AbortSignal.timeout(120_000) }),
+  start: (project: string, input: { requestId: string; chatId: string; chatDescription?: string; agentId: string; text: string; agents: Array<ChatJeff & { chatId: string }>; attachments?: AgentAttachment[]; mode?: "debug" }) => request<AgentRun>(`${root(project)}/runs`, { ...post(input), signal: AbortSignal.timeout(120_000) }),
   activeRuns: (project: string) => request<AgentRun[]>(`${root(project)}/runs`),
   pendingQuestions: (project: string) => request<PendingQuestion[]>(`${root(project)}/questions`),
   cancel: (project: string, run: string) => request(`${root(project)}/runs/${encodeURIComponent(run)}/cancel`, post({})),
@@ -94,7 +94,7 @@ export const agentApi = {
   events: (project: string) => `${getApiBase()}/api${root(project)}/events`,
   switchSession: (project: string, agentId: string, sessionId: string | null, chatId: string) => request(`${root(project)}/sessions`, post({ agentId, sessionId, chatId })),
   harnessSessions: (project: string) => request<HarnessSession[]>(`${root(project)}/harness/sessions`),
-  deleteToph: (project: string, agentId: string) => request(`${root(project)}/tophs/${encodeURIComponent(agentId)}`, { method: "DELETE" }),
+  deleteJeff: (project: string, agentId: string) => request(`${root(project)}/jeffs/${encodeURIComponent(agentId)}`, { method: "DELETE" }),
   approve: (project: string, call: string, approved: boolean) => request(`${root(project)}/approvals/${encodeURIComponent(call)}`, post({ approved })),
   answer: (project: string, call: string, answer: string) => request(`${root(project)}/approvals/${encodeURIComponent(call)}`, post({ answers: answer })),
   usage: (project: string, chat?: string) => request<AgentUsage>(`${root(project)}/usage${chat ? `?chatId=${encodeURIComponent(chat)}` : ""}`),

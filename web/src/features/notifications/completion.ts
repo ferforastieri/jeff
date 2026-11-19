@@ -41,7 +41,7 @@ export function handleAiCompletion(payload: AiCompletionPayload): void {
     return;
   }
   const projectName = payload.projectName?.trim() || state.projects.find((project) => project.id === projectId)?.name;
-  const who = payload.botName?.trim() || payload.title?.trim() || "Toph";
+  const who = payload.botName?.trim() || payload.title?.trim() || "Jeff";
   const added = state.addNotification({
     kind: "ai",
     // "repos respondeu" reads better than a bare agent name in the phone's banner.

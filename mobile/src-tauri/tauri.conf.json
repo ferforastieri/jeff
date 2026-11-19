@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Toph",
+  "productName": "Jeff",
   "version": "0.99.9",
-  "identifier": "br.com.ferforastieri.toph",
+  "identifier": "br.com.ferforastieri.jeff",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -10,7 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [{ "label": "main", "title": "Toph", "dragDropEnabled": false, "theme": "Dark", "backgroundColor": "#000000" }],
+    "windows": [{ "label": "main", "title": "Jeff", "dragDropEnabled": false, "theme": "Dark", "backgroundColor": "#000000" }],
     "security": { "csp": null }
   },
   "bundle": {

@@ -283,7 +283,7 @@ fn stored_workspace_message(mut message: Value) -> AppResult<Option<StoredWorksp
         .unwrap_or("system")
         .to_string();
     let bot_id = object
-        .get("tophId")
+        .get("jeffId")
         .and_then(Value::as_str)
         .filter(|id| !id.is_empty())
         .map(str::to_string);

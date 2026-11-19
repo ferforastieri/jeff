@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Globe2, Plus, Trash2 } from "@toph/icons";
+import { ExternalLink, Globe2, Plus, Trash2 } from "@jeff/icons";
 import { api, type WebTarget } from "../../../../shared/api";
 import { useApp } from "../../../store";
 import { useConfirm } from "../../../../shared/ui/confirm";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
 import LoadingState from "../../../../shared/ui/LoadingState";
 
 interface Props {
@@ -62,7 +62,7 @@ export default function WebAppsScreen({ onOpenWeb }: Props) {
               <Globe2 className="size-6" />
             </span>
             <strong className="text-title-3-medium text-text-primary">Nenhum web app</strong>
-            <p className="text-caption-1-regular text-text-secondary">Adicione uma URL para abrir dentro do Toph.</p>
+            <p className="text-caption-1-regular text-text-secondary">Adicione uma URL para abrir dentro do Jeff.</p>
           </div>
         ) : null}
 

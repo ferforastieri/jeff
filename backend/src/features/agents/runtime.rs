@@ -59,7 +59,7 @@ enum NativeRecord {
 }
 
 /// One earlier answer from the same group turn. Group members run in sequence
-/// so the next Toph can see the work that already exists; this is the minimal
+/// so the next Jeff can see the work that already exists; this is the minimal
 /// handoff, not a rebuilt conversation history.
 #[derive(Clone, Debug)]
 struct PeerReply {
@@ -410,7 +410,7 @@ impl Runtime {
         let display = json!({
             "id": id,
             "chatId": ctx.run.chat_id,
-            "tophId": ctx.agent.id,
+            "jeffId": ctx.agent.id,
             "sessionId": ctx.run.session_id,
             "runId": ctx.run.id,
             "role": "system",
@@ -610,7 +610,7 @@ impl Runtime {
         };
         let silent = responders.is_empty();
         if silent {
-            // The user message still belongs in the timeline. The first Toph
+            // The user message still belongs in the timeline. The first Jeff
             // owns that visible bubble without being asked to answer it.
             responders.push(roster[0].clone());
         }
@@ -815,10 +815,10 @@ impl Runtime {
                 primary = Some(run);
             }
         }
-        primary.ok_or_else(|| bad_request("No Toph could start this task"))
+        primary.ok_or_else(|| bad_request("No Jeff could start this task"))
     }
 
-    /// Chooses the Tophs that answer. An explicit @handle wins; otherwise the
+    /// Chooses the Jeffs that answer. An explicit @handle wins; otherwise the
     /// router returns a small JSON plan: zero to two handles, or everyone for
     /// a message addressed to the whole group. Nobody owns the group: the
     /// choice belongs to each message.
@@ -831,7 +831,7 @@ impl Runtime {
         text: &str,
     ) -> AppResult<(Vec<AgentSpec>, String)> {
         if roster.is_empty() {
-            return Err(bad_request("Nenhum Toph nesta conversa."));
+            return Err(bad_request("Nenhum Jeff nesta conversa."));
         }
         let mentioned = mentioned_agents(text, roster, "");
         if !mentioned.is_empty() {
@@ -876,15 +876,15 @@ impl Runtime {
             .unwrap_or_default();
         let history = recent
             .iter()
-            .map(|(role, toph_id, text)| {
+            .map(|(role, jeff_id, text)| {
                 let name = if role == "user" {
                     "Usuário".to_string()
                 } else {
                     roster
                         .iter()
-                        .find(|agent| agent.id == *toph_id)
+                        .find(|agent| agent.id == *jeff_id)
                         .map(|agent| agent.name.clone())
-                        .unwrap_or_else(|| "Toph".into())
+                        .unwrap_or_else(|| "Jeff".into())
                 };
                 format!("[{name}] {text}")
             })
@@ -893,16 +893,16 @@ impl Runtime {
         let messages = vec![
             crate::ai::Message {
                 role: "system".into(),
-                content: json!(r#"Você decide quais Tophs de um grupo devem responder à última mensagem do usuário. Responda SOMENTE com JSON, sem texto em volta, no formato {"handles": ["..."], "todos": false, "reason": "..."}:
-- "handles": de 0 a 2 handles, só da lista de Tophs; prefira 1.
-- "todos": true quando a mensagem é para o grupo todo (um cumprimento, "pessoal", uma pergunta para todos, uma apresentação): nesse caso todos os Tophs respondem.
+                content: json!(r#"Você decide quais Jeffs de um grupo devem responder à última mensagem do usuário. Responda SOMENTE com JSON, sem texto em volta, no formato {"handles": ["..."], "todos": false, "reason": "..."}:
+- "handles": de 0 a 2 handles, só da lista de Jeffs; prefira 1.
+- "todos": true quando a mensagem é para o grupo todo (um cumprimento, "pessoal", uma pergunta para todos, uma apresentação): nesse caso todos os Jeffs respondem.
 - "reason": um motivo de até 12 palavras, em português.
 Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; se ninguém tiver, escolha pelo papel. Um cumprimento nunca fica sem resposta. Deixe a lista vazia apenas quando ninguém precisa responder: um agradecimento, um recado, uma conversa já encerrada."#),
             },
             crate::ai::Message {
                 role: "user".into(),
                 content: json!(format!(
-                    "Tophs do grupo:\n{team}\n\nConversa recente:\n{history}\n\nMensagem:\n{text}\n\nQuem responde?"
+                    "Jeffs do grupo:\n{team}\n\nConversa recente:\n{history}\n\nMensagem:\n{text}\n\nQuem responde?"
                 )),
             },
         ];
@@ -1012,7 +1012,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             json!({"role":"user","content":parts})
         };
         let visible = ctx.depth == 0 && !ctx.secondary;
-        let display = json!({"id":id,"chatId":ctx.run.chat_id,"tophId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"model":ctx.agent.model,"agentMode":ctx.agent.agent_mode,"role":if ctx.depth==0{"user"}else{"system"},"content":if ctx.depth==0{text.to_owned()}else{format!("Tarefa para @{}: {}",ctx.agent.handle,text)},"status":"complete","createdAt":now(),"hidden":!visible});
+        let display = json!({"id":id,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"model":ctx.agent.model,"agentMode":ctx.agent.agent_mode,"role":if ctx.depth==0{"user"}else{"system"},"content":if ctx.depth==0{text.to_owned()}else{format!("Tarefa para @{}: {}",ctx.agent.handle,text)},"status":"complete","createdAt":now(),"hidden":!visible});
         let seq = self
             .inner
             .repo
@@ -1041,7 +1041,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 format!("Chamei {}{why}", names.join(" e "))
             };
             let note_id = new_id();
-            let note = json!({"id":note_id,"chatId":ctx.run.chat_id,"tophId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"role":"system","content":text,"status":"complete","createdAt":now()});
+            let note = json!({"id":note_id,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"role":"system","content":text,"status":"complete","createdAt":now()});
             let seq = self
                 .inner
                 .repo
@@ -1161,7 +1161,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         Ok(())
     }
 
-    /// Removes a task's runs, messages and sessions. The Tophs are global and
+    /// Removes a task's runs, messages and sessions. The Jeffs are global and
     /// stay in the project, so their profiles are not touched.
     /// The in-memory harness sessions for that chat are dropped too.
     pub async fn delete_chat(&self, user: i64, project: &str, chat: &str) -> AppResult<()> {
@@ -1221,9 +1221,9 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         Ok(())
     }
 
-    /// Removes a Toph from the project: every task's runs, messages and harness
+    /// Removes a Jeff from the project: every task's runs, messages and harness
     /// sessions, plus its profile. The UI asks for confirmation first.
-    pub async fn delete_toph(&self, user: i64, project: &str, agent: &str) -> AppResult<()> {
+    pub async fn delete_jeff(&self, user: i64, project: &str, agent: &str) -> AppResult<()> {
         let session_ids: Vec<String> = sqlx::query_scalar(
             "SELECT id FROM agent_sessions WHERE user_id=? AND project_id=? AND agent_id=?",
         )
@@ -1342,7 +1342,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         self.inner.drafts.lock().unwrap().remove(&ctx.run.id);
         if !error.is_empty() {
             let id = new_id();
-            let message = json!({"id":id,"chatId":ctx.run.chat_id,"tophId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"role":"error","content":error,"status":"error","createdAt":now()});
+            let message = json!({"id":id,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"role":"error","content":error,"status":"error","createdAt":now()});
             // Display failures separately; they are not model-authored answers.
             self.event(ctx, "error", message);
         }
@@ -1377,7 +1377,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         }
     }
 
-    /// A short, factual brief for a message that several Tophs answer. It names the
+    /// A short, factual brief for a message that several Jeffs answer. It names the
     /// order, the owner of each part and the one artifact that carries the contract,
     /// so each agent knows what to do and what to leave to the others. It is only a
     /// prompt: the run, the harness and the tools stay exactly as they are.
@@ -1444,10 +1444,10 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 .collect::<Vec<_>>()
                 .join(", ");
             text.push_str(&format!(
-                "\n\nVocê está num grupo com {peers}. Se precisar do trabalho de outro Toph, mencione o @handle dele na resposta com um pedido claro; ele recebe a sua resposta e continua a mesma conversa. Não responda pela outra pessoa."
+                "\n\nVocê está num grupo com {peers}. Se precisar do trabalho de outro Jeff, mencione o @handle dele na resposta com um pedido claro; ele recebe a sua resposta e continua a mesma conversa. Não responda pela outra pessoa."
             ));
         }
-        text.push_str("\n\nSe precisar de uma decisão do usuário que você não consegue inferir, use a ferramenta `ask_user` (servidor MCP `toph`) com perguntas curtas e opções: a execução espera a resposta e continua. Não termine a resposta apenas com uma pergunta em texto.");
+        text.push_str("\n\nSe precisar de uma decisão do usuário que você não consegue inferir, use a ferramenta `ask_user` (servidor MCP `jeff`) com perguntas curtas e opções: a execução espera a resposta e continua. Não termine a resposta apenas com uma pergunta em texto.");
         if routed.len() > 1 {
             let peers = roster
                 .iter()
@@ -1472,7 +1472,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
     }
 
     /// Runs one turn on an external CLI. The CLI owns the native agent loop and
-    /// tools; Toph adds only identity and the selected native integrations.
+    /// tools; Jeff adds only identity and the selected native integrations.
     fn execute_cli<'a>(
         &'a self,
         ctx: &'a RunContext,
@@ -1501,7 +1501,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 cli::attachments_note(attachments, &attachment_files)
             );
             let opencode_session = format!("ses_{}", ctx.run.session_id);
-            // One Toph per project and no per-Toph account picker anymore: an
+            // One Jeff per project and no per-Jeff account picker anymore: an
             // empty selection means every account configured in Settings → Email.
             let email_accounts: Vec<String> = if ctx.agent.email_account_ids.is_empty() {
                 self.inner
@@ -1540,8 +1540,8 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             .await
             {
                 mcp_servers.push(Server {
-                    id: "toph".into(),
-                    name: "toph".into(),
+                    id: "jeff".into(),
+                    name: "jeff".into(),
                     transport: "http".into(),
                     url,
                     command: Vec::new(),
@@ -1557,7 +1557,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             tokio::fs::create_dir_all(&work).await?;
             let streaming_parts = engine == "opencode";
             let mid = format!("{}-engine", ctx.run.id);
-            let display = json!({"id":mid,"userId":ctx.user_id,"projectId":ctx.project_id,"chatId":ctx.run.chat_id,"tophId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"model":model,"agentMode":ctx.agent.agent_mode,"role":"assistant","content":"","status":"running","createdAt":now()});
+            let display = json!({"id":mid,"userId":ctx.user_id,"projectId":ctx.project_id,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"model":model,"agentMode":ctx.agent.agent_mode,"role":"assistant","content":"","status":"running","createdAt":now()});
             // Harnesses that report text as it happens persist each finished
             // part as its own message, in order with the tool calls. The other
             // harnesses only return the final answer, so a running draft keeps
@@ -1801,7 +1801,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         let display = json!({
             "id": id,
             "chatId": ctx.run.chat_id,
-            "tophId": ctx.agent.id,
+            "jeffId": ctx.agent.id,
             "sessionId": ctx.run.session_id,
             "runId": ctx.run.id,
             "role": "assistant",
@@ -1841,7 +1841,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         let display = json!({
             "id": id,
             "chatId": ctx.run.chat_id,
-            "tophId": ctx.agent.id,
+            "jeffId": ctx.agent.id,
             "sessionId": ctx.run.session_id,
             "runId": ctx.run.id,
             "role": "reasoning",
@@ -1866,7 +1866,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         Ok(())
     }
 
-    /// Stores a tool call reported by a native harness as a regular Toph
+    /// Stores a tool call reported by a native harness as a regular Jeff
     /// message. Native harnesses execute the tool themselves; this is only the
     /// transcript/UI bridge.
     async fn record_native_tool(&self, ctx: &RunContext, tool: cli::NativeTool) -> AppResult<()> {
@@ -1887,7 +1887,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         let display = json!({
             "id": id,
             "chatId": ctx.run.chat_id,
-            "tophId": ctx.agent.id,
+            "jeffId": ctx.agent.id,
             "sessionId": ctx.run.session_id,
             "runId": ctx.run.id,
             "role": "tool",
@@ -1935,7 +1935,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             call_id.to_string()
         };
         let label = activity::tool_activity(name, &args);
-        let tool_display = json!({"id":tid,"chatId":ctx.run.chat_id,"tophId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"role":"tool","title":name,"activity":label,"phase":"engine","content":args.to_string(),"status":"running","createdAt":now()});
+        let tool_display = json!({"id":tid,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"role":"tool","title":name,"activity":label,"phase":"engine","content":args.to_string(),"status":"running","createdAt":now()});
         sqlx::query("INSERT INTO agent_tool_calls(id,run_id,call_id,name,arguments,state,created_at) VALUES(?,?,?,?,?,'pending',?)")
             .bind(&tid).bind(&ctx.run.id).bind(&call_id).bind(name).bind(args.to_string()).bind(now()).execute(self.inner.repo.0.pool()).await?;
         // A question is shown by the question card, not as a tool row.
@@ -2080,7 +2080,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         Ok(result)
     }
 
-    /// Runs a child turn for another Toph in the same team. The child uses its
+    /// Runs a child turn for another Jeff in the same team. The child uses its
     /// own session, model, prompt and permissions; its messages join the same
     /// conversation, and the answer comes back to the caller.
     fn delegate<'a>(
@@ -2092,7 +2092,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         Box::pin(async move {
             if parent.depth >= 2 {
                 return Err(bad_request(
-                    "A conversa entre Tophs chegou ao limite de três trocas. Responda ao usuário.",
+                    "A conversa entre Jeffs chegou ao limite de três trocas. Responda ao usuário.",
                 ));
             }
             let handle = args["agent"]
@@ -2113,7 +2113,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                             || agent.name.eq_ignore_ascii_case(handle))
                 })
                 .cloned()
-                .ok_or_else(|| bad_request(format!("Toph @{handle} não está nesta equipe.")))?;
+                .ok_or_else(|| bad_request(format!("Jeff @{handle} não está nesta equipe.")))?;
             target.chat_id = parent.run.chat_id.clone();
             if parent.routed.len() > 1 && parent.routed.iter().any(|id| id == &target.id) {
                 return Ok(json!({
@@ -2210,7 +2210,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 Err(error) => Err(crate::errors::internal(error.to_string())),
             };
             self.inner.runs.lock().unwrap().remove(&run.id);
-            // A delegated Toph can mention another one too. The chain stops at
+            // A delegated Jeff can mention another one too. The chain stops at
             // depth 2, so a user message gets at most three agent answers in a row.
             if let Ok(text) = &result {
                 if !cancel.is_cancelled() {
@@ -2255,7 +2255,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         })
     }
 
-    /// After a reply, mentions of other Tophs can hand the turn over without
+    /// After a reply, mentions of other Jeffs can hand the turn over without
     /// the caller needing a `delegate` call. A small router turn decides if
     /// the mention is actually asking for work: "thanks, @beto" wakes nobody.
     async fn auto_handoff(&self, ctx: &RunContext, text: &str, cancel: &CancellationToken) {
@@ -2263,7 +2263,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         {
             return;
         }
-        // An explicit delegate already ran the other Toph and brought the
+        // An explicit delegate already ran the other Jeff and brought the
         // answer back; running the mention again would duplicate it.
         let used_delegate: i64 = sqlx::query_scalar(
             "SELECT count(*) FROM agent_tool_calls WHERE run_id=? AND name='delegate' AND state='completed'",
@@ -2361,7 +2361,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             crate::ai::Message {
                 role: "system".into(),
                 content: json!(
-                    "Você decide a passagem de vez entre Tophs. Um Toph respondeu e mencionou outros. Escolha só os mencionados que precisam agir por causa da resposta. Responda SOMENTE com JSON no formato {\"handles\":[\"...\"]}, usando os handles da lista. Passe a vez para pedido, pergunta, tarefa, revisão ou decisão. Não passe para agradecimento, confirmação, menção que só credita ou informa. Na dúvida, não passe."
+                    "Você decide a passagem de vez entre Jeffs. Um Jeff respondeu e mencionou outros. Escolha só os mencionados que precisam agir por causa da resposta. Responda SOMENTE com JSON no formato {\"handles\":[\"...\"]}, usando os handles da lista. Passe a vez para pedido, pergunta, tarefa, revisão ou decisão. Não passe para agradecimento, confirmação, menção que só credita ou informa. Na dúvida, não passe."
                 ),
             },
             crate::ai::Message {

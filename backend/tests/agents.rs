@@ -1,19 +1,19 @@
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use serde_json::{json, Value};
-use toph_server::ai::AiConfig;
-use toph_server::features::agents::{
+use jeff_server::ai::AiConfig;
+use jeff_server::features::agents::{
     cli::{attachment_files, attachments_note, opencode_model},
     engines,
     models::AgentSpec,
     tools::{mutating, needs_permission, shell},
 };
+use serde_json::{json, Value};
 
 fn agent(extra: Value) -> AgentSpec {
     let mut value = json!({
-        "id": "toph",
+        "id": "jeff",
         "chatId": "chat",
-        "name": "Toph",
-        "handle": "toph",
+        "name": "Jeff",
+        "handle": "jeff",
         "prompt": "Execute the task.",
         "agentMode": "build",
         "permissionMode": "yolo",
@@ -165,7 +165,7 @@ async fn shell_timeout_kills_background_process_group() {
 async fn accepts_and_writes_any_attachment_format() {
     let dir = tempfile::tempdir().unwrap();
     let bytes = vec![0x50, 0x4b, 0x03, 0x04, 0x00, 0x01, 0x02];
-    let attachment = toph_server::features::agents::models::Attachment {
+    let attachment = jeff_server::features::agents::models::Attachment {
         name: "relatorio.xlsx".into(),
         mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".into(),
         uri: format!(

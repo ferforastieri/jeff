@@ -2,12 +2,12 @@ import { memo, useEffect, useMemo, useState } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, ChevronDown, CircleAlert, Copy, Image, LoaderCircle, X } from "@toph/icons";
+import { Check, ChevronDown, CircleAlert, Copy, Image, LoaderCircle, X } from "@jeff/icons";
 import { api, getApiBase } from "../../../shared/api";
 import type { AiMessage } from "../../../app/store";
 import { extractAgentDiffs, extractAgentImages, parsedToolRecord, type AgentDiffArtifact, type AgentImageArtifact } from "../artifacts";
-import { Button } from "@toph/ui/app";
-import { Chip } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Chip } from "@jeff/ui/app";
 import AgentQuestionCard, { parseAgentQuestions } from "./AgentQuestionCard";
 
 interface Props {
@@ -326,7 +326,7 @@ export const ToolRow = memo(function ToolRow({ message, onPermission, onQuestion
     <div className="py-0.5">
       <button
         type="button"
-        className="toph-tool-row group flex w-full min-w-0 items-center gap-2 rounded-lg px-1 py-1 text-start text-[13.5px] text-text-secondary hover:bg-background-primary-hover hover:text-text-primary"
+        className="jeff-tool-row group flex w-full min-w-0 items-center gap-2 rounded-lg px-1 py-1 text-start text-[13.5px] text-text-secondary hover:bg-background-primary-hover hover:text-text-primary"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
@@ -355,7 +355,7 @@ export const ThoughtRow = memo(function ThoughtRow({ message, duration }: { mess
     <div className="py-0.5">
       <button
         type="button"
-        className="toph-tool-row group flex w-full min-w-0 items-center gap-2 rounded-lg px-1 py-1 text-start text-[13.5px] text-text-secondary hover:bg-background-primary-hover hover:text-text-primary"
+        className="jeff-tool-row group flex w-full min-w-0 items-center gap-2 rounded-lg px-1 py-1 text-start text-[13.5px] text-text-secondary hover:bg-background-primary-hover hover:text-text-primary"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
@@ -406,7 +406,7 @@ function ToolGroup({ messages, onPermission, onQuestion, defaultOpen = false, pr
     <div className="w-full">
       <button
         type="button"
-        className="toph-tool-row group flex w-full min-w-0 items-center gap-1.5 rounded-lg px-1 py-1 text-start text-[13px] text-text-tertiary hover:bg-background-primary-hover hover:text-text-secondary"
+        className="jeff-tool-row group flex w-full min-w-0 items-center gap-1.5 rounded-lg px-1 py-1 text-start text-[13px] text-text-tertiary hover:bg-background-primary-hover hover:text-text-secondary"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-label={`Used ${count} ${labels.join(", ")}`}

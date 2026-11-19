@@ -264,15 +264,15 @@ pub(super) async fn delete_chat(
         .await?;
     Ok(Json(json!({"ok":true})))
 }
-pub(super) async fn delete_toph(
+pub(super) async fn delete_jeff(
     State(state): State<Arc<AppState>>,
-    Path((project, toph)): Path<(String, String)>,
+    Path((project, jeff)): Path<(String, String)>,
     Extension(auth): Extension<AuthContext>,
 ) -> AppResult<Json<Value>> {
     state.store.project(&project).await?;
     state
         .agents
-        .delete_toph(auth.user.id, &project, &toph)
+        .delete_jeff(auth.user.id, &project, &jeff)
         .await?;
     Ok(Json(json!({"ok":true})))
 }

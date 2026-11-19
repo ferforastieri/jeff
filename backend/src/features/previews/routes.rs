@@ -80,8 +80,8 @@ pub(super) struct WebPreviewQuery {
 
 const PREVIEW_SHIMS: &str = r#"
 (function () {
-  if (window.__tophPreviewShims) return;
-  window.__tophPreviewShims = true;
+  if (window.__jeffPreviewShims) return;
+  window.__jeffPreviewShims = true;
   function memoryStorage() {
     var map = new Map();
     return {
@@ -116,7 +116,7 @@ const PREVIEW_SHIMS: &str = r#"
 const PREVIEW_NO_HMR: &str = r#"
 (function () {
   // Vite's HMR client connects to the document host:port. Inside a preview the
-  // document lives on the Toph host, while the dev server lives elsewhere, so
+  // document lives on the Jeff host, while the dev server lives elsewhere, so
   // that websocket fails and Vite paints a blocking overlay. The preview has a
   // reload button; run the page without HMR instead.
   window.$RefreshReg$ = function () {};
@@ -297,7 +297,7 @@ fn preview_cookie_header(headers: &HeaderMap) -> Option<String> {
         let Ok(value) = value.to_str() else { continue };
         for part in value.split(';') {
             let part = part.trim();
-            if part.is_empty() || part.starts_with("toph_") {
+            if part.is_empty() || part.starts_with("jeff_") {
                 continue;
             }
             kept.push(part.to_string());
@@ -322,7 +322,7 @@ pub(super) async fn web_preview_asset(
     preview_proxy(state, token, path, request).await
 }
 
-/// Serves one request of a server-local app through Toph. Absolute paths are
+/// Serves one request of a server-local app through Jeff. Absolute paths are
 /// rewritten to this prefix, so the browser never needs to resolve the target.
 async fn preview_proxy(
     state: Arc<AppState>,
@@ -377,7 +377,7 @@ async fn preview_proxy(
         headers
             .get(header::USER_AGENT)
             .and_then(|value| value.to_str().ok())
-            .unwrap_or("Mozilla/5.0 (compatible; TophPreview/1.0)"),
+            .unwrap_or("Mozilla/5.0 (compatible; JeffPreview/1.0)"),
     );
     if !body.is_empty() {
         outgoing = outgoing.body(body);
@@ -484,7 +484,7 @@ async fn preview_proxy(
         builder = builder.header(header::LOCATION, location);
     }
     for cookie in set_cookies {
-        // The preview lives on the Toph origin; scoping the app's cookies to the
+        // The preview lives on the Jeff origin; scoping the app's cookies to the
         // whole origin keeps its fetches authenticated.
         let cookie = cookie
             .split(';')
@@ -595,7 +595,7 @@ pub(super) fn preview_error(message: &str, target: &str, status: StatusCode) -> 
         r#"<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Preview indisponível</title><style>
         :root{{color-scheme:dark}}*{{box-sizing:border-box}}body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#e8e8e8;font-family:Inter,system-ui,sans-serif;padding:24px}}
         main{{width:min(520px,100%);border:1px solid #282828;background:#141414;border-radius:24px;padding:28px;box-shadow:0 20px 60px #0008}}
-        h1{{margin:0 0 8px;font-size:20px}}p{{margin:0 0 18px;color:#aaa;line-height:1.6}}a{{display:inline-flex;border:1px solid #3c3c3c;border-radius:999px;padding:8px 14px;color:#0F766E;text-decoration:none}}code{{color:#ddd;word-break:break-all}}
+        h1{{margin:0 0 8px;font-size:20px}}p{{margin:0 0 18px;color:#aaa;line-height:1.6}}a{{display:inline-flex;border:1px solid #3c3c3c;border-radius:999px;padding:8px 14px;color:#0063D1;text-decoration:none}}code{{color:#ddd;word-break:break-all}}
         </style></head><body><main><h1>Não foi possível abrir o preview</h1><p>{safe_message}</p><p><code>{safe_target}</code></p><a href="{safe_target}" target="_blank" rel="noreferrer">Abrir em nova aba</a></main></body></html>"#,
     );
     Response::builder()
@@ -606,7 +606,7 @@ pub(super) fn preview_error(message: &str, target: &str, status: StatusCode) -> 
         .unwrap_or_else(|_| StatusCode::BAD_GATEWAY.into_response())
 }
 
-/// A target that only exists inside the Toph host: the browser cannot resolve
+/// A target that only exists inside the Jeff host: the browser cannot resolve
 /// its `localhost`, so every request has to go through the server.
 fn preview_is_server_local(url: &reqwest::Url) -> bool {
     matches!(
@@ -674,7 +674,7 @@ fn preview_redirect(location: String) -> Response {
 
 /// Keeps an app's redirect inside the proxy prefix. Dev servers often answer
 /// `Location: /app/`; without this the iframe would leave the preview and load
-/// the Toph app instead.
+/// the Jeff app instead.
 fn preview_redirect_location(location: &str, prefix: &str, origin: &str) -> String {
     let location = location.replace(origin, prefix);
     if location.starts_with('/') && !location.starts_with(prefix) {
@@ -697,7 +697,7 @@ pub(super) async fn web_preview(
         );
     };
 
-    // localhost means the Toph host, not the browser's machine. Serve the whole
+    // localhost means the Jeff host, not the browser's machine. Serve the whole
     // app through the prefix proxy so it also works from another device.
     if preview_is_server_local(&target) {
         let token = preview_token(&target);
@@ -720,7 +720,7 @@ pub(super) async fn web_preview(
         )
         .header(
             header::USER_AGENT,
-            "Mozilla/5.0 (compatible; TophPreview/1.0; +https://github.com/ferforastieri/toph)",
+            "Mozilla/5.0 (compatible; JeffPreview/1.0; +https://github.com/ferforastieri/jeff)",
         )
         .send()
         .await

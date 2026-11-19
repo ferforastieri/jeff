@@ -2953,6 +2953,80 @@ dependencies = [
 ]
 
 [[package]]
+name = "jeff-client"
+version = "0.1.0"
+dependencies = [
+ "dunce",
+ "if-addrs",
+ "jeff-server",
+ "rand 0.8.8",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tempfile",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "jeff-server"
+version = "0.18.0"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "argon2",
+ "async-stream",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "clickhouse",
+ "futures-util",
+ "hex",
+ "http",
+ "http-body-util",
+ "ipnet",
+ "jsonwebtoken",
+ "libc",
+ "mime_guess",
+ "mongodb",
+ "neo4rs",
+ "notify",
+ "oracle-rs",
+ "portable-pty",
+ "rand 0.8.8",
+ "redis",
+ "reqwest 0.12.28",
+ "rust-embed",
+ "scylla",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "sqlx",
+ "subtle",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tiberius",
+ "tokio",
+ "tokio-stream",
+ "tokio-tungstenite 0.28.0",
+ "tokio-util",
+ "tower",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+ "walkdir",
+]
+
+[[package]]
 name = "jiff"
 version = "0.2.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6973,80 +7047,6 @@ name = "toml_writer"
 version = "1.1.3+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06bdbd8cfc056b8d2e2e85f29b56a3bdbecb527cef81eb39e3e7b98af4652770"
-
-[[package]]
-name = "toph-client"
-version = "0.1.0"
-dependencies = [
- "dunce",
- "if-addrs",
- "rand 0.8.8",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "tempfile",
- "tokio",
- "toph-server",
- "url",
-]
-
-[[package]]
-name = "toph-server"
-version = "0.18.0"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "argon2",
- "async-stream",
- "async-trait",
- "axum",
- "base64 0.22.1",
- "bytes",
- "chrono",
- "clickhouse",
- "futures-util",
- "hex",
- "http",
- "http-body-util",
- "ipnet",
- "jsonwebtoken",
- "libc",
- "mime_guess",
- "mongodb",
- "neo4rs",
- "notify",
- "oracle-rs",
- "portable-pty",
- "rand 0.8.8",
- "redis",
- "reqwest 0.12.28",
- "rust-embed",
- "scylla",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "sqlx",
- "subtle",
- "tempfile",
- "thiserror 2.0.21",
- "tiberius",
- "tokio",
- "tokio-stream",
- "tokio-tungstenite 0.28.0",
- "tokio-util",
- "tower",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "url",
- "uuid",
- "walkdir",
-]
 
 [[package]]
 name = "tower"

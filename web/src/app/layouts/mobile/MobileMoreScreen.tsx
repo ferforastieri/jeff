@@ -13,10 +13,10 @@ import {
   Sun,
   TerminalSquare,
   UserRound,
-} from "@toph/icons";
+} from "@jeff/icons";
 import type { ComponentType } from "react";
 import { useSettings } from "../../../features/settings/store";
-import { cx } from "@toph/ui";
+import { cx } from "@jeff/ui";
 import { runThemeTransition } from "../../../shared/ui/theme-transition";
 import type { MobileScreen } from "./mobile-nav";
 
@@ -41,7 +41,7 @@ interface Action {
 }
 
 function openSettings(section: SettingsSection) {
-  window.dispatchEvent(new CustomEvent("toph:open-settings", { detail: { section } }));
+  window.dispatchEvent(new CustomEvent("jeff:open-settings", { detail: { section } }));
 }
 
 function ActionCard({ action }: { action: Action }) {
@@ -115,8 +115,8 @@ export default function MobileMoreScreen({
     { id: "account", label: "Conta", description: "Sessão e servidor", icon: UserRound, onSelect: onAccount },
   ];
 
-  const tophActions: Action[] = [
-    { id: "skills", label: "Skills", description: "Receitas do Toph", icon: Sparkles, onSelect: () => openSettings("skills") },
+  const jeffActions: Action[] = [
+    { id: "skills", label: "Skills", description: "Receitas do Jeff", icon: Sparkles, onSelect: () => openSettings("skills") },
     { id: "harness", label: "Harness e MCP", description: "CLIs do agente", icon: PlugZap, onSelect: () => openSettings("harness") },
   ];
 
@@ -125,7 +125,7 @@ export default function MobileMoreScreen({
   return (
     <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto bg-background-secondary-default px-3 pb-5 pt-3">
       <Section title="Trabalho" actions={work} />
-      <Section title="Toph e IA" actions={tophActions} />
+      <Section title="Jeff e IA" actions={jeffActions} />
       <Section title="Projeto e app" actions={projectActions} />
 
       <section className="flex shrink-0 items-center justify-between gap-2 rounded-2xl border border-border-button-white bg-background-primary-default px-3 py-2.5 shadow-xs">

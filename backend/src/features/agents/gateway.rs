@@ -87,8 +87,8 @@ async fn handle(
             reply(json!({
                 "protocolVersion": protocol,
                 "capabilities": { "tools": {} },
-                "serverInfo": { "name": "toph", "version": env!("CARGO_PKG_VERSION") },
-                "instructions": "Ferramentas do Toph. As ferramentas embutidas da CLI estão desligadas; use apenas estas."
+                "serverInfo": { "name": "jeff", "version": env!("CARGO_PKG_VERSION") },
+                "instructions": "Ferramentas do Jeff. As ferramentas embutidas da CLI estão desligadas; use apenas estas."
             }))
         }
         "notifications/initialized" => StatusCode::ACCEPTED.into_response(),

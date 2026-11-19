@@ -7,7 +7,7 @@ use reqwest::header::{AUTHORIZATION, ETAG, IF_NONE_MATCH};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = env!("TOPH_VERSION");
+pub const VERSION: &str = env!("JEFF_VERSION");
 // The toast polls the status; keep GitHub calls rare. `If-None-Match`
 // violations return 304, which GitHub does not count against the rate limit.
 // A release is worth seeing soon: the status asks GitHub again every two minutes.
@@ -96,7 +96,7 @@ impl UpdateManager {
     pub fn new(config: &Config) -> Self {
         // The releases API allows 60 anonymous calls per hour per IP. A token
         // (or a `github-token` file in the data dir) raises that to 5.000/h.
-        let token = std::env::var("TOPH_GITHUB_TOKEN")
+        let token = std::env::var("JEFF_GITHUB_TOKEN")
             .or_else(|_| std::env::var("GITHUB_TOKEN"))
             .unwrap_or_default()
             .trim()
@@ -129,7 +129,7 @@ impl UpdateManager {
             .client
             .get(url)
             .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", format!("toph-update-check/{VERSION}"));
+            .header("User-Agent", format!("jeff-update-check/{VERSION}"));
         if self.token.is_empty() {
             request
         } else {
@@ -190,7 +190,7 @@ impl UpdateManager {
         let (latest, latest_error) = self.latest_release().await;
         if latest.is_empty() {
             return Err(AppError::Upstream(if latest_error.is_empty() {
-                "Não foi possível consultar as releases do Toph.".into()
+                "Não foi possível consultar as releases do Jeff.".into()
             } else {
                 latest_error
             }));
@@ -246,7 +246,7 @@ impl UpdateManager {
             let response = request
                 .send()
                 .await
-                .map_err(|_| "Não foi possível consultar as releases do Toph.".to_string())?;
+                .map_err(|_| "Não foi possível consultar as releases do Jeff.".to_string())?;
             if response.status() == StatusCode::NOT_MODIFIED {
                 // Nothing changed since the cached release; 304s are free.
                 return Ok((cached.0, cached.1, cached.2, String::new()));
@@ -254,7 +254,7 @@ impl UpdateManager {
             let status = response.status();
             if status == StatusCode::FORBIDDEN || status == StatusCode::TOO_MANY_REQUESTS {
                 return Err(format!(
-                    "O GitHub limitou as consultas de atualização ({}). Defina TOPH_GITHUB_TOKEN no servidor ou tente novamente em alguns minutos.",
+                    "O GitHub limitou as consultas de atualização ({}). Defina JEFF_GITHUB_TOKEN no servidor ou tente novamente em alguns minutos.",
                     status.as_u16()
                 ));
             }
@@ -366,7 +366,7 @@ impl UpdateManager {
         let response = self
             .client
             .get(url)
-            .header("User-Agent", format!("toph-update-check/{VERSION}"))
+            .header("User-Agent", format!("jeff-update-check/{VERSION}"))
             .send()
             .await
             .ok()?;

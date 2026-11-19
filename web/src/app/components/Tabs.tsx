@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bot, Database, FileCode2, FileDiff, Globe2, LoaderCircle, X } from "@toph/icons";
+import { Bot, Database, FileCode2, FileDiff, Globe2, LoaderCircle, X } from "@jeff/icons";
 import { useApp, type Tab } from "../store";
-import { chatSessionTitle, chatTophs, useChats } from "../../features/conversations/store";
+import { chatSessionTitle, chatJeffs, useChats } from "../../features/conversations/store";
 import BotAvatar from "../../features/agents/components/BotAvatar";
 import { agentApi } from "../../features/agents/api";
 import { useChatRunning } from "../../features/agents/activity";
 import { useSettings } from "../../features/settings/store";
 import { useConfirm } from "../../shared/ui/confirm";
-import { IconButton } from "@toph/ui/app";
+import { IconButton } from "@jeff/ui/app";
 import FileIcon from "../../features/explorer/components/FileIcon";
-import { cx } from "@toph/ui";
+import { cx } from "@jeff/ui";
 
 const icons = { editor: FileCode2, db: Database, ai: Bot, web: Globe2, diff: FileDiff };
 
@@ -89,7 +89,7 @@ export default function Tabs() {
     if (tab.kind !== "ai" || !tab.chatId) return;
     const ok = await confirm({
       title: "Apagar conversa?",
-      message: "As mensagens e as sessões desta tarefa serão removidas. Os Tophs continuam no projeto.",
+      message: "As mensagens e as sessões desta tarefa serão removidas. Os Jeffs continuam no projeto.",
       confirmLabel: "Apagar conversa",
       danger: true,
     });
@@ -173,7 +173,7 @@ export default function Tabs() {
           const conversation = tab.kind === "ai" && tab.chatId
             ? projectChats[tab.projectId]?.chats.find((chat) => chat.id === tab.chatId) ?? null
             : null;
-          const conversationTophs = conversation ? chatTophs(projectChats[tab.projectId], conversation.id) : [];
+          const conversationJeffs = conversation ? chatJeffs(projectChats[tab.projectId], conversation.id) : [];
           const baseLabel = baseLabels[index] ?? tab.title;
           const occurrence = baseLabels.slice(0, index + 1).filter((value) => value === baseLabel).length;
           const label = occurrence > 1 ? `${baseLabel} · ${occurrence}` : baseLabel;
@@ -219,8 +219,8 @@ export default function Tabs() {
                   : "border-transparent text-text-secondary hover:bg-background-primary-hover hover:text-text-primary",
               )}
             >
-              {conversationTophs.length > 0 ? (
-                <BotAvatar bot={conversationTophs[0] ?? { name: "Toph", color: "#0F766E", avatar: "toph-logo" }} size={18} />
+              {conversationJeffs.length > 0 ? (
+                <BotAvatar bot={conversationJeffs[0] ?? { name: "Jeff", color: "#0063D1", avatar: "jeff-logo" }} size={18} />
               ) : tab.kind === "editor" || (tab.kind === "diff" && tab.path)
                 ? <FileIcon name={tab.path ?? tab.title} path={tab.path} size={14} />
                 : <Icon size={14} className="shrink-0" />}

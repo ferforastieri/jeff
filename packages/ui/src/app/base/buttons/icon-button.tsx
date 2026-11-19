@@ -1,5 +1,5 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentType, Ref } from "react";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 import { directionalIconClass } from "../../utils/directional-icon";
 
 type IconButtonSize = "medium" | "small" | "xs";
@@ -31,7 +31,7 @@ const sizeClass = (size: IconButtonSize): string =>
 const ghost = (className?: string): boolean =>
   Boolean(className && (/border-transparent|\bbg-transparent\b|\bborder-0\b/.test(className)));
 
-/** An icon-only Tophs button, with Toph's own icon components. */
+/** An icon-only Jeffs button, with Jeff's own icon components. */
 export function IconButton({
   icon: Icon,
   size = "medium",

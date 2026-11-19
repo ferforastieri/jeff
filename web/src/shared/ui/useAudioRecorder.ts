@@ -34,7 +34,7 @@ declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
     webkitSpeechRecognition?: SpeechRecognitionConstructor;
-    TophAudio?: AudioBridge;
+    JeffAudio?: AudioBridge;
     webkitAudioContext?: typeof AudioContext;
   }
 }
@@ -116,7 +116,7 @@ async function wavBlob(blob: Blob): Promise<Blob> {
 }
 
 async function nativePermission(): Promise<boolean> {
-  const bridge = window.TophAudio;
+  const bridge = window.JeffAudio;
   if (!bridge?.requestPermission) return true;
   try {
     if (bridge.hasPermission?.()) return true;
@@ -129,14 +129,14 @@ async function nativePermission(): Promise<boolean> {
       if (settled) return;
       settled = true;
       window.clearTimeout(timeout);
-      window.removeEventListener("toph:microphone-permission", permission as EventListener);
+      window.removeEventListener("jeff:microphone-permission", permission as EventListener);
       resolve(granted);
     };
     const permission = (event: Event) => finish(Boolean((event as CustomEvent<{ granted?: boolean }>).detail?.granted));
     const timeout = window.setTimeout(() => {
       try { finish(Boolean(bridge.hasPermission?.())); } catch { finish(false); }
     }, 20_000);
-    window.addEventListener("toph:microphone-permission", permission as EventListener);
+    window.addEventListener("jeff:microphone-permission", permission as EventListener);
     bridge.requestPermission?.();
   });
 }

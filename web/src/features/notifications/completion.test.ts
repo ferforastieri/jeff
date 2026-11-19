@@ -35,7 +35,7 @@ function seedProject(activeTabChatId: string | null): void {
     projects: [],
     activeProjectId: "p1",
     tabs: activeTabChatId
-      ? [{ id: `ai:p1:${activeTabChatId}`, kind: "ai", title: "Toph", projectId: "p1", chatId: activeTabChatId }]
+      ? [{ id: `ai:p1:${activeTabChatId}`, kind: "ai", title: "Jeff", projectId: "p1", chatId: activeTabChatId }]
       : [{ id: "files:p1", kind: "editor", title: "arquivo.ts", projectId: "p1" }],
     activeTabId: activeTabChatId ? `ai:p1:${activeTabChatId}` : "files:p1",
     mobileScreen: "bots",
@@ -46,7 +46,7 @@ function seedProject(activeTabChatId: string | null): void {
       p1: {
         version: 5,
         chats: [{ id: "c1", name: "", subject: "", description: "", participantIds: ["bot1"], createdAt: 1, updatedAt: 1 }],
-        tophs: [],
+        jeffs: [],
         messages: [],
         activeChatId: "c1",
         hydrated: true,

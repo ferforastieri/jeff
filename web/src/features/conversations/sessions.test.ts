@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { ChatToph, ProjectChats } from "./store";
+import type { ChatJeff, ProjectChats } from "./store";
 import { projectSessions, sessionMessages, sessionWhen } from "./sessions";
 
-const toph: ChatToph = {
-  id: "toph-1",
-  name: "Toph",
-  handle: "toph",
-  role: "Toph",
+const jeff: ChatJeff = {
+  id: "jeff-1",
+  name: "Jeff",
+  handle: "jeff",
+  role: "Jeff",
   description: "",
   personality: "",
   prompt: "",
@@ -18,8 +18,8 @@ const toph: ChatToph = {
   mcpServers: [],
   emailAccountIds: [],
   language: "auto",
-  color: "#0F766E",
-  avatar: "toph-logo",
+  color: "#0063D1",
+  avatar: "jeff-logo",
   notifications: true,
   createdAt: 1,
 };
@@ -28,7 +28,7 @@ function project(overrides: Partial<ProjectChats> = {}): ProjectChats {
   return {
     version: 5,
     chats: [],
-    tophs: [toph],
+    jeffs: [jeff],
     messages: [],
     activeChatId: null,
     hydrated: true,
@@ -41,8 +41,8 @@ describe("projectSessions", () => {
     const sessions = projectSessions(
       project({
         chats: [
-          { id: "older", name: "", subject: "Ajustar o build", description: "", participantIds: [toph.id], createdAt: 1, updatedAt: 10 },
-          { id: "newer", name: "", subject: "Revisar login", description: "", participantIds: [toph.id], createdAt: 2, updatedAt: 20 },
+          { id: "older", name: "", subject: "Ajustar o build", description: "", participantIds: [jeff.id], createdAt: 1, updatedAt: 10 },
+          { id: "newer", name: "", subject: "Revisar login", description: "", participantIds: [jeff.id], createdAt: 2, updatedAt: 20 },
         ],
         messages: [
           { id: "m1", chatId: "older", role: "assistant", content: "feito", createdAt: 30 },
@@ -64,7 +64,7 @@ describe("projectSessions", () => {
     const sessions = projectSessions(
       project({
         chats: [
-          { id: "chat", name: "", subject: "", description: "", participantIds: [toph.id], createdAt: 1, updatedAt: 12 },
+          { id: "chat", name: "", subject: "", description: "", participantIds: [jeff.id], createdAt: 1, updatedAt: 12 },
         ],
       }),
       [

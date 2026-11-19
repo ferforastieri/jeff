@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown } from "@toph/icons";
+import { Check, ChevronDown } from "@jeff/icons";
 import type { AIModel } from "../../../shared/api";
 import { modelDisplay, modelGroup, modelTitle, providerLabel } from "../store";
 import ProviderIcon from "./ProviderIcon";
-import { Dropdown, DropdownPopover, DropdownTrigger } from "@toph/ui/app";
-import { cx } from "@toph/ui";
+import { Dropdown, DropdownPopover, DropdownTrigger } from "@jeff/ui/app";
+import { cx } from "@jeff/ui";
 
 interface Props {
   models: AIModel[];

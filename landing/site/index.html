@@ -6,34 +6,34 @@
 <script>
 (function () {
   try {
-    var saved = localStorage.getItem('toph-lang')
+    var saved = localStorage.getItem('jeff-lang')
     if (saved === 'en' || saved === 'pt-BR') document.documentElement.lang = saved
     else document.documentElement.lang = ((navigator.languages && navigator.languages[0]) || navigator.language || '').toLowerCase().indexOf('pt') === 0 ? 'pt-BR' : 'en'
   } catch (e) {}
 })()
 </script>
-<title>Toph · Tophs no seu projeto, com as suas regras</title>
-<meta name="description" content="Toph é um workbench open source onde Tophs individuais ou em grupo trabalham no seu projeto, com o motor, as ferramentas e as regras que você escolher.">
-<meta property="og:title" content="Toph · Tophs no seu projeto, com as suas regras">
-<meta property="og:description" content="Um Toph ou o time inteiro. Cada um com seu motor, suas ferramentas e suas regras.">
-<meta property="og:image" content="https://ferforastieri.github.io/toph/assets/brand/toph-og.png">
+<title>Jeff · Jeffs no seu projeto, com as suas regras</title>
+<meta name="description" content="Jeff é um workbench open source onde Jeffs individuais ou em grupo trabalham no seu projeto, com o motor, as ferramentas e as regras que você escolher.">
+<meta property="og:title" content="Jeff · Jeffs no seu projeto, com as suas regras">
+<meta property="og:description" content="Um Jeff ou o time inteiro. Cada um com seu motor, suas ferramentas e suas regras.">
+<meta property="og:image" content="https://ferforastieri.github.io/toph/assets/brand/jeff-og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://ferforastieri.github.io/toph/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://ferforastieri.github.io/toph/assets/brand/toph-og.png">
-<meta name="twitter:title" content="Toph · Seu time de agentes de IA, com as suas regras">
-<meta name="twitter:description" content="Tophs individuais ou em grupo no seu projeto, com o motor, as ferramentas e as regras que você escolher. Grátis e open source.">
-<meta name="twitter:image:alt" content="Toph: seu time de agentes de IA. Suas regras.">
+<meta name="twitter:image" content="https://ferforastieri.github.io/toph/assets/brand/jeff-og.png">
+<meta name="twitter:title" content="Jeff · Seu time de agentes de IA, com as suas regras">
+<meta name="twitter:description" content="Jeffs individuais ou em grupo no seu projeto, com o motor, as ferramentas e as regras que você escolher. Grátis e open source.">
+<meta name="twitter:image:alt" content="Jeff: seu time de agentes de IA. Suas regras.">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-<meta name="author" content="Toph">
-<meta property="og:site_name" content="Toph">
+<meta name="author" content="Jeff">
+<meta property="og:site_name" content="Jeff">
 <meta property="og:locale" content="pt_BR">
 <meta property="og:locale:alternate" content="en_US">
-<meta property="og:image:alt" content="Toph: seu time de agentes de IA. Suas regras.">
+<meta property="og:image:alt" content="Jeff: seu time de agentes de IA. Suas regras.">
 <link rel="sitemap" type="application/xml" href="https://ferforastieri.github.io/toph/sitemap.xml">
-<link rel="preload" as="image" href="assets/brand/toph-mark-eyeless.png" fetchpriority="high">
+<link rel="preload" as="image" href="assets/brand/jeff-mark-eyeless.png" fetchpriority="high">
 <meta name="theme-color" content="#050505">
 <link rel="canonical" href="https://ferforastieri.github.io/toph/">
 <link rel="icon" type="image/png" href="assets/brand/favicon-32.png">
@@ -51,9 +51,9 @@
   --text: #F5F2ED;
   --muted: #A39B8F;
   --faint: #746D63;
-  --amber: #0F766E;
-  --amber-2: #115E59;
-  --coral: #14B8A6;
+  --amber: #0063D1;
+  --amber-2: #003E8C;
+  --coral: #3D8BFF;
   --green: #7CE7B0;
   --blue: #8FB5F5;
   --violet: #C7A3FF;
@@ -66,7 +66,7 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.58 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-body::before { content: ''; position: fixed; inset: -30% 20% auto 20%; height: 70vh; background: radial-gradient(ellipse at 50% 0%, rgba(15,118,110,.13), transparent 65%); pointer-events: none; z-index: 0; }
+body::before { content: ''; position: fixed; inset: -30% 20% auto 20%; height: 70vh; background: radial-gradient(ellipse at 50% 0%, rgba(0,99,209,.13), transparent 65%); pointer-events: none; z-index: 0; }
 img, svg { display: block; }
 a { color: inherit; }
 h1, h2, h3, h4, p { margin: 0; }
@@ -77,7 +77,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
 ::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: var(--amber); background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: #14B8A6; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: #3D8BFF; background-clip: padding-box; }
 ::-webkit-scrollbar-corner { background: transparent; }
 .scroll-progress { position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 60; transform: scaleX(0); transform-origin: 0 50%; background: linear-gradient(90deg, var(--amber), var(--coral)); pointer-events: none; }
 .wrap { width: min(1200px, 100% - 48px); margin: 0 auto; position: relative; z-index: 1; }
@@ -87,7 +87,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .h2 em { font-style: normal; color: var(--amber); }
 .lead { color: var(--muted); font-size: 18px; line-height: 1.6; max-width: 590px; }
 .eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--amber); font: 600 11.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
-.eyebrow::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px rgba(15,118,110,.12); }
+.eyebrow::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px rgba(0,99,209,.12); }
 .grad { background: linear-gradient(102deg, var(--amber) 10%, var(--coral) 82%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .section { padding: 124px 0; position: relative; }
 section[id] { scroll-margin-top: 84px; }
@@ -106,9 +106,9 @@ section[id] { scroll-margin-top: 84px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: 10px; font: 600 12.5px/1 var(--body); text-decoration: none; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,.18); transition: background .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), box-shadow .25s var(--ease), transform .25s var(--ease); }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: scale(.97); }
-.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px rgba(15,118,110,.55); }
-.btn--primary { background: linear-gradient(180deg, #14B8A6 0%, #0F766E 100%); color: #FFFFFF; border-color: rgba(15,118,110,.35); }
-.btn--primary:hover { background: linear-gradient(180deg, #5EEAD4 0%, #14B8A6 100%); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px rgba(0,99,209,.55); }
+.btn--primary { background: linear-gradient(180deg, #3D8BFF 0%, #0063D1 100%); color: #FFFFFF; border-color: rgba(0,99,209,.35); }
+.btn--primary:hover { background: linear-gradient(180deg, #8CC3FF 0%, #3D8BFF 100%); }
 .btn--ghost { background: var(--panel); border-color: var(--line); color: var(--text); box-shadow: none; }
 .btn--ghost:hover { border-color: var(--line-2); background: var(--panel-2); }
 .btn svg { width: 15px; height: 15px; }
@@ -119,11 +119,11 @@ section[id] { scroll-margin-top: 84px; }
 
 /* header */
 header.top { position: fixed; inset: 0 0 auto 0; z-index: 50; transition: background .25s, border-color .25s, backdrop-filter .25s, box-shadow .25s; border-bottom: 1px solid transparent; }
-header.top::after { content: ''; position: absolute; inset: auto 0 -1px; height: 1px; background: linear-gradient(90deg, transparent, rgba(15,118,110,.32), transparent); opacity: .55; pointer-events: none; }
-header.top.scrolled { background: rgba(5,5,5,.8); border-color: rgba(15,118,110,.1); box-shadow: 0 18px 45px -32px #000; backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); }
+header.top::after { content: ''; position: absolute; inset: auto 0 -1px; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,99,209,.32), transparent); opacity: .55; pointer-events: none; }
+header.top.scrolled { background: rgba(5,5,5,.8); border-color: rgba(0,99,209,.1); box-shadow: 0 18px 45px -32px #000; backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); }
 header .wrap { height: 72px; display: flex; align-items: center; gap: 30px; }
 .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; flex: none; }
-.brand img { width: 31px; height: 31px; object-fit: contain; filter: drop-shadow(0 5px 10px rgba(15,118,110,.2)); transition: transform .5s var(--spring); }
+.brand img { width: 31px; height: 31px; object-fit: contain; filter: drop-shadow(0 5px 10px rgba(0,99,209,.2)); transition: transform .5s var(--spring); }
 .brand:hover img { transform: rotate(-8deg) scale(1.07); }
 .brand b { font: 800 24px/1 var(--display); letter-spacing: -.06em; }
 nav.links { display: flex; gap: 22px; }
@@ -143,7 +143,7 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 
 /* hero */
 .hero { padding: 150px 0 96px; position: relative; overflow: hidden; }
-.hero::before { content: ''; position: absolute; inset: -22% 12% auto 12%; height: 66vh; background: radial-gradient(ellipse at 50% 0%, rgba(15,118,110,.16), transparent 66%); pointer-events: none; }
+.hero::before { content: ''; position: absolute; inset: -22% 12% auto 12%; height: 66vh; background: radial-gradient(ellipse at 50% 0%, rgba(0,99,209,.16), transparent 66%); pointer-events: none; }
 .hero::after { content: ''; position: absolute; inset: auto 0 0; height: 1px; background: linear-gradient(90deg, transparent, var(--line), transparent); }
 .hero-grid { display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr); gap: 56px; align-items: center; }
 .hero h1 { font: 700 clamp(49px, 6.4vw, 94px)/.94 var(--display); letter-spacing: -.06em; margin-top: 23px; }
@@ -162,16 +162,16 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 @keyframes pulse { 50% { opacity: .35; } }
 
 .hero-art { position: relative; width: 100%; max-width: 520px; aspect-ratio: 1; justify-self: end; }
-.hero-halo { position: absolute; inset: -8%; border-radius: 50%; background: radial-gradient(circle at 50% 45%, rgba(15,118,110,.26), rgba(15,118,110,0) 64%); filter: blur(8px); }
+.hero-halo { position: absolute; inset: -8%; border-radius: 50%; background: radial-gradient(circle at 50% 45%, rgba(0,99,209,.26), rgba(0,99,209,0) 64%); filter: blur(8px); }
 .hero-orbit { position: absolute; inset: -3.5%; border-radius: 50%; animation: sun 38s linear infinite; }
-.hero-orbit::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 205deg, transparent 0 34%, rgba(15,118,110,.04) 42%, rgba(15,118,110,.82) 57%, rgba(255,107,74,.55) 64%, transparent 72%); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px)); filter: drop-shadow(0 0 10px rgba(15,118,110,.45)); }
-.hero-orbit::after { content: ''; position: absolute; inset: 7%; border-radius: 50%; border: 1px dashed rgba(15,118,110,.14); }
-.orbit-node { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 16px rgba(15,118,110,.9); }
+.hero-orbit::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 205deg, transparent 0 34%, rgba(0,99,209,.04) 42%, rgba(0,99,209,.82) 57%, rgba(255,107,74,.55) 64%, transparent 72%); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px)); filter: drop-shadow(0 0 10px rgba(0,99,209,.45)); }
+.hero-orbit::after { content: ''; position: absolute; inset: 7%; border-radius: 50%; border: 1px dashed rgba(0,99,209,.14); }
+.orbit-node { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 16px rgba(0,99,209,.9); }
 .orbit-node.n1 { top: 4%; left: 31%; }
 .orbit-node.n2 { right: -1%; top: 47%; background: var(--coral); box-shadow: 0 0 16px rgba(255,107,74,.8); }
 .orbit-node.n3 { bottom: 7%; left: 22%; background: var(--green); box-shadow: 0 0 16px rgba(124,231,176,.7); }
-.hero-mark-card { position: absolute; inset: 13%; display: grid; place-items: center; border: 1px solid var(--line-2); border-radius: 32px; background: radial-gradient(circle at 50% 40%, #211B12, #0B0A08 72%); box-shadow: 0 40px 90px -35px rgba(0,0,0,.95), 0 0 70px -25px rgba(15,118,110,.5); transform: rotate(-4deg); animation: float 7s ease-in-out infinite; }
-.hero-mark-card::after { content: ''; position: absolute; inset: 10%; border-radius: 24px; border: 1px solid rgba(15,118,110,.08); }
+.hero-mark-card { position: absolute; inset: 13%; display: grid; place-items: center; border: 1px solid var(--line-2); border-radius: 32px; background: radial-gradient(circle at 50% 40%, #211B12, #0B0A08 72%); box-shadow: 0 40px 90px -35px rgba(0,0,0,.95), 0 0 70px -25px rgba(0,99,209,.5); transform: rotate(-4deg); animation: float 7s ease-in-out infinite; }
+.hero-mark-card::after { content: ''; position: absolute; inset: 10%; border-radius: 24px; border: 1px solid rgba(0,99,209,.08); }
 .hero-face { position: relative; display: block; width: 74%; aspect-ratio: 1; }
 .hero-face-body { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 22px 28px rgba(0,0,0,.55)); }
 .hero-eye { position: absolute; inset: 0; display: block; pointer-events: none; transform: translate3d(var(--look-x, 0px), var(--look-y, 0px), 0); transition: transform 70ms linear; }
@@ -197,8 +197,8 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 .hero-art-badge i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 
 /* workbench mock */
-.wb { position: relative; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); box-shadow: 0 0 0 1px rgba(0,0,0,.55), 0 50px 100px -45px rgba(0,0,0,.95), 0 0 80px -50px rgba(15,118,110,.35); overflow: hidden; transform: perspective(1400px) rotateY(-2deg) rotateX(1deg); }
-.wb-glow { position: absolute; z-index: -1; inset: 8% -12% -18%; background: radial-gradient(ellipse at 55% 55%, rgba(15,118,110,.16), transparent 65%); filter: blur(25px); }
+.wb { position: relative; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); box-shadow: 0 0 0 1px rgba(0,0,0,.55), 0 50px 100px -45px rgba(0,0,0,.95), 0 0 80px -50px rgba(0,99,209,.35); overflow: hidden; transform: perspective(1400px) rotateY(-2deg) rotateX(1deg); }
+.wb-glow { position: absolute; z-index: -1; inset: 8% -12% -18%; background: radial-gradient(ellipse at 55% 55%, rgba(0,99,209,.16), transparent 65%); filter: blur(25px); }
 .wb-top { height: 39px; display: flex; align-items: center; gap: 10px; padding: 0 13px; background: #0D0C0A; border-bottom: 1px solid var(--line); }
 .wb-dots { display: flex; gap: 5px; }
 .wb-dots i { width: 7px; height: 7px; border-radius: 50%; background: #3A342A; }
@@ -258,8 +258,8 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 /* cards */
 .cards { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
 .card { position: relative; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(145deg, #13110E, #0D0C0A); padding: 24px; overflow: hidden; }
-.card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 100% 0, rgba(15,118,110,.06), transparent 45%); pointer-events: none; }
-.card .icon { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 19px; border: 1px solid rgba(15,118,110,.25); border-radius: 9px; background: rgba(15,118,110,.08); color: var(--amber); }
+.card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 100% 0, rgba(0,99,209,.06), transparent 45%); pointer-events: none; }
+.card .icon { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 19px; border: 1px solid rgba(0,99,209,.25); border-radius: 9px; background: rgba(0,99,209,.08); color: var(--amber); }
 .card .icon svg { width: 16px; height: 16px; }
 .card h3 { font: 600 18px/1.2 var(--display); letter-spacing: -.025em; }
 .card p { margin-top: 9px; color: var(--muted); font-size: 13px; line-height: 1.55; }
@@ -275,7 +275,7 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 .mini-line code { color: #D7CEC1; }
 .mini-msg { max-width: 90%; padding: 6px 8px; border-radius: 7px; background: #1A1712; color: var(--muted); font-size: 9.5px; line-height: 1.45; }
 .mini-msg.me { align-self: flex-end; background: #252018; color: #E5DCCE; }
-.mini-approval { border: 1px solid rgba(15,118,110,.32); border-radius: 8px; padding: 8px; background: rgba(15,118,110,.06); }
+.mini-approval { border: 1px solid rgba(0,99,209,.32); border-radius: 8px; padding: 8px; background: rgba(0,99,209,.06); }
 .mini-approval b { display: block; color: var(--amber); font: 600 8px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .mini-approval p { margin-top: 5px; color: var(--muted); font-size: 9.5px; }
 .mini-approval .row { display: flex; gap: 5px; margin-top: 7px; }
@@ -288,7 +288,7 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 /* individual / group */
 .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .team-card { position: relative; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); padding: 28px; overflow: hidden; }
-.team-card.group { border-color: rgba(15,118,110,.26); background: linear-gradient(145deg, rgba(15,118,110,.06), var(--panel) 52%); }
+.team-card.group { border-color: rgba(0,99,209,.26); background: linear-gradient(145deg, rgba(0,99,209,.06), var(--panel) 52%); }
 .team-card h3 { font: 600 22px/1.15 var(--display); letter-spacing: -.035em; }
 .team-card > p { margin-top: 9px; color: var(--muted); font-size: 13.5px; max-width: 420px; }
 .team-people { display: flex; align-items: center; margin-top: 20px; }
@@ -317,18 +317,18 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
   "@graph": [
     {
       "@type": "SoftwareApplication",
-      "name": "Toph",
+      "name": "Jeff",
       "url": "https://ferforastieri.github.io/toph/",
-      "description": "Toph é um workbench open source onde Tophs individuais ou em grupo trabalham no seu projeto, com o motor, as ferramentas e as regras que você escolher.",
+      "description": "Jeff é um workbench open source onde Jeffs individuais ou em grupo trabalham no seu projeto, com o motor, as ferramentas e as regras que você escolher.",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "macOS, Linux, Windows",
       "inLanguage": "pt-BR",
       "license": "https://www.apache.org/licenses/LICENSE-2.0",
       "codeRepository": "https://github.com/ferforastieri/toph",
       "downloadUrl": "https://github.com/ferforastieri/toph/releases/latest",
-      "screenshot": "https://ferforastieri.github.io/toph/assets/brand/toph-og.png",
+      "screenshot": "https://ferforastieri.github.io/toph/assets/brand/jeff-og.png",
       "featureList": [
-        "Tophs individuais e em grupo",
+        "Jeffs individuais e em grupo",
         "Workbench com editor, terminal e Git",
         "Bancos de dados e debug",
         "Web apps e previews",
@@ -342,9 +342,9 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
       },
       "author": {
         "@type": "Organization",
-        "name": "Toph",
+        "name": "Jeff",
         "url": "https://ferforastieri.github.io/toph/",
-        "logo": "https://ferforastieri.github.io/toph/assets/brand/toph-mark.png"
+        "logo": "https://ferforastieri.github.io/toph/assets/brand/jeff-mark.png"
       },
       "sameAs": [
         "https://github.com/ferforastieri/toph"
@@ -352,7 +352,7 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
     },
     {
       "@type": "WebSite",
-      "name": "Toph",
+      "name": "Jeff",
       "url": "https://ferforastieri.github.io/toph/",
       "inLanguage": "pt-BR"
     },
@@ -364,7 +364,7 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
           "name": "Quanto custa?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "O Toph é grátis e open source (Apache-2.0). Você paga só o uso do modelo no provedor que escolher, ou usa um modelo local via Ollama."
+            "text": "O Jeff é grátis e open source (Apache-2.0). Você paga só o uso do modelo no provedor que escolher, ou usa um modelo local via Ollama."
           }
         },
         {
@@ -380,15 +380,15 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
           "name": "Onde ficam conversas e arquivos?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No seu computador ou servidor. O Toph não tem conta nem servidor nosso. O modelo recebe apenas o que o agente envia pela API que você configurou."
+            "text": "No seu computador ou servidor. O Jeff não tem conta nem servidor nosso. O modelo recebe apenas o que o agente envia pela API que você configurou."
           }
         },
         {
           "@type": "Question",
-          "name": "Posso ter um Toph sozinho e um grupo?",
+          "name": "Posso ter um Jeff sozinho e um grupo?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sim. Uma tarefa pode ter um Toph ou vários. Sem menção, o roteador escolhe quem precisa responder; com @, você escolhe. Um Toph também pode delegar para outro."
+            "text": "Sim. Uma tarefa pode ter um Jeff ou vários. Sem menção, o roteador escolhe quem precisa responder; com @, você escolhe. Um Jeff também pode delegar para outro."
           }
         },
         {
@@ -404,7 +404,7 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
           "name": "Dá pra usar no dia a dia sem abrir o terminal?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sim. O workbench tem editor, terminal, diffs, tarefas e aprovações. O terminal é opcional; o Toph faz o trabalho e você revisa."
+            "text": "Sim. O workbench tem editor, terminal, diffs, tarefas e aprovações. O terminal é opcional; o Jeff faz o trabalho e você revisa."
           }
         }
       ]
@@ -419,16 +419,16 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 
 <header class="top" id="top">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Toph">
-      <img src="assets/brand/toph-mark.png" alt="" width="31" height="31">
-      <b>toph</b>
+    <a class="brand" href="#top" aria-label="Jeff">
+      <img src="assets/brand/jeff-mark.png" alt="" width="31" height="31">
+      <b>jeff</b>
     </a>
     <nav class="links" aria-label="Principal">
       <a href="#workbench" data-i18n="nav.workbench">Workbench</a>
       <a href="#team" data-i18n="nav.team">Individual ou grupo</a>
       <a href="#engines" data-i18n="nav.engines">Motores</a>
       <a href="#rules" data-i18n="nav.rules">Regras</a>
-      <a href="#tophs" data-i18n="nav.tophs">Tophs</a>
+      <a href="#jeffs" data-i18n="nav.jeffs">Jeffs</a>
       <a href="docs.html" data-i18n="nav.docs">Docs</a>
       <a href="#install" data-i18n="nav.install">Instalar</a>
     </nav>
@@ -452,10 +452,10 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <div class="eyebrow reveal" data-i18n="hero.eyebrow">Open source · no seu projeto · com as suas regras</div>
-      <h1 class="reveal"><span class="line" data-i18n="hero.title1">Seu time de agentes de IA.</span><span class="line"><span class="swoosh"><span class="grad" data-i18n="hero.title2">Suas regras.</span><svg viewBox="0 0 300 30" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 22 C 80 6, 200 4, 296 14" stroke="#0F766E" stroke-width="9" stroke-linecap="round" fill="none"/></svg></span></span></h1>
-      <p class="lead reveal" data-i18n="hero.lead">Tophs vivem dentro do seu projeto. Trabalham sozinhos ou em grupo, com o motor, as ferramentas e o histórico de cada tarefa.</p>
+      <h1 class="reveal"><span class="line" data-i18n="hero.title1">Seu time de agentes de IA.</span><span class="line"><span class="swoosh"><span class="grad" data-i18n="hero.title2">Suas regras.</span><svg viewBox="0 0 300 30" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M4 22 C 80 6, 200 4, 296 14" stroke="#0063D1" stroke-width="9" stroke-linecap="round" fill="none"/></svg></span></span></h1>
+      <p class="lead reveal" data-i18n="hero.lead">Jeffs vivem dentro do seu projeto. Trabalham sozinhos ou em grupo, com o motor, as ferramentas e o histórico de cada tarefa.</p>
       <div class="hero-cta reveal">
-        <a class="btn btn--primary" href="#install" data-i18n="hero.download">Baixar o Toph</a>
+        <a class="btn btn--primary" href="#install" data-i18n="hero.download">Baixar o Jeff</a>
         <a class="btn btn--ghost" href="#workbench" data-i18n-html="hero.seeTeam">Ver o workbench <span aria-hidden="true">↓</span></a>
       </div>
       <div class="hero-meta reveal">
@@ -469,16 +469,16 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
       <div class="hero-orbit" aria-hidden="true"><i class="orbit-node n1"></i><i class="orbit-node n2"></i><i class="orbit-node n3"></i></div>
       <div class="hero-mark-card">
         <span class="hero-face" data-look data-look-max="8">
-          <img class="hero-face-body" src="assets/brand/toph-mark-eyeless.png" alt="">
-          <span class="hero-eye hero-eye-left"><img src="assets/brand/toph-mark.png" alt=""></span>
-          <span class="hero-eye hero-eye-right"><img src="assets/brand/toph-mark.png" alt=""></span>
+          <img class="hero-face-body" src="assets/brand/jeff-mark-eyeless.png" alt="">
+          <span class="hero-eye hero-eye-left"><img src="assets/brand/jeff-mark.png" alt=""></span>
+          <span class="hero-eye hero-eye-right"><img src="assets/brand/jeff-mark.png" alt=""></span>
         </span>
       </div>
-      <div class="mate mate-leo"><span class="mate-avatar"><span class="mate-face" data-look data-look-max="3"><img class="mate-body" src="assets/tophs/leo-eyeless.png" alt=""><span class="mate-eye" style="--mx:39.8%;--my:50.8%;--mrx:8.2%;--mry:10.6%"><img src="assets/tophs/leo.png" alt=""></span><span class="mate-eye" style="--mx:60.5%;--my:50.8%;--mrx:8.2%;--mry:10.6%"><img src="assets/tophs/leo.png" alt=""></span></span></span><div><b>Leo</b><small data-i18n="face.dev">Dev</small></div></div>
-      <div class="mate mate-nico"><span class="mate-avatar"><span class="mate-face" data-look data-look-max="3"><img class="mate-body" src="assets/tophs/nico-eyeless.png" alt=""><span class="mate-eye" style="--mx:40.2%;--my:46.3%;--mrx:8.2%;--mry:10.7%"><img src="assets/tophs/nico.png" alt=""></span><span class="mate-eye" style="--mx:59.8%;--my:46.7%;--mrx:8.2%;--mry:10.7%"><img src="assets/tophs/nico.png" alt=""></span></span></span><div><b>Nico</b><small data-i18n="face.reviewer">Revisor</small></div></div>
-      <div class="mate mate-nova"><span class="mate-avatar"><span class="mate-face" data-look data-look-max="3"><img class="mate-body" src="assets/tophs/nova-eyeless.png" alt=""><span class="mate-eye" style="--mx:38.3%;--my:47.5%;--mrx:8.6%;--mry:11.1%"><img src="assets/tophs/nova.png" alt=""></span><span class="mate-eye" style="--mx:60.5%;--my:47.7%;--mrx:9%;--mry:11.3%"><img src="assets/tophs/nova.png" alt=""></span></span></span><div><b>Nova</b><small data-i18n="face.product">Produto</small></div></div>
-      <div class="mate mate-bia"><span class="mate-avatar"><span class="mate-face" data-look data-look-max="3"><img class="mate-body" src="assets/tophs/bia-eyeless.png" alt=""><span class="mate-eye" style="--mx:38.5%;--my:51%;--mrx:8%;--mry:10.7%"><img src="assets/tophs/bia.png" alt=""></span><span class="mate-eye" style="--mx:61.9%;--my:51%;--mrx:8%;--mry:10.7%"><img src="assets/tophs/bia.png" alt=""></span></span></span><div><b>Bia</b><small data-i18n="face.data">Dados</small></div></div>
-      <div class="hero-art-badge"><i></i><b data-i18n="wb.badge">2 Tophs</b> <span data-i18n="wb.badgeText">na mesma tarefa</span></div>
+      <div class="mate mate-leo"><span class="mate-avatar"><span class="mate-face" data-look data-look-max="3"><img class="mate-body" src="assets/jeffs/leo-eyeless.png" alt=""><span class="mate-eye" style="--mx:39.8%;--my:50.8%;--mrx:8.2%;--mry:10.6%"><img src="assets/jeffs/leo.png" alt=""></span><span class="mate-eye" style="--mx:60.5%;--my:50.8%;--mrx:8.2%;--mry:10.6%"><img src="assets/jeffs/leo.png" alt=""></span></span></span><div><b>Leo</b><small data-i18n="face.dev">Dev</small></div></div>
+      <div class="mate mate-nico"><span class="mate-avatar"><span class="mate-face" data-look data-look-max="3"><img class="mate-body" src="assets/jeffs/nico-eyeless.png" alt=""><span class="mate-eye" style="--mx:40.2%;--my:46.3%;--mrx:8.2%;--mry:10.7%"><img src="assets/jeffs/nico.png" alt=""></span><span class="mate-eye" style="--mx:59.8%;--my:46.7%;--mrx:8.2%;--mry:10.7%"><img src="assets/jeffs/nico.png" alt=""></span></span></span><div><b>Nico</b><small data-i18n="face.reviewer">Revisor</small></div></div>
+      <div class="mate mate-nova"><span class="mate-avatar"><span class="mate-face" data-look data-look-max="3"><img class="mate-body" src="assets/jeffs/nova-eyeless.png" alt=""><span class="mate-eye" style="--mx:38.3%;--my:47.5%;--mrx:8.6%;--mry:11.1%"><img src="assets/jeffs/nova.png" alt=""></span><span class="mate-eye" style="--mx:60.5%;--my:47.7%;--mrx:9%;--mry:11.3%"><img src="assets/jeffs/nova.png" alt=""></span></span></span><div><b>Nova</b><small data-i18n="face.product">Produto</small></div></div>
+      <div class="mate mate-bia"><span class="mate-avatar"><span class="mate-face" data-look data-look-max="3"><img class="mate-body" src="assets/jeffs/bia-eyeless.png" alt=""><span class="mate-eye" style="--mx:38.5%;--my:51%;--mrx:8%;--mry:10.7%"><img src="assets/jeffs/bia.png" alt=""></span><span class="mate-eye" style="--mx:61.9%;--my:51%;--mrx:8%;--mry:10.7%"><img src="assets/jeffs/bia.png" alt=""></span></span></span><div><b>Bia</b><small data-i18n="face.data">Dados</small></div></div>
+      <div class="hero-art-badge"><i></i><b data-i18n="wb.badge">2 Jeffs</b> <span data-i18n="wb.badgeText">na mesma tarefa</span></div>
     </div>
   </div>
 </section>
@@ -494,7 +494,7 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 /* engines */
 .engine-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .engine { border: 1px solid var(--line); border-radius: 15px; background: var(--panel); padding: 22px; transition: border-color .2s, transform .2s; }
-.engine:hover { border-color: rgba(15,118,110,.3); transform: translateY(-2px); }
+.engine:hover { border-color: rgba(0,99,209,.3); transform: translateY(-2px); }
 .engine-top { display: flex; align-items: center; gap: 10px; }
 .engine-mark { display: grid; place-items: center; width: 33px; height: 33px; border: 1px solid var(--line); border-radius: 8px; background: #0A0908; color: var(--amber); font: 700 11px/1 var(--mono); }
 .engine-mark img { width: 19px; height: 19px; opacity: .9; filter: invert(1); }
@@ -513,9 +513,9 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 .mode h3 { margin-top: 12px; font: 600 16px/1.1 var(--display); }
 .mode p { margin-top: 7px; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
 .mode.plan { border-color: rgba(143,181,245,.26); } .mode.plan .tag { color: var(--blue); background: rgba(143,181,245,.08); }
-.mode.ask { border-color: rgba(15,118,110,.3); } .mode.ask .tag { color: var(--amber); background: rgba(15,118,110,.08); }
+.mode.ask { border-color: rgba(0,99,209,.3); } .mode.ask .tag { color: var(--amber); background: rgba(0,99,209,.08); }
 .mode.yolo { border-color: rgba(255,107,74,.26); } .mode.yolo .tag { color: var(--coral); background: rgba(255,107,74,.08); }
-.approval { border: 1px solid rgba(15,118,110,.3); border-radius: 13px; background: linear-gradient(145deg, rgba(15,118,110,.08), #0E0D0B); padding: 19px; }
+.approval { border: 1px solid rgba(0,99,209,.3); border-radius: 13px; background: linear-gradient(145deg, rgba(0,99,209,.08), #0E0D0B); padding: 19px; }
 .approval .k { color: var(--amber); font: 600 9px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
 .approval h3 { margin-top: 10px; font: 600 17px/1.2 var(--display); }
 .approval code { display: inline-block; margin-top: 12px; padding: 4px 6px; border-radius: 4px; background: #241D12; color: #F0D4A8; font: 500 10px/1.4 var(--mono); }
@@ -529,8 +529,8 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 .faces .wrap { position: relative; }
 .faces .eyebrow { color: #FFFFFF; } .faces .eyebrow::before { background: #FFFFFF; box-shadow: 0 0 0 4px rgba(255,255,255,.16); }
 .faces .h2 { color: #FFFFFF; max-width: 800px; margin-top: 16px; }
-.faces .h2 em { color: #CCFBF1; }
-.faces .lead { color: #CCFBF1; }
+.faces .h2 em { color: #D6E8FF; }
+.faces .lead { color: #D6E8FF; }
 .faces-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; margin-top: 42px; }
 .face { position: relative; min-height: 212px; padding: 17px; border: 1px solid rgba(0,0,0,.18); border-radius: 15px; background: #0B0A08; color: var(--text); overflow: hidden; transition: transform .22s var(--spring), background .22s; }
 .face:hover { transform: translateY(-4px); background: #14110C; }
@@ -545,7 +545,7 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 .install-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 45px; align-items: center; }
 .install-list { display: flex; flex-direction: column; gap: 15px; margin-top: 28px; }
 .install-step { display: flex; gap: 12px; }
-.install-step .n { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border: 1px solid rgba(15,118,110,.35); border-radius: 6px; color: var(--amber); font: 600 9px/1 var(--mono); }
+.install-step .n { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border: 1px solid rgba(0,99,209,.35); border-radius: 6px; color: var(--amber); font: 600 9px/1 var(--mono); }
 .install-step b { display: block; color: var(--text); font-size: 13px; font-weight: 600; }
 .install-step p { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .term-card { border: 1px solid var(--line); border-radius: 14px; background: #090806; box-shadow: 0 45px 80px -50px #000; overflow: hidden; }
@@ -582,7 +582,7 @@ header .btn img { width: 14px; height: 14px; opacity: .8; }
 
 /* end + footer */
 .end { padding: 100px 0 30px; border-top: 1px solid var(--line); background: #080706; position: relative; overflow: hidden; }
-.end::before { content: ''; position: absolute; inset: auto 15% -55%; height: 70%; background: radial-gradient(ellipse at center, rgba(15,118,110,.1), transparent 65%); pointer-events: none; }
+.end::before { content: ''; position: absolute; inset: auto 15% -55%; height: 70%; background: radial-gradient(ellipse at center, rgba(0,99,209,.1), transparent 65%); pointer-events: none; }
 .end .wrap { position: relative; }
 .end-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
 .end .h2 { max-width: 730px; }
@@ -609,13 +609,13 @@ footer a:hover { color: var(--text); }
 .feature-wb .composer-mock { height: 31px; margin: 0 10px 10px; }
 .features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .feature-card { position: relative; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(145deg, #13110E, #0D0C0A); padding: 24px; overflow: hidden; }
-.feature-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 100% 0, rgba(15,118,110,.06), transparent 45%); pointer-events: none; }
-.feature-card .icon { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 18px; border: 1px solid rgba(15,118,110,.25); border-radius: 9px; background: rgba(15,118,110,.08); color: var(--amber); }
+.feature-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 100% 0, rgba(0,99,209,.06), transparent 45%); pointer-events: none; }
+.feature-card .icon { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 18px; border: 1px solid rgba(0,99,209,.25); border-radius: 9px; background: rgba(0,99,209,.08); color: var(--amber); }
 .feature-card .icon svg { width: 16px; height: 16px; }
 .feature-card h3 { font: 600 18px/1.2 var(--display); letter-spacing: -.025em; }
 .feature-card p { margin-top: 9px; color: var(--muted); font-size: 13px; line-height: 1.55; max-width: 430px; }
 .site-footer { position: relative; overflow: hidden; border-top: 1px solid var(--line); background: linear-gradient(180deg, #080706, #050505); padding: 52px 0 24px; }
-.site-footer::before { content: 'toph'; position: absolute; right: -1%; bottom: -38px; font: 800 210px/1 var(--display); letter-spacing: -.09em; color: rgba(15,118,110,.035); pointer-events: none; }
+.site-footer::before { content: 'jeff'; position: absolute; right: -1%; bottom: -38px; font: 800 210px/1 var(--display); letter-spacing: -.09em; color: rgba(0,99,209,.035); pointer-events: none; }
 .site-footer .wrap { position: relative; }
 .foot-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
 .foot-brand { display: flex; align-items: flex-start; gap: 14px; max-width: 360px; }
@@ -714,14 +714,14 @@ footer a:hover { color: var(--text); }
         <div class="eyebrow" data-i18n="work.eyebrow">O workbench</div>
         <h2 class="h2" data-i18n-html="work.title">O projeto é o centro. <em>Não o chat.</em></h2>
       </div>
-      <p class="lead reveal" data-i18n="work.lead">Toph roda onde o código está. Abra tarefas, arquivos e terminais no mesmo lugar, sem levar o contexto pra fora.</p>
+      <p class="lead reveal" data-i18n="work.lead">Jeff roda onde o código está. Abra tarefas, arquivos e terminais no mesmo lugar, sem levar o contexto pra fora.</p>
     </div>
     <div class="cards">
       <article class="card w7 reveal">
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 9h16M8 5v14"/></svg></div>
         <h3 data-i18n="work.c1t">Tarefas em abas</h3>
-        <p data-i18n="work.c1p">Cada Toph abre a própria aba. Vários Tophs e várias tarefas ficam abertos ao mesmo tempo.</p>
-        <div class="mini"><div class="mini-bar"><div class="tabs"><span class="tab">Toph</span><span class="tab">Leo + Nico</span><span class="tab">Bia</span></div></div><div class="mini-body"><div class="mini-msg me" data-i18n="work.c1a">Revisem o checkout enquanto eu vejo os dados.</div><div class="mini-line"><span class="ok">✓</span><b>Toph</b><code>tarefa aberta</code></div></div></div>
+        <p data-i18n="work.c1p">Cada Jeff abre a própria aba. Vários Jeffs e várias tarefas ficam abertos ao mesmo tempo.</p>
+        <div class="mini"><div class="mini-bar"><div class="tabs"><span class="tab">Jeff</span><span class="tab">Leo + Nico</span><span class="tab">Bia</span></div></div><div class="mini-body"><div class="mini-msg me" data-i18n="work.c1a">Revisem o checkout enquanto eu vejo os dados.</div><div class="mini-line"><span class="ok">✓</span><b>Jeff</b><code>tarefa aberta</code></div></div></div>
       </article>
       <article class="card w5 reveal">
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h10M4 18h13"/><path d="M19 12l2 2-2 2"/></svg></div>
@@ -732,7 +732,7 @@ footer a:hover { color: var(--text); }
       <article class="card w5 reveal">
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h9l5 5v11H5z"/><path d="M14 4v5h5M8 13h8M8 17h6"/></svg></div>
         <h3 data-i18n="work.c3t">Arquivo, diff e terminal</h3>
-        <p data-i18n="work.c3p">O Toph trabalha no projeto de verdade. Você vê o que mudou e aprova antes de qualquer coisa sair.</p>
+        <p data-i18n="work.c3p">O Jeff trabalha no projeto de verdade. Você vê o que mudou e aprova antes de qualquer coisa sair.</p>
         <div class="mini"><div class="filetree"><b>src/checkout/</b><br>  <span>cart.ts</span> <span class="diff">+12</span> <span class="del">−3</span><br>  <span>coupon.ts</span> <span class="diff">+4</span><br><span>tests/</span><br>  <span>cart.test.ts</span> <span class="diff">+18</span></div></div>
       </article>
       <article class="card w7 reveal">
@@ -748,23 +748,23 @@ footer a:hover { color: var(--text); }
 <section class="section" id="team" style="padding-top:20px">
   <div class="wrap">
     <div class="section-head">
-      <div class="reveal"><div class="eyebrow" data-i18n="team.eyebrow">Individual ou grupo</div><h2 class="h2" data-i18n-html="team.title">Um Toph. <em>Ou quantos a tarefa pedir.</em></h2></div>
-      <p class="lead reveal" data-i18n="team.lead">Não existe equipe para configurar. Existe tarefa. Nela, um Toph trabalha sozinho ou vários trabalham juntos.</p>
+      <div class="reveal"><div class="eyebrow" data-i18n="team.eyebrow">Individual ou grupo</div><h2 class="h2" data-i18n-html="team.title">Um Jeff. <em>Ou quantos a tarefa pedir.</em></h2></div>
+      <p class="lead reveal" data-i18n="team.lead">Não existe equipe para configurar. Existe tarefa. Nela, um Jeff trabalha sozinho ou vários trabalham juntos.</p>
     </div>
     <div class="team-grid">
       <article class="team-card reveal">
-        <h3 data-i18n="team.soloTitle">Uma tarefa, um Toph.</h3>
-        <p data-i18n="team.soloDesc">Sessão própria, contexto próprio e histórico próprio. O Toph foca no que você pediu, sem plateia.</p>
-        <div class="person"><img src="assets/tophs/toph.png" alt=""><div><b>Toph</b><small>@toph · <span data-i18n="team.assistant">Assistente</span></small></div></div>
-        <div class="team-points"><div class="point" data-i18n="team.solo1">Cada tarefa abre em uma aba.</div><div class="point" data-i18n="team.solo2">Sessão isolada por Toph e por tarefa.</div><div class="point" data-i18n="team.solo3">Sem equipe, sem duplicar configuração.</div></div>
-        <div class="team-snippet"><div class="route" data-i18n-html="team.soloRoute"><b>@toph</b> · Lê o README e responde com a primeira linha.</div><div class="line"><img src="assets/tophs/toph.png" alt=""><span data-i18n="team.soloReply">A primeira linha é # checkout.</span><em>2s</em></div></div>
+        <h3 data-i18n="team.soloTitle">Uma tarefa, um Jeff.</h3>
+        <p data-i18n="team.soloDesc">Sessão própria, contexto próprio e histórico próprio. O Jeff foca no que você pediu, sem plateia.</p>
+        <div class="person"><img src="assets/jeffs/jeff.png" alt=""><div><b>Jeff</b><small>@jeff · <span data-i18n="team.assistant">Assistente</span></small></div></div>
+        <div class="team-points"><div class="point" data-i18n="team.solo1">Cada tarefa abre em uma aba.</div><div class="point" data-i18n="team.solo2">Sessão isolada por Jeff e por tarefa.</div><div class="point" data-i18n="team.solo3">Sem equipe, sem duplicar configuração.</div></div>
+        <div class="team-snippet"><div class="route" data-i18n-html="team.soloRoute"><b>@jeff</b> · Lê o README e responde com a primeira linha.</div><div class="line"><img src="assets/jeffs/jeff.png" alt=""><span data-i18n="team.soloReply">A primeira linha é # checkout.</span><em>2s</em></div></div>
       </article>
       <article class="team-card group reveal">
-        <h3 data-i18n="team.groupTitle">Uma tarefa, vários Tophs.</h3>
-        <p data-i18n="team.groupDesc">Descreva o trabalho. O roteador escolhe 1 ou 2 Tophs, ou todos quando é para o grupo. Um pode chamar o outro.</p>
-        <div class="team-people"><span class="avatar-ring"><img class="avatar" src="assets/tophs/nova.png" alt="Pesquisa"></span><span class="avatar-ring"><img class="avatar" src="assets/tophs/leo.png" alt="Dev"></span><span class="avatar-ring"><img class="avatar" src="assets/tophs/nico.png" alt="Nico"></span><span class="team-more">+2</span></div>
-        <div class="team-points"><div class="point" data-i18n="team.group1">Mencione com @ para chamar alguém.</div><div class="point" data-i18n="team.group2">O roteador decide quem precisa agir.</div><div class="point" data-i18n="team.group3">Uma bolha sua, uma resposta por Toph.</div></div>
-        <div class="team-snippet"><div class="route" data-i18n-html="team.groupRoute">Chamei <b>Pesquisa</b> e <b>Dev</b> · pesquisa e implementação</div><div class="line"><img src="assets/tophs/nova.png" alt=""><span data-i18n="team.groupA">Leu o README e passou a linha pro Dev.</span><em>3s</em></div><div class="line"><img src="assets/tophs/leo.png" alt=""><span data-i18n="team.groupB">Rodou os testes e criou o arquivo.</span><em>5s</em></div></div>
+        <h3 data-i18n="team.groupTitle">Uma tarefa, vários Jeffs.</h3>
+        <p data-i18n="team.groupDesc">Descreva o trabalho. O roteador escolhe 1 ou 2 Jeffs, ou todos quando é para o grupo. Um pode chamar o outro.</p>
+        <div class="team-people"><span class="avatar-ring"><img class="avatar" src="assets/jeffs/nova.png" alt="Pesquisa"></span><span class="avatar-ring"><img class="avatar" src="assets/jeffs/leo.png" alt="Dev"></span><span class="avatar-ring"><img class="avatar" src="assets/jeffs/nico.png" alt="Nico"></span><span class="team-more">+2</span></div>
+        <div class="team-points"><div class="point" data-i18n="team.group1">Mencione com @ para chamar alguém.</div><div class="point" data-i18n="team.group2">O roteador decide quem precisa agir.</div><div class="point" data-i18n="team.group3">Uma bolha sua, uma resposta por Jeff.</div></div>
+        <div class="team-snippet"><div class="route" data-i18n-html="team.groupRoute">Chamei <b>Pesquisa</b> e <b>Dev</b> · pesquisa e implementação</div><div class="line"><img src="assets/jeffs/nova.png" alt=""><span data-i18n="team.groupA">Leu o README e passou a linha pro Dev.</span><em>3s</em></div><div class="line"><img src="assets/jeffs/leo.png" alt=""><span data-i18n="team.groupB">Rodou os testes e criou o arquivo.</span><em>5s</em></div></div>
       </article>
     </div>
   </div>
@@ -773,13 +773,13 @@ footer a:hover { color: var(--text); }
 <section class="section" id="engines" style="padding-top:20px">
   <div class="wrap">
     <div class="section-head">
-      <div class="reveal"><div class="eyebrow" data-i18n="engines.eyebrow">Motores</div><h2 class="h2" data-i18n-html="engines.title">Cada Toph escolhe <em>o motor.</em></h2></div>
-      <p class="lead reveal" data-i18n="engines.lead">O mesmo projeto pode ter um Toph no OpenCode, outro no Claude Code e outro no Codex. Cada um com seu modelo, esforço e ferramentas.</p>
+      <div class="reveal"><div class="eyebrow" data-i18n="engines.eyebrow">Motores</div><h2 class="h2" data-i18n-html="engines.title">Cada Jeff escolhe <em>o motor.</em></h2></div>
+      <p class="lead reveal" data-i18n="engines.lead">O mesmo projeto pode ter um Jeff no OpenCode, outro no Claude Code e outro no Codex. Cada um com seu modelo, esforço e ferramentas.</p>
     </div>
     <div class="engine-grid">
       <article class="engine reveal"><div class="engine-top"><span class="engine-mark">&gt;_</span><h3>OpenCode</h3><span class="status" data-i18n="engines.ready">pronto</span></div><p data-i18n="engines.open">Roda localmente com o modelo e o provedor que você escolher.</p></article>
-      <article class="engine reveal"><div class="engine-top"><span class="engine-mark"><img src="assets/logos/claude.svg" alt=""></span><h3>Claude Code</h3><span class="status" data-i18n="engines.ready">pronto</span></div><p data-i18n="engines.claude">Aproveita a assinatura Claude que você já tem, com o gateway Toph como ferramenta.</p></article>
-      <article class="engine reveal"><div class="engine-top"><span class="engine-mark"><img src="assets/logos/openai.svg" alt=""></span><h3>Codex</h3><span class="status" data-i18n="engines.ready">pronto</span></div><p data-i18n="engines.codex">Roda o Codex com sandbox isolado e o gateway Toph como única fonte de ferramentas.</p></article>
+      <article class="engine reveal"><div class="engine-top"><span class="engine-mark"><img src="assets/logos/claude.svg" alt=""></span><h3>Claude Code</h3><span class="status" data-i18n="engines.ready">pronto</span></div><p data-i18n="engines.claude">Aproveita a assinatura Claude que você já tem, com o gateway Jeff como ferramenta.</p></article>
+      <article class="engine reveal"><div class="engine-top"><span class="engine-mark"><img src="assets/logos/openai.svg" alt=""></span><h3>Codex</h3><span class="status" data-i18n="engines.ready">pronto</span></div><p data-i18n="engines.codex">Roda o Codex com sandbox isolado e o gateway Jeff como única fonte de ferramentas.</p></article>
     </div>
     <div class="providers reveal"><span class="provider"><i></i>OpenAI</span><span class="provider"><i></i>Anthropic</span><span class="provider"><i></i>DeepSeek</span><span class="provider"><i></i>OpenRouter</span><span class="provider"><i></i>Groq</span><span class="provider"><i></i>Mistral</span><span class="provider"><i></i>Ollama</span><span class="provider"><i></i><span data-i18n="engines.gateway">gateway da empresa</span></span></div>
   </div>
@@ -789,31 +789,31 @@ footer a:hover { color: var(--text); }
   <div class="wrap">
     <div class="section-head">
       <div class="reveal"><div class="eyebrow" data-i18n="rules.eyebrow">Suas regras</div><h2 class="h2" data-i18n-html="rules.title">Você decide <em>até onde cada um vai.</em></h2></div>
-      <p class="lead reveal" data-i18n="rules.lead">Ferramentas, MCPs, skills e permissões são do Toph, não do projeto inteiro. Aprovações aparecem dentro da tarefa.</p>
+      <p class="lead reveal" data-i18n="rules.lead">Ferramentas, MCPs, skills e permissões são do Jeff, não do projeto inteiro. Aprovações aparecem dentro da tarefa.</p>
     </div>
     <div class="rules-box">
       <div class="mode-grid">
         <article class="mode plan reveal"><span class="tag">Plan</span><h3 data-i18n="rules.plan">Só olha</h3><p data-i18n="rules.planD">Lê arquivos, pesquisa e propõe um plano. Não altera nada.</p></article>
         <article class="mode ask reveal"><span class="tag">Ask</span><h3 data-i18n="rules.ask">Pede licença</h3><p data-i18n="rules.askD">Antes de escrever, apagar ou rodar algo que muda o projeto, espera você.</p></article>
-        <article class="mode yolo reveal"><span class="tag">YOLO</span><h3 data-i18n="rules.yolo">Faz</h3><p data-i18n="rules.yoloD">Executa as ferramentas permitidas para aquele Toph, sem interromper.</p></article>
+        <article class="mode yolo reveal"><span class="tag">YOLO</span><h3 data-i18n="rules.yolo">Faz</h3><p data-i18n="rules.yoloD">Executa as ferramentas permitidas para aquele Jeff, sem interromper.</p></article>
       </div>
       <aside class="approval reveal"><div class="k" data-i18n="rules.waiting">Esperando você</div><h3 data-i18n="rules.approvalTitle">Dev quer editar o checkout.</h3><code>src/checkout/cart.ts</code><div class="buttons"><span class="abtn primary" data-i18n="rules.allow">Autorizar uma vez</span><span class="abtn" data-i18n="rules.deny">Recusar</span></div></aside>
     </div>
   </div>
 </section>
 
-<section class="faces" id="tophs">
+<section class="faces" id="jeffs">
   <div class="wrap">
-    <div class="reveal"><div class="eyebrow" data-i18n="faces.eyebrow">Os Tophs</div><h2 class="h2" data-i18n-html="faces.title">Eles têm nome, <em>rosto e opinião.</em></h2><p class="lead" data-i18n="faces.lead">Escolha um perfil pronto ou comece do zero. Ajuste papel, cor, prompt, modelo e ferramentas. O Toph é seu.</p></div>
+    <div class="reveal"><div class="eyebrow" data-i18n="faces.eyebrow">Os Jeffs</div><h2 class="h2" data-i18n-html="faces.title">Eles têm nome, <em>rosto e opinião.</em></h2><p class="lead" data-i18n="faces.lead">Escolha um perfil pronto ou comece do zero. Ajuste papel, cor, prompt, modelo e ferramentas. O Jeff é seu.</p></div>
     <div class="faces-grid">
-      <article class="face reveal" style="--fc:#B9DE7A"><img src="assets/tophs/toph.png" alt="Toph"><h3>Toph</h3><div class="role" data-i18n="face.assistant">Assistente</div><p data-i18n="face.toph">Seu agente pessoal para conversar, programar e executar tarefas.</p><span class="handle">@toph</span></article>
-      <article class="face reveal" style="--fc:#8FB5F5"><img src="assets/tophs/leo.png" alt="Leo"><h3>Leo</h3><div class="role" data-i18n="face.dev">Dev</div><p data-i18n="face.leo">Implementa, refatora e resolve bugs no código.</p><span class="handle">@leo</span></article>
-      <article class="face reveal" style="--fc:#C7A3FF"><img src="assets/tophs/nico.png" alt="Nico"><h3>Nico</h3><div class="role" data-i18n="face.reviewer">Revisor</div><p data-i18n="face.nico">Revisa código, aponta riscos e exige testes.</p><span class="handle">@nico</span></article>
-      <article class="face reveal" style="--fc:#FF9EC4"><img src="assets/tophs/nova.png" alt="Nova"><h3>Nova</h3><div class="role" data-i18n="face.product">Produto</div><p data-i18n="face.nova">Transforma pedidos vagos em escopo e critérios de aceite.</p><span class="handle">@nova</span></article>
-      <article class="face reveal" style="--fc:#84E0C2"><img src="assets/tophs/bia.png" alt="Bia"><h3>Bia</h3><div class="role" data-i18n="face.data">Dados</div><p data-i18n="face.bia">Investiga dados, métricas e consultas.</p><span class="handle">@bia</span></article>
-      <article class="face reveal" style="--fc:#D8B4FE"><img src="assets/tophs/pia.png" alt="Pia"><h3>Pia</h3><div class="role" data-i18n="face.design">Design</div><p data-i18n="face.pia">Cuida de interface, consistência e experiência.</p><span class="handle">@pia</span></article>
-      <article class="face reveal" style="--fc:#7FD4E8"><img src="assets/tophs/atlas.png" alt="Atlas"><h3>Atlas</h3><div class="role" data-i18n="face.org">Organização</div><p data-i18n="face.atlas">Organiza prioridades, distribui tarefas e cobra o fechamento.</p><span class="handle">@atlas</span></article>
-      <article class="face reveal" style="--fc:#FFD166"><img src="assets/tophs/rafa.png" alt="Rafa"><h3>Rafa</h3><div class="role" data-i18n="face.support">Suporte</div><p data-i18n="face.rafa">Responde tickets e transforma bugs em issues claras.</p><span class="handle">@rafa</span></article>
+      <article class="face reveal" style="--fc:#B9DE7A"><img src="assets/jeffs/jeff.png" alt="Jeff"><h3>Jeff</h3><div class="role" data-i18n="face.assistant">Assistente</div><p data-i18n="face.jeff">Seu agente pessoal para conversar, programar e executar tarefas.</p><span class="handle">@jeff</span></article>
+      <article class="face reveal" style="--fc:#8FB5F5"><img src="assets/jeffs/leo.png" alt="Leo"><h3>Leo</h3><div class="role" data-i18n="face.dev">Dev</div><p data-i18n="face.leo">Implementa, refatora e resolve bugs no código.</p><span class="handle">@leo</span></article>
+      <article class="face reveal" style="--fc:#C7A3FF"><img src="assets/jeffs/nico.png" alt="Nico"><h3>Nico</h3><div class="role" data-i18n="face.reviewer">Revisor</div><p data-i18n="face.nico">Revisa código, aponta riscos e exige testes.</p><span class="handle">@nico</span></article>
+      <article class="face reveal" style="--fc:#FF9EC4"><img src="assets/jeffs/nova.png" alt="Nova"><h3>Nova</h3><div class="role" data-i18n="face.product">Produto</div><p data-i18n="face.nova">Transforma pedidos vagos em escopo e critérios de aceite.</p><span class="handle">@nova</span></article>
+      <article class="face reveal" style="--fc:#84E0C2"><img src="assets/jeffs/bia.png" alt="Bia"><h3>Bia</h3><div class="role" data-i18n="face.data">Dados</div><p data-i18n="face.bia">Investiga dados, métricas e consultas.</p><span class="handle">@bia</span></article>
+      <article class="face reveal" style="--fc:#D8B4FE"><img src="assets/jeffs/pia.png" alt="Pia"><h3>Pia</h3><div class="role" data-i18n="face.design">Design</div><p data-i18n="face.pia">Cuida de interface, consistência e experiência.</p><span class="handle">@pia</span></article>
+      <article class="face reveal" style="--fc:#7FD4E8"><img src="assets/jeffs/atlas.png" alt="Atlas"><h3>Atlas</h3><div class="role" data-i18n="face.org">Organização</div><p data-i18n="face.atlas">Organiza prioridades, distribui tarefas e cobra o fechamento.</p><span class="handle">@atlas</span></article>
+      <article class="face reveal" style="--fc:#FFD166"><img src="assets/jeffs/rafa.png" alt="Rafa"><h3>Rafa</h3><div class="role" data-i18n="face.support">Suporte</div><p data-i18n="face.rafa">Responde tickets e transforma bugs em issues claras.</p><span class="handle">@rafa</span></article>
     </div>
   </div>
 </section>
@@ -822,12 +822,12 @@ footer a:hover { color: var(--text); }
   <div class="wrap install-grid">
     <div class="reveal">
       <div class="eyebrow" data-i18n="install.eyebrow">Instalar</div>
-      <h2 class="h2" data-i18n-html="install.title">Do download ao primeiro Toph <em>em minutos.</em></h2>
+      <h2 class="h2" data-i18n-html="install.title">Do download ao primeiro Jeff <em>em minutos.</em></h2>
       <p class="lead" data-i18n="install.lead">Roda no seu computador ou no seu servidor. Sem conta nossa, sem dados passando por nós.</p>
       <div class="install-list">
         <div class="install-step"><span class="n">1</span><div><b data-i18n="install.s1">Conecte um modelo</b><p data-i18n="install.s1d">Configure OpenAI, Anthropic, Ollama ou o gateway da sua empresa em Harness.</p></div></div>
         <div class="install-step"><span class="n">2</span><div><b data-i18n="install.s2">Baixe e abra</b><p data-i18n="install.s2d">Mac, Linux ou Windows. No Linux, use o .deb, o AppImage ou o comando ao lado.</p></div></div>
-        <div class="install-step"><span class="n">3</span><div><b data-i18n="install.s3">Crie seu primeiro Toph</b><p data-i18n="install.s3d">Escolha um perfil, ajuste o que quiser e abra a primeira tarefa.</p></div></div>
+        <div class="install-step"><span class="n">3</span><div><b data-i18n="install.s3">Crie seu primeiro Jeff</b><p data-i18n="install.s3d">Escolha um perfil, ajuste o que quiser e abra a primeira tarefa.</p></div></div>
       </div>
       <div class="install-meta"><a href="https://github.com/ferforastieri/toph/releases/latest" data-i18n="install.mac">Mac (.dmg)</a><span>·</span><a href="https://github.com/ferforastieri/toph/releases/latest" data-i18n="install.linux">Linux (.deb / AppImage)</a><span>·</span><a href="https://github.com/ferforastieri/toph/releases/latest" data-i18n="install.windows">Windows (.exe)</a></div>
     </div>
@@ -846,10 +846,10 @@ footer a:hover { color: var(--text); }
   <div class="wrap">
     <div class="section-head">
       <div class="reveal">
-        <div class="eyebrow" data-i18n="features.eyebrow">Além dos Tophs</div>
+        <div class="eyebrow" data-i18n="features.eyebrow">Além dos Jeffs</div>
         <h2 class="h2" data-i18n-html="features.title">O workbench inteiro, <em>não só o chat.</em></h2>
       </div>
-      <p class="lead reveal" data-i18n="features.lead">Toph é onde o projeto acontece: arquivos, terminal, Git, bancos, debug, previews e tudo que o agente precisa para trabalhar de verdade.</p>
+      <p class="lead reveal" data-i18n="features.lead">Jeff é onde o projeto acontece: arquivos, terminal, Git, bancos, debug, previews e tudo que o agente precisa para trabalhar de verdade.</p>
     </div>
     <div class="feature-wb reveal">
     <div class="feature-visual">
@@ -857,29 +857,29 @@ footer a:hover { color: var(--text); }
         <div class="wb-glow"></div>
         <div class="wb-top">
           <span class="wb-dots"><i></i><i></i><i></i></span>
-          <span class="wb-path">tophs/checkout</span>
-          <span class="wb-live" data-i18n="wb.live">2 Tophs · 1 tarefa</span>
+          <span class="wb-path">jeffs/checkout</span>
+          <span class="wb-live" data-i18n="wb.live">2 Jeffs · 1 tarefa</span>
         </div>
         <div class="wb-body">
           <aside class="wb-side">
-            <div class="rail-title"><span data-i18n="wb.tophs">Tophs</span><span>3</span></div>
-            <div class="rail-row on"><img src="assets/tophs/toph.png" alt=""><span><b>Toph</b><small data-i18n="wb.roleToph">Assistente</small></span><em>●</em></div>
-            <div class="rail-row"><img src="assets/tophs/leo.png" alt=""><span><b>Leo</b><small data-i18n="wb.roleDev">Dev</small></span></div>
-            <div class="rail-row"><img src="assets/tophs/nico.png" alt=""><span><b>Nico</b><small data-i18n="wb.roleReviewer">Revisor</small></span></div>
+            <div class="rail-title"><span data-i18n="wb.jeffs">Jeffs</span><span>3</span></div>
+            <div class="rail-row on"><img src="assets/jeffs/jeff.png" alt=""><span><b>Jeff</b><small data-i18n="wb.roleJeff">Assistente</small></span><em>●</em></div>
+            <div class="rail-row"><img src="assets/jeffs/leo.png" alt=""><span><b>Leo</b><small data-i18n="wb.roleDev">Dev</small></span></div>
+            <div class="rail-row"><img src="assets/jeffs/nico.png" alt=""><span><b>Nico</b><small data-i18n="wb.roleReviewer">Revisor</small></span></div>
             <div class="rail-sep"></div>
-            <div class="rail-action"><span>+</span><b data-i18n="wb.newToph">Novo Toph</b></div>
+            <div class="rail-action"><span>+</span><b data-i18n="wb.newJeff">Novo Jeff</b></div>
             <div class="rail-action"><span>+</span><b data-i18n="wb.group">Grupo</b></div>
           </aside>
           <div class="wb-main">
             <div class="wb-tabs">
-              <div class="wb-tab on"><img src="assets/tophs/leo.png" alt=""><img src="assets/tophs/nico.png" alt=""><span data-i18n="wb.tabGroup">Leo + Nico</span></div>
-              <div class="wb-tab"><img src="assets/tophs/toph.png" alt=""><span>Toph</span></div>
+              <div class="wb-tab on"><img src="assets/jeffs/leo.png" alt=""><img src="assets/jeffs/nico.png" alt=""><span data-i18n="wb.tabGroup">Leo + Nico</span></div>
+              <div class="wb-tab"><img src="assets/jeffs/jeff.png" alt=""><span>Jeff</span></div>
             </div>
             <div class="chat">
               <div class="userline" data-i18n="wb.user">Pesquisa a primeira linha do README e cria o arquivo com ela.</div>
               <div class="route-line" data-i18n-html="wb.route">Chamei <b>Pesquisa</b> e <b>Dev</b> · pesquisa e implementação</div>
               <div class="reply">
-                <span class="avatar-ring"><img class="avatar" src="assets/tophs/nova.png" alt="Pesquisa"></span>
+                <span class="avatar-ring"><img class="avatar" src="assets/jeffs/nova.png" alt="Pesquisa"></span>
                 <div class="reply-main">
                   <div class="reply-who">Pesquisa <small>02:04</small></div>
                   <div class="steps"><div class="step"><span class="ok">✓</span><b data-i18n="wb.stepRead">Leu</b><span class="cmd">README.md</span><span class="meta" data-i18n="wb.lines">3 linhas</span></div></div>
@@ -887,7 +887,7 @@ footer a:hover { color: var(--text); }
                 </div>
               </div>
               <div class="reply">
-                <span class="avatar-ring"><img class="avatar" src="assets/tophs/leo.png" alt="Dev"></span>
+                <span class="avatar-ring"><img class="avatar" src="assets/jeffs/leo.png" alt="Dev"></span>
                 <div class="reply-main">
                   <div class="reply-who">Dev <small>02:05</small></div>
                   <div class="steps">
@@ -901,7 +901,7 @@ footer a:hover { color: var(--text); }
             <div class="composer-mock"><span data-i18n="wb.placeholder">Mensagem para o grupo</span><span class="send">↑</span></div>
           </div>
         </div>
-        <div class="hero-badge"><i></i><b data-i18n="wb.badge">2 Tophs</b> <span data-i18n="wb.badgeText">na mesma tarefa</span></div>
+        <div class="hero-badge"><i></i><b data-i18n="wb.badge">2 Jeffs</b> <span data-i18n="wb.badgeText">na mesma tarefa</span></div>
       </div>
     </div>
     </div>
@@ -952,14 +952,14 @@ footer a:hover { color: var(--text); }
 
 <section class="section" id="faq" style="padding-top:20px">
   <div class="wrap faq-grid">
-    <div class="reveal"><div class="eyebrow" data-i18n="faq.eyebrow">Perguntas</div><h2 class="h2" data-i18n-html="faq.title">O que todo mundo <em>pergunta primeiro.</em></h2><p class="lead" style="margin-top:18px" data-i18n="faq.lead">Sem letra miúda. O Toph é seu, roda no seu ambiente e não pede conta.</p></div>
+    <div class="reveal"><div class="eyebrow" data-i18n="faq.eyebrow">Perguntas</div><h2 class="h2" data-i18n-html="faq.title">O que todo mundo <em>pergunta primeiro.</em></h2><p class="lead" style="margin-top:18px" data-i18n="faq.lead">Sem letra miúda. O Jeff é seu, roda no seu ambiente e não pede conta.</p></div>
     <div class="qa reveal">
-      <details open><summary data-i18n="faq.q1">Quanto custa?</summary><p data-i18n="faq.a1">O Toph é grátis e open source (Apache-2.0). Você paga só o uso do modelo no provedor que escolher, ou usa um modelo local via Ollama.</p></details>
+      <details open><summary data-i18n="faq.q1">Quanto custa?</summary><p data-i18n="faq.a1">O Jeff é grátis e open source (Apache-2.0). Você paga só o uso do modelo no provedor que escolher, ou usa um modelo local via Ollama.</p></details>
       <details><summary data-i18n="faq.q2">Preciso de chave de API?</summary><p data-i18n="faq.a2">Depende do provedor. OpenAI, Anthropic e gateways pedem chave; Ollama local pode rodar sem. A chave fica criptografada no seu servidor.</p></details>
-      <details><summary data-i18n="faq.q3">Onde ficam conversas e arquivos?</summary><p data-i18n="faq.a3">No seu computador ou servidor. O Toph não tem conta nem servidor nosso. O modelo recebe apenas o que o agente envia pela API que você configurou.</p></details>
-      <details><summary data-i18n="faq.q4">Posso ter um Toph sozinho e um grupo?</summary><p data-i18n="faq.a4">Sim. Uma tarefa pode ter um Toph ou vários. Sem menção, o roteador escolhe quem precisa responder; com @, você escolhe. Um Toph também pode delegar para outro.</p></details>
+      <details><summary data-i18n="faq.q3">Onde ficam conversas e arquivos?</summary><p data-i18n="faq.a3">No seu computador ou servidor. O Jeff não tem conta nem servidor nosso. O modelo recebe apenas o que o agente envia pela API que você configurou.</p></details>
+      <details><summary data-i18n="faq.q4">Posso ter um Jeff sozinho e um grupo?</summary><p data-i18n="faq.a4">Sim. Uma tarefa pode ter um Jeff ou vários. Sem menção, o roteador escolhe quem precisa responder; com @, você escolhe. Um Jeff também pode delegar para outro.</p></details>
       <details><summary data-i18n="faq.q5">Quais motores rodam hoje?</summary><p data-i18n="faq.a5">OpenCode, Claude Code, Codex e Antigravity CLI. Cursor, Grok e Pi aparecem para instalar e testar, mas o runtime deles ainda não está ligado.</p></details>
-      <details><summary data-i18n="faq.q6">Dá pra usar no dia a dia sem abrir o terminal?</summary><p data-i18n="faq.a6">Sim. O workbench tem editor, terminal, diffs, tarefas e aprovações. O terminal é opcional; o Toph faz o trabalho e você revisa.</p></details>
+      <details><summary data-i18n="faq.q6">Dá pra usar no dia a dia sem abrir o terminal?</summary><p data-i18n="faq.a6">Sim. O workbench tem editor, terminal, diffs, tarefas e aprovações. O terminal é opcional; o Jeff faz o trabalho e você revisa.</p></details>
     </div>
   </div>
 </section>
@@ -970,8 +970,8 @@ footer a:hover { color: var(--text); }
   <div class="wrap">
     <div class="foot-top">
       <div class="foot-brand">
-        <img src="assets/brand/toph-mark.png" alt="">
-        <div><b>toph</b><p data-i18n="footer.made">Feito no Brasil. Open source de verdade.</p></div>
+        <img src="assets/brand/jeff-mark.png" alt="">
+        <div><b>jeff</b><p data-i18n="footer.made">Feito no Brasil. Open source de verdade.</p></div>
       </div>
       <div class="foot-cols">
         <div class="foot-col">
@@ -993,24 +993,24 @@ footer a:hover { color: var(--text); }
         </div>
       </div>
     </div>
-    <div class="foot-bottom"><span>© 2026 Toph</span><span>Apache-2.0 · Feito no Brasil · deploy-check-2026-11-09-2315</span></div>
+    <div class="foot-bottom"><span>© 2026 Jeff</span><span>Apache-2.0 · Feito no Brasil · deploy-check-2026-11-09-2315</span></div>
   </div>
 </footer>
 
 <script>
 const EN = {
-  'nav.workbench': 'Workbench', 'nav.team': 'Solo or group', 'nav.engines': 'Engines', 'nav.rules': 'Rules', 'nav.tophs': 'Tophs', 'nav.docs': 'Docs', 'nav.install': 'Install', 'nav.cta': 'Install',
+  'nav.workbench': 'Workbench', 'nav.team': 'Solo or group', 'nav.engines': 'Engines', 'nav.rules': 'Rules', 'nav.jeffs': 'Jeffs', 'nav.docs': 'Docs', 'nav.install': 'Install', 'nav.cta': 'Install',
   'hero.eyebrow': 'Open source · in your project · on your terms', 'hero.title1': 'Your AI agent team.', 'hero.title2': 'Your rules.',
-  'hero.lead': 'Tophs live inside your project. They work alone or together, with the engine, tools and history of each task.',
-  'hero.download': 'Download Toph', 'hero.seeTeam': 'See the workbench <span aria-hidden="true">↓</span>',
+  'hero.lead': 'Jeffs live inside your project. They work alone or together, with the engine, tools and history of each task.',
+  'hero.download': 'Download Jeff', 'hero.seeTeam': 'See the workbench <span aria-hidden="true">↓</span>',
   'hero.meta1': 'Open source', 'hero.meta2': 'Apache-2.0', 'hero.meta3': 'Mac · Linux · Windows',
-  'wb.live': '2 Tophs · 1 task', 'wb.tophs': 'Tophs', 'wb.roleToph': 'Assistant', 'wb.roleDev': 'Dev', 'wb.roleReviewer': 'Reviewer', 'wb.newToph': 'New Toph', 'wb.group': 'Group', 'wb.tabGroup': 'Leo + Nico',
+  'wb.live': '2 Jeffs · 1 task', 'wb.jeffs': 'Jeffs', 'wb.roleJeff': 'Assistant', 'wb.roleDev': 'Dev', 'wb.roleReviewer': 'Reviewer', 'wb.newJeff': 'New Jeff', 'wb.group': 'Group', 'wb.tabGroup': 'Leo + Nico',
   'wb.user': 'Research the first line of the README and create the file with it.',
   'wb.route': 'Called <b>Pesquisa</b> and <b>Dev</b> · research and implementation', 'wb.stepRead': 'Read', 'wb.lines': '3 lines',
   'wb.replyResearch': 'The first line is <span class="mono"># checkout</span>. The file is with Dev.', 'wb.stepThought': 'Thought', 'wb.stepRan': 'Ran', 'wb.tests': '12/12',
-  'wb.replyDev': 'Created <span class="mono">checkout.md</span> and ran the tests. Ready for review.', 'wb.placeholder': 'Message the group', 'wb.badge': '2 Tophs', 'wb.badgeText': 'on the same task',
-  'features.eyebrow': 'Beyond the Tophs', 'features.title': 'The whole workbench, <em>not just the chat.</em>',
-  'features.lead': 'Toph is where the project happens: files, terminal, Git, databases, debug, previews and everything the agent needs to do real work.',
+  'wb.replyDev': 'Created <span class="mono">checkout.md</span> and ran the tests. Ready for review.', 'wb.placeholder': 'Message the group', 'wb.badge': '2 Jeffs', 'wb.badgeText': 'on the same task',
+  'features.eyebrow': 'Beyond the Jeffs', 'features.title': 'The whole workbench, <em>not just the chat.</em>',
+  'features.lead': 'Jeff is where the project happens: files, terminal, Git, databases, debug, previews and everything the agent needs to do real work.',
   'features.gitT': 'Git in the panel', 'features.gitP': 'Status, diffs, stage, commit, branches, blame and discard without leaving the workbench.',
   'features.dbT': 'Databases', 'features.dbP': 'Connect Postgres, MySQL or SQLite, inspect the schema and run queries with results on screen.',
   'features.debugT': 'Real debugging', 'features.debugP': 'Breakpoints, console, variables and step-by-step execution for Node, Python and other runtimes.',
@@ -1021,33 +1021,33 @@ const EN = {
   'features.reposT': 'Many projects and repos', 'features.reposP': 'Add allowed folders, open as many projects as you want and find every Git repo from the + button.',
   'footer.docs': 'Docs', 'footer.product': 'Product', 'footer.features': 'Features', 'footer.install': 'Install', 'footer.project': 'Project', 'footer.legal': 'Legal', 'footer.support': 'Support',
   'work.eyebrow': 'The workbench', 'work.title': 'The project is the center. <em>Not the chat.</em>',
-  'work.lead': 'Toph runs where the code is. Open tasks, files and terminals in one place, without dragging context outside.',
-  'work.c1t': 'Tasks in tabs', 'work.c1p': 'Each Toph opens its own tab. Several Tophs and tasks stay open at once.', 'work.c1a': 'Review checkout while I look at the data.',
+  'work.lead': 'Jeff runs where the code is. Open tasks, files and terminals in one place, without dragging context outside.',
+  'work.c1t': 'Tasks in tabs', 'work.c1p': 'Each Jeff opens its own tab. Several Jeffs and tasks stay open at once.', 'work.c1a': 'Review checkout while I look at the data.',
   'work.c2t': 'Steps, not a spinner', 'work.c2p': 'Thought, read, ran, failed. The exact command and output stay in the task history.', 'work.thought': 'Thought', 'work.ran': 'Ran', 'work.passed': '12 of 12 passed',
-  'work.c3t': 'File, diff and terminal', 'work.c3p': 'Toph works in the real project. You see what changed and approve before anything leaves.',
+  'work.c3t': 'File, diff and terminal', 'work.c3p': 'Jeff works in the real project. You see what changed and approve before anything leaves.',
   'work.c4t': 'Approval in the middle', 'work.c4p': 'The agent stops before writing, deleting or sending something. You allow once, always or refuse.',
   'work.waiting': 'Waiting for you', 'work.approval': 'Dev wants to edit <code>src/checkout/cart.ts</code>', 'work.allow': 'Allow', 'work.deny': 'Refuse',
-  'team.eyebrow': 'Solo or group', 'team.title': 'One Toph. <em>Or as many as the task needs.</em>', 'team.lead': 'There is no team to configure. There is a task. In it, one Toph works alone or several work together.',
-  'team.soloTitle': 'One task, one Toph.', 'team.soloDesc': 'Its own session, context and history. The Toph focuses on what you asked, with no audience.', 'team.assistant': 'Assistant',
-  'team.solo1': 'Each task opens in a tab.', 'team.solo2': 'An isolated session per Toph and per task.', 'team.solo3': 'No team, no duplicated config.',
-  'team.soloRoute': '<b>@toph</b> · Reads the README and replies with its first line.', 'team.soloReply': 'The first line is # checkout.',
-  'team.groupTitle': 'One task, several Tophs.', 'team.groupDesc': 'Describe the work. The router picks 1 or 2 Tophs, or everyone when it is for the group. One can call another.',
-  'team.group1': 'Mention with @ to call someone.', 'team.group2': 'The router decides who needs to act.', 'team.group3': 'One bubble from you, one reply per Toph.',
+  'team.eyebrow': 'Solo or group', 'team.title': 'One Jeff. <em>Or as many as the task needs.</em>', 'team.lead': 'There is no team to configure. There is a task. In it, one Jeff works alone or several work together.',
+  'team.soloTitle': 'One task, one Jeff.', 'team.soloDesc': 'Its own session, context and history. The Jeff focuses on what you asked, with no audience.', 'team.assistant': 'Assistant',
+  'team.solo1': 'Each task opens in a tab.', 'team.solo2': 'An isolated session per Jeff and per task.', 'team.solo3': 'No team, no duplicated config.',
+  'team.soloRoute': '<b>@jeff</b> · Reads the README and replies with its first line.', 'team.soloReply': 'The first line is # checkout.',
+  'team.groupTitle': 'One task, several Jeffs.', 'team.groupDesc': 'Describe the work. The router picks 1 or 2 Jeffs, or everyone when it is for the group. One can call another.',
+  'team.group1': 'Mention with @ to call someone.', 'team.group2': 'The router decides who needs to act.', 'team.group3': 'One bubble from you, one reply per Jeff.',
   'team.groupRoute': 'Called <b>Pesquisa</b> and <b>Dev</b> · research and implementation', 'team.groupA': 'Read the README and handed the line to Dev.', 'team.groupB': 'Ran the tests and created the file.',
-  'engines.eyebrow': 'Engines', 'engines.title': 'Each Toph picks <em>its engine.</em>', 'engines.lead': 'The same project can have one Toph on OpenCode, another on Claude Code and another on Codex. Each with its model, effort and tools.', 'engines.ready': 'ready',
-  'engines.open': 'Runs locally with the model and provider you choose.', 'engines.claude': 'Uses the Claude subscription you already have, with the Toph gateway as its tool.', 'engines.codex': 'Runs Codex in an isolated sandbox with the Toph gateway as its only tool source.', 'engines.gateway': 'company gateway',
-  'rules.eyebrow': 'Your rules', 'rules.title': 'You decide <em>how far each one goes.</em>', 'rules.lead': 'Tools, MCPs, skills and permissions belong to the Toph, not the whole project. Approvals appear inside the task.',
-  'rules.plan': 'Looks only', 'rules.planD': 'Reads files, researches and proposes a plan. Changes nothing.', 'rules.ask': 'Asks first', 'rules.askD': 'Before writing, deleting or running something that changes the project, it waits for you.', 'rules.yolo': 'Does it', 'rules.yoloD': 'Runs the tools allowed for that Toph without stopping.',
+  'engines.eyebrow': 'Engines', 'engines.title': 'Each Jeff picks <em>its engine.</em>', 'engines.lead': 'The same project can have one Jeff on OpenCode, another on Claude Code and another on Codex. Each with its model, effort and tools.', 'engines.ready': 'ready',
+  'engines.open': 'Runs locally with the model and provider you choose.', 'engines.claude': 'Uses the Claude subscription you already have, with the Jeff gateway as its tool.', 'engines.codex': 'Runs Codex in an isolated sandbox with the Jeff gateway as its only tool source.', 'engines.gateway': 'company gateway',
+  'rules.eyebrow': 'Your rules', 'rules.title': 'You decide <em>how far each one goes.</em>', 'rules.lead': 'Tools, MCPs, skills and permissions belong to the Jeff, not the whole project. Approvals appear inside the task.',
+  'rules.plan': 'Looks only', 'rules.planD': 'Reads files, researches and proposes a plan. Changes nothing.', 'rules.ask': 'Asks first', 'rules.askD': 'Before writing, deleting or running something that changes the project, it waits for you.', 'rules.yolo': 'Does it', 'rules.yoloD': 'Runs the tools allowed for that Jeff without stopping.',
   'rules.waiting': 'Waiting for you', 'rules.approvalTitle': 'Dev wants to edit checkout.', 'rules.allow': 'Allow once', 'rules.deny': 'Refuse',
-  'faces.eyebrow': 'The Tophs', 'faces.title': 'They have names, <em>faces and opinions.</em>', 'faces.lead': 'Pick a ready-made profile or start from zero. Tune role, color, prompt, model and tools. The Toph is yours.',
-  'face.assistant': 'Assistant', 'face.toph': 'Your personal agent to talk, code and get things done.', 'face.dev': 'Dev', 'face.leo': 'Implements, refactors and fixes bugs in the code.', 'face.reviewer': 'Reviewer', 'face.nico': 'Reviews code, flags risks and demands tests.', 'face.product': 'Product', 'face.nova': 'Turns vague requests into scope and acceptance criteria.', 'face.data': 'Data', 'face.bia': 'Investigates data, metrics and queries.', 'face.design': 'Design', 'face.pia': 'Takes care of interface, consistency and experience.', 'face.org': 'Organization', 'face.atlas': 'Organizes priorities, assigns tasks and chases closure.', 'face.support': 'Support', 'face.rafa': 'Answers tickets and turns bugs into clear issues.',
-  'install.eyebrow': 'Install', 'install.title': 'From download to your first Toph <em>in minutes.</em>', 'install.lead': 'Runs on your computer or your server. No account with us, no data passing through us.',
-  'install.s1': 'Connect a model', 'install.s1d': 'Configure OpenAI, Anthropic, Ollama or your company gateway in Harness.', 'install.s2': 'Download and open', 'install.s2d': 'Mac, Linux or Windows. On Linux, use the .deb, the AppImage or the command beside.', 'install.s3': 'Create your first Toph', 'install.s3d': 'Pick a profile, tune what you want and open the first task.',
+  'faces.eyebrow': 'The Jeffs', 'faces.title': 'They have names, <em>faces and opinions.</em>', 'faces.lead': 'Pick a ready-made profile or start from zero. Tune role, color, prompt, model and tools. The Jeff is yours.',
+  'face.assistant': 'Assistant', 'face.jeff': 'Your personal agent to talk, code and get things done.', 'face.dev': 'Dev', 'face.leo': 'Implements, refactors and fixes bugs in the code.', 'face.reviewer': 'Reviewer', 'face.nico': 'Reviews code, flags risks and demands tests.', 'face.product': 'Product', 'face.nova': 'Turns vague requests into scope and acceptance criteria.', 'face.data': 'Data', 'face.bia': 'Investigates data, metrics and queries.', 'face.design': 'Design', 'face.pia': 'Takes care of interface, consistency and experience.', 'face.org': 'Organization', 'face.atlas': 'Organizes priorities, assigns tasks and chases closure.', 'face.support': 'Support', 'face.rafa': 'Answers tickets and turns bugs into clear issues.',
+  'install.eyebrow': 'Install', 'install.title': 'From download to your first Jeff <em>in minutes.</em>', 'install.lead': 'Runs on your computer or your server. No account with us, no data passing through us.',
+  'install.s1': 'Connect a model', 'install.s1d': 'Configure OpenAI, Anthropic, Ollama or your company gateway in Harness.', 'install.s2': 'Download and open', 'install.s2d': 'Mac, Linux or Windows. On Linux, use the .deb, the AppImage or the command beside.', 'install.s3': 'Create your first Jeff', 'install.s3d': 'Pick a profile, tune what you want and open the first task.',
   'install.mac': 'Mac (.dmg)', 'install.linux': 'Linux (.deb / AppImage)', 'install.windows': 'Windows (.exe)', 'install.terminal': 'install', 'install.comment': '# one line. the rest is on you.', 'install.copy': 'Copy', 'install.note': 'On Windows, use <b>PowerShell</b> with the .ps1 installer. On Mac, the app is signed and notarized.',
-  'faq.eyebrow': 'FAQ', 'faq.title': 'What everyone <em>asks first.</em>', 'faq.lead': 'No fine print. Toph is yours, runs in your environment and asks for no account.',
-  'faq.q1': 'How much does it cost?', 'faq.a1': 'Toph is free and open source (Apache-2.0). You only pay for model usage with your provider, or run a local model via Ollama.', 'faq.q2': 'Do I need an API key?', 'faq.a2': 'Depends on the provider. OpenAI, Anthropic and gateways need a key; local Ollama may run without one. The key is encrypted on your server.', 'faq.q3': 'Where do conversations and files live?', 'faq.a3': 'On your computer or server. Toph has no account or servers of ours. The model only receives what the agent sends through the API you configured.', 'faq.q4': 'Can I have one Toph alone and a group?', 'faq.a4': 'Yes. A task can have one Toph or several. Without a mention, the router picks who answers; with @, you choose. One Toph can also delegate to another.', 'faq.q5': 'Which engines run today?', 'faq.a5': 'OpenCode, Claude Code and Codex. Cursor, Grok, Gemini and Pi appear for install and test, but their runtime is not wired yet.', 'faq.q6': 'Can I use it without opening a terminal?', 'faq.a6': 'Yes. The workbench has editor, terminal, diffs, tasks and approvals. The terminal is optional; Toph does the work and you review.',
-  'end.eyebrow': 'The next step', 'end.title': 'Build the team. <em>Then let them work.</em>', 'end.download': 'Download Toph', 'footer.made': 'Made in Brazil. Truly open source.', 'footer.releases': 'Releases', 'footer.guide': 'Guide', 'footer.issues': 'Issues and ideas',
-  'meta.title': 'Toph · Tophs in your project, on your terms', 'meta.description': 'Toph is an open-source workbench where solo or group Tophs work in your project, with the engine, tools and rules you choose.'
+  'faq.eyebrow': 'FAQ', 'faq.title': 'What everyone <em>asks first.</em>', 'faq.lead': 'No fine print. Jeff is yours, runs in your environment and asks for no account.',
+  'faq.q1': 'How much does it cost?', 'faq.a1': 'Jeff is free and open source (Apache-2.0). You only pay for model usage with your provider, or run a local model via Ollama.', 'faq.q2': 'Do I need an API key?', 'faq.a2': 'Depends on the provider. OpenAI, Anthropic and gateways need a key; local Ollama may run without one. The key is encrypted on your server.', 'faq.q3': 'Where do conversations and files live?', 'faq.a3': 'On your computer or server. Jeff has no account or servers of ours. The model only receives what the agent sends through the API you configured.', 'faq.q4': 'Can I have one Jeff alone and a group?', 'faq.a4': 'Yes. A task can have one Jeff or several. Without a mention, the router picks who answers; with @, you choose. One Jeff can also delegate to another.', 'faq.q5': 'Which engines run today?', 'faq.a5': 'OpenCode, Claude Code and Codex. Cursor, Grok, Gemini and Pi appear for install and test, but their runtime is not wired yet.', 'faq.q6': 'Can I use it without opening a terminal?', 'faq.a6': 'Yes. The workbench has editor, terminal, diffs, tasks and approvals. The terminal is optional; Jeff does the work and you review.',
+  'end.eyebrow': 'The next step', 'end.title': 'Build the team. <em>Then let them work.</em>', 'end.download': 'Download Jeff', 'footer.made': 'Made in Brazil. Truly open source.', 'footer.releases': 'Releases', 'footer.guide': 'Guide', 'footer.issues': 'Issues and ideas',
+  'meta.title': 'Jeff · Jeffs in your project, on your terms', 'meta.description': 'Jeff is an open-source workbench where solo or group Jeffs work in your project, with the engine, tools and rules you choose.'
 };
 const PT = {};
 const nodes = [...document.querySelectorAll('[data-i18n], [data-i18n-html]')];
@@ -1071,7 +1071,7 @@ function applyLang(lang) {
   document.title = lang === 'en' ? EN['meta.title'] : title;
   if (description) description.content = lang === 'en' ? EN['meta.description'] : desc;
   for (const button of langButtons) button.classList.toggle('on', button.dataset.lang === lang);
-  try { localStorage.setItem('toph-lang', lang); } catch (e) {}
+  try { localStorage.setItem('jeff-lang', lang); } catch (e) {}
 }
 for (const button of langButtons) button.addEventListener('click', () => applyLang(button.dataset.lang));
 applyLang(document.documentElement.lang === 'en' ? 'en' : 'pt-BR');

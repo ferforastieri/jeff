@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default permissions for the Toph Android launcher window",
+  "description": "Default permissions for the Jeff Android launcher window",
   "windows": [
     "main"
   ],

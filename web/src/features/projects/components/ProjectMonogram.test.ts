@@ -3,7 +3,7 @@ import { projectInitials } from "./ProjectMonogram";
 
 describe("projectInitials", () => {
   it("always uses two letters for a single word", () => {
-    expect(projectInitials("toph")).toBe("TO");
+    expect(projectInitials("jeff")).toBe("JE");
     expect(projectInitials("repos")).toBe("RE");
     expect(projectInitials("blog")).toBe("BL");
   });

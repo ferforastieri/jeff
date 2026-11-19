@@ -1,6 +1,6 @@
-# Toph
+# Jeff
 
-Toph is a self-hosted workbench for machines you control. It runs on your server and provides a browser client and a Tauri Android client.
+Jeff is a self-hosted workbench for machines you control. It runs on your server and provides a browser client and a Tauri Android client.
 
 ## Core facts
 
@@ -40,17 +40,17 @@ One command (Debian/Ubuntu/LXC):
 Docker:
 
     git clone https://github.com/ferforastieri/toph.git
-    cd toph
-    TOPH_WORKSPACES_HOST=/srv/workspaces \
-    TOPH_ADMIN_PASSWORD='strong-password' \
+    cd jeff
+    JEFF_WORKSPACES_HOST=/srv/workspaces \
+    JEFF_ADMIN_PASSWORD='strong-password' \
     docker compose -f deploy/compose.yaml up --build
 
 Binary:
 
     make build
-    TOPH_WORKSPACES=/srv/workspaces \
-    TOPH_ADMIN_PASSWORD='strong-password' \
-    ./bin/toph
+    JEFF_WORKSPACES=/srv/workspaces \
+    JEFF_ADMIN_PASSWORD='strong-password' \
+    ./bin/jeff
 
 Open:
 
@@ -70,19 +70,19 @@ Local development only:
     cd android
     ./gradlew assembleDebug
 
-On first launch, enter the Toph server URL, username and password. Use LAN, VPN or Tailscale. Do not expose Toph directly to the internet.
+On first launch, enter the Jeff server URL, username and password. Use LAN, VPN or Tailscale. Do not expose Jeff directly to the internet.
 
 ## Configuration
 
-TOPH_ADDR=127.0.0.1:8787
-TOPH_DATA_DIR=./data
-TOPH_WORKSPACES=/workspaces
-TOPH_ADMIN_PASSWORD=
-TOPH_SECURE_COOKIES=false
-TOPH_BUILD_ID=
-TOPH_WEB_DIR=
+JEFF_ADDR=127.0.0.1:8787
+JEFF_DATA_DIR=./data
+JEFF_WORKSPACES=/workspaces
+JEFF_ADMIN_PASSWORD=
+JEFF_SECURE_COOKIES=false
+JEFF_BUILD_ID=
+JEFF_WEB_DIR=
 
-TOPH_WORKSPACES is a colon-separated list of existing directories. Projects must be inside these roots.
+JEFF_WORKSPACES is a colon-separated list of existing directories. Projects must be inside these roots.
 
 
 AI provider accounts and API keys can be connected from Settings → AI → Conexões de IA in the web or Android client. The same screen lists every model provider available to the agent.
@@ -122,7 +122,7 @@ Cassandra uses CQL. Elasticsearch accepts JSON `{index, body}`. Neo4j accepts Cy
 
 ## Native agent runtime
 
-Toph executes agents in Rust and connects directly to OpenAI Chat Completions, Anthropic Messages, Ollama and compatible APIs. Configure URL, API key and model in Settings → AI. Credentials are encrypted at rest. No installed agent service or CLI is used.
+Jeff executes agents in Rust and connects directly to OpenAI Chat Completions, Anthropic Messages, Ollama and compatible APIs. Configure URL, API key and model in Settings → AI. Credentials are encrypted at rest. No installed agent service or CLI is used.
 
 The backend owns sessions, tools, cancellation, approvals, delegation, token budgets and incremental compaction. Original history remains searchable. The browser follows SSE events and reconnects through snapshots. Provider errors do not switch models. MCP supports stdio and Streamable HTTP.
 
@@ -141,7 +141,7 @@ Android: checks the latest GitHub release for an APK. When a newer tag exists wi
 - Session tokens are opaque and stored hashed.
 - Project paths are restricted with symlink escape checks.
 - Database credentials are encrypted at rest.
-- Treat Toph as remote administration.
+- Treat Jeff as remote administration.
 
 ## API summary
 

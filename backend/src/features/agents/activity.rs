@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 /// Human-readable activity shown in the chat timeline. The frontend prefixes
-/// the Toph name, so these strings start with a verb.
+/// the Jeff name, so these strings start with a verb.
 pub fn tool_activity(name: &str, args: &Value) -> String {
     match name {
         "read" | "read_file" => format!(
@@ -63,7 +63,7 @@ pub fn tool_activity(name: &str, args: &Value) -> String {
         ),
         "delegate" => format!(
             "passou uma tarefa para @{}",
-            short(args["agent"].as_str().unwrap_or("outro Toph"))
+            short(args["agent"].as_str().unwrap_or("outro Jeff"))
         ),
         "email_list" | "email_read" => "consultou o e-mail".into(),
         "email_send" => "enviou um e-mail".into(),

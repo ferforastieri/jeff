@@ -35,7 +35,7 @@ describe("isNotificationRedundant", () => {
     expect(isNotificationRedundant({ projectId: "p1", chatId: "c1" }, view({ activeChatId: null }))).toBe(false);
   });
 
-  it("falls back to the answering Toph when the payload carries no chat id", () => {
+  it("falls back to the answering Jeff when the payload carries no chat id", () => {
     expect(isNotificationRedundant({ projectId: "p1", botId: "bot1" }, view())).toBe(true);
     expect(isNotificationRedundant({ projectId: "p1", botId: "bot2" }, view())).toBe(false);
   });

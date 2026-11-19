@@ -116,7 +116,7 @@ pub(super) async fn debug_eval(
     }
     let project = state.store.project(&project_id).await?;
     let script = format!(
-        "const __toph_result = (0, eval)({}); if (__toph_result !== undefined) console.log(__toph_result);",
+        "const __jeff_result = (0, eval)({}); if (__jeff_result !== undefined) console.log(__jeff_result);",
         serde_json::to_string(&input.code).map_err(|error| crate::errors::internal(error.to_string()))?
     );
     let command = tokio::process::Command::new("node")

@@ -1,16 +1,16 @@
-# Toph mobile
+# Jeff mobile
 
 Remote-only Tauri Android entrypoint. The native Android project is committed
 in `src-tauri/gen/android/`, so no initialization or patch step is needed after
 checkout.
 
 The WebView opens the server's `/app/`, so the mobile UI is the web app's
-responsive shell. Its navigation is a five-tab bar: Toph, Arquivos, Git,
+responsive shell. Its navigation is a five-tab bar: Jeff, Arquivos, Git,
 Trabalho and Mais. The Mais screen exposes every remaining workspace feature
 (databases, web apps, debug, terminal, search, skills, harness/MCP, email,
 projects, branch, settings and account).
 
-The Android adaptive icon uses a dark brand background and the Toph foreground
+The Android adaptive icon uses a dark brand background and the Jeff foreground
 at 42% of the 108dp canvas, keeping the mark inside the 66dp safe zone on
 circular and squircle launchers. Regenerate icons with `npm run icons`.
 

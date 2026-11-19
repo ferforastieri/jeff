@@ -1,0 +1,62 @@
+/** The 51 Jeff characters that stand for agents, by file name in `/jeffs/`. */
+export const JEFF_CHARACTERS = [
+  "jeff-01",
+  "jeff-02",
+  "jeff-03",
+  "jeff-04",
+  "jeff-05",
+  "jeff-06",
+  "jeff-07",
+  "jeff-08",
+  "jeff-09",
+  "jeff-10",
+  "jeff-11",
+  "jeff-12",
+  "jeff-13",
+  "jeff-14",
+  "jeff-15",
+  "jeff-16",
+  "jeff-17",
+  "jeff-18",
+  "jeff-19",
+  "jeff-20",
+  "jeff-21",
+  "jeff-22",
+  "jeff-23",
+  "jeff-24",
+  "jeff-25",
+  "jeff-26",
+  "jeff-27",
+  "jeff-28",
+  "jeff-29",
+  "jeff-30",
+  "jeff-bloom",
+  "jeff-comet",
+  "jeff-core",
+  "jeff-cube",
+  "jeff-echo",
+  "jeff-forge",
+  "jeff-grove",
+  "jeff-kite",
+  "jeff-luna",
+  "jeff-mochi",
+  "jeff-nimbus",
+  "jeff-nova",
+  "jeff-orbit",
+  "jeff-peak",
+  "jeff-pebble",
+  "jeff-portal",
+  "jeff-prism",
+  "jeff-pulse",
+  "jeff-spark",
+  "jeff-tide",
+  "jeff-logo",
+] as const;
+
+/** One Jeff per agent, steady: the name (and the look's color) pick it, so a new look may change the face. */
+export function jeffCharacterOf(name: string, color?: string): string {
+  let h = 0;
+  const key = `${name}:${color ?? ""}`;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0;
+  return JEFF_CHARACTERS[Math.abs(h) % JEFF_CHARACTERS.length] as string;
+}

@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 type ViewTransition = { ready: Promise<void>; finished: Promise<void> };
 type ViewTransitionDocument = Document & { startViewTransition?: (update: () => void) => ViewTransition };
 
-const STYLE_ID = "toph-theme-transition";
+const STYLE_ID = "jeff-theme-transition";
 let running = false;
 
 function blurredCircleMask() {
@@ -29,11 +29,11 @@ function installStyle(x: number, y: number, radius: number) {
       mask-image: ${mask};
       -webkit-mask-repeat: no-repeat;
       mask-repeat: no-repeat;
-      animation: toph-theme-mask-reveal 820ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: jeff-theme-mask-reveal 820ms cubic-bezier(0.16, 1, 0.3, 1) both;
       transform-origin: ${x}px ${y}px;
       will-change: -webkit-mask-size, -webkit-mask-position, mask-size, mask-position;
     }
-    @keyframes toph-theme-mask-reveal {
+    @keyframes jeff-theme-mask-reveal {
       from {
         -webkit-mask-position: ${x}px ${y}px;
         mask-position: ${x}px ${y}px;

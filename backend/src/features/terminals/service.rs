@@ -85,7 +85,7 @@ impl TerminalManager {
         // Bash only lists ambiguous completions on the second Tab by default.
         // A tiny inputrc makes the first Tab show the options, which is what
         // people expect from a terminal in an IDE.
-        let inputrc = std::env::temp_dir().join("toph-inputrc");
+        let inputrc = std::env::temp_dir().join("jeff-inputrc");
         if !inputrc.exists() {
             let user_inputrc = std::env::var_os("HOME")
                 .map(PathBuf::from)

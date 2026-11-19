@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Boxes, Bug, Database, Files, GitBranch, Globe2, MoreHorizontal, Plus, TerminalSquare } from "@toph/icons";
+import { Bot, Boxes, Bug, Database, Files, GitBranch, Globe2, MoreHorizontal, Plus, TerminalSquare } from "@jeff/icons";
 import { api, type Project, type SchemaTable, type WebTarget } from "../../../shared/api";
 import { useApp } from "../../store";
 import { useIsMobile } from "../../../shared/ui/useIsMobile";
 import { nativePushToken, requestMobileNotificationPermission } from "../../../features/notifications/notifications";
 import { basename, quoteIdentifier } from "../../../shared/lib";
-import BrandMark from "@toph/brand";
-import { Button } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
+import BrandMark from "@jeff/brand";
+import { Button } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
 import BotStudioTab from "../../../features/conversations/components/BotStudioTab";
 import DbPanelTab from "../../../features/databases/components/DbPanelTab";
 import DiffPanelTab from "../../../features/editor/components/DiffPanelTab";
@@ -25,8 +25,8 @@ import ProjectSwitcher from "../../../features/projects/components/ProjectSwitch
 import QuickOpen from "../../../features/explorer/components/QuickOpen";
 import CloseProjectModal from "../../../features/projects/components/CloseProjectModal";
 import MobileTopBar from "./components/MobileTopBar";
-import { latestChatForToph, useChats } from "../../../features/conversations/store";
-import { useTophDrafts } from "../../../features/agents/drafts";
+import { latestChatForJeff, useChats } from "../../../features/conversations/store";
+import { useJeffDrafts } from "../../../features/agents/drafts";
 import MobileBranchSheet from "./MobileBranchSheet";
 import MobileAccountSheet from "./MobileAccountSheet";
 import MobileConversationsSheet from "./MobileConversationsSheet";
@@ -34,7 +34,7 @@ import MobileBottomNav from "./MobileBottomNav";
 import { useMobileBack } from "./useMobileBack";
 import MobileMoreScreen from "./MobileMoreScreen";
 import { type MobileScreen } from "./mobile-nav";
-import TophSettings from "../../../features/settings/components/TophSettings";
+import JeffSettings from "../../../features/settings/components/JeffSettings";
 
 export default function MobileApp() {
   const projects = useApp((state) => state.projects);
@@ -72,7 +72,7 @@ export default function MobileApp() {
   const activeConversationId = useChats((state) => activeProjectId ? state.byProject[activeProjectId]?.activeChatId ?? null : null);
   const [currentBranch, setCurrentBranch] = useState("");
   const screenTitles: Record<MobileScreen, string> = {
-    bots: "Toph",
+    bots: "Jeff",
     files: "Arquivos",
     scm: "Git",
     db: "Bancos",
@@ -134,12 +134,12 @@ export default function MobileApp() {
     const onToken = (token: string) => {
       if (token) void api.registerPushToken(token, "android").catch(() => undefined);
     };
-    (window as unknown as { __tophPushToken?: (token: string) => void }).__tophPushToken = onToken;
+    (window as unknown as { __jeffPushToken?: (token: string) => void }).__jeffPushToken = onToken;
     return () => {
       stopped = true;
       window.clearTimeout(timer);
       window.clearInterval(poll);
-      delete (window as unknown as { __tophPushToken?: (token: string) => void }).__tophPushToken;
+      delete (window as unknown as { __jeffPushToken?: (token: string) => void }).__jeffPushToken;
     };
   }, [mobile]);
 
@@ -157,20 +157,20 @@ export default function MobileApp() {
       if (detail.chatId && chats.chats.some((chat) => chat.id === detail.chatId)) {
         useChats.getState().setActiveChat(detail.projectId, detail.chatId);
       } else if (detail.botId) {
-        const latest = latestChatForToph(chats, detail.botId)
-          ?? useChats.getState().createConversation(detail.projectId, [detail.botId], { name: chats.tophs.find((toph) => toph.id === detail.botId)?.name ?? "" });
+        const latest = latestChatForJeff(chats, detail.botId)
+          ?? useChats.getState().createConversation(detail.projectId, [detail.botId], { name: chats.jeffs.find((jeff) => jeff.id === detail.botId)?.name ?? "" });
         if (latest) useChats.getState().setActiveChat(detail.projectId, latest.id);
       }
       setScreen("bots");
     };
     const openTerminal = () => setTerminalOpen(true);
-    window.addEventListener("toph:open-bot", openBot);
-    window.addEventListener("toph:open-chat", openBot);
-    window.addEventListener("toph:open-terminal", openTerminal);
+    window.addEventListener("jeff:open-bot", openBot);
+    window.addEventListener("jeff:open-chat", openBot);
+    window.addEventListener("jeff:open-terminal", openTerminal);
     return () => {
-      window.removeEventListener("toph:open-bot", openBot);
-      window.removeEventListener("toph:open-chat", openBot);
-      window.removeEventListener("toph:open-terminal", openTerminal);
+      window.removeEventListener("jeff:open-bot", openBot);
+      window.removeEventListener("jeff:open-chat", openBot);
+      window.removeEventListener("jeff:open-terminal", openTerminal);
     };
   }, [setActiveProject]);
 
@@ -180,8 +180,8 @@ export default function MobileApp() {
     const chats = useChats.getState().byProject[pending.projectId];
     const chat = pending.chatId
       ? chats?.chats.find((item) => item.id === pending.chatId)
-      : latestChatForToph(chats, pending.botId)
-        ?? (pending.botId ? useChats.getState().createConversation(pending.projectId, [pending.botId], { name: chats?.tophs.find((toph) => toph.id === pending.botId)?.name ?? "" }) : null);
+      : latestChatForJeff(chats, pending.botId)
+        ?? (pending.botId ? useChats.getState().createConversation(pending.projectId, [pending.botId], { name: chats?.jeffs.find((jeff) => jeff.id === pending.botId)?.name ?? "" }) : null);
     if (chat) useChats.getState().setActiveChat(pending.projectId, chat.id);
     pendingBot.current = null;
   }, [activeProjectId, chatsHydrated]);
@@ -311,7 +311,7 @@ export default function MobileApp() {
     try {
       const result = await api.closeProject(id);
       useChats.getState().forget(id);
-      useTophDrafts.getState().clearProject(id);
+      useJeffDrafts.getState().clearProject(id);
       const wasActive = activeProjectId === id;
       closeProjectTab(id);
       setCloseTarget(null);
@@ -348,7 +348,7 @@ export default function MobileApp() {
       <main className="flex min-h-dvh items-center justify-center bg-background-full p-4">
         <section className="flex w-full flex-col items-center gap-4 rounded-3xl border border-border-button-white bg-background-primary-default p-6 text-center shadow-xs">
           <BrandMark size="large" />
-          <h1 className="text-title-2-medium text-text-primary">Bem-vindo ao Toph</h1>
+          <h1 className="text-title-2-medium text-text-primary">Bem-vindo ao Jeff</h1>
           <p className="text-body-regular text-text-secondary">
             Crie um projeto pela interface para começar.
           </p>
@@ -374,7 +374,7 @@ export default function MobileApp() {
         project={project}
         unreadCount={projectUnread}
         icon={pageIcon}
-        onTophs={openConversations}
+        onJeffs={openConversations}
         onProjects={openProjectSheet}
         brandIcon={screen === "bots"}
         onBrand={() => setScreen("bots")}
@@ -394,7 +394,7 @@ export default function MobileApp() {
               <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8 text-center">
                 <span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Bot size={22} /></span>
                 <strong className="text-title-3-medium text-text-primary">Nenhuma sessão aberta</strong>
-                <p className="max-w-xs text-caption-1-regular text-text-secondary">Abra uma sessão ou comece uma nova tarefa com o Toph.</p>
+                <p className="max-w-xs text-caption-1-regular text-text-secondary">Abra uma sessão ou comece uma nova tarefa com o Jeff.</p>
                 <Button variant="secondary" size="small" onClick={openConversations}>Ver sessões</Button>
               </div>
             )}
@@ -534,7 +534,7 @@ export default function MobileApp() {
         onSelected={selectConversationScreen}
       />
       <MobileAccountSheet open={accountOpen} user={user} onClose={() => setAccountOpen(false)} />
-      <TophSettings user={user} projectRoot={project.root} projectId={project.id} hideTrigger />
+      <JeffSettings user={user} projectRoot={project.root} projectId={project.id} hideTrigger />
       {searchOpen ? (
         <div
           className="mobile-search-overlay"

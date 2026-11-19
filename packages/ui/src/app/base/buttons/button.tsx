@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ComponentType, ReactNode, Ref } from "react";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 import { directionalIconClass } from "../../utils/directional-icon";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "subtle" | "gray" | "separated" | "divided";
@@ -38,7 +38,7 @@ const variantClass = (variant: ButtonVariant): string => {
 const sizeClass = (size: ButtonSize): string =>
   size === "medium" ? "" : size === "small" ? "ac-btn--sm" : "ac-btn--xs";
 
-/** A Tophs button: the app's shapes with Toph's own icon components. */
+/** A Jeffs button: the app's shapes with Jeff's own icon components. */
 export function Button({
   variant = "primary",
   size = "medium",

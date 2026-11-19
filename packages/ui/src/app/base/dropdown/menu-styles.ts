@@ -1,4 +1,4 @@
-/** The Tophs menu surface, shared by Select and Dropdown. */
+/** The Jeffs menu surface, shared by Select and Dropdown. */
 export const MENU_POPOVER_SURFACE = "ac-menu ac-menu--dropdown";
 
 export const MENU_POPOVER_WIDTH = "w-[266px]";

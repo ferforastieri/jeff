@@ -1,21 +1,21 @@
 import { useState, type CSSProperties } from "react";
-import type { ChatToph } from "../../conversations/store";
-import { cx } from "@toph/ui";
+import type { ChatJeff } from "../../conversations/store";
+import { cx } from "@jeff/ui";
 import { usePointerLook } from "../../../shared/ui/usePointerLook";
-import TophEyes, { TophColorOverlay } from "./TophEyes";
+import JeffEyes, { JeffColorOverlay } from "./JeffEyes";
 
 interface Props {
-  bot: Pick<ChatToph, "name" | "color" | "avatar">;
+  bot: Pick<ChatJeff, "name" | "color" | "avatar">;
   size?: number;
   className?: string;
   style?: CSSProperties;
   look?: boolean;
 }
 
-const AVATAR_BASE = `${import.meta.env.BASE_URL}tophs/`;
+const AVATAR_BASE = `${import.meta.env.BASE_URL}jeffs/`;
 const AVATAR_VERSION = "?v=7";
-/** The logo's Toph: the only character. */
-const AVATAR = "toph-logo";
+/** The logo's Jeff: the only character. */
+const AVATAR = "jeff-logo";
 const CORE_AVATAR = `${AVATAR_BASE}${AVATAR}.png${AVATAR_VERSION}`;
 const CORE_EYELESS = `${AVATAR_BASE}${AVATAR}-eyeless.png${AVATAR_VERSION}`;
 
@@ -43,10 +43,10 @@ export default function BotAvatar({ bot, size = 36, className, style, look = tru
           draggable={false}
           className="size-full select-none object-contain grayscale drop-shadow-[0_1px_1px_rgba(0,0,0,0.18)]"
         />
-        <TophColorOverlay color={bot.color} image={base} data-avatar-color={bot.color} />
+        <JeffColorOverlay color={bot.color} image={base} data-avatar-color={bot.color} />
       </span>
       {animated ? (
-        <TophEyes
+        <JeffEyes
           avatar={AVATAR}
           color={bot.color}
           imageClassName="grayscale"

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { BookOpen, Check, ChevronDown, ChevronRight, History, LoaderCircle, Pencil, Plus, Search, Sparkles, Trash2 } from "@toph/icons";
+import { BookOpen, Check, ChevronDown, ChevronRight, History, LoaderCircle, Pencil, Plus, Search, Sparkles, Trash2 } from "@jeff/icons";
 import { useApp } from "../../../app/store";
 import { useConfirm } from "../../../shared/ui/confirm";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
-import { Textarea } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
+import { Textarea } from "@jeff/ui/app";
 import { skillApi, type LocalSkill, type SkillDraft, type SkillRecord, type SkillVersion, type SuggestedSkill } from "../api";
 
 const RECOMMENDED = 10_000;
@@ -195,7 +195,7 @@ export default function SkillsPanel({ projectId }: Props) {
     if (!projectId) return;
     const ok = await confirm({
       title: `Apagar a skill “${skill.name}”?`,
-      message: "Ela some da lista e nenhum Toph volta a usar. Não dá para desfazer.",
+      message: "Ela some da lista e nenhum Jeff volta a usar. Não dá para desfazer.",
       confirmLabel: "Apagar skill",
       danger: true,
     });
@@ -255,7 +255,7 @@ export default function SkillsPanel({ projectId }: Props) {
   }
 
   if (!projectId) {
-    return <p className="text-caption-1-regular text-text-secondary">Abra um projeto para gerenciar as skills dos Tophs.</p>;
+    return <p className="text-caption-1-regular text-text-secondary">Abra um projeto para gerenciar as skills dos Jeffs.</p>;
   }
 
   return (
@@ -264,7 +264,7 @@ export default function SkillsPanel({ projectId }: Props) {
         <div className="min-w-0">
           <p className="text-title-3-medium text-text-primary">Receitas</p>
           <p className="mt-0.5 text-caption-1-regular text-text-secondary">
-            Receitas que o Toph segue para um tipo de tarefa. Elas valem em todos os seus projetos: só o nome e o “quando usar” entram no prompt, e a receita é lida quando precisa. Escreva, escolha uma sugerida ou vincule uma skill do Claude Code, Codex, OpenCode ou do computador.
+            Receitas que o Jeff segue para um tipo de tarefa. Elas valem em todos os seus projetos: só o nome e o “quando usar” entram no prompt, e a receita é lida quando precisa. Escreva, escolha uma sugerida ou vincule uma skill do Claude Code, Codex, OpenCode ou do computador.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
@@ -282,7 +282,7 @@ export default function SkillsPanel({ projectId }: Props) {
           <span className="mx-auto flex size-10 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Sparkles size={18} /></span>
           <p className="mt-2 text-caption-1-medium text-text-primary">Nenhuma skill em uso ainda.</p>
           <p className="mx-auto mt-1 max-w-md text-caption-2-regular text-text-tertiary">
-            Escreva uma, escolha uma sugerida, ou deixe os Tophs proporem: quando resolverem algo em vários passos, eles sugerem guardar o caminho. A proposta só vale depois que você aprovar.
+            Escreva uma, escolha uma sugerida, ou deixe os Jeffs proporem: quando resolverem algo em vários passos, eles sugerem guardar o caminho. A proposta só vale depois que você aprovar.
           </p>
           <Button variant="secondary" size="small" leadingIcon={Search} className="mt-3" onClick={openDiscover}>Ver skills sugeridas</Button>
         </div>
@@ -311,7 +311,7 @@ export default function SkillsPanel({ projectId }: Props) {
             <p className="text-caption-1-semibold text-text-primary">{pending.length} proposta{pending.length === 1 ? "" : "s"} esperando você</p>
             <Button variant="secondary" size="small" onClick={() => setReview(true)}>Revisar</Button>
           </div>
-          <p className="mt-1 text-caption-2-regular text-text-tertiary">Propostas dos Tophs. Elas só entram em uso depois da sua aprovação.</p>
+          <p className="mt-1 text-caption-2-regular text-text-tertiary">Propostas dos Jeffs. Elas só entram em uso depois da sua aprovação.</p>
         </section>
       ) : null}
 
@@ -334,7 +334,7 @@ export default function SkillsPanel({ projectId }: Props) {
         </section>
       ) : null}
 
-      <Modal isOpen={discover} onClose={closeDiscover} title="Encontrar skills" description="Sugeridas pelo Toph ou já instaladas no Claude Code, Codex, OpenCode ou no projeto." placement="center" size="lg" bodyClassName="p-4">
+      <Modal isOpen={discover} onClose={closeDiscover} title="Encontrar skills" description="Sugeridas pelo Jeff ou já instaladas no Claude Code, Codex, OpenCode ou no projeto." placement="center" size="lg" bodyClassName="p-4">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex gap-1">
@@ -444,7 +444,7 @@ export default function SkillsPanel({ projectId }: Props) {
             {versionsLoading ? <p className="text-caption-2-regular text-text-tertiary">Buscando o histórico…</p> : versions.length === 0 ? <p className="text-caption-2-regular text-text-tertiary">Nenhuma mudança ainda: esta é a primeira versão.</p> : <div className="flex flex-col gap-2">
               {versions.map((version) => <div key={version.id} className="rounded-xl border border-border-button-default px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-0 flex-1 text-caption-2-regular text-text-secondary">Antes de {when(version.at)} · {version.by === "me" ? "mudada por você" : "proposta de um Toph"}</span>
+                  <span className="min-w-0 flex-1 text-caption-2-regular text-text-secondary">Antes de {when(version.at)} · {version.by === "me" ? "mudada por você" : "proposta de um Jeff"}</span>
                   <Button variant="ghost" size="xs" onClick={() => setShowingVersion(showingVersion === version.id ? null : version.id)}>{showingVersion === version.id ? "Esconder" : "Ver mudança"}</Button>
                   <Button variant="secondary" size="xs" onClick={() => void restore(selected, version.id)}>Restaurar</Button>
                 </div>
@@ -455,14 +455,14 @@ export default function SkillsPanel({ projectId }: Props) {
         </div> : null}
       </Modal>
 
-      <Modal isOpen={review} onClose={() => setReview(false)} title="Propostas dos Tophs" description="Elas só entram em uso depois que você aprovar." placement="center" size="lg" bodyClassName="p-4">
+      <Modal isOpen={review} onClose={() => setReview(false)} title="Propostas dos Jeffs" description="Elas só entram em uso depois que você aprovar." placement="center" size="lg" bodyClassName="p-4">
         <div className="flex flex-col gap-3">
           {pending.length === 0 ? <p className="text-caption-1-regular text-text-secondary">Nenhuma proposta esperando.</p> : pending.map((proposal) => {
             const current = proposal.replaces ? (skills ?? []).find((skill) => skill.id === proposal.replaces) : null;
             return <section key={proposal.id} className="rounded-2xl border border-border-button-default p-3">
               <header className="flex flex-wrap items-center gap-2">
                 <strong className="text-caption-1-semibold text-text-primary">{current ? `Mudar ${proposal.name}` : `Nova: ${proposal.name}`}</strong>
-                <span className="text-caption-2-regular text-text-tertiary">Um Toph propôs {when(proposal.createdAt)}</span>
+                <span className="text-caption-2-regular text-text-tertiary">Um Jeff propôs {when(proposal.createdAt)}</span>
               </header>
               {proposal.reason ? <p className="mt-1 text-caption-1-regular italic text-text-secondary">“{proposal.reason}”</p> : null}
               {current ? <div className="mt-2"><Diff before={`${current.description}\n\n${current.body}`} after={`${proposal.description}\n\n${proposal.body}`} /></div> : <div className="mt-2 flex flex-col gap-2">

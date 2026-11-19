@@ -1,4 +1,4 @@
-import { Sparkles, TerminalSquare } from "@toph/icons";
+import { Sparkles, TerminalSquare } from "@jeff/icons";
 import ProviderIcon from "../../providers/components/ProviderIcon";
 
 interface Props {

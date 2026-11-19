@@ -10,11 +10,11 @@ import {
   Server,
   Trash2,
   Wrench,
-} from "@toph/icons";
+} from "@jeff/icons";
 import { agentApi, type McpServer } from "../../agents/api";
 import { useApp } from "../../../app/store";
-import { cx } from "@toph/ui";
-import { Button, Input, Select, SelectItem } from "@toph/ui/app";
+import { cx } from "@jeff/ui";
+import { Button, Input, Select, SelectItem } from "@jeff/ui/app";
 import ProviderIcon from "../../providers/components/ProviderIcon";
 
 interface EnvField {
@@ -285,7 +285,7 @@ export default function ConnectorsSettings() {
         <div className="min-w-0">
           <h4 className="text-body-medium text-text-primary">Serviços</h4>
           <p className="mt-0.5 max-w-2xl text-caption-1-regular text-text-secondary">
-            Conecte serviços uma vez. Todos os conectores ficam disponíveis para o Toph em qualquer projeto e são passados ao harness como ferramentas MCP.
+            Conecte serviços uma vez. Todos os conectores ficam disponíveis para o Jeff em qualquer projeto e são passados ao harness como ferramentas MCP.
           </p>
         </div>
         <Button variant="ghost" size="small" leadingIcon={RefreshCw} onClick={() => void load()} disabled={loading}>
@@ -416,7 +416,7 @@ export default function ConnectorsSettings() {
           <div className="rounded-2xl border border-dashed border-border-button-default px-4 py-6 text-center">
             <PlugZap className="mx-auto size-5 text-text-tertiary" />
             <p className="mt-2 text-caption-1-medium text-text-primary">Nenhum conector ainda.</p>
-            <p className="mt-0.5 text-caption-2-regular text-text-tertiary">Escolha um serviço acima. O Toph usa os conectores em todos os projetos.</p>
+            <p className="mt-0.5 text-caption-2-regular text-text-tertiary">Escolha um serviço acima. O Jeff usa os conectores em todos os projetos.</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-border-button-default bg-background-primary-default">

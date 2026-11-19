@@ -72,7 +72,7 @@ impl AiService {
 
     pub async fn migrate_layout_models(&self, layout: &mut serde_json::Value) -> AppResult<()> {
         let Some(agents) = layout
-            .pointer_mut("/chats/tophs")
+            .pointer_mut("/chats/jeffs")
             .and_then(serde_json::Value::as_array_mut)
         else {
             return Ok(());
@@ -243,7 +243,7 @@ fn migrate_model_reference(
     };
     match bindings.get(prefix).map(Vec::as_slice) {
         Some([connection]) => Ok(format!("{connection}::{}", &model[prefix.len()..])),
-        _ => Err(bad_request(format!("Reconfigure o modelo {model} deste Toph: selecione explicitamente a conexão correspondente. Nenhuma outra conexão foi utilizada."))),
+        _ => Err(bad_request(format!("Reconfigure o modelo {model} deste Jeff: selecione explicitamente a conexão correspondente. Nenhuma outra conexão foi utilizada."))),
     }
 }
 

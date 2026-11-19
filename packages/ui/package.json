@@ -1,5 +1,5 @@
 {
-  "name": "@toph/ui",
+  "name": "@jeff/ui",
   "version": "0.1.0",
   "description": "A design system for agent interfaces: conversation, tools, approvals, tokens and pixel portraits, in React and plain CSS.",
   "license": "MIT",

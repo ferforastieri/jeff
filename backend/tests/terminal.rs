@@ -3,11 +3,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
+use jeff_server::config::Config;
 use reqwest::cookie::{CookieStore, Jar};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::header::COOKIE;
 use tokio_tungstenite::tungstenite::Message;
-use toph_server::config::Config;
 
 #[tokio::test]
 async fn terminal_websocket_streams_commands_and_output() {
@@ -17,7 +17,7 @@ async fn terminal_websocket_streams_commands_and_output() {
     let dir = tempfile::tempdir().unwrap();
     let workspace = dir.path().join("workspace");
     std::fs::create_dir_all(&workspace).unwrap();
-    let server = toph_server::start_embedded(Config::local(
+    let server = jeff_server::start_embedded(Config::local(
         dir.path().join("data"),
         PathBuf::from(&workspace),
         "secret".into(),
@@ -53,7 +53,7 @@ async fn terminal_websocket_streams_commands_and_output() {
     let project_id = projects[0]["id"].as_str().unwrap();
     let terminal: serde_json::Value = client
         .post(format!("{origin}/api/projects/{project_id}/terminals"))
-        .header("X-Toph-CSRF", csrf)
+        .header("X-Jeff-CSRF", csrf)
         .json(&serde_json::json!({}))
         .send()
         .await
@@ -91,7 +91,7 @@ async fn terminal_websocket_streams_commands_and_output() {
     let (mut socket, _) = tokio_tungstenite::connect_async(request).await.unwrap();
     socket
         .send(Message::Binary(
-            b"printf 'toph-terminal-ok\\n'\n".to_vec().into(),
+            b"printf 'jeff-terminal-ok\\n'\n".to_vec().into(),
         ))
         .await
         .unwrap();
@@ -101,7 +101,7 @@ async fn terminal_websocket_streams_commands_and_output() {
             let message = message.unwrap();
             if let Message::Binary(data) = message {
                 let text = String::from_utf8_lossy(&data);
-                if text.contains("toph-terminal-ok") {
+                if text.contains("jeff-terminal-ok") {
                     return true;
                 }
             }

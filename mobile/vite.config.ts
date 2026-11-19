@@ -9,7 +9,7 @@ export default defineConfig({
   root: launcher,
   plugins: [
     {
-      name: "toph-launcher-brand",
+      name: "jeff-launcher-brand",
       configResolved() {
         syncLauncherBrand(resolve(launcher, "public"));
       },

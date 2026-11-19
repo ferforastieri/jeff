@@ -8,7 +8,7 @@ const project = (id: string, name: string) => ({
   id,
   name,
   root: `/work/${name.toLowerCase()}`,
-  color: "#0F766E",
+  color: "#0063D1",
   createdAt: new Date(0).toISOString(),
   updatedAt: new Date(0).toISOString(),
 });
@@ -61,7 +61,7 @@ describe("BottomBar", () => {
     expect(open).toHaveBeenCalledWith("b");
   });
 
-  it("toggles the theme next to the Toph mark", async () => {
+  it("toggles the theme next to the Jeff mark", async () => {
     render(<BottomBar onOpenProject={() => undefined} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
     const toggle = screen.getByRole("button", { name: "Ativar modo claro" });
     fireEvent.click(toggle);

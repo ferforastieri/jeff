@@ -33,7 +33,7 @@ export function useWorkspacePersistence(
       const current = state.byProject[projectId];
       const before = previous.byProject[projectId];
       if (current === before || (current?.chats === before?.chats
-        && current?.tophs === before?.tophs
+        && current?.jeffs === before?.jeffs
         && current?.activeChatId === before?.activeChatId)) return;
       schedule();
     });

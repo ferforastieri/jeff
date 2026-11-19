@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use jeff_server::config::Config;
 use serde_json::{json, Value};
-use toph_server::config::Config;
 
 #[tokio::test]
 async fn email_accounts_are_managed_through_the_authenticated_api() {
@@ -15,7 +15,7 @@ async fn email_accounts_are_managed_through_the_authenticated_api() {
         "secret".into(),
         "127.0.0.1:0".into(),
     );
-    let server = toph_server::start_embedded(config).await.unwrap();
+    let server = jeff_server::start_embedded(config).await.unwrap();
     let client = reqwest::Client::builder()
         .cookie_store(true)
         .timeout(Duration::from_secs(10))
@@ -46,7 +46,7 @@ async fn email_accounts_are_managed_through_the_authenticated_api() {
 
     let invalid = client
         .post(format!("{base}/api/email/accounts"))
-        .header("X-Toph-CSRF", &csrf)
+        .header("X-Jeff-CSRF", &csrf)
         .json(&json!({
             "name": "Incomplete",
             "email": "me@example.com"
@@ -58,7 +58,7 @@ async fn email_accounts_are_managed_through_the_authenticated_api() {
 
     let created: Value = client
         .post(format!("{base}/api/email/accounts"))
-        .header("X-Toph-CSRF", &csrf)
+        .header("X-Jeff-CSRF", &csrf)
         .json(&json!({
             "name": "Personal",
             "email": "me@example.com",
@@ -107,7 +107,7 @@ async fn email_accounts_are_managed_through_the_authenticated_api() {
 
     let deleted: Value = client
         .delete(format!("{base}/api/email/accounts/{account_id}"))
-        .header("X-Toph-CSRF", &csrf)
+        .header("X-Jeff-CSRF", &csrf)
         .send()
         .await
         .unwrap()

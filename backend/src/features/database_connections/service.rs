@@ -534,7 +534,7 @@ fn postgres_read_only(dsn: &str) -> String {
 }
 
 /// Translate the DSN formats accepted by the Go drivers into the URL syntax
-/// understood by sqlx. Existing Toph profiles commonly use `user:pass@tcp(...)`
+/// understood by sqlx. Existing Jeff profiles commonly use `user:pass@tcp(...)`
 /// for MySQL and libpq keyword/value syntax for PostgreSQL.
 fn normalize_mysql_dsn(dsn: &str) -> AppResult<String> {
     let trimmed = dsn.trim();

@@ -8,7 +8,7 @@ import {
   SliderTrack as AriaSliderTrack,
 } from "react-aria-components";
 import type { SliderProps as AriaSliderProps } from "react-aria-components";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 
 type SliderValue = number | number[];
 

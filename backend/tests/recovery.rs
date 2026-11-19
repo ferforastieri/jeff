@@ -1,6 +1,6 @@
+use jeff_server::features::agents::{models::AgentSpec, repository::Repository};
+use jeff_server::store::Store;
 use serde_json::json;
-use toph_server::features::agents::{models::AgentSpec, repository::Repository};
-use toph_server::store::Store;
 
 #[tokio::test]
 async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
@@ -16,7 +16,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
                 "id":"project",
                 "name":"Project",
                 "root":dir.path().display().to_string(),
-                "color":"#0F766E",
+                "color":"#0063D1",
                 "createdAt":"",
                 "updatedAt":""
             }))
@@ -26,7 +26,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
         .unwrap();
     let repo = Repository(store.clone());
     let agent: AgentSpec =
-        serde_json::from_value(json!({"id":"toph","chatId":"chat","name":"Toph","handle":"toph"}))
+        serde_json::from_value(json!({"id":"jeff","chatId":"chat","name":"Jeff","handle":"jeff"}))
             .unwrap();
     repo.profiles(user.id, &project.id, &[agent.clone()])
         .await
@@ -54,7 +54,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
     assert_eq!(recovered[0].prompt, "Implemente o login");
     assert_eq!(recovered[0].attempts, 0);
     let stored: AgentSpec = serde_json::from_str(&recovered[0].config).unwrap();
-    assert_eq!(stored.id, "toph");
+    assert_eq!(stored.id, "jeff");
     assert_eq!(stored.chat_id, "chat");
 
     let (state, finished): (String, Option<i64>) =

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type UpdateInstaller, type UpdateStatus } from "../../../shared/api";
-import { Icon } from "@toph/ui";
-import { ProgressBar } from "@toph/ui/app";
+import { Icon } from "@jeff/ui";
+import { ProgressBar } from "@jeff/ui/app";
 import { isMobileViewport } from "../../../shared/ui/useIsMobile";
 import { useApp } from "../../../app/store";
 import { isDesktopClient } from "../../settings/store";
@@ -49,7 +49,7 @@ async function downloadApk(url: string, version: string) {
   }
   const link = document.createElement("a");
   link.href = url;
-  link.download = `toph-v${version}.apk`;
+  link.download = `jeff-v${version}.apk`;
   link.rel = "noopener";
   link.target = "_blank";
   document.body.appendChild(link);
@@ -69,7 +69,7 @@ function versions(left: string, right: string): number {
 }
 
 function apkVersion(url: string): string {
-  return /toph-v?(\d+\.\d+\.\d+)\.apk/i.exec(url)?.[1] ?? "";
+  return /jeff-v?(\d+\.\d+\.\d+)\.apk/i.exec(url)?.[1] ?? "";
 }
 
 async function installedAppVersion(): Promise<string> {
@@ -297,7 +297,7 @@ export default function UpdateToast() {
         }
         if (!update.busy && elapsed > 45_000 && update.currentVersion !== target) {
           setPhase("error");
-          setError("O serviço de atualização não iniciou. Confira `systemctl status toph-update.path` no servidor e tente de novo.");
+          setError("O serviço de atualização não iniciou. Confira `systemctl status jeff-update.path` no servidor e tente de novo.");
           return;
         }
         const health = await api.health();
@@ -327,7 +327,7 @@ export default function UpdateToast() {
         className={`ac-toast ac-toast--${failed ? "error" : updating ? "info" : "success"} ac-toast--update cursor-pointer`}
         role={failed ? "alert" : "status"}
         onClick={() => { if (!updating) void update(); }}
-        aria-label={failed ? `Falha na atualização: ${error}` : "Clique para atualizar o Toph"}
+        aria-label={failed ? `Falha na atualização: ${error}` : "Clique para atualizar o Jeff"}
       >
         <Icon name={failed ? "alert" : "download"} />
         <span className="ac-toast__text flex min-w-0 flex-col gap-1">
@@ -335,14 +335,14 @@ export default function UpdateToast() {
             {updating ? (
               <span className="flex items-center gap-1.5">
                 <Icon name="spinner" size={14} />
-                Atualizando Toph
+                Atualizando Jeff
               </span>
-            ) : failed ? "Falha na atualização" : `Toph v${status?.latestVersion ?? ""} disponível`}
+            ) : failed ? "Falha na atualização" : `Jeff v${status?.latestVersion ?? ""} disponível`}
           </b>
           {updating ? (
             <>
               <small className="ac-toast__detail">{detail || "Preparando a atualização…"}</small>
-              <ProgressBar size="sm" isIndeterminate aria-label="Atualizando Toph" />
+              <ProgressBar size="sm" isIndeterminate aria-label="Atualizando Jeff" />
             </>
           ) : failed && error ? (
             <small className="ac-toast__detail">{error}</small>

@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use toph_server::auth::{hash_password, verify_password, AuthManager};
-use toph_server::crypto::sha256_hex;
-use toph_server::store::Store;
-use toph_server::workspace::WorkspaceService;
+use jeff_server::auth::{hash_password, verify_password, AuthManager};
+use jeff_server::crypto::sha256_hex;
+use jeff_server::store::Store;
+use jeff_server::workspace::WorkspaceService;
 
 #[test]
 fn passwords_use_argon2_and_verify() {
@@ -16,7 +16,7 @@ fn passwords_use_argon2_and_verify() {
 #[tokio::test]
 async fn auth_bootstraps_and_authenticates_sessions() {
     let dir = tempfile::tempdir().unwrap();
-    let store = Store::open(&dir.path().join("toph.db")).await.unwrap();
+    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
     let auth = AuthManager::new(store.clone(), false);
     assert_eq!(auth.bootstrap("secret").await.unwrap(), None);
     assert_eq!(auth.bootstrap("secret").await.unwrap(), None);
@@ -53,7 +53,7 @@ async fn workspace_rejects_escapes_and_handles_conflicts() {
     assert_ne!(updated.hash, file.hash);
     assert!(matches!(
         workspace.write(Path::new(&root), "src/main.rs", "x", &file.hash),
-        Err(toph_server::errors::AppError::FileConflict)
+        Err(jeff_server::errors::AppError::FileConflict)
     ));
     assert!(workspace.read(Path::new(&root), "../outside").is_err());
 
@@ -72,9 +72,9 @@ async fn workspace_rejects_escapes_and_handles_conflicts() {
 #[tokio::test]
 async fn store_persists_projects_and_profiles() {
     let dir = tempfile::tempdir().unwrap();
-    let store = Store::open(&dir.path().join("toph.db")).await.unwrap();
+    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
     let project = store
-        .create_project(toph_server::model::Project {
+        .create_project(jeff_server::model::Project {
             id: "project".into(),
             name: "Repo".into(),
             root: dir.path().to_string_lossy().to_string(),
@@ -95,13 +95,13 @@ async fn store_persists_projects_and_profiles() {
 #[tokio::test]
 async fn chat_history_is_paginated_by_scope() {
     let dir = tempfile::tempdir().unwrap();
-    let store = Store::open(&dir.path().join("toph.db")).await.unwrap();
+    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
     let user = store
         .create_user("history-user", &hash_password("secret").unwrap())
         .await
         .unwrap();
     store
-        .create_project(toph_server::model::Project {
+        .create_project(jeff_server::model::Project {
             id: "history-project".into(),
             name: "History".into(),
             root: dir.path().join("history").to_string_lossy().to_string(),
@@ -124,7 +124,7 @@ async fn chat_history_is_paginated_by_scope() {
                 "createdAt": 1,
                 "updatedAt": 1
             },
-            "tophs": []
+            "jeffs": []
         }
     });
     store

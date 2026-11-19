@@ -1,5 +1,5 @@
 /**
- * @toph/ui — the Toph design system in React.
+ * @jeff/ui — the Jeff design system in React.
  * Visuals come from `styles.css` (tokens + `ac-*` classes, ported from
  * docs/design); keyboard, focus and screen-reader mechanics from Radix
  * primitives. Components take every user-facing string as a prop: the app

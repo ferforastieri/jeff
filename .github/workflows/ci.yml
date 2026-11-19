@@ -149,6 +149,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: toph-android-debug
+          name: jeff-android-debug
           path: mobile/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error

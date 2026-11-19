@@ -1,5 +1,5 @@
-import { Spinner } from "@toph/ui";
-import { cx } from "@toph/ui";
+import { Spinner } from "@jeff/ui";
+import { cx } from "@jeff/ui";
 
 interface Props {
   label: string;

@@ -1,17 +1,17 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Check, CircleAlert, PlugZap, Save, Bot } from "@toph/icons";
+import { Check, CircleAlert, PlugZap, Save, Bot } from "@jeff/icons";
 import { api, type AIConfigInput } from "../../../shared/api";
 import { useAI } from "../store";
 import { useApp } from "../../../app/store";
-import { Button } from "@toph/ui/app";
-import { ProgressBar } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Textarea } from "@toph/ui/app";
-import { Switch } from "@toph/ui/app";
-import { Checkbox } from "@toph/ui/app";
-import { Select, SelectItem } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { ProgressBar } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Textarea } from "@jeff/ui/app";
+import { Switch } from "@jeff/ui/app";
+import { Checkbox } from "@jeff/ui/app";
+import { Select, SelectItem } from "@jeff/ui/app";
 import ProviderModelPicker from "./ProviderModelPicker";
-import { Chip } from "@toph/ui/app";
+import { Chip } from "@jeff/ui/app";
 
 const providers = [
   { id: "openai", label: "OpenAI (Responses)", base: "https://api.openai.com", provider: "openai" },

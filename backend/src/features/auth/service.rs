@@ -34,7 +34,7 @@ pub struct LoginResult {
 impl AuthManager {
     pub fn new(store: Store, secure_cookies: bool) -> Self {
         let dummy_hash =
-            hash_password("toph-invalid-password-placeholder").unwrap_or_else(|_| String::new());
+            hash_password("jeff-invalid-password-placeholder").unwrap_or_else(|_| String::new());
         Self {
             store,
             secure_cookies,

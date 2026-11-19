@@ -1,5 +1,5 @@
 {
-  "name": "@toph/icons",
+  "name": "@jeff/icons",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,6 +10,6 @@
     "react": "^19.3.1"
   },
   "dependencies": {
-    "@toph/ui": "*"
+    "@jeff/ui": "*"
   }
 }

@@ -1,12 +1,12 @@
-TOPH — TEAL
+JEFF — BLUE
 
-Background: #000000
+Background: #0B1330
 Surface: #141414
 Surface 2: #1E1E1E
 Border: #282828
 Text: #F5F5F5
 Muted: #969696
-Accent: #0F766E
-Accent 2: #14B8A6
-Accent 3: #115E59
+Accent: #0063D1
+Accent 2: #3D8BFF
+Accent 3: #003E8C
 On accent: #FFFFFF

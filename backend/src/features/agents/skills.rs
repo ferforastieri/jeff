@@ -23,7 +23,7 @@ pub const MAX_BODY_CHARS: usize = 24_000;
 /// Only the head of the file is read to parse frontmatter.
 const FRONTMATTER_BYTES: u64 = 8 * 1024;
 /// Directory names scanned inside the project root, in priority order.
-const DIRECTORIES: [&str; 3] = [".toph/skills", ".agents/skills", ".claude/skills"];
+const DIRECTORIES: [&str; 3] = [".jeff/skills", ".agents/skills", ".claude/skills"];
 
 #[derive(RustEmbed)]
 #[folder = "skills/"]
@@ -239,11 +239,11 @@ fn home() -> Option<PathBuf> {
     std::env::var_os("HOME").map(PathBuf::from)
 }
 
-/// Every skill directory Toph knows how to read, including the tools' own
+/// Every skill directory Jeff knows how to read, including the tools' own
 /// global directories. Project skills come first, so they win on duplicates.
 pub fn local(root: &Path) -> Vec<LocalSkill> {
     let mut roots: Vec<(PathBuf, &'static str, usize)> = vec![
-        (root.join(".toph/skills"), "Projeto (.toph)", 3),
+        (root.join(".jeff/skills"), "Projeto (.jeff)", 3),
         (root.join(".agents/skills"), "Projeto (.agents)", 3),
         (root.join(".claude/skills"), "Projeto (.claude)", 3),
         (root.join(".opencode/skills"), "Projeto (.opencode)", 3),
@@ -450,8 +450,8 @@ mod tests {
     use super::*;
 
     fn temporary() -> std::path::PathBuf {
-        let path = std::env::temp_dir().join(format!("toph-skill-{}", crate::crypto::new_id()));
-        std::fs::create_dir_all(path.join(".toph/skills/browser")).unwrap();
+        let path = std::env::temp_dir().join(format!("jeff-skill-{}", crate::crypto::new_id()));
+        std::fs::create_dir_all(path.join(".jeff/skills/browser")).unwrap();
         path
     }
 
@@ -459,7 +459,7 @@ mod tests {
     fn reads_single_line_frontmatter() {
         let root = temporary();
         std::fs::write(
-            root.join(".toph/skills/browser/SKILL.md"),
+            root.join(".jeff/skills/browser/SKILL.md"),
             "---\nname: browser\ndescription: \"Automate pages\"\n---\n\nStep one.\n",
         )
         .unwrap();
@@ -476,7 +476,7 @@ mod tests {
     fn skips_skills_without_a_description() {
         let root = temporary();
         std::fs::write(
-            root.join(".toph/skills/browser/SKILL.md"),
+            root.join(".jeff/skills/browser/SKILL.md"),
             "---\nname: browser\n---\nBody\n",
         )
         .unwrap();
@@ -554,14 +554,14 @@ mod tests {
     #[test]
     fn enabled_filter_keeps_declaration_order() {
         let root = temporary();
-        std::fs::create_dir_all(root.join(".toph/skills/other")).unwrap();
+        std::fs::create_dir_all(root.join(".jeff/skills/other")).unwrap();
         std::fs::write(
-            root.join(".toph/skills/browser/SKILL.md"),
+            root.join(".jeff/skills/browser/SKILL.md"),
             "---\nname: browser\ndescription: B\n---\n",
         )
         .unwrap();
         std::fs::write(
-            root.join(".toph/skills/other/SKILL.md"),
+            root.join(".jeff/skills/other/SKILL.md"),
             "---\nname: other\ndescription: O\n---\n",
         )
         .unwrap();

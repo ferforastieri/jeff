@@ -25,7 +25,7 @@ export interface Tab {
   diff?: string;
   staged?: boolean;
   sessionId?: string;
-  /** Conversation id for `ai` tabs (one Toph or a group). */
+  /** Conversation id for `ai` tabs (one Jeff or a group). */
   chatId?: string;
   line?: number;
   table?: {
@@ -74,10 +74,10 @@ export interface AppNotification {
 
 export type NewNotification = Omit<AppNotification, "id" | "createdAt" | "read">;
 
-const PROJECT_STATE_KEY = "toph_workbench_projects";
-const NOTIFICATIONS_KEY = "toph_notifications";
+const PROJECT_STATE_KEY = "jeff_workbench_projects";
+const NOTIFICATIONS_KEY = "jeff_notifications";
 const MAX_NOTIFICATIONS = 100;
-const LAYOUT_VISIBILITY_KEY = "toph_layout_visibility";
+const LAYOUT_VISIBILITY_KEY = "jeff_layout_visibility";
 
 interface PersistedProjectState {
   activeProjectId: string | null;

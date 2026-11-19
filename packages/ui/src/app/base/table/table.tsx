@@ -10,7 +10,7 @@ import {
   TableHeader,
 } from "react-aria-components";
 import type { TableProps as AriaTableProps } from "react-aria-components";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 
 /**
  * Table primitive — built on react-aria-components `Table` for semantic markup,
@@ -20,7 +20,7 @@ import { cx } from "@toph/ui/app/utils/cx";
  * *collection* components: React Aria introspects them at build time, so they
  * can't be wrapped in custom components without losing that behaviour. We
  * therefore re-export them as-is and apply BoardUI styling through scoped CSS
- * keyed on `.toph-table` (see styles/globals.css). Only the root `<Table>` is
+ * keyed on `.jeff-table` (see styles/globals.css). Only the root `<Table>` is
  * wrapped — to add the scroll container and the size flag.
  *
  * Sizes: `md` (h-16 rows) and `sm` (h-12 rows), set once via `data-size`.
@@ -45,7 +45,7 @@ export function Table({ size = "md", className, containerClassName, ref, ...prop
       <AriaTable
         ref={ref}
         {...props}
-        className={cx("toph-table", size === "sm" && "toph-table-sm", className)}
+        className={cx("jeff-table", size === "sm" && "jeff-table-sm", className)}
       />
     </div>
   );

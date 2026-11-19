@@ -1,4 +1,4 @@
-/** The app-facing controls: the Toph screens' shapes over the Tophs design system. */
+/** The app-facing controls: the Jeff screens' shapes over the Jeffs design system. */
 export * from "./base/accordion/accordion";
 export * from "./base/avatar/avatar";
 export * from "./base/badges/badge";

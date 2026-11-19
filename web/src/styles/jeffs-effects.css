@@ -1,0 +1,409 @@
+/* The search field of the top bar answers the pointer: the kit's hover/focus, and a press that moves it a hair. */
+.ac-searchfield {
+  cursor: text;
+}
+.ac-searchfield:hover {
+  background: color-mix(in srgb, var(--ink) 4%, var(--field-bg));
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.ac-searchfield:focus-within {
+  box-shadow: inset 0 0 0 1px var(--line2), var(--focus-ring);
+}
+.quickopen-press:active {
+  transform: scale(0.995);
+}
+
+
+/* The project rail keeps its place and slides away, as the Jeffs side column does, instead of vanishing. */
+.project-rail-shell {
+  flex: none;
+  width: 52px;
+  overflow: hidden;
+  transition:
+    width 280ms var(--out, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity 180ms var(--out, cubic-bezier(0.22, 1, 0.36, 1)),
+    transform 280ms var(--out, cubic-bezier(0.22, 1, 0.36, 1));
+  transform: translateX(0);
+}
+.project-rail-shell > aside {
+  transition: transform 280ms var(--out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.project-rail-shell.is-collapsed {
+  width: 0;
+  opacity: 0;
+  transform: translateX(-6px);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-rail-shell,
+  .project-rail-shell > aside {
+    transition: none;
+  }
+}
+
+
+/* The composer's box: the words and the placeholder sit on the same left edge as the actions below. */
+.ac-composer > * textarea,
+.ac-composer textarea {
+  min-height: 56px;
+  padding: 12px 16px;
+  line-height: 20px;
+}
+.ac-composer textarea::placeholder {
+  color: var(--muted);
+}
+
+
+/* On a phone the composer's model and effort keep room for the actions: the
+   model shortens, the effort keeps its word, and neither runs under the send. */
+@media (max-width: 640px) {
+  .agent-composer-leading {
+    flex: 1 1 auto;
+  }
+  .agent-composer-spacer {
+    display: none;
+  }
+  .ac-composer .composer-trigger {
+    max-width: 130px;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .ac-composer .composer-trigger[aria-label="Esforço"] {
+    max-width: 70px;
+    flex: none;
+    padding-inline: 4px;
+  }
+  /* The chevron takes room the effort's own word needs on a phone. */
+  .ac-composer .composer-trigger[aria-label="Esforço"] > svg {
+    display: none;
+  }
+}
+
+
+/* The workspace bar is a footer now: desktop notices sit above it. */
+@media (min-width: 641px) {
+  .ac-toasts {
+    bottom: 60px;
+  }
+}
+
+/* On a phone notices sit centred under the header, thin enough not to take
+   the screen: the composer and the tab bar stay untouched. */
+@media (max-width: 640px) {
+  .ac-toasts {
+    top: calc(var(--safe-top) + 8px);
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(420px, calc(100vw - 24px));
+    max-width: none;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .ac-toast {
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 16px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .ac-toast > .ac-icon {
+    width: 16px;
+    height: 16px;
+    margin-block: 0;
+  }
+  .ac-toast > .ac-toast__text {
+    margin-block: 0;
+  }
+  .ac-toast > .ac-toast__close {
+    width: 24px;
+    height: 24px;
+  }
+  .ac-toast--update {
+    align-items: flex-start;
+    padding: 8px 8px 9px 10px;
+  }
+  .ac-toast--update .ac-toast__detail {
+    font-size: 11px;
+    line-height: 15px;
+  }
+}
+
+/* The phone's tab bar: four even columns (the utility of the old build had no plain grid-cols-4). */
+.mobile-tabbar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding-inline: 0.375rem;
+}
+
+
+/* The phone's header and tab bar: the surface, the hairline and the sizes the
+   screens ask for, without depending on utility names the old build never had. */
+.mobile-topbar {
+  background: color-mix(in srgb, var(--bg) 95%, transparent);
+  border-bottom: 1px solid var(--line);
+}
+.mobile-topbar__title {
+  font-size: 20px;
+}
+.mobile-topbar__brand {
+  background: var(--raised);
+}
+.mobile-topbar__sessions {
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+.mobile-topbar__sessions:hover {
+  border-color: var(--line-strong);
+}
+.mobile-tabbar-nav {
+  background: color-mix(in srgb, var(--bg) 95%, transparent);
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  padding-bottom: calc(6px + var(--safe-bottom));
+}
+.mobile-tabbar__icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* The Jeff tab wears the brand's own mark, tinted like the other tabs (ink selected, faint otherwise). */
+.jeff-tab-mark {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+.jeff-tab-icon {
+  width: 20px;
+  height: 20px;
+}
+
+
+/* Theme change as a view transition (the Faang app's): the old page stays under
+   the new one, revealed by the circle mask the toggle injects. */
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: none !important;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* The settings trigger in the header wears the mark, tinted like the icons beside it. */
+.jeff-settings-trigger__mark {
+  display: block;
+  width: 30px;
+  height: 30px;
+  background: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* The brand mark used as an icon, tinted by the line it sits in. */
+.brand-glyph {
+  display: block;
+  flex: none;
+  background: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* Light mode: the red details need a darker ink to read on white. */
+html:not(.dark) .text-accent-500,
+html:not(.dark) .text-accent-600 {
+  color: var(--color-accent-700);
+}
+
+/* The phone's composer gets its own room above the tab bar and a centred placeholder. */
+@media (max-width: 640px) {
+  .ac-composer {
+    margin-bottom: 2px;
+  }
+}
+
+
+/* The composer's surface belongs to the loader, which paints the pill and runs
+   its light band over the rim; the form itself stays transparent so the whole
+   animation is seen (the old opaque background hid it). */
+.ac-composer.agent-composer {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0;
+  border-radius: 20px;
+}
+.ac-composer.agent-composer:focus-within {
+  box-shadow: var(--focus-ring) !important;
+  border-radius: 20px;
+}
+
+
+/* The update toast's indeterminate bar travels; without it the bar looked frozen. */
+.progress-indeterminate {
+  animation: jeff-progress-slide 1.3s ease-in-out infinite;
+}
+@keyframes jeff-progress-slide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+/* Copy sits beside the time and is always offered, mouse or touch. */
+.message-copy {
+  opacity: 1;
+}
+
+/* A table's columns hang under its name, with a light guide line, in every
+   database: the tree reads as one structure instead of loose rows. */
+.db-columns {
+  margin-inline-start: 34px;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--color-separator-border);
+}
+@media (max-width: 640px) {
+  .db-columns {
+    margin-inline-start: 52px;
+    margin-inline-end: 4px;
+  }
+}
+
+/* The merged model + plan menu: compact, the list beside the usage on the web
+   and stacked on a phone. */
+.model-usage-menu {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.model-usage-models {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  border-bottom: 1px solid var(--color-separator-border);
+}
+.model-usage-list {
+  min-height: 0;
+  max-height: 38dvh;
+  overflow-y: auto;
+  padding: 0 6px 8px;
+}
+.model-usage-body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+}
+@media (min-width: 901px) {
+  .model-usage-popover {
+    width: 560px;
+  }
+  .model-usage-menu {
+    height: 370px;
+    flex-direction: row;
+  }
+  .model-usage-models {
+    width: 232px;
+    flex: none;
+    border-bottom: 0;
+    border-inline-end: 1px solid var(--color-separator-border);
+  }
+  .model-usage-list {
+    flex: 1;
+    max-height: none;
+  }
+}
+
+/* The phone's search: the same quick file/content search as the header, as a
+   sheet under the fixed top bar, above every toast. */
+.mobile-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  padding: calc(var(--safe-top) + 56px) 12px 24px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+}
+.mobile-search-card {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 560px;
+}
+
+/* The composer is one surface: the textarea inside it keeps no field fill or
+   focus ring of its own, so the inner box never looks glued to the card. */
+.ac-composer textarea.ac-input,
+.ac-composer textarea.ac-input:focus,
+.ac-composer textarea.ac-input:focus-visible {
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+/* On a phone the model + plan sheet is two compact tabs: the chosen model at
+   the top, then either the model list or the usage, never both stacked. */
+.model-usage-mobile {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.model-usage-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 6px;
+}
+.model-usage-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin: 0 10px 8px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--sunken);
+}
+.model-usage-tab {
+  height: 32px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: background-color 0.15s, color 0.15s;
+}
+.model-usage-tab[data-active="true"] {
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: var(--e1);
+}
+.model-usage-mobile-body {
+  min-height: 0;
+  max-height: 46dvh;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+}
+.model-usage-mobile-body .model-usage-list {
+  max-height: none;
+  padding: 0;
+}

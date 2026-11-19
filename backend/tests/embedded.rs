@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use jeff_server::config::Config;
 use serde_json::Value;
-use toph_server::config::Config;
 
 #[tokio::test]
 async fn embedded_server_serves_authenticated_api() {
@@ -16,7 +16,7 @@ async fn embedded_server_serves_authenticated_api() {
         "secret".into(),
         "127.0.0.1:0".into(),
     );
-    let server = toph_server::start_embedded(config).await.unwrap();
+    let server = jeff_server::start_embedded(config).await.unwrap();
     let client = reqwest::Client::builder()
         .cookie_store(true)
         .timeout(Duration::from_secs(5))
@@ -32,7 +32,7 @@ async fn embedded_server_serves_authenticated_api() {
         .json()
         .await
         .unwrap();
-    assert_eq!(health["name"], "toph");
+    assert_eq!(health["name"], "jeff");
 
     let login: Value = client
         .post(format!("{base}/api/auth/login"))
@@ -78,7 +78,7 @@ async fn embedded_server_serves_authenticated_api() {
         .collect::<Vec<_>>();
     client
         .put(format!("{base}/api/projects/{project_id}/workspace"))
-        .header("X-Toph-CSRF", &csrf)
+        .header("X-Jeff-CSRF", &csrf)
         .json(&serde_json::json!({
             "tabs": [],
             "activeTabId": null,
@@ -91,7 +91,7 @@ async fn embedded_server_serves_authenticated_api() {
                     "createdAt": 1,
                     "updatedAt": 1
                 },
-                "tophs": []
+                "jeffs": []
             }
         }))
         .send()
@@ -112,7 +112,7 @@ async fn embedded_server_serves_authenticated_api() {
         .put(format!(
             "{base}/api/projects/{project_id}/workspace/messages"
         ))
-        .header("X-Toph-CSRF", &csrf)
+        .header("X-Jeff-CSRF", &csrf)
         .json(&serde_json::json!({ "messages": messages }))
         .send()
         .await
@@ -154,7 +154,7 @@ async fn embedded_server_serves_authenticated_api() {
         .put(format!(
             "{base}/api/projects/{project_id}/workspace/messages"
         ))
-        .header("X-Toph-CSRF", &csrf)
+        .header("X-Jeff-CSRF", &csrf)
         .json(&serde_json::json!({
             "replace": { "mode": "chat", "channel": "chat-one" },
             "messages": [{
@@ -185,7 +185,7 @@ async fn embedded_server_serves_authenticated_api() {
 
     let saved: Value = client
         .put(format!("{base}/api/projects/{project_id}/file"))
-        .header("X-Toph-CSRF", &csrf)
+        .header("X-Jeff-CSRF", &csrf)
         .json(&serde_json::json!({"path":"hello.txt","content":"updated\n","baseHash":""}))
         .send()
         .await

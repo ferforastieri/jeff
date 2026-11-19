@@ -1,4 +1,4 @@
-/* Plain CSS, no Tailwind: the app was compiled once from its former utility build and this file is now the app stylesheet. New screens use the Tophs kit classes (ac-*) and the settings blocks in tophs-settings.css. */
+/* Plain CSS, no Tailwind: the app was compiled once from its former utility build and this file is now the app stylesheet. New screens use the Jeffs kit classes (ac-*) and the settings blocks in jeffs-settings.css. */
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
     *, :before, :after, ::backdrop {
@@ -114,13 +114,13 @@
     --color-orange-500: oklch(70.5% .213 47.604);
     --color-orange-800: oklch(47% .157 37.304);
     --color-orange-950: oklch(26.6% .079 36.259);
-    --color-amber-500: #0F766E;
-    --color-yellow-200: #CCFBF1;
-    --color-yellow-300: #99F6E4;
-    --color-yellow-400: #5EEAD4;
-    --color-yellow-500: #14B8A6;
-    --color-yellow-800: #115E59;
-    --color-yellow-950: #042F2E;
+    --color-amber-500: #0063D1;
+    --color-yellow-200: #D6E8FF;
+    --color-yellow-300: #B0D2FF;
+    --color-yellow-400: #8CC3FF;
+    --color-yellow-500: #3D8BFF;
+    --color-yellow-800: #003E8C;
+    --color-yellow-950: #00203F;
     --color-lime-100: oklch(96.7% .067 122.328);
     --color-lime-200: oklch(93.8% .127 124.321);
     --color-lime-300: oklch(89.7% .196 126.665);
@@ -139,8 +139,8 @@
     --color-emerald-700: oklch(50.8% .118 165.612);
     --color-emerald-800: oklch(43.2% .095 166.913);
     --color-emerald-950: oklch(26.2% .051 172.552);
-    --color-teal-400: oklch(77.7% .152 181.912);
-    --color-teal-500: oklch(70.4% .14 182.503);
+    --color-blue-400: oklch(77.7% .152 181.912);
+    --color-blue-500: oklch(70.4% .14 182.503);
     --color-cyan-200: oklch(91.7% .08 205.041);
     --color-cyan-400: oklch(78.9% .154 211.53);
     --color-cyan-500: oklch(71.5% .143 215.221);
@@ -240,17 +240,17 @@
     --default-font-family: "Source Sans 3 Variable", "Source Sans 3", "Segoe UI", system-ui, sans-serif;
     --default-mono-font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, Menlo, monospace;
     --color-neutral-925: #121212;
-    --color-accent-50: #ECFDF5;
-    --color-accent-100: #CCFBF1;
-    --color-accent-200: #99F6E4;
-    --color-accent-300: #5EEAD4;
-    --color-accent-400: #14B8A6;
-    --color-accent-500: #0F766E;
-    --color-accent-600: #115E59;
-    --color-accent-700: #134E4A;
-    --color-accent-800: #0F3D3A;
-    --color-accent-900: #0B2E2C;
-    --color-accent-950: #042F2E;
+    --color-accent-50: #E3EEFD;
+    --color-accent-100: #D6E8FF;
+    --color-accent-200: #B0D2FF;
+    --color-accent-300: #8CC3FF;
+    --color-accent-400: #3D8BFF;
+    --color-accent-500: #0063D1;
+    --color-accent-600: #003E8C;
+    --color-accent-700: #00306E;
+    --color-accent-800: #002657;
+    --color-accent-900: #001533;
+    --color-accent-950: #00203F;
     --radius-2lg: 10px;
     --shadow-checkbox-selected: inset 0 2px 0 0 #ffffff40,
     inset 0 0 0 1px var(--color-accent-500);
@@ -5188,8 +5188,8 @@
   --color-chart-track: var(--color-neutral-200);
   --color-chart-cursor: var(--color-neutral-300);
   --color-chart-neutral: var(--color-neutral-300);
-  --color-chart-1: var(--color-teal-400);
-  --color-chart-1-active: var(--color-teal-500);
+  --color-chart-1: var(--color-blue-400);
+  --color-chart-1-active: var(--color-blue-500);
   --color-chart-2: var(--color-lime-400);
   --color-chart-2-active: var(--color-lime-500);
   --color-chart-3: var(--color-pink-400);
@@ -5618,7 +5618,7 @@
 
 .dark {
   --color-status-lime-text: var(--color-lime-500);
-  --color-status-yellow-background: #0F766E33;
+  --color-status-yellow-background: #0063D133;
 }
 
 @supports (color: color-mix(in lab, red, red)) {
@@ -5765,13 +5765,13 @@
   }
 }
 
-.toph-table {
+.jeff-table {
   border-collapse: collapse;
   text-align: start;
   width: 100%;
 }
 
-.toph-table th {
+.jeff-table th {
   text-align: start;
   vertical-align: middle;
   white-space: nowrap;
@@ -5785,7 +5785,7 @@
   font-weight: 500;
 }
 
-.toph-table td {
+.jeff-table td {
   vertical-align: middle;
   color: var(--color-text-primary);
   outline: none;
@@ -5793,20 +5793,20 @@
   font-size: 14px;
 }
 
-.toph-table tbody tr:not(:last-child) {
+.jeff-table tbody tr:not(:last-child) {
   border-bottom: 1px solid var(--color-separator-border);
 }
 
-.toph-table tbody tr[data-focus-visible] {
+.jeff-table tbody tr[data-focus-visible] {
   box-shadow: inset 0 0 0 2px var(--color-border-focus-ring);
 }
 
-.toph-table.toph-table-sm th, .toph-table.toph-table-sm td {
+.jeff-table.jeff-table-sm th, .jeff-table.jeff-table-sm td {
   padding: 6px 10px;
   font-size: 13px;
 }
 
-@keyframes toph-composer-loader-dash {
+@keyframes jeff-composer-loader-dash {
   from {
     stroke-dashoffset: 0;
   }
@@ -5817,7 +5817,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toph-composer-loader-rect {
+  .jeff-composer-loader-rect {
     animation: none !important;
   }
 }
@@ -5858,13 +5858,13 @@
   --ink2: #2a2a28;
   --muted: #5c5c58;
   --faint: #6f6f6a;
-  --agent: #0F766E;
-  --agent2: #14B8A6;
-  --agent-soft: #ECFDF5;
+  --agent: #0063D1;
+  --agent2: #3D8BFF;
+  --agent-soft: #E3EEFD;
   --on-agent: #FFFFFF;
   --ok: #1f7a45;
-  --warn: #0F766E;
-  --warn-soft: #ECFDF5;
+  --warn: #0063D1;
+  --warn-soft: #E3EEFD;
   --on-warn: #fff;
   --danger: #b42a20;
   --info: #0a6f9e;
@@ -5915,14 +5915,14 @@
   --ink2: #d6d6d2;
   --muted: #a3a39e;
   --faint: #8f8f89;
-  --agent: #14B8A6;
-  --agent2: #5EEAD4;
-  --agent-soft: #062E2B;
-  --on-agent: #042F2E;
+  --agent: #5AA8FF;
+  --agent2: #8CC3FF;
+  --agent-soft: #11253F;
+  --on-agent: #00203F;
   --ok: #5fc48a;
-  --warn: #14B8A6;
-  --warn-soft: #062E2B;
-  --on-warn: #042F2E;
+  --warn: #3D8BFF;
+  --warn-soft: #11253F;
+  --on-warn: #00203F;
   --danger: #f08a80;
   --info: #5cc4ea;
   --plate: #7f7f7f24;
@@ -6972,11 +6972,11 @@ textarea.ac-input {
 }
 
 .ac-icon .ac-brain-body {
-  stroke: #0F766E;
+  stroke: #0063D1;
 }
 
 .ac-icon .ac-brain-eye {
-  fill: #0F766E;
+  fill: #0063D1;
   stroke: none;
 }
 
@@ -6989,11 +6989,11 @@ textarea.ac-input {
 }
 
 [data-theme="dark"] .ac-icon .ac-brain-body {
-  stroke: #14B8A6;
+  stroke: #3D8BFF;
 }
 
 [data-theme="dark"] .ac-icon .ac-brain-eye {
-  fill: #14B8A6;
+  fill: #3D8BFF;
 }
 
 .ac-brain-icon--off {
@@ -12591,13 +12591,13 @@ html:not([data-pointer]) .ac-hint:focus-visible {
   left: -6.25%;
 }
 
-.ac-toph {
+.ac-jeff {
   display: block;
   position: absolute;
   inset: 0;
 }
 
-.ac-avatar__toph, .ac-toph__eyes {
+.ac-avatar__jeff, .ac-jeff__eyes {
   object-fit: contain;
   pointer-events: none;
   -webkit-user-select: none;
@@ -12608,7 +12608,7 @@ html:not([data-pointer]) .ac-hint:focus-visible {
   inset: 0;
 }
 
-.ac-toph__eyes {
+.ac-jeff__eyes {
   will-change: transform;
   transition: transform 90ms linear;
 }
@@ -14951,7 +14951,7 @@ html:not([data-pointer]) .ac-stickers__cell:focus-visible {
   display: block;
 }
 
-.ac-sticker__toph {
+.ac-sticker__jeff {
   object-fit: contain;
   -webkit-user-select: none;
   user-select: none;
@@ -14961,11 +14961,11 @@ html:not([data-pointer]) .ac-stickers__cell:focus-visible {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .ac-sticker[data-mood="celebrate"] .ac-sticker__toph, .ac-sticker[data-mood="deal"] .ac-sticker__toph, .ac-sticker[data-mood="wave"] .ac-sticker__toph {
+  .ac-sticker[data-mood="celebrate"] .ac-sticker__jeff, .ac-sticker[data-mood="deal"] .ac-sticker__jeff, .ac-sticker[data-mood="wave"] .ac-sticker__jeff {
     animation: 1.8s ease-in-out infinite ac-sticker-hop;
   }
 
-  .ac-sticker[data-mood="thinking"] .ac-sticker__toph, .ac-sticker[data-mood="dizzy"] .ac-sticker__toph {
+  .ac-sticker[data-mood="thinking"] .ac-sticker__jeff, .ac-sticker[data-mood="dizzy"] .ac-sticker__jeff {
     animation: 2.4s ease-in-out infinite ac-sticker-tilt;
   }
 
@@ -21849,11 +21849,11 @@ html:not([data-pointer]) .settings-row--open:focus-visible {
   }
 }
 
-.toph-settings-dialog {
+.jeff-settings-dialog {
   height: min(820px, 100dvh - 32px);
 }
 
-.toph-settings-dialog > .ac-dialog__body {
+.jeff-settings-dialog > .ac-dialog__body {
   flex: 1;
   min-height: 0;
   padding: 0;
@@ -21946,7 +21946,7 @@ html:not([data-pointer]) .settings-row--open:focus-visible {
   }
 }
 
-.toph-settings-trigger {
+.jeff-settings-trigger {
   border-radius: var(--radius-md);
   cursor: pointer;
   background: none;
@@ -21960,22 +21960,22 @@ html:not([data-pointer]) .settings-row--open:focus-visible {
   display: inline-flex;
 }
 
-.toph-settings-trigger:hover {
+.jeff-settings-trigger:hover {
   background: var(--ink);
 }
 
 @supports (color: color-mix(in lab, red, red)) {
-  .toph-settings-trigger:hover {
+  .jeff-settings-trigger:hover {
     background: color-mix(in srgb, var(--ink) 5%, transparent);
   }
 }
 
-html:not([data-pointer]) .toph-settings-trigger:focus-visible {
+html:not([data-pointer]) .jeff-settings-trigger:focus-visible {
   box-shadow: var(--focus-ring);
   outline: none;
 }
 
-.toph-settings-trigger__logo {
+.jeff-settings-trigger__logo {
   object-fit: contain;
   -webkit-user-select: none;
   user-select: none;
@@ -21984,7 +21984,7 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
   display: block;
 }
 
-.toph-modal-close {
+.jeff-modal-close {
   z-index: 2;
   position: absolute;
   top: 10px;
@@ -22007,17 +22007,17 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
   --visual-viewport-height: 100dvh;
   --visual-viewport-offset-top: 0px;
   --keyboard-inset: 0px;
-  --color-accent-50: #ECFDF5;
-  --color-accent-100: #CCFBF1;
-  --color-accent-200: #99F6E4;
-  --color-accent-300: #5EEAD4;
-  --color-accent-400: #14B8A6;
-  --color-accent-500: #0F766E;
-  --color-accent-600: #115E59;
-  --color-accent-700: #134E4A;
-  --color-accent-800: #0F3D3A;
-  --color-accent-900: #0B2E2C;
-  --color-accent-950: #042F2E;
+  --color-accent-50: #EAF3FF;
+  --color-accent-100: #D6E8FF;
+  --color-accent-200: #B0D2FF;
+  --color-accent-300: #7FB6FF;
+  --color-accent-400: #3D8BFF;
+  --color-accent-500: #0063D1;
+  --color-accent-600: #003E8C;
+  --color-accent-700: #00306E;
+  --color-accent-800: #002657;
+  --color-accent-900: #001E44;
+  --color-accent-950: #001533;
   --background: var(--color-background-full);
   --foreground: var(--color-text-primary);
   --card: var(--color-background-primary-default);
@@ -22108,7 +22108,7 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
   --color-button-ghost-disabled-foreground: var(--color-text-tertiary);
 }
 
-@keyframes toph-view-in {
+@keyframes jeff-view-in {
   from {
     opacity: 0;
     transform: translateY(4px);
@@ -22120,7 +22120,7 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
   }
 }
 
-@keyframes toph-panel-in {
+@keyframes jeff-panel-in {
   from {
     opacity: 0;
     transform: translateX(10px);
@@ -22132,7 +22132,7 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
   }
 }
 
-@keyframes toph-msg-in {
+@keyframes jeff-msg-in {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -22144,20 +22144,20 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
   }
 }
 
-.toph-view-in {
-  animation: .2s cubic-bezier(.22, 1, .36, 1) toph-view-in;
+.jeff-view-in {
+  animation: .2s cubic-bezier(.22, 1, .36, 1) jeff-view-in;
 }
 
-.toph-panel-in {
-  animation: .22s cubic-bezier(.22, 1, .36, 1) toph-panel-in;
+.jeff-panel-in {
+  animation: .22s cubic-bezier(.22, 1, .36, 1) jeff-panel-in;
 }
 
-.toph-msg-in {
-  animation: .22s cubic-bezier(.22, 1, .36, 1) both toph-msg-in;
+.jeff-msg-in {
+  animation: .22s cubic-bezier(.22, 1, .36, 1) both jeff-msg-in;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toph-view-in, .toph-panel-in, .toph-msg-in {
+  .jeff-view-in, .jeff-panel-in, .jeff-msg-in {
     animation: none;
   }
 }
@@ -22725,7 +22725,7 @@ html:not([data-pointer]) .toph-settings-trigger:focus-visible {
 }
 
 /* A dialog whose own page carries the title (Settings): only the close keeps the head's place. */
-.ac-dialog > .toph-modal-close {
+.ac-dialog > .jeff-modal-close {
   position: absolute;
   top: 10px;
   right: 10px;

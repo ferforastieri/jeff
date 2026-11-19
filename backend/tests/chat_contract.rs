@@ -1,16 +1,16 @@
+use jeff_server::features::agents::{models::AgentSpec, repository::Repository};
+use jeff_server::{ai::AiService, store::Store};
 use serde_json::json;
-use toph_server::features::agents::{models::AgentSpec, repository::Repository};
-use toph_server::{ai::AiService, store::Store};
 
 #[tokio::test]
-async fn usage_is_scoped_to_the_chat_and_keeps_each_toph_separate() {
+async fn usage_is_scoped_to_the_chat_and_keeps_each_jeff_separate() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(&dir.path().join("db")).await.unwrap();
     let user = store
         .create_user("owner", "unused-fixture-hash")
         .await
         .unwrap();
-    let project = store.create_project(serde_json::from_value(json!({"id":"project","name":"Project","root":dir.path().display().to_string(),"color":"#0F766E","createdAt":"","updatedAt":""})).unwrap()).await.unwrap();
+    let project = store.create_project(serde_json::from_value(json!({"id":"project","name":"Project","root":dir.path().display().to_string(),"color":"#0063D1","createdAt":"","updatedAt":""})).unwrap()).await.unwrap();
     let repo = Repository(store.clone());
     for (id, chat, input, output, context) in [
         ("first", "chat-one", 100i64, 20i64, 3000i64),
@@ -62,26 +62,26 @@ async fn old_layout_model_ids_migrate_to_their_own_connections_idempotently() {
     ai.save(serde_json::from_value(json!({"provider":"custom","baseUrl":"https://opencode.ai/inference/go/openai/v1","apiKey":"fixture","model":"deepseek-v4.1-flash","maxTokens":4096,"temperature":0,"autocomplete":false,"systemPrompt":""})).unwrap()).await.unwrap();
     ai.save_connection(serde_json::from_value(json!({"label":"OpenAI","provider":"openai","baseUrl":"https://api.openai.com/v1","apiKey":"fixture"})).unwrap()).await.unwrap();
     let connection = ai.connections().await.unwrap().remove(0);
-    let mut layout = json!({"chats":{"tophs":[
-        {"name":"Toph","model":"openai/gpt-6-astra","agentMode":"plan","personality":"Careful"},
+    let mut layout = json!({"chats":{"jeffs":[
+        {"name":"Jeff","model":"openai/gpt-6-astra","agentMode":"plan","personality":"Careful"},
         {"name":"Beto","model":"opencode-go/deepseek-v4.1-flash","agentMode":"build","personality":"Direct"}
     ]}});
     ai.migrate_layout_models(&mut layout).await.unwrap();
     assert_eq!(
-        layout["chats"]["tophs"][0]["model"],
+        layout["chats"]["jeffs"][0]["model"],
         format!("{}::gpt-6-astra", connection.id)
     );
     assert_eq!(
-        layout["chats"]["tophs"][1]["model"],
+        layout["chats"]["jeffs"][1]["model"],
         "default::deepseek-v4.1-flash"
     );
-    assert_eq!(layout["chats"]["tophs"][0]["agentMode"], "plan");
-    assert_eq!(layout["chats"]["tophs"][1]["personality"], "Direct");
+    assert_eq!(layout["chats"]["jeffs"][0]["agentMode"], "plan");
+    assert_eq!(layout["chats"]["jeffs"][1]["personality"], "Direct");
     let canonical = layout.clone();
     ai.migrate_layout_models(&mut layout).await.unwrap();
     assert_eq!(layout, canonical);
     let openai = ai
-        .resolve(layout["chats"]["tophs"][0]["model"].as_str().unwrap())
+        .resolve(layout["chats"]["jeffs"][0]["model"].as_str().unwrap())
         .await
         .unwrap();
     assert_eq!(openai.provider, "openai");

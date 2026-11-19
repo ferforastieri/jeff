@@ -8,7 +8,7 @@ import UpdateToast from "../features/updates/components/UpdateToast";
 const Workbench = lazy(() => import("./components/Workbench"));
 
 
-const SERVER_KEY = "toph_server_url";
+const SERVER_KEY = "jeff_server_url";
 
 interface DesktopInternals {
   invoke?: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
@@ -50,10 +50,10 @@ function AppShell() {
 
   useEffect(() => {
     if (!authReady) return;
-    const boot = document.getElementById("toph-boot");
+    const boot = document.getElementById("jeff-boot");
     if (!boot) return;
     const timer = window.setTimeout(() => {
-      boot.classList.add("toph-boot--done");
+      boot.classList.add("jeff-boot--done");
       window.setTimeout(() => boot.remove(), 320);
     }, 120);
     return () => window.clearTimeout(timer);

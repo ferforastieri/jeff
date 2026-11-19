@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Bot, MessageSquarePlus } from "@toph/icons";
+import { Bot, MessageSquarePlus } from "@jeff/icons";
 import type { Project } from "../../../shared/api";
 import { useChats } from "../../conversations/store";
 import { chatTabId, openChatTab } from "../../conversations/navigation";
 import { chatSessionTitle } from "../../conversations/store";
 import { projectSessions } from "../../conversations/sessions";
 import { ensureChatSubjects } from "../../conversations/subjects";
-import { Button } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
 import SidebarHeader from "../../../app/components/SidebarHeader";
 import { useApp } from "../../../app/store";
-import { ensureToph } from "../default-toph";
+import { ensureJeff } from "../default-jeff";
 import { useActiveSessionIds } from "../useActiveSessionIds";
 import SessionRow from "../../conversations/components/SessionRow";
 import { agentApi, type HarnessSession } from "../api";
@@ -21,7 +21,7 @@ interface Props {
   onSelectChat?: () => void;
 }
 
-/** The project's one Toph: every task is a session here, the newest first. */
+/** The project's one Jeff: every task is a session here, the newest first. */
 export default function BotsSidebar({ project, headerControl, onSelectChat }: Props) {
   const chats = useChats((state) => state.byProject[project.id]);
   const ensure = useChats((state) => state.ensure);
@@ -55,7 +55,7 @@ export default function BotsSidebar({ project, headerControl, onSelectChat }: Pr
     if (chats?.hydrated) void ensureChatSubjects(project.id, chats.chats);
   }, [chats?.hydrated, chats?.chats, project.id]);
 
-  const toph = chats?.tophs[0] ?? null;
+  const jeff = chats?.jeffs[0] ?? null;
   const activeSessions = useActiveSessionIds(project.id);
   // The live harness sessions: the list shows what the installed CLI knows, not chats of our own.
   const [harness, setHarness] = useState<HarnessSession[] | null>(null);
@@ -106,7 +106,7 @@ export default function BotsSidebar({ project, headerControl, onSelectChat }: Pr
   }
 
   function newTask() {
-    const active = ensureToph(project.id);
+    const active = ensureJeff(project.id);
     if (!active) return;
     const created = createConversation(project.id, [active.id]);
     if (created) openTask(created.id);
@@ -148,7 +148,7 @@ export default function BotsSidebar({ project, headerControl, onSelectChat }: Pr
             Carregando...
           </div>
         ) : null}
-        {chats?.hydrated && toph && sessions.length === 0 ? (
+        {chats?.hydrated && jeff && sessions.length === 0 ? (
           <button
             type="button"
             onClick={newTask}

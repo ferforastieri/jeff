@@ -1,5 +1,5 @@
-import { AlertTriangle, Check, X } from "@toph/icons";
-import { Button } from "@toph/ui/app";
+import { AlertTriangle, Check, X } from "@jeff/icons";
+import { Button } from "@jeff/ui/app";
 
 interface Props {
   agentName: string;
@@ -12,7 +12,7 @@ interface Props {
 /** The same inline approval pattern as the reference chat: exact call in front of you. */
 export default function ApprovalCard({ agentName, name, arguments: args, onApprove, onReject }: Props) {
   return (
-    <article className="toph-msg-in my-1 flex min-w-0 gap-3 py-1">
+    <article className="jeff-msg-in my-1 flex min-w-0 gap-3 py-1">
       <div className="flex w-[34px] shrink-0 justify-center">
         <span className="mt-0.5 flex size-7 items-center justify-center rounded-full bg-status-yellow-bg text-status-yellow-text">
           <AlertTriangle size={15} />

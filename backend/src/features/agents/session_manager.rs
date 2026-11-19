@@ -1,6 +1,6 @@
 //! Harness sessions, following the same model as the reference app: the
 //! engine's session id and what it has already seen live in memory, keyed by
-//! the Toph session (a conversation thread in the database). The database is
+//! the Jeff session (a conversation thread in the database). The database is
 //! the source of truth for messages; the harness is the source of truth for
 //! the model context. When the app restarts, a new engine session starts from
 //! the database transcript. While it lives, only the new messages are sent.
@@ -85,7 +85,7 @@ impl Sessions {
             }
         }
         SessionPlan {
-            id: format!("ses_toph_{}", crate::crypto::new_id()),
+            id: format!("ses_jeff_{}", crate::crypto::new_id()),
             resume: false,
             send: shown.iter().map(|item| item.id.clone()).collect(),
         }

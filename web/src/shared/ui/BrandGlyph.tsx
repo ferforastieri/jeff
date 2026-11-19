@@ -1,7 +1,7 @@
-import { cx } from "@toph/ui";
+import { cx } from "@jeff/ui";
 
 /**
- * The Toph mark as a monochrome glyph: it takes the current text color, so it
+ * The Jeff mark as a monochrome glyph: it takes the current text color, so it
  * sits in a nav like the other icons (ink selected, faint otherwise).
  */
 export default function BrandGlyph({
@@ -13,7 +13,7 @@ export default function BrandGlyph({
   className?: string;
   "aria-hidden"?: boolean | "true" | "false";
 }) {
-  const mark = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=5`;
+  const mark = `${import.meta.env.BASE_URL}brand/jeff-mark-eyeless.png?v=5`;
   return (
     <span
       className={cx("brand-glyph", className)}

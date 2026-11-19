@@ -8,9 +8,9 @@ interface Options {
 }
 
 /**
- * Makes a Toph look at the pointer, using the same travel as the landing hero:
+ * Makes a Jeff look at the pointer, using the same travel as the landing hero:
  * about 3px on small avatars and at most 8px on larger ones. Only the
- * `--toph-look-x` / `--toph-look-y` CSS variables change, so the avatar body
+ * `--jeff-look-x` / `--jeff-look-y` CSS variables change, so the avatar body
  * never moves and pointer movement never re-renders React.
  *
  * Touch has no hover on mobile, so a finger drag also updates the gaze.
@@ -36,8 +36,8 @@ export function usePointerLook<T extends HTMLElement>({ max = 8, disabled = fals
       const travel = Math.min(max, Math.max(1, rect.width * (rect.width < 100 ? 0.09 : 0.03)));
       const lookX = (dx / distance) * travel * strength;
       const lookY = (dy / distance) * travel * 0.65 * strength;
-      element.style.setProperty("--toph-look-x", `${lookX.toFixed(2)}px`);
-      element.style.setProperty("--toph-look-y", `${lookY.toFixed(2)}px`);
+      element.style.setProperty("--jeff-look-x", `${lookX.toFixed(2)}px`);
+      element.style.setProperty("--jeff-look-y", `${lookY.toFixed(2)}px`);
     };
 
     const aim = (x: number, y: number) => {
@@ -52,8 +52,8 @@ export function usePointerLook<T extends HTMLElement>({ max = 8, disabled = fals
     const reset = () => {
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
-      element.style.setProperty("--toph-look-x", "0px");
-      element.style.setProperty("--toph-look-y", "0px");
+      element.style.setProperty("--jeff-look-x", "0px");
+      element.style.setProperty("--jeff-look-y", "0px");
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });

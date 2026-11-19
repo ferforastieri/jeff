@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Icon } from "@toph/ui";
+import { Icon } from "@jeff/ui";
 import { api, type FileEntry, type Project } from "../../../shared/api";
 import { useApp } from "../../../app/store";
 import FileIcon from "./FileIcon";
 import GitStatusIcon from "../../git/components/GitStatusIcon";
-import { Badge } from "@toph/ui/app";
+import { Badge } from "@jeff/ui/app";
 import { useProjectEvents } from "../../projects/events";
 import LoadingState from "../../../shared/ui/LoadingState";
 import { cn } from "@/shared/lib/utils";
@@ -23,7 +23,7 @@ function hasTransferType(types: DataTransfer["types"] | undefined, type: string)
 }
 
 function expansionKey(projectId: string): string {
-  return `toph:tree-expanded:${projectId}`;
+  return `jeff:tree-expanded:${projectId}`;
 }
 
 function loadExpansion(projectId: string): Set<string> {
@@ -88,10 +88,10 @@ export default function FileTree({ project, onOpenFile, embedded = false, status
         aria-label="Project files"
         onDragOver={(event) => {
           const types = event.dataTransfer.types;
-          if (hasTransferType(types, "text/toph-path") || hasTransferType(types, "Files")) event.preventDefault();
+          if (hasTransferType(types, "text/jeff-path") || hasTransferType(types, "Files")) event.preventDefault();
         }}
         onDrop={(event) => {
-          const from = event.dataTransfer.getData("text/toph-path");
+          const from = event.dataTransfer.getData("text/jeff-path");
           if (!from) return;
           event.preventDefault();
           const name = from.split("/").pop() ?? "";
@@ -182,11 +182,11 @@ function TreeNode({ project, entry, depth, onOpenFile, statuses, revision, onSel
         title={entry.path}
         draggable
         onDragStart={(event) => {
-          event.dataTransfer.setData("text/toph-path", entry.path);
+          event.dataTransfer.setData("text/jeff-path", entry.path);
           event.dataTransfer.effectAllowed = "move";
         }}
         onDragOver={(event) => {
-          if (!entry.dir || !hasTransferType(event.dataTransfer.types, "text/toph-path")) return;
+          if (!entry.dir || !hasTransferType(event.dataTransfer.types, "text/jeff-path")) return;
           event.preventDefault();
           event.dataTransfer.dropEffect = "move";
           setDragOver(true);
@@ -194,7 +194,7 @@ function TreeNode({ project, entry, depth, onOpenFile, statuses, revision, onSel
         onDragLeave={() => setDragOver(false)}
         onDrop={(event) => {
           if (!entry.dir) return;
-          const from = event.dataTransfer.getData("text/toph-path");
+          const from = event.dataTransfer.getData("text/jeff-path");
           if (!from || from === entry.path) return;
           event.preventDefault();
           event.stopPropagation();

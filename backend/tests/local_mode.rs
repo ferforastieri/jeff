@@ -58,13 +58,13 @@ async fn local_mode_workspace_terminal_and_pairing() {
         .unwrap_or_else(|_| workspace.path().to_path_buf());
 
     // `0.0.0.0:0` is what the desktop uses when LAN sharing is enabled.
-    let config = toph_server::config::Config::local(
+    let config = jeff_server::config::Config::local(
         data.path().to_path_buf(),
         workspace_root.clone(),
         PASSWORD.into(),
         "0.0.0.0:0".into(),
     );
-    let server = toph_server::start_embedded(config)
+    let server = jeff_server::start_embedded(config)
         .await
         .expect("embedded server");
     let port = server.addr.port();
@@ -84,7 +84,7 @@ async fn local_mode_workspace_terminal_and_pairing() {
     )
     .await;
     assert_eq!(health.get("ok").and_then(Value::as_bool), Some(true));
-    assert_eq!(health.get("name").and_then(Value::as_str), Some("toph"));
+    assert_eq!(health.get("name").and_then(Value::as_str), Some("jeff"));
 
     // Admin login returns the HttpOnly session plus the CSRF cookie.
     let login = client
@@ -95,8 +95,8 @@ async fn local_mode_workspace_terminal_and_pairing() {
         .expect("login");
     assert!(login.status().is_success(), "login failed");
     let cookie = cookie_header(&login);
-    let csrf = cookie_value(&login, "toph_csrf");
-    assert!(cookie.contains("toph_session="), "missing session cookie");
+    let csrf = cookie_value(&login, "jeff_csrf");
+    assert!(cookie.contains("jeff_session="), "missing session cookie");
     assert!(!csrf.is_empty(), "missing csrf cookie");
 
     let me = client
@@ -140,7 +140,7 @@ async fn local_mode_workspace_terminal_and_pairing() {
         client
             .post(format!("{base}/api/projects/{project_id}/terminals"))
             .header(reqwest::header::COOKIE, &cookie)
-            .header("X-Toph-CSRF", &csrf)
+            .header("X-Jeff-CSRF", &csrf)
             .json(&json!({}))
             .send()
             .await
@@ -164,7 +164,7 @@ async fn local_mode_workspace_terminal_and_pairing() {
         .await
         .expect("terminal websocket");
     socket
-        .send(Message::Binary(b"echo toph-local-ok\n".to_vec().into()))
+        .send(Message::Binary(b"echo jeff-local-ok\n".to_vec().into()))
         .await
         .expect("terminal input");
 
@@ -176,7 +176,7 @@ async fn local_mode_workspace_terminal_and_pairing() {
         match tokio::time::timeout(remaining, socket.next()).await {
             Ok(Some(Ok(Message::Binary(data)))) => {
                 output.extend_from_slice(&data);
-                if String::from_utf8_lossy(&output).contains("toph-local-ok") {
+                if String::from_utf8_lossy(&output).contains("jeff-local-ok") {
                     found = true;
                     break;
                 }
@@ -198,7 +198,7 @@ async fn local_mode_workspace_terminal_and_pairing() {
         client
             .post(format!("{base}/api/pairing"))
             .header(reqwest::header::COOKIE, &cookie)
-            .header("X-Toph-CSRF", &csrf)
+            .header("X-Jeff-CSRF", &csrf)
             .json(&json!({}))
             .send()
             .await
@@ -227,7 +227,7 @@ async fn local_mode_workspace_terminal_and_pairing() {
     assert!(paired.status().is_success(), "pairing failed");
     let paired_cookie = cookie_header(&paired);
     assert!(
-        paired_cookie.contains("toph_session="),
+        paired_cookie.contains("jeff_session="),
         "missing paired session"
     );
     let paired_me: Value = json_response(

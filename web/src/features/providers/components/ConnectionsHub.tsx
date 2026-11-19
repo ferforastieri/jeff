@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, CircleAlert, ExternalLink, KeyRound, PlugZap, Save, Server, Trash2, Wrench } from "@toph/icons";
+import { Check, CircleAlert, ExternalLink, KeyRound, PlugZap, Save, Server, Trash2, Wrench } from "@jeff/icons";
 import { api, type AIConfig } from "../../../shared/api";
 import { useAI } from "../store";
 import { useApp } from "../../../app/store";
 import { agentApi, type Connection, type McpServer } from "../../agents/api";
 import ProviderIcon from "./ProviderIcon";
 import AiSettings from "./AiSettings";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Select, SelectItem } from "@toph/ui/app";
-import { ProgressBar } from "@toph/ui/app";
-import { cx } from "@toph/ui";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Select, SelectItem } from "@jeff/ui/app";
+import { ProgressBar } from "@jeff/ui/app";
+import { cx } from "@jeff/ui";
 
 interface ModelPreset {
   id: string;
@@ -200,7 +200,7 @@ export default function ConnectionsHub({ projectRoot: _projectRoot }: { projectR
       await loadModels();
       setModelForm(emptyModelForm);
       setModelPreset(null);
-      setResult({ ok: true, text: "Conexão salva. Selecione o modelo em cada Toph." });
+      setResult({ ok: true, text: "Conexão salva. Selecione o modelo em cada Jeff." });
       notify("success", "Conexão de modelo salva.");
     } catch (e) {
       const text = e instanceof Error ? e.message : String(e);
@@ -345,7 +345,7 @@ export default function ConnectionsHub({ projectRoot: _projectRoot }: { projectR
       <section className="flex flex-col gap-3">
         <div>
           <h3 className="flex items-center gap-2 text-body-medium text-text-primary"><KeyRound size={16} /> Modelos de IA</h3>
-          <p className="mt-1 text-caption-1-regular text-text-secondary">Clique no provedor para conectar com sua API key. A conexão fica disponível para qualquer Toph.</p>
+          <p className="mt-1 text-caption-1-regular text-text-secondary">Clique no provedor para conectar com sua API key. A conexão fica disponível para qualquer Jeff.</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {visibleModelPresets.map((preset) => (

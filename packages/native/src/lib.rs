@@ -44,7 +44,7 @@ struct PairingInfo {
 
 #[cfg(not(target_os = "android"))]
 struct LocalServer {
-    server: toph_server::server::EmbeddedServer,
+    server: jeff_server::server::EmbeddedServer,
     base: Url,
     lan: Option<Url>,
     session: String,
@@ -79,7 +79,7 @@ impl LocalState {
 fn normalize_server(raw: &str) -> Result<Url, String> {
     let input = raw.trim();
     if input.is_empty() {
-        return Err("Informe a URL do servidor Toph.".into());
+        return Err("Informe a URL do servidor Jeff.".into());
     }
     let with_scheme = if input.starts_with("http://") || input.starts_with("https://") {
         input.to_string()
@@ -128,9 +128,9 @@ async fn health(base: &Url) -> Result<serde_json::Value, String> {
     let value: serde_json::Value = response
         .json()
         .await
-        .map_err(|_| "A resposta não parece ser um servidor Toph.".to_string())?;
+        .map_err(|_| "A resposta não parece ser um servidor Jeff.".to_string())?;
     if value.get("ok").and_then(|v| v.as_bool()) != Some(true) {
-        return Err("Este endereço não é um servidor Toph saudável.".into());
+        return Err("Este endereço não é um servidor Jeff saudável.".into());
     }
     Ok(value)
 }
@@ -169,7 +169,7 @@ async fn validate_server(window: tauri::WebviewWindow, url: String) -> Result<Se
     let value = match health(&base).await {
         Ok(value) => value,
         Err(err) => {
-            eprintln!("toph: health check failed for {base}: {err}");
+            eprintln!("jeff: health check failed for {base}: {err}");
             return Err(err);
         }
     };
@@ -178,7 +178,7 @@ async fn validate_server(window: tauri::WebviewWindow, url: String) -> Result<Se
         name: value
             .get("name")
             .and_then(|v| v.as_str())
-            .unwrap_or("Toph")
+            .unwrap_or("Jeff")
             .to_string(),
         version: value
             .get("version")
@@ -214,7 +214,7 @@ fn open_server(
         .append_pair("server", base.as_str())
         .append_pair("desktop", "1");
     navigate_main(&app, target.clone()).inspect_err(|err| {
-        eprintln!("toph: could not navigate to server {target}: {err}");
+        eprintln!("jeff: could not navigate to server {target}: {err}");
     })
 }
 
@@ -238,9 +238,9 @@ async fn login_cookie_headers(base: &Url, password: &str) -> Result<(String, Str
     for value in response.headers().get_all("set-cookie") {
         for part in value.to_str().unwrap_or("").split(';') {
             let part = part.trim();
-            if let Some(value) = part.strip_prefix("toph_session=") {
+            if let Some(value) = part.strip_prefix("jeff_session=") {
                 session = value.to_string();
-            } else if let Some(value) = part.strip_prefix("toph_csrf=") {
+            } else if let Some(value) = part.strip_prefix("jeff_csrf=") {
                 csrf = value.to_string();
             }
         }
@@ -262,7 +262,7 @@ async fn ensure_local_workspace(
         .timeout(Duration::from_secs(15))
         .build()
         .map_err(|err| err.to_string())?;
-    let cookie = format!("toph_session={session}; toph_csrf={csrf}");
+    let cookie = format!("jeff_session={session}; jeff_csrf={csrf}");
     let root = dunce::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let root_text = root.to_string_lossy().to_string();
 
@@ -288,7 +288,7 @@ async fn ensure_local_workspace(
         let response = client
             .post(endpoint(base, "api/workspaces/roots")?)
             .header(reqwest::header::COOKIE, &cookie)
-            .header("X-Toph-CSRF", csrf)
+            .header("X-Jeff-CSRF", csrf)
             .json(&serde_json::json!({ "path": root_text }))
             .send()
             .await
@@ -339,7 +339,7 @@ async fn ensure_local_workspace(
     let response = client
         .post(endpoint(base, "api/projects")?)
         .header(reqwest::header::COOKIE, &cookie)
-        .header("X-Toph-CSRF", csrf)
+        .header("X-Jeff-CSRF", csrf)
         .json(&serde_json::json!({ "name": name, "root": root_text }))
         .send()
         .await
@@ -388,11 +388,11 @@ async fn create_pairing(base: &Url, session: &str, csrf: &str) -> Result<(String
         .timeout(Duration::from_secs(10))
         .build()
         .map_err(|err| err.to_string())?;
-    let cookie = format!("toph_session={session}; toph_csrf={csrf}");
+    let cookie = format!("jeff_session={session}; jeff_csrf={csrf}");
     let response = client
         .post(endpoint(base, "api/pairing")?)
         .header(reqwest::header::COOKIE, cookie)
-        .header("X-Toph-CSRF", csrf)
+        .header("X-Jeff-CSRF", csrf)
         .json(&serde_json::json!({}))
         .send()
         .await
@@ -507,13 +507,13 @@ async fn start_local_server(
     } else {
         "127.0.0.1:0"
     };
-    let config = toph_server::config::Config::local(
+    let config = jeff_server::config::Config::local(
         data_dir,
         workspace_root.clone(),
         password.clone(),
         listen.into(),
     );
-    let server = toph_server::start_embedded(config)
+    let server = jeff_server::start_embedded(config)
         .await
         .map_err(|err| format!("Não foi possível iniciar o backend local: {err}"))?;
     let port = server.addr.port();
@@ -601,12 +601,12 @@ async fn open_local_server(
     let (code, _) = create_pairing(&base, &session, &csrf)
         .await
         .map_err(|err| {
-            eprintln!("toph: could not create a pairing code for the local workbench: {err}");
+            eprintln!("jeff: could not create a pairing code for the local workbench: {err}");
             err
         })?;
     let url = app_url(&destination, &code, !network)?;
     navigate_main(&app, url.clone())
-        .inspect_err(|err| eprintln!("toph: could not open local workbench at {url}: {err}"))
+        .inspect_err(|err| eprintln!("jeff: could not open local workbench at {url}: {err}"))
 }
 
 /// Creates a pairing URL for the phone QR code. Only available when local mode
@@ -651,7 +651,7 @@ fn take_launcher_reset() -> bool {
     LAUNCHER_RESET.swap(false, Ordering::Relaxed)
 }
 
-/// Navigates the launcher to a Toph URL read from a QR code. The server in the
+/// Navigates the launcher to a Jeff URL read from a QR code. The server in the
 /// QR must answer the health check before the app navigates, so a stray or
 /// malicious QR cannot silently replace the launcher with an arbitrary page.
 #[tauri::command]
@@ -670,12 +670,12 @@ async fn open_scanned_url(
         return Err("O QR code não contém um servidor.".into());
     }
     if !parsed.path().trim_end_matches('/').ends_with("/app") {
-        return Err("O QR code não aponta para o aplicativo Toph.".into());
+        return Err("O QR code não aponta para o aplicativo Jeff.".into());
     }
     let server = parsed
         .query_pairs()
         .find_map(|(key, value)| (key == "server").then(|| value.to_string()))
-        .ok_or_else(|| "O QR code não contém o endereço do servidor Toph.".to_string())?;
+        .ok_or_else(|| "O QR code não contém o endereço do servidor Jeff.".to_string())?;
     let base = normalize_server(&server)?;
     health(&base)
         .await
@@ -830,7 +830,7 @@ async fn install_environment_windows(selected: &[String]) -> Result<String, Stri
         .await?;
         log.push_str(&output);
     }
-    log.push_str("\nAmbiente instalado. Reinicie o Toph para carregar o PATH atualizado.\n");
+    log.push_str("\nAmbiente instalado. Reinicie o Jeff para carregar o PATH atualizado.\n");
     Ok(log)
 }
 
@@ -908,7 +908,7 @@ async fn install_environment_linux(selected: &[String]) -> Result<String, String
         }
         log.push_str(&run_installer(root_prefix, &args).await?);
     }
-    log.push_str("\nAmbiente instalado. Reinicie o Toph para carregar o PATH atualizado.\n");
+    log.push_str("\nAmbiente instalado. Reinicie o Jeff para carregar o PATH atualizado.\n");
     Ok(log)
 }
 
@@ -983,7 +983,7 @@ async fn download_update(
     let stem = target
         .file_stem()
         .and_then(|value| value.to_str())
-        .unwrap_or("toph-update")
+        .unwrap_or("jeff-update")
         .to_string();
     let extension = target
         .extension()
@@ -1067,7 +1067,7 @@ pub fn run() {
 
     let app = builder
         .build(tauri::generate_context!())
-        .expect("error while building Toph Client");
+        .expect("error while building Jeff Client");
 
     app.run(|_app_handle, _event| {
         #[cfg(not(target_os = "android"))]
@@ -1104,13 +1104,13 @@ mod local_mode_tests {
             .unwrap_or_else(|_| workspace.path().to_path_buf());
         let password = random_password();
 
-        let config = toph_server::config::Config::local(
+        let config = jeff_server::config::Config::local(
             data.path().to_path_buf(),
             workspace_root.clone(),
             password.clone(),
             "127.0.0.1:0".into(),
         );
-        let server = toph_server::start_embedded(config).await.expect("server");
+        let server = jeff_server::start_embedded(config).await.expect("server");
         let base = Url::parse(&format!("http://127.0.0.1:{}/", server.addr.port())).unwrap();
 
         let mut healthy = false;
@@ -1172,7 +1172,7 @@ mod local_mode_tests {
             .get(endpoint(&base, "api/projects").unwrap())
             .header(
                 reqwest::header::COOKIE,
-                format!("toph_session={session}; toph_csrf={csrf}"),
+                format!("jeff_session={session}; jeff_csrf={csrf}"),
             )
             .send()
             .await

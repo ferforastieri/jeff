@@ -5,11 +5,11 @@ describe("api client", () => {
   afterEach(() => {
     setApiBase("");
     vi.unstubAllGlobals();
-    document.cookie = "toph_csrf=; Max-Age=0; path=/";
+    document.cookie = "jeff_csrf=; Max-Age=0; path=/";
   });
 
   it("sends the CSRF header on unsafe requests", async () => {
-    document.cookie = "toph_csrf=csrf-value; path=/";
+    document.cookie = "jeff_csrf=csrf-value; path=/";
     const fetchMock = vi.fn(
       async (_input: RequestInfo | URL, _init?: RequestInit) =>
         new Response(
@@ -29,7 +29,7 @@ describe("api client", () => {
 
     const request = fetchMock.mock.calls[0][1] as RequestInit;
     const headers = new Headers(request.headers);
-    expect(headers.get("X-Toph-CSRF")).toBe("csrf-value");
+    expect(headers.get("X-Jeff-CSRF")).toBe("csrf-value");
     expect(headers.get("Content-Type")).toBe("application/json");
   });
 

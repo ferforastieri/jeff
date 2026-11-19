@@ -3,7 +3,7 @@ export interface AiCompletion {
   projectId?: string | null;
   /** Conversation that received the answer, when the client knows it. */
   chatId?: string | null;
-  /** Toph that answered, used when the payload carries no conversation id. */
+  /** Jeff that answered, used when the payload carries no conversation id. */
   botId?: string | null;
 }
 
@@ -11,7 +11,7 @@ export interface AiCompletion {
 export interface ConversationView {
   /** Window is visible and focused, so the user can actually see the answer. */
   focused: boolean;
-  /** The conversational surface is on screen (mobile Toph screen; always true on desktop). */
+  /** The conversational surface is on screen (mobile Jeff screen; always true on desktop). */
   chatsVisible: boolean;
   activeProjectId: string | null;
   /** Conversation rendered by the conversational surface, when one is open. */
@@ -34,7 +34,7 @@ export function isNotificationRedundant(completion: AiCompletion, view: Conversa
   const botId = completion.botId?.trim();
   if (botId) {
     // Older payloads carry no conversation id: the open conversation counts only
-    // when the Toph that answered takes part in it.
+    // when the Jeff that answered takes part in it.
     return Boolean(view.activeChatId && view.activeChatParticipantIds?.includes(botId));
   }
   return view.activeChatId !== null;

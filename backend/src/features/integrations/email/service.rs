@@ -434,7 +434,7 @@ impl EmailService {
     }
 
     async fn call(&self, payload: Value, timeout: Duration) -> AppResult<Value> {
-        let python = std::env::var("TOPH_PYTHON")
+        let python = std::env::var("JEFF_PYTHON")
             .ok()
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "python3".into());
@@ -675,7 +675,7 @@ mod tests {
     use tempfile::tempdir;
 
     async fn test_service(dir: &Path) -> EmailService {
-        let store = Store::open(&dir.join("toph.db")).await.unwrap();
+        let store = Store::open(&dir.join("jeff.db")).await.unwrap();
         EmailService::new(store, dir, &dir.join("master.key")).unwrap()
     }
 

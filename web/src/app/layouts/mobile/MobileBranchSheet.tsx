@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { GitBranch, Plus } from "@toph/icons";
+import { GitBranch, Plus } from "@jeff/icons";
 import { api } from "../../../shared/api";
 import { useApp } from "../../store";
 import { useConfirm } from "../../../shared/ui/confirm";
 import BranchPicker from "../../../features/git/components/BranchPicker";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
 
 interface Props {
   open: boolean;
@@ -64,7 +64,7 @@ export default function MobileBranchSheet({ open, projectId, onClose, onChanged 
     try {
       await api.gitCheckout(projectId, branch);
       setCurrent(branch);
-      window.dispatchEvent(new Event("toph:git-changed"));
+      window.dispatchEvent(new Event("jeff:git-changed"));
       onChanged();
       onClose();
     } catch (err) {
@@ -81,7 +81,7 @@ export default function MobileBranchSheet({ open, projectId, onClose, onChanged 
       const output = await api.gitPush(projectId);
       const last = output.trim().split("\n").pop() ?? "";
       notify("success", last || "Branch enviada para o remoto.");
-      window.dispatchEvent(new Event("toph:git-changed"));
+      window.dispatchEvent(new Event("jeff:git-changed"));
       onChanged();
       await load();
     } catch (err) {
@@ -109,7 +109,7 @@ export default function MobileBranchSheet({ open, projectId, onClose, onChanged 
     try {
       const deleted = await api.gitDeleteOtherBranches(projectId);
       await load();
-      window.dispatchEvent(new Event("toph:git-changed"));
+      window.dispatchEvent(new Event("jeff:git-changed"));
       onChanged();
       notify("success", `${deleted} branch${deleted === 1 ? "" : "es"} excluída${deleted === 1 ? "" : "s"}.`);
     } catch (err) {
@@ -128,7 +128,7 @@ export default function MobileBranchSheet({ open, projectId, onClose, onChanged 
       setName("");
       setCreateOpen(false);
       await load();
-      window.dispatchEvent(new Event("toph:git-changed"));
+      window.dispatchEvent(new Event("jeff:git-changed"));
       onChanged();
       setBusy("");
       await checkout(created);

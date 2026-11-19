@@ -1,27 +1,27 @@
 import { useState } from "react";
-import { Check, ChevronDown } from "@toph/icons";
-import { cx } from "@toph/ui";
+import { Check, ChevronDown } from "@jeff/icons";
+import { cx } from "@jeff/ui";
 import { defaultModel, findModel, useAI } from "../../providers/store";
 import { effortLabel } from "../../providers/components/ModelPicker";
-import { useChats, type ChatToph, type TophChat } from "../store";
+import { useChats, type ChatJeff, type JeffChat } from "../store";
 import ComposerMenu from "./ComposerMenu";
 
 interface Props {
   projectId: string;
-  chat: TophChat;
-  tophs: ChatToph[];
+  chat: JeffChat;
+  jeffs: ChatJeff[];
 }
 
 /** The conversation's reasoning effort, always beside the model's ring. */
-export default function ConversationEffortPicker({ projectId, chat, tophs }: Props) {
+export default function ConversationEffortPicker({ projectId, chat, jeffs }: Props) {
   const models = useAI((state) => state.models);
   const config = useAI((state) => state.config);
-  const updateChatToph = useChats((state) => state.updateChatToph);
+  const updateChatJeff = useChats((state) => state.updateChatJeff);
   const [open, setOpen] = useState(false);
-  const member = tophs[0] ?? null;
+  const member = jeffs[0] ?? null;
   if (!member) return null;
 
-  const override = chat.tophSettings?.[member.id] ?? {};
+  const override = chat.jeffSettings?.[member.id] ?? {};
   const model = override.model || member.model || defaultModel(models, config);
   const effort = override.effort ?? member.effort ?? "";
   const variants = findModel(models, model)?.variants ?? [];
@@ -53,7 +53,7 @@ export default function ConversationEffortPicker({ projectId, chat, tophs }: Pro
                 key={variant}
                 type="button"
                 onClick={() => {
-                  updateChatToph(projectId, chat.id, member.id, { effort: variant });
+                  updateChatJeff(projectId, chat.id, member.id, { effort: variant });
                   close();
                 }}
                 className={cx(

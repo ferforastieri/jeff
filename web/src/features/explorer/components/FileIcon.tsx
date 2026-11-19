@@ -52,7 +52,7 @@ function materialIconFile(name: string, dir: boolean, open: boolean): string {
 }
 
 /**
- * A file or folder mark, the only icons that come from outside the Tophs kit:
+ * A file or folder mark, the only icons that come from outside the Jeffs kit:
  * Material Icon Theme, as VS Code draws them, on every file tree and picker.
  */
 export default function FileIcon({ name, dir = false, open = false, size = 15 }: Props) {

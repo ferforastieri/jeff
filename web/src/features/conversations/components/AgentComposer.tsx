@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowUp, FilePlus2, ImagePlus, LoaderCircle, Mic, Stop, X } from "@toph/icons";
-import { Button } from "@toph/ui/app";
-import { IconButton } from "@toph/ui/app";
-import { Textarea } from "@toph/ui/app";
-import { ComposerLoader } from "@toph/ui/app";
+import { ArrowUp, FilePlus2, ImagePlus, LoaderCircle, Mic, Stop, X } from "@jeff/icons";
+import { Button } from "@jeff/ui/app";
+import { IconButton } from "@jeff/ui/app";
+import { Textarea } from "@jeff/ui/app";
+import { ComposerLoader } from "@jeff/ui/app";
 import { useAudioRecorder, type AgentAttachment } from "../../../shared/ui/useAudioRecorder";
-import type { ChatToph } from "../store";
+import type { ChatJeff } from "../store";
 import BotAvatar from "../../agents/components/BotAvatar";
 
 export type { AgentAttachment } from "../../../shared/ui/useAudioRecorder";
@@ -22,7 +22,7 @@ interface Props {
   leadingControls?: ReactNode;
   modeControls?: ReactNode;
   history?: string[];
-  members?: ChatToph[];
+  members?: ChatJeff[];
 }
 
 export function AgentComposer({ value, onChange, onSend, onStop, busy, placeholder, allowAttachments = true, leadingControls, modeControls, history = [], members = [] }: Props) {
@@ -112,7 +112,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
     setMentionIndex(0);
   }
 
-  function insertMention(member: ChatToph) {
+  function insertMention(member: ChatJeff) {
     if (!mention) return;
     const next = `${value.slice(0, mention.start)}@${member.handle} `;
     onChange(next);
@@ -152,7 +152,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
   return (
     <div className="relative mx-auto flex w-full max-w-[860px] flex-col px-3 pt-1.5 pb-[18px] sm:px-7">
       {mention && mentionItems.length > 0 ? (
-        <div className="absolute bottom-full left-3 z-30 mb-2 w-[min(340px,calc(100vw-32px))] rounded-2xl border border-border-button-white bg-background-primary-default p-1 shadow-sidebar sm:left-7" role="listbox" aria-label="Mencionar Toph">
+        <div className="absolute bottom-full left-3 z-30 mb-2 w-[min(340px,calc(100vw-32px))] rounded-2xl border border-border-button-white bg-background-primary-default p-1 shadow-sidebar sm:left-7" role="listbox" aria-label="Mencionar Jeff">
           {mentionItems.map((member, index) => (
             <button
               key={member.id}
@@ -169,7 +169,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
                 <span className="truncate text-caption-1-semibold text-text-primary">{member.name}</span>
                 <span className="truncate text-caption-2-regular text-text-tertiary">@{member.handle}</span>
               </span>
-              <span className="shrink-0 text-caption-2-regular text-text-tertiary">{member.role || "Toph"}</span>
+              <span className="shrink-0 text-caption-2-regular text-text-tertiary">{member.role || "Jeff"}</span>
             </button>
           ))}
           <p className="mt-1 border-t border-separator-border px-2 py-1 text-[10px] text-text-tertiary">Enter insere · Esc fecha</p>

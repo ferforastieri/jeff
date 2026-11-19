@@ -22,6 +22,18 @@ impl Store {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
+        // Preserve the history of installs created before the Jeff rename.
+        if path.file_name().and_then(|name| name.to_str()) == Some("jeff.db") {
+            if let Some(parent) = path.parent() {
+                for suffix in ["", "-wal", "-shm"] {
+                    let legacy = parent.join(format!("toph.db{suffix}"));
+                    let current = parent.join(format!("jeff.db{suffix}"));
+                    if legacy.exists() && !current.exists() {
+                        let _ = std::fs::rename(&legacy, &current);
+                    }
+                }
+            }
+        }
         let options = SqliteConnectOptions::from_str(&path.to_string_lossy())
             .map_err(|error| crate::errors::internal(error.to_string()))?
             .create_if_missing(true)
@@ -47,7 +59,7 @@ impl Store {
             sqlx::query("ALTER TABLE db_profiles ADD COLUMN project_root TEXT NOT NULL DEFAULT ''")
                 .execute(&pool)
                 .await;
-        // Clean break from the old team/individual Toph model. New chat
+        // Clean break from the old team/individual Jeff model. New chat
         // messages use mode = 'chat' and are preserved.
         let _ = sqlx::query("DELETE FROM bot_messages WHERE mode <> 'chat'")
             .execute(&pool)

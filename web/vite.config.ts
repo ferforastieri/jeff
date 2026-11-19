@@ -5,9 +5,9 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { syncBrand } from "../packages/brand/assets.mjs";
 
-const apiTarget = process.env.TOPH_DEV_API || "http://127.0.0.1:8787";
-const tlsKey = process.env.TOPH_DEV_TLS_KEY;
-const tlsCert = process.env.TOPH_DEV_TLS_CERT;
+const apiTarget = process.env.JEFF_DEV_API || "http://127.0.0.1:8787";
+const tlsKey = process.env.JEFF_DEV_TLS_KEY;
+const tlsCert = process.env.JEFF_DEV_TLS_CERT;
 const https = tlsKey && tlsCert
   ? { key: readFileSync(tlsKey), cert: readFileSync(tlsCert) }
   : undefined;
@@ -20,7 +20,7 @@ const packageDir = (name) => dirname(require.resolve(`${name}/package.json`));
  * before Vite serves or builds, instead of keeping standalone scripts. */
 function localAssets() {
   return {
-    name: "toph-local-assets",
+    name: "jeff-local-assets",
     configResolved() {
       const monaco = resolve(here, "../node_modules/monaco-editor/min/vs");
       const monacoTarget = resolve(here, "public/monaco");
@@ -64,6 +64,6 @@ export default defineConfig({
   build: {
     outDir: resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
-    sourcemap: process.env.TOPH_SOURCEMAP === "true",
+    sourcemap: process.env.JEFF_SOURCEMAP === "true",
   },
 });

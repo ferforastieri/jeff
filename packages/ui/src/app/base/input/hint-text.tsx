@@ -3,7 +3,7 @@
 import type { ReactNode, Ref } from "react";
 import type { TextProps as AriaTextProps } from "react-aria-components";
 import { Text as AriaText } from "react-aria-components";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 
 /**
  * Caption text rendered below a field. Wraps `react-aria-components`' Text

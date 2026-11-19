@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown } from "@toph/icons";
+import { Check, ChevronDown } from "@jeff/icons";
 import type { AIModel } from "../../../shared/api";
 import { modelGroup, providerLabel } from "../store";
 import ProviderIcon from "./ProviderIcon";
-import { cx } from "@toph/ui/app/utils/cx";
-import { Slider } from "@toph/ui/app";
+import { cx } from "@jeff/ui/app/utils/cx";
+import { Slider } from "@jeff/ui/app";
 
 const EFFORT_LABEL: Record<string, string> = {
   minimal: "Mínimo",

@@ -1,5 +1,5 @@
-import { Bot, Boxes, Files, GitBranch, MoreHorizontal } from "@toph/icons";
-import { cx } from "@toph/ui";
+import { Bot, Boxes, Files, GitBranch, MoreHorizontal } from "@jeff/icons";
+import { cx } from "@jeff/ui";
 import type { ComponentType } from "react";
 import type { MobileScreen } from "./mobile-nav";
 
@@ -11,13 +11,13 @@ interface Props {
 const tabs: Array<{ id: MobileScreen; label: string; icon: ComponentType<{ className?: string }> }> = [
   { id: "workspace", label: "Trabalho", icon: Boxes },
   { id: "scm", label: "Git", icon: GitBranch },
-  { id: "bots", label: "Toph", icon: Bot },
+  { id: "bots", label: "Jeff", icon: Bot },
   { id: "files", label: "Arquivos", icon: Files },
   { id: "more", label: "Mais", icon: MoreHorizontal },
 ];
 
 const moreScreens: MobileScreen[] = ["db", "web", "debug", "more"];
-const MARK = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=5`;
+const MARK = `${import.meta.env.BASE_URL}brand/jeff-mark-eyeless.png?v=5`;
 
 /**
  * The always-there mobile tab bar, in the native tab bar's shape: labels under
@@ -48,7 +48,7 @@ export default function MobileBottomNav({ screen, onSelect }: Props) {
             >
               {item.id === "bots" ? (
                 <span
-                  className="toph-tab-mark"
+                  className="jeff-tab-mark"
                   style={{
                     WebkitMaskImage: `url("${MARK}")`,
                     maskImage: `url("${MARK}")`,
@@ -56,7 +56,7 @@ export default function MobileBottomNav({ screen, onSelect }: Props) {
                   aria-hidden="true"
                 />
               ) : (
-                <Icon className="toph-tab-icon" />
+                <Icon className="jeff-tab-icon" />
               )}
               <span className={cx("max-w-full truncate text-[10px] leading-3", active ? "font-semibold" : "font-medium")}>{item.label}</span>
             </button>

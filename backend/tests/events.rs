@@ -3,10 +3,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
+use jeff_server::config::Config;
 use reqwest::cookie::{CookieStore, Jar};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::header::COOKIE;
-use toph_server::config::Config;
 
 #[tokio::test]
 async fn external_file_changes_are_streamed_over_websocket() {
@@ -19,7 +19,7 @@ async fn external_file_changes_are_streamed_over_websocket() {
         "secret".into(),
         "127.0.0.1:0".into(),
     );
-    let server = toph_server::start_embedded(config).await.unwrap();
+    let server = jeff_server::start_embedded(config).await.unwrap();
     let origin = format!("http://{}", server.addr);
     let jar = Arc::new(Jar::default());
     let client = reqwest::Client::builder()

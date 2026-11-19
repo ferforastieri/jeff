@@ -6,14 +6,14 @@ interface NativeInsets {
   keyboard?: number;
 }
 
-interface TophInsetsBridge {
+interface JeffInsetsBridge {
   insets?: () => string;
 }
 
 let installed = false;
 
 function readInsets(): NativeInsets | null {
-  const bridge = (window as unknown as { TophInsets?: TophInsetsBridge }).TophInsets;
+  const bridge = (window as unknown as { JeffInsets?: JeffInsetsBridge }).JeffInsets;
   if (!bridge?.insets) return null;
   try {
     const parsed = JSON.parse(bridge.insets()) as Partial<NativeInsets>;

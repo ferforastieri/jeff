@@ -33,7 +33,7 @@ struct ProcEntry {
     cwd: Option<PathBuf>,
 }
 
-/// Terminates processes owned by the Toph user whose working directory is
+/// Terminates processes owned by the Jeff user whose working directory is
 /// inside the project. This complements the tracked terminal/debug sessions:
 /// a dev server opened manually from a shell is still inside the project.
 #[cfg(not(windows))]

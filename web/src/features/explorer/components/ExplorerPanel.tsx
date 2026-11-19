@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Files, FilePlus2, FolderOpen, FolderPlus } from "@toph/icons";
-import { Button } from "@toph/ui/app";
+import { Files, FilePlus2, FolderOpen, FolderPlus } from "@jeff/icons";
+import { Button } from "@jeff/ui/app";
 import { createPortal } from "react-dom";
-import { Modal } from "@toph/ui/app";
+import { Modal } from "@jeff/ui/app";
 import type { FileEntry, GitHistoryEntry, Project, SearchMatch } from "../../../shared/api";
 import { api } from "../../../shared/api";
 import { changeStatusByPath } from "../../git/status";
@@ -14,8 +14,8 @@ import { basename, dirname } from "../../../shared/lib";
 import LoadingState from "../../../shared/ui/LoadingState";
 import { useConfirm } from "../../../shared/ui/confirm";
 import SidebarHeader from "../../../app/components/SidebarHeader";
-import { ProgressBar } from "@toph/ui/app";
-import { Accordion, AccordionItem } from "@toph/ui/app";
+import { ProgressBar } from "@jeff/ui/app";
+import { Accordion, AccordionItem } from "@jeff/ui/app";
 
 interface Props {
   project: Project;
@@ -155,8 +155,8 @@ export default function ExplorerPanel({
         .catch(() => undefined);
     };
     loadStatus();
-    window.addEventListener("toph:git-changed", loadStatus);
-    return () => { cancelled = true; window.removeEventListener("toph:git-changed", loadStatus); };
+    window.addEventListener("jeff:git-changed", loadStatus);
+    return () => { cancelled = true; window.removeEventListener("jeff:git-changed", loadStatus); };
   }, [onStatusChange, project.id]);
 
   useEffect(() => {
@@ -239,7 +239,7 @@ export default function ExplorerPanel({
       }
       setSelected(null);
       publishFiles(parentPath(entry.path));
-      window.dispatchEvent(new Event("toph:git-changed"));
+      window.dispatchEvent(new Event("jeff:git-changed"));
       notify("success", entry.dir
         ? `Pasta ${entry.path} excluída com o conteúdo.`
         : `Arquivo ${entry.path} excluído.`);
@@ -446,8 +446,8 @@ export default function ExplorerPanel({
       if (action === "new-file") void newFile(selected);
       else if (action === "new-folder") void newFolder(selected);
     };
-    window.addEventListener("toph:explorer-action", handler);
-    return () => window.removeEventListener("toph:explorer-action", handler);
+    window.addEventListener("jeff:explorer-action", handler);
+    return () => window.removeEventListener("jeff:explorer-action", handler);
   }, [selected]);
 
   function handleDragOver(event: React.DragEvent<HTMLDivElement>) {

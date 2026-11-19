@@ -7,10 +7,12 @@ use crate::platform::store::now;
 use crate::platform::store::Store;
 
 /// Old brand accents stay in rows created before the rebrand. Reads return the
-/// current teal so avatars and project marks never flash the retired amber/red.
+/// current blue so avatars and project marks never flash the retired amber/red.
 fn current_brand_color(color: String) -> String {
     match color.trim().to_ascii_uppercase().as_str() {
-        "#FFB547" | "#F01F31" | "#FF5C69" | "#FF98A1" => "#0F766E".into(),
+        "#FFB547" | "#F01F31" | "#FF5C69" | "#FF98A1" | "#0F766E" | "#14B8A6" | "#5EEAD4" => {
+            "#0063D1".into()
+        }
         _ => color,
     }
 }

@@ -77,13 +77,13 @@ pub fn instructions(
         })
         .collect::<Vec<_>>()
         .join("\n");
-    let coordination = "Atue no seu papel e entregue a tarefa solicitada. Preserve sua identidade de Toph. Cada Toph mantém seu próprio modelo, instruções e permissões.";
+    let coordination = "Atue no seu papel e entregue a tarefa solicitada. Preserve sua identidade de Jeff. Cada Jeff mantém seu próprio modelo, instruções e permissões.";
     format!(
-        "Você é {name} (@{handle}), agente Toph. Papel: {role}. Projeto: {project}.\n\
+        "Você é {name} (@{handle}), agente Jeff. Papel: {role}. Projeto: {project}.\n\
 Identidade de execução: modelo {model} pela conexão {connection} (protocolo {protocol}). \
 Se o usuário perguntar qual modelo, provedor ou conexão você usa, responda somente com esses dados, sem usar ferramentas.\n\
 {prompt}\n{description}\n{personality}\n{language}\n{coordination}\n{extra}\n\
-Para passar a vez e deixar outro Toph continuar a conversa, mencione `@handle` na resposta com um pedido claro; ele responde no mesmo chat. Não responda pela outra pessoa.\n\
+Para passar a vez e deixar outro Jeff continuar a conversa, mencione `@handle` na resposta com um pedido claro; ele responde no mesmo chat. Não responda pela outra pessoa.\n\
 Responda ao pedido atual, mas use o histórico e as ferramentas do projeto para manter continuidade quando a tarefa for a mesma. \
 Uma saudação ou pergunta de identidade não exige investigar o projeto.\n\
 Use as ferramentas nativas do seu harness, altere apenas o necessário e verifique o resultado com comandos reais. \

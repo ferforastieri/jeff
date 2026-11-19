@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { MessageSquarePlus } from "@toph/icons";
+import { MessageSquarePlus } from "@jeff/icons";
 import type { Project } from "../../../shared/api";
 import { useChats } from "../../../features/conversations/store";
 import { projectSessions } from "../../../features/conversations/sessions";
 import { agentApi, type HarnessSession } from "../../../features/agents/api";
 import { ensureChatSubjects } from "../../../features/conversations/subjects";
-import { ensureToph } from "../../../features/agents/default-toph";
+import { ensureJeff } from "../../../features/agents/default-jeff";
 import { useActiveSessionIds } from "../../../features/agents/useActiveSessionIds";
 import SessionRow from "../../../features/conversations/components/SessionRow";
-import { Button } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
 import { useApp } from "../../store";
 
 interface Props {
@@ -19,7 +19,7 @@ interface Props {
   onSelected: () => void;
 }
 
-/** Mobile sessions sheet: every task of the project's Toph, newest first. */
+/** Mobile sessions sheet: every task of the project's Jeff, newest first. */
 export default function MobileConversationsSheet({ open, project, onClose, onSelected }: Props) {
   const chats = useChats((state) => state.byProject[project.id]);
   const ensure = useChats((state) => state.ensure);
@@ -79,9 +79,9 @@ export default function MobileConversationsSheet({ open, project, onClose, onSel
   }
 
   function newTask() {
-    const toph = ensureToph(project.id);
-    if (!toph) return;
-    const created = createConversation(project.id, [toph.id]);
+    const jeff = ensureJeff(project.id);
+    if (!jeff) return;
+    const created = createConversation(project.id, [jeff.id]);
     if (created) select(created.id);
   }
 

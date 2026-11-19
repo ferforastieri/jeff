@@ -1,11 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ExternalLink, Globe2, Plus, Trash2 } from "@toph/icons";
+import { ExternalLink, Globe2, Plus, Trash2 } from "@jeff/icons";
 import { api, type WebTarget } from "../../../shared/api";
 import { useApp } from "../../../app/store";
 import { useConfirm } from "../../../shared/ui/confirm";
-import { Button } from "@toph/ui/app";
-import { IconLinkButton } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { IconLinkButton } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
 import { normalizeHttpUrl } from "../../../shared/lib";
 import SidebarHeader from "../../../app/components/SidebarHeader";
 
@@ -47,7 +47,7 @@ export default function WebSidebar({ onOpenWeb, embedded = false, headerControl 
           <div className="bg-background-secondary-default m-1 flex flex-col items-center gap-2 rounded-lg border p-6 text-center">
             <span className="flex size-9 items-center justify-center rounded-full bg-background-tertiary-default text-foreground-icon-secondary"><Globe2 size={20} /></span>
             <strong className="text-body-medium text-text-primary">Nenhum web app</strong>
-            <p className="text-caption-1-regular text-text-secondary">Adicione uma URL para abrir dentro do Toph.</p>
+            <p className="text-caption-1-regular text-text-secondary">Adicione uma URL para abrir dentro do Jeff.</p>
             <Button variant="secondary" size="small" onClick={() => setShowForm(true)}>Adicionar web app</Button>
           </div>
         )}
@@ -74,7 +74,7 @@ function WebTargetForm({ onCreated }: { onCreated: () => void }) {
     <form className="flex shrink-0 flex-col gap-2 border-b p-2" onSubmit={submit}>
       <Input placeholder="Nome" value={name} onChange={setName} isRequired />
       <Input placeholder="grafana.home.arpa ou https://app.exemplo.com" value={url} onChange={setUrl} isRequired />
-      <p className="px-1 text-[10px] leading-relaxed text-text-tertiary">Pode colar sem esquema: usamos http para endereços locais e https para os demais. O preview abre pelo servidor Toph, então <code>localhost</code> é o servidor; para um dev server no seu computador, use o IP da rede ou um túnel.</p>
+      <p className="px-1 text-[10px] leading-relaxed text-text-tertiary">Pode colar sem esquema: usamos http para endereços locais e https para os demais. O preview abre pelo servidor Jeff, então <code>localhost</code> é o servidor; para um dev server no seu computador, use o IP da rede ou um túnel.</p>
       <Button type="submit" size="small" disabled={busy} className="w-full">{busy ? "Adicionando..." : "Adicionar web app"}</Button>
     </form>
   );

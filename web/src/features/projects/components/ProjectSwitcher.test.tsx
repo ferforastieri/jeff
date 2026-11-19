@@ -29,7 +29,7 @@ const created = {
   id: "p1",
   name: "novo",
   root: "/work/repos/novo",
-  color: "#0F766E",
+  color: "#0063D1",
   createdAt: new Date(0).toISOString(),
   updatedAt: new Date(0).toISOString(),
 };

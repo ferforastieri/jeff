@@ -1,10 +1,10 @@
 use axum::{extract::State, http::header, routing::post, Json, Router};
-use serde_json::{json, Value};
-use std::sync::{Arc, Mutex};
-use toph_server::{
+use jeff_server::{
     ai::{AiConfig, AiService},
     store::Store,
 };
+use serde_json::{json, Value};
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 struct Wire {

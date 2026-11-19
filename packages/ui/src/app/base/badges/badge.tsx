@@ -1,5 +1,5 @@
 import type { HTMLAttributes, Ref } from "react";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 
 type BadgeColor = "primary" | "neutral";
 
@@ -8,7 +8,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   ref?: Ref<HTMLSpanElement>;
 }
 
-/** A small count, drawn as the Tophs count chip. */
+/** A small count, drawn as the Jeffs count chip. */
 export function Badge({ color = "neutral", className, ref, ...props }: BadgeProps) {
   return (
     <span

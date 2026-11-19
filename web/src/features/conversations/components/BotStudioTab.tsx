@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowDown, Bot, LoaderCircle, Timer } from "@toph/icons";
+import { ArrowDown, Bot, LoaderCircle, Timer } from "@jeff/icons";
 import type { Project } from "../../../shared/api";
 import { ApiError } from "../../../shared/api";
-import { chatDisplayName, chatTophs, sessionSubject, useChats } from "../store";
+import { chatDisplayName, chatJeffs, sessionSubject, useChats } from "../store";
 import { defaultModel, useAI } from "../../providers/store";
-import { useTophDrafts } from "../../agents/drafts";
+import { useJeffDrafts } from "../../agents/drafts";
 import { agentApi, isActive, type NativeMessage } from "../../agents/api";
 import { useAgentChat } from "../../agents/useAgentChat";
 import { AgentComposer, type AgentAttachment } from "./AgentComposer";
@@ -14,8 +14,8 @@ import ConversationEffortPicker from "./ConversationEffortPicker";
 import ApprovalCard from "./ApprovalCard";
 import BotAvatar from "../../agents/components/BotAvatar";
 import { unlockBotSound } from "../sound";
-import { Button } from "@toph/ui/app";
-import { cx } from "@toph/ui";
+import { Button } from "@jeff/ui/app";
+import { cx } from "@jeff/ui";
 
 interface Props {
   project: Project;
@@ -30,7 +30,7 @@ interface Props {
 export default function BotStudioTab({ project, conversationId, mobile = false, embedded = false, compact = false, debug = false, headerControl }: Props) {
   const stored = useChats((s) => s.byProject[project.id]);
   const chat = stored?.chats.find((item) => item.id === conversationId) ?? null;
-  const tophs = useMemo(() => chatTophs(stored, conversationId), [stored?.tophs, stored?.chats, conversationId]);
+  const jeffs = useMemo(() => chatJeffs(stored, conversationId), [stored?.jeffs, stored?.chats, conversationId]);
   const config = useAI((s) => s.config);
   const models = useAI((s) => s.models);
   const modelError = useAI((s) => s.error);
@@ -39,9 +39,9 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   const [atBottom, setAtBottom] = useState(true);
   const [queued, setQueued] = useState<Array<{ text: string; attachments: AgentAttachment[] }>>([]);
   const draftKey = `${project.id}:${chat?.id ?? ""}:native`;
-  const text = useTophDrafts((s) => s.drafts[draftKey] ?? "");
-  const setDraft = useTophDrafts((s) => s.setDraft);
-  const clearDraft = useTophDrafts((s) => s.clearDraft);
+  const text = useJeffDrafts((s) => s.drafts[draftKey] ?? "");
+  const setDraft = useJeffDrafts((s) => s.setDraft);
+  const clearDraft = useJeffDrafts((s) => s.clearDraft);
   const busy = native.busy || sending;
   const scroller = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -78,8 +78,8 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
 
   useEffect(() => {
     const refresh = () => { void native.refresh(true); };
-    window.addEventListener("toph:refresh-chat", refresh);
-    return () => window.removeEventListener("toph:refresh-chat", refresh);
+    window.addEventListener("jeff:refresh-chat", refresh);
+    return () => window.removeEventListener("jeff:refresh-chat", refresh);
   }, [native.refresh]);
   useEffect(() => () => window.clearTimeout(settleTimer.current), []);
   useEffect(() => {
@@ -139,9 +139,9 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   const [optimistic, setOptimistic] = useState<NativeMessage | null>(null);
 
   async function sendNow(value: string, attachments: AgentAttachment[]) {
-    if (!chat || !tophs.length || sendLock.current) return;
+    if (!chat || !jeffs.length || sendLock.current) return;
     if (value.trim() === "/clear") {
-      await Promise.all(tophs.map((toph) => agentApi.switchSession(project.id, toph.id, null, chat.id).catch(() => undefined)));
+      await Promise.all(jeffs.map((jeff) => agentApi.switchSession(project.id, jeff.id, null, chat.id).catch(() => undefined)));
       clearDraft(draftKey);
       await native.refresh(true);
       return;
@@ -151,13 +151,13 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
     const subject = sessionSubject(value);
     if (subject && !chat.subject?.trim()) useChats.getState().updateChat(project.id, chat.id, { subject });
     useChats.getState().touchConversation(project.id, chat.id);
-    const identity = JSON.stringify([chat.id, "router", value, attachments, tophs.map((toph) => toph.id)]);
+    const identity = JSON.stringify([chat.id, "router", value, attachments, jeffs.map((jeff) => jeff.id)]);
     const requestId = pendingRequest.current?.text === identity ? pendingRequest.current.id : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
     pendingRequest.current = { text: identity, id: requestId };
     setOptimistic({
       id: `optimistic-${requestId}`,
       chatId: chat.id,
-      tophId: tophs[0]?.id,
+      jeffId: jeffs[0]?.id,
       role: "user",
       content: value,
       status: "running",
@@ -165,7 +165,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
       seq: 9_000_000_000,
     });
     try {
-      const settings = chat.tophSettings ?? {};
+      const settings = chat.jeffSettings ?? {};
       const fallbackModel = defaultModel(models, config);
       await agentApi.start(project.id, {
         requestId,
@@ -173,11 +173,11 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         agentId: "router",
         text: value,
         mode: debug ? "debug" : undefined,
-        agents: tophs.map((toph) => ({
-          ...toph,
-          model: settings[toph.id]?.model || toph.model || fallbackModel,
-          effort: settings[toph.id]?.effort ?? toph.effort,
-          engine: settings[toph.id]?.engine || toph.engine || "opencode",
+        agents: jeffs.map((jeff) => ({
+          ...jeff,
+          model: settings[jeff.id]?.model || jeff.model || fallbackModel,
+          effort: settings[jeff.id]?.effort ?? jeff.effort,
+          engine: settings[jeff.id]?.engine || jeff.engine || "opencode",
           chatId: chat.id,
         })),
         attachments,
@@ -212,7 +212,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   }, [busy, queued]);
 
   async function send(value: string, attachments: AgentAttachment[]) {
-    if (!chat || !tophs.length) return;
+    if (!chat || !jeffs.length) return;
     if (busy) {
       setQueued((current) => [...current, { text: value, attachments }]);
       clearDraft(draftKey);
@@ -249,7 +249,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         <div className="flex max-w-sm flex-col items-center gap-2 text-center">
           <span className="flex size-11 items-center justify-center rounded-2xl bg-background-secondary-default text-text-tertiary"><Bot size={20} /></span>
           <strong className="text-title-3-medium text-text-primary">Conversa não encontrada</strong>
-          <p className="text-caption-1-regular text-text-secondary">Ela pode ter sido apagada. Escolha um Toph na barra ao lado.</p>
+          <p className="text-caption-1-regular text-text-secondary">Ela pode ter sido apagada. Escolha um Jeff na barra ao lado.</p>
         </div>
       </div>
     );
@@ -264,7 +264,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
       <div className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={scroller}
-          data-toph-scroller
+          data-jeff-scroller
           className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-x-none"
           onScroll={(event) => {
             const el = event.currentTarget;
@@ -285,20 +285,20 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
             if (event.currentTarget.scrollTop < touchStartTop.current - 4) follow.current = false;
           }}
         >
-          <div key={chat.id} ref={contentRef} className={cx("toph-view-in mx-auto flex min-h-full w-full min-w-0 max-w-[860px] flex-col gap-2 overflow-x-hidden [&_img]:max-w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto", mobile ? "px-3 pt-4 pb-3" : compact ? (embedded ? "px-4 pt-10 pb-2" : "px-4 pt-4 pb-2") : "px-7 pt-6 pb-3")}>
+          <div key={chat.id} ref={contentRef} className={cx("jeff-view-in mx-auto flex min-h-full w-full min-w-0 max-w-[860px] flex-col gap-2 overflow-x-hidden [&_img]:max-w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto", mobile ? "px-3 pt-4 pb-3" : compact ? (embedded ? "px-4 pt-10 pb-2" : "px-4 pt-4 pb-2") : "px-7 pt-6 pb-3")}>
             {native.hasMore && <Button variant="ghost" size="small" disabled={native.loading} onClick={older}>{native.loading ? <><LoaderCircle size={14} className="animate-spin" /> Carregando mensagens antigas…</> : "Carregar mensagens anteriores"}</Button>}
             {!stored?.hydrated ? <div className="my-auto flex items-center justify-center gap-2 py-8 text-caption-1-regular text-text-tertiary"><LoaderCircle size={16} className="animate-spin" /> Carregando conversas…</div>
-              : !tophs.length ? <div className="my-auto flex flex-col items-center gap-3 px-6 py-10 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Bot size={22} /></span><strong className="text-title-3-medium">Esta conversa ficou sem Tophs.</strong><p className="max-w-sm text-caption-1-regular text-text-secondary">Adicione um Toph nas configurações da conversa.</p></div>
+              : !jeffs.length ? <div className="my-auto flex flex-col items-center gap-3 px-6 py-10 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Bot size={22} /></span><strong className="text-title-3-medium">Esta conversa ficou sem Jeffs.</strong><p className="max-w-sm text-caption-1-regular text-text-secondary">Adicione um Jeff nas configurações da conversa.</p></div>
               : !native.messages.length && !busy ? (debug
-                  ? <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{tophs.slice(0, 4).map((toph) => <BotAvatar key={toph.id} bot={toph} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Conte o que está acontecendo.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Descreva o bug, o que esperava e como reproduzir. O Toph instrumenta o código, roda os comandos no terminal e mostra tudo em tempo real — você não precisa configurar breakpoints.</p></div>
-                  : <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{tophs.slice(0, 4).map((toph) => <BotAvatar key={toph.id} bot={toph} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Escreva sua mensagem.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Pergunte, peça uma alteração ou anexe um arquivo. Cada conversa tem o próprio histórico.</p></div>) : null}
-            <ChatMessages messages={optimistic ? [...native.messages, optimistic] : native.messages} tophs={tophs} runs={native.runs} project={project} mobile={mobile} compact={compact} questions={native.questions} onAnswer={(id, answer) => { void agentApi.answer(project.id, id, answer).catch((e) => native.setError(String(e))); }} />
-            {native.approvals.map((approval) => <ApprovalCard key={approval.id} agentName={tophs.find((a) => a.id === approval.agentId)?.name ?? "Toph"} name={approval.name} arguments={approval.arguments} onApprove={() => void agentApi.approve(project.id, approval.id, true).catch((e) => native.setError(String(e)))} onReject={() => void agentApi.approve(project.id, approval.id, false).catch((e) => native.setError(String(e)))} />)}
+                  ? <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{jeffs.slice(0, 4).map((jeff) => <BotAvatar key={jeff.id} bot={jeff} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Conte o que está acontecendo.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Descreva o bug, o que esperava e como reproduzir. O Jeff instrumenta o código, roda os comandos no terminal e mostra tudo em tempo real — você não precisa configurar breakpoints.</p></div>
+                  : <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{jeffs.slice(0, 4).map((jeff) => <BotAvatar key={jeff.id} bot={jeff} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Escreva sua mensagem.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Pergunte, peça uma alteração ou anexe um arquivo. Cada conversa tem o próprio histórico.</p></div>) : null}
+            <ChatMessages messages={optimistic ? [...native.messages, optimistic] : native.messages} jeffs={jeffs} runs={native.runs} project={project} mobile={mobile} compact={compact} questions={native.questions} onAnswer={(id, answer) => { void agentApi.answer(project.id, id, answer).catch((e) => native.setError(String(e))); }} />
+            {native.approvals.map((approval) => <ApprovalCard key={approval.id} agentName={jeffs.find((a) => a.id === approval.agentId)?.name ?? "Jeff"} name={approval.name} arguments={approval.arguments} onApprove={() => void agentApi.approve(project.id, approval.id, true).catch((e) => native.setError(String(e)))} onReject={() => void agentApi.approve(project.id, approval.id, false).catch((e) => native.setError(String(e)))} />)}
             {native.compacting && <p role="status" className="text-center text-caption-2-regular text-text-tertiary">Compactando contexto; histórico preservado…</p>}
             {(bannerError || lastError) && <p role="alert" className="rounded-xl border border-red-500/30 p-3 text-sm text-red-500">{bannerError || `Última execução: ${lastError}`}</p>}
           </div>
         </div>
-        {tophs.length > 0 && !atBottom && <button type="button" onClick={() => { follow.current = true; setAtBottom(true); scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }); }} className="absolute bottom-3 left-1/2 z-10 flex size-8 -translate-x-1/2 items-center justify-center rounded-full border border-border-button-default bg-background-secondary-default text-text-secondary shadow-sidebar" aria-label="Ir para o fim da conversa"><ArrowDown size={15} /></button>}
+        {jeffs.length > 0 && !atBottom && <button type="button" onClick={() => { follow.current = true; setAtBottom(true); scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }); }} className="absolute bottom-3 left-1/2 z-10 flex size-8 -translate-x-1/2 items-center justify-center rounded-full border border-border-button-default bg-background-secondary-default text-text-secondary shadow-sidebar" aria-label="Ir para o fim da conversa"><ArrowDown size={15} /></button>}
       </div>
       {queued.length > 0 ? (
         <div className="mx-auto w-full max-w-[860px] px-3 pt-1.5">
@@ -312,13 +312,13 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
           </div>
         </div>
       ) : null}
-      {tophs.length > 0 && <div className="shrink-0">
+      {jeffs.length > 0 && <div className="shrink-0">
         {modelError && <p role="alert" className="px-3 text-xs text-text-error-primary">{modelError}</p>}
         <AgentComposer value={text} onChange={(value) => setDraft(draftKey, value)} onSend={(value, files) => void send(value, files)} onStop={() => void stop()} busy={busy}
-          placeholder={debug ? "Descreva o bug e como ele acontece…" : "Pergunte ao Toph…"}
+          placeholder={debug ? "Descreva o bug e como ele acontece…" : "Pergunte ao Jeff…"}
           history={native.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          leadingControls={debug ? undefined : <><ChatModelUsage projectId={project.id} chat={chat!} tophs={tophs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} tophs={tophs} /></>}
-          members={tophs} />
+          leadingControls={debug ? undefined : <><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /></>}
+          members={jeffs} />
       </div>}
     </section>
   </div>;

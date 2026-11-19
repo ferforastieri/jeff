@@ -7,7 +7,7 @@ use tokio::process::Command;
 use crate::errors::{bad_request, AppError, AppResult};
 
 /// External agent harnesses. Only the ones marked `supported` are wired to the
-/// Toph runtime; the rest are listed so the UI can show what is installed and
+/// Jeff runtime; the rest are listed so the UI can show what is installed and
 /// how to install it.
 #[derive(Clone, Copy)]
 pub struct Engine {
@@ -83,7 +83,7 @@ pub const ENGINES: &[Engine] = &[
         label: "Antigravity CLI",
         binary: "agy",
         login: "agy",
-        install: "curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/toph-antigravity-install.sh && bash /tmp/toph-antigravity-install.sh",
+        install: "curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/jeff-antigravity-install.sh && bash /tmp/jeff-antigravity-install.sh",
         site: "https://antigravity.google/docs/cli/",
         supported: true,
     },
@@ -453,7 +453,7 @@ fn antigravity_usage_data(groups: &[Value]) -> Value {
 }
 
 /// The OpenCode Go allowance. The local OpenCode service exposes the rolling,
-/// weekly and monthly windows as used percentages; Toph shows what is left.
+/// weekly and monthly windows as used percentages; Jeff shows what is left.
 pub async fn limits(id: &str) -> AppResult<Value> {
     let engine = engine(id)?;
     let Some(binary) = find_binary(engine.binary) else {

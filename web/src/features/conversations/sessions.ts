@@ -1,8 +1,8 @@
-import { chatSessionTitle, type ProjectChats, type TophChat } from "./store";
+import { chatSessionTitle, type ProjectChats, type JeffChat } from "./store";
 
-/** One row of the Toph screen: a task and everything the list says about it. */
+/** One row of the Jeff screen: a task and everything the list says about it. */
 export interface SessionEntry {
-  chat: TophChat;
+  chat: JeffChat;
   title: string;
   /** The last message's time, or when the session was last opened while empty. */
   activityAt: number;

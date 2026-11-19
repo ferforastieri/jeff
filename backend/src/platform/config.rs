@@ -27,7 +27,7 @@ pub struct Config {
 
 impl Config {
     pub fn load() -> Result<Self> {
-        let data_dir = absolute_path(env_or("TOPH_DATA_DIR", "./data"));
+        let data_dir = absolute_path(env_or("JEFF_DATA_DIR", "./data"));
         std::fs::create_dir_all(&data_dir)
             .with_context(|| format!("create data dir {}", data_dir.display()))?;
         #[cfg(unix)]
@@ -36,25 +36,25 @@ impl Config {
             let _ = std::fs::set_permissions(&data_dir, std::fs::Permissions::from_mode(0o700));
         }
 
-        let roots = split_roots(&env_or("TOPH_WORKSPACES", "/workspaces"));
+        let roots = split_roots(&env_or("JEFF_WORKSPACES", "/workspaces"));
         if roots.is_empty() {
-            anyhow::bail!("TOPH_WORKSPACES must contain at least one directory");
+            anyhow::bail!("JEFF_WORKSPACES must contain at least one directory");
         }
 
-        let update_repo = env_or("TOPH_UPDATE_REPO", "ferforastieri/toph");
+        let update_repo = env_or("JEFF_UPDATE_REPO", "ferforastieri/jeff");
         Ok(Self {
-            addr: env_or("TOPH_ADDR", "127.0.0.1:8787"),
+            addr: env_or("JEFF_ADDR", "127.0.0.1:8787"),
             workspace_roots: roots,
-            admin_password: env::var("TOPH_ADMIN_PASSWORD").unwrap_or_default(),
-            secure_cookies: env_bool("TOPH_SECURE_COOKIES", false),
+            admin_password: env::var("JEFF_ADMIN_PASSWORD").unwrap_or_default(),
+            secure_cookies: env_bool("JEFF_SECURE_COOKIES", false),
             trusted_proxies: parse_trusted_proxies(
-                &env::var("TOPH_TRUSTED_PROXIES").unwrap_or_default(),
+                &env::var("JEFF_TRUSTED_PROXIES").unwrap_or_default(),
             ),
-            web_dir: non_empty_env("TOPH_WEB_DIR").map(PathBuf::from),
-            firebase_file: non_empty_env("TOPH_FIREBASE_CREDENTIALS_FILE").map(PathBuf::from),
-            firebase_project: env::var("TOPH_FIREBASE_PROJECT_ID").unwrap_or_default(),
+            web_dir: non_empty_env("JEFF_WEB_DIR").map(PathBuf::from),
+            firebase_file: non_empty_env("JEFF_FIREBASE_CREDENTIALS_FILE").map(PathBuf::from),
+            firebase_project: env::var("JEFF_FIREBASE_PROJECT_ID").unwrap_or_default(),
             master_key_file: data_dir.join("master.key"),
-            build_id: env::var("TOPH_BUILD_ID")
+            build_id: env::var("JEFF_BUILD_ID")
                 .ok()
                 .filter(|value| !value.trim().is_empty())
                 .unwrap_or_else(|| {
@@ -68,12 +68,12 @@ impl Config {
                 }),
             update_repo,
             update_helper: PathBuf::from(env_or(
-                "TOPH_UPDATE_HELPER",
-                "/usr/local/lib/toph/update.sh",
+                "JEFF_UPDATE_HELPER",
+                "/usr/local/lib/jeff/update.sh",
             )),
             update_path_unit: PathBuf::from(env_or(
-                "TOPH_UPDATE_PATH_UNIT",
-                "/etc/systemd/system/toph-update.path",
+                "JEFF_UPDATE_PATH_UNIT",
+                "/etc/systemd/system/jeff-update.path",
             )),
             update_request: data_dir.join("update.request"),
             update_state: data_dir.join("update-state.json"),
@@ -95,11 +95,11 @@ impl Config {
             secure_cookies: false,
             trusted_proxies: vec!["127.0.0.1/32".parse().expect("valid loopback prefix")],
             web_dir: None,
-            firebase_file: env::var("TOPH_FIREBASE_CREDENTIALS_FILE")
+            firebase_file: env::var("JEFF_FIREBASE_CREDENTIALS_FILE")
                 .ok()
                 .filter(|value| !value.is_empty())
                 .map(PathBuf::from),
-            firebase_project: env::var("TOPH_FIREBASE_PROJECT_ID").unwrap_or_default(),
+            firebase_project: env::var("JEFF_FIREBASE_PROJECT_ID").unwrap_or_default(),
             master_key_file: data_dir.join("master.key"),
             build_id: format!(
                 "local-{}",
@@ -108,7 +108,7 @@ impl Config {
                     .map(|value| value.as_millis())
                     .unwrap_or(0)
             ),
-            update_repo: "ferforastieri/toph".into(),
+            update_repo: "ferforastieri/jeff".into(),
             update_helper: PathBuf::new(),
             update_path_unit: PathBuf::new(),
             update_request: data_dir.join("update.request"),

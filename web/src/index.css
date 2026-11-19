@@ -1,7 +1,7 @@
 /* The app's one stylesheet: plain CSS, no Tailwind. styles/app.css is the
    compile-time snapshot of the kit, the tokens and the screens' existing
-   utilities; styles/tophs-settings.css holds the Tophs settings blocks and
+   utilities; styles/jeffs-settings.css holds the Jeffs settings blocks and
    the new rules, imported after it so they win. */
 @import "./styles/app.css";
-@import "./styles/tophs-settings.css";
-@import "./styles/tophs-effects.css";
+@import "./styles/jeffs-settings.css";
+@import "./styles/jeffs-effects.css";

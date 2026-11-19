@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Bell, FolderGit2, FolderPlus, LoaderCircle, X } from "@toph/icons";
+import { Bell, FolderGit2, FolderPlus, LoaderCircle, X } from "@jeff/icons";
 import { api, ApiError, type Repository } from "../../../shared/api";
 import { useApp } from "../../../app/store";
-import ProjectTophAvatar from "./ProjectTophAvatar";
-import { Button, Checkbox, Input, Select, SelectItem } from "@toph/ui/app";
-import { SearchField } from "@toph/ui";
+import ProjectJeffAvatar from "./ProjectJeffAvatar";
+import { Button, Checkbox, Input, Select, SelectItem } from "@jeff/ui/app";
+import { SearchField } from "@jeff/ui";
 import NotificationBadge from "../../notifications/components/NotificationBadge";
 
 interface Props {
@@ -120,7 +120,7 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
       let project = projects.find((item) => item.root === repo.path);
       if (!project) {
         try {
-          project = await api.createProject(repo.name, repo.path, "#0F766E");
+          project = await api.createProject(repo.name, repo.path, "#0063D1");
         } catch (err) {
           if (!(err instanceof ApiError) || err.status !== 409) throw err;
           const next = await api.projects();
@@ -252,7 +252,7 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
                 onClick={() => onSelect(item.id)}
                 className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-2 text-start text-text-primary transition-colors hover:bg-dropdown-item-hover-background focus-visible:bg-dropdown-item-hover-background"
               >
-                <ProjectTophAvatar project={item} size={28} showInitial />
+                <ProjectJeffAvatar project={item} size={28} showInitial />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span className="truncate text-body-2-medium text-text-primary">{item.name}</span>

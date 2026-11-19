@@ -1,7 +1,7 @@
-import { Bot, Trash2 } from "@toph/icons";
-import { PixelSpinner } from "@toph/ui";
-import { cx } from "@toph/ui";
-import { IconButton } from "@toph/ui/app";
+import { Bot, Trash2 } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
+import { cx } from "@jeff/ui";
+import { IconButton } from "@jeff/ui/app";
 import { sessionWhen } from "../sessions";
 
 interface Props {
@@ -15,7 +15,7 @@ interface Props {
   onDelete?: () => void;
 }
 
-/** A session in the Toph screen: what it is about, when it last moved and whether the Toph is on it. */
+/** A session in the Jeff screen: what it is about, when it last moved and whether the Jeff is on it. */
 export default function SessionRow({
   title,
   activityAt,

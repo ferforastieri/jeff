@@ -83,7 +83,7 @@ function questionBeep(audio: AudioContext): void {
   second.stop(start + 0.46);
 }
 
-/** Attention signal used when the Toph is waiting for an answer. */
+/** Attention signal used when the Jeff is waiting for an answer. */
 export function playQuestionSound(): void {
   const audio = getContext();
   if (!audio) return;

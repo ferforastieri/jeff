@@ -11,7 +11,7 @@ const AGNOMEN = /^(?:jr|sr|ii|iii|iv|j[uú]nior|filho|neto|sobrinho)\.?$/i;
 const CJK_START = /^[\u1100-\u11ff\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff]/;
 
 /**
- * 1–2 letters: "Ada" → "A"; "Marina Souza" → "MS"; "Christopher Alexander Montgomery III" → "CM"; "佐藤 花子" → "佐". A
+ * 1–2 letters: "Ada" → "A"; "Marina Souza" → "MS"; "Chrisjeffer Alexander Montgomery III" → "CM"; "佐藤 花子" → "佐". A
  * word that starts with no letter ("🌴 Ana Souza") gives way to those that do, and a first character is taken whole: an
  * emoji is two UTF-16 units, and half of one draws as "�".
  */

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default permissions for the Toph launcher window",
+  "description": "Default permissions for the Jeff launcher window",
   "windows": [
     "main"
   ],

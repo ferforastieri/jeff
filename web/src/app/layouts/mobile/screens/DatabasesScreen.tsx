@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, Database, Folder, Layers, Plus, Table2, Trash2 } from "@toph/icons";
+import { ChevronDown, ChevronRight, Database, Folder, Layers, Plus, Table2, Trash2 } from "@jeff/icons";
 import { api, type DBProfile, type Project, type SchemaTable } from "../../../../shared/api";
 import { useApp } from "../../../store";
 import { useConfirm } from "../../../../shared/ui/confirm";
 import { useProjectEvents } from "../../../../features/projects/events";
-import { Badge } from "@toph/ui/app";
-import { Button } from "@toph/ui/app";
-import { Checkbox } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
-import { Select, SelectItem } from "@toph/ui/app";
+import { Badge } from "@jeff/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Checkbox } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
+import { Select, SelectItem } from "@jeff/ui/app";
 import LoadingState from "../../../../shared/ui/LoadingState";
 import { driverName, groupTables } from "../../../../features/databases/schema";
 

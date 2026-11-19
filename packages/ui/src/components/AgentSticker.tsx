@@ -2,12 +2,12 @@
 
 import { cx } from "../cx";
 import type { AgentAppearance } from "./AgentLook";
-import { tophCharacterOf } from "./toph";
+import { jeffCharacterOf } from "./jeff";
 
 export type StickerMood = "celebrate" | "love" | "deal" | "thinking" | "wow" | "dizzy" | "wave";
 
 export interface AgentStickerProps {
-  /** The agent's look (color, eyes, accessory); its color picks which Toph shows. */
+  /** The agent's look (color, eyes, accessory); its color picks which Jeff shows. */
   appearance?: AgentAppearance;
   mood: StickerMood;
   /** Kept for the callers that played it once: a still sticker holds its frame anyway. */
@@ -22,11 +22,11 @@ export interface AgentStickerProps {
 }
 
 /**
- * One of an agent's stickers (ADR 0091): the agent's own Toph, still, in a mood that gives it a small motion
+ * One of an agent's stickers (ADR 0091): the agent's own Jeff, still, in a mood that gives it a small motion
  * (a hop, a tilt) and stands still with reduced motion. No frame and no background: it stands on the page.
  */
 export function AgentSticker({ appearance, mood, size = 120, seed, label, className }: AgentStickerProps) {
-  const id = tophCharacterOf(seed ?? "", appearance?.color);
+  const id = jeffCharacterOf(seed ?? "", appearance?.color);
   return (
     <span
       className={cx("ac-sticker", className)}
@@ -36,7 +36,7 @@ export function AgentSticker({ appearance, mood, size = 120, seed, label, classN
       aria-label={label}
       aria-hidden={label ? undefined : true}
     >
-      <img src={`/tophs/${id}.png`} alt="" width={size} height={size} draggable={false} className="ac-sticker__toph" />
+      <img src={`/jeffs/${id}.png`} alt="" width={size} height={size} draggable={false} className="ac-sticker__jeff" />
     </span>
   );
 }

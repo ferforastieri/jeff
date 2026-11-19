@@ -19,7 +19,7 @@ const models: AIModel[] = [
   { id: "openai/gpt", label: "GPT", provider: "openai" },
 ];
 
-afterEach(() => localStorage.removeItem("toph_preferred_model"));
+afterEach(() => localStorage.removeItem("jeff_preferred_model"));
 
 describe("defaultModel", () => {
   it("starts on the harness default when nothing was picked yet", () => {

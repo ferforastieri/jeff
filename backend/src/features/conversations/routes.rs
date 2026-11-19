@@ -168,7 +168,7 @@ pub(super) fn replace_inline_images(
             .unwrap_or("png");
         let ext = if ext == "jpeg" { "jpg" } else { ext };
         let hash = crate::crypto::sha256_hex(&bytes);
-        let relative = format!("toph-generated/chat-{}.{}", &hash[..24], ext);
+        let relative = format!("jeff-generated/chat-{}.{}", &hash[..24], ext);
         if !root.join(&relative).exists() {
             workspace.write_bytes(root, &relative, &bytes)?;
         }

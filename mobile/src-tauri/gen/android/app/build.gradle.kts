@@ -17,7 +17,7 @@ val tauriProperties = Properties().apply {
 
 android {
     compileSdk = 37
-    namespace = "br.com.ferforastieri.toph"
+    namespace = "br.com.ferforastieri.jeff"
     val releaseKeystore = System.getenv("ANDROID_KEYSTORE_PATH")
     signingConfigs {
         if (releaseKeystore != null) {
@@ -31,12 +31,12 @@ android {
     }
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "true"
-        applicationId = "br.com.ferforastieri.toph"
+        applicationId = "br.com.ferforastieri.jeff"
         minSdk = 24
         targetSdk = 37
-        versionCode = System.getenv("TOPH_VERSION_CODE")?.toInt()
+        versionCode = System.getenv("JEFF_VERSION_CODE")?.toInt()
             ?: tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
-        versionName = System.getenv("TOPH_VERSION_NAME")
+        versionName = System.getenv("JEFF_VERSION_NAME")
             ?: tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
     buildTypes {

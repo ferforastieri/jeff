@@ -10,12 +10,12 @@ import { HintText } from "../input/hint-text";
 import { InputBase } from "../input/input";
 import type { InputSize } from "../input/input";
 import { Label } from "../input/label";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 
 /**
  * Search field — Input's shell with a search icon and a clear button that
  * appears once the query has text. Based on BoardUI's SearchField, adapted
- * to Toph's local BoardUI copy.
+ * to Jeff's local BoardUI copy.
  */
 
 type IconComponent = ComponentType<{
@@ -23,7 +23,7 @@ type IconComponent = ComponentType<{
   "aria-hidden"?: boolean | "true" | "false";
 }>;
 
-/** The search field's own glyphs, from the Tophs set. */
+/** The search field's own glyphs, from the Jeffs set. */
 function SearchGlyph({ className }: { className?: string }) {
   return <KitIcon name="search" className={className} />;
 }

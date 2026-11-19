@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the Windows installer bitmaps from the Toph brand assets.
+"""Generate the Windows installer bitmaps from the Jeff brand assets.
 
 Tauri reads fixed-size 24-bit BMP files for the NSIS header/sidebar and the
 WiX banner/dialog. Rendering at 4x and downsampling keeps the wordmark and the
@@ -22,8 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 BRAND = ROOT / "packages" / "brand" / "assets"
 OUT = ROOT / "desktop" / "src-tauri" / "installer"
 
-MARK = BRAND / "generated" / "toph-mark.png"
-WORDMARK = BRAND / "logo" / "toph-wordmark.png"
+MARK = BRAND / "generated" / "jeff-mark.png"
+WORDMARK = BRAND / "logo" / "jeff-wordmark.png"
 
 SCALE = 4
 BACKGROUND = (5, 5, 5)

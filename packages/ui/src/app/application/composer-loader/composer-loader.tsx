@@ -3,7 +3,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 
 /**
  * Composer Loader — a loading state that wraps a chat composer while the agent
@@ -72,7 +72,7 @@ export interface ComposerLoaderProps {
 }
 
 const DEFAULT_COLORS: [string, string, string, string] = [
-  "#5eead4",
+  "#8cc3ff",
   "#46baec",
   "#e633a4",
   "#00faa7",
@@ -105,7 +105,7 @@ export function ComposerLoader({
   offset = 0,
   className,
 }: ComposerLoaderProps) {
-  const gradientId = `toph-cl-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const gradientId = `jeff-cl-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const clipRef = useRef<HTMLSpanElement>(null);
   const [box, setBox] = useState({ w: 640, h: 52 });
 
@@ -170,14 +170,14 @@ export function ComposerLoader({
           strokeWidth={width}
           strokeLinecap="round"
           strokeDasharray={`${len} ${100 - len}`}
-          className="toph-composer-loader-rect"
+          className="jeff-composer-loader-rect"
           // SVG-native blur, not CSS filter: WebKit (iOS Safari and every iPhone
           // browser) ignores CSS filters on individual SVG elements, which
           // rendered the whole light razor-sharp on phones.
           filter={blur > 0 ? `url(#${gradientId}-b${String(blur).replace(".", "_")})` : undefined}
           style={{
             opacity: opacity / copies,
-            animation: `toph-composer-loader-dash ${speed}s linear ${(phase * speed) / 100}s infinite ${direction}`,
+            animation: `jeff-composer-loader-dash ${speed}s linear ${(phase * speed) / 100}s infinite ${direction}`,
           }}
         />
       );

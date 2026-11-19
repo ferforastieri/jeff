@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
-import { FilePlus2, FolderPlus, Upload } from "@toph/icons";
+import { FilePlus2, FolderPlus, Upload } from "@jeff/icons";
 import { api, type Project } from "../../../../shared/api";
 import { useApp } from "../../../store";
 import FileTree from "../../../../features/explorer/components/FileTree";
-import { Button } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
 
 interface Props {
   project: Project;

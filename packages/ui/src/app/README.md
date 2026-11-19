@@ -1,7 +1,7 @@
 # App controls
 
-The controls the Toph screens use: the shapes the product needs, drawn with
-the Tophs design system (`@toph/ui` styles and `@toph/tokens`).
+The controls the Jeff screens use: the shapes the product needs, drawn with
+the Jeffs design system (`@jeff/ui` styles and `@jeff/tokens`).
 
 The remaining layout and primitive mechanics are derived from BoardUI
 (https://boardui.com), MIT licensed; see `LICENSE`.

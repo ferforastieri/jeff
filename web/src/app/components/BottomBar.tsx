@@ -1,5 +1,5 @@
 import { useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { Bell, Bug, Database, Files, GitPullRequest, Globe2, MessageCircleQuestion, Moon, Plus, Settings2, Sun, TerminalSquare, X } from "@toph/icons";
+import { Bell, Bug, Database, Files, GitPullRequest, Globe2, MessageCircleQuestion, Moon, Plus, Settings2, Sun, TerminalSquare, X } from "@jeff/icons";
 import { useApp, type Sidebar } from "../store";
 import { featureEnabled, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import type { Project } from "../../shared/api";
@@ -9,14 +9,14 @@ import { useProjectQuestion, useProjectRunning } from "../../features/agents/act
 import QuickOpen from "../../features/explorer/components/QuickOpen";
 import BrandGlyph from "../../shared/ui/BrandGlyph";
 import { runThemeTransition } from "../../shared/ui/theme-transition";
-import { Button } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
-import { cx } from "@toph/ui";
+import { Button } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
+import { cx } from "@jeff/ui";
 
 const activityItems: Array<{ id: Sidebar; feature: WorkspaceFeature; label: string; icon: ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }> }> = [
   { id: "files", feature: "files", label: "Explorer", icon: Files },
   { id: "scm", feature: "sourceControl", label: "Source Control", icon: GitPullRequest },
-  { id: "bots", feature: "bots", label: "Toph", icon: BrandGlyph },
+  { id: "bots", feature: "bots", label: "Jeff", icon: BrandGlyph },
   { id: "db", feature: "databases", label: "Databases", icon: Database },
   { id: "debug", feature: "debug", label: "Debug", icon: Bug },
   { id: "web", feature: "webApps", label: "Web apps", icon: Globe2 },
@@ -30,7 +30,7 @@ interface Props {
   project?: Project | null;
   onOpenFile?: (path: string, line?: number) => void;
   quickOpenToken?: number;
-  tophControl?: ReactNode;
+  jeffControl?: ReactNode;
   /** The branch control, which sits in the footer's bottom-left corner. */
   leading?: ReactNode;
 }
@@ -150,7 +150,7 @@ function ProjectAlert({ projectId, projectName, unread, size = 13 }: { projectId
         type="button"
         onClick={(event) => {
           event.stopPropagation();
-          window.dispatchEvent(new CustomEvent("toph:open-chat", { detail: { projectId, chatId: question.chatId } }));
+          window.dispatchEvent(new CustomEvent("jeff:open-chat", { detail: { projectId, chatId: question.chatId } }));
         }}
         className="flex items-center justify-center rounded-full bg-accent-500 p-0.5 text-background-primary-default shadow-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
         aria-label={`Pergunta pendente em ${projectName} — abrir conversa`}
@@ -196,8 +196,8 @@ function ProjectPicker({ open, onClose, onSelect }: { open: boolean; onClose: ()
   );
 }
 
-/** Fixed workspace bar at the bottom: the current branch and open projects on the left, actions and Toph on the right. */
-export default function BottomBar({ onOpenProject, onCloseProject, project = null, onOpenFile = () => undefined, quickOpenToken = 0, onOpenAuxiliary, tophControl, leading }: Props) {
+/** Fixed workspace bar at the bottom: the current branch and open projects on the left, actions and Jeff on the right. */
+export default function BottomBar({ onOpenProject, onCloseProject, project = null, onOpenFile = () => undefined, quickOpenToken = 0, onOpenAuxiliary, jeffControl, leading }: Props) {
   const projects = useApp((state) => state.projects);
   const openProjectIds = useApp((state) => state.openProjectIds);
   const activeProjectId = useApp((state) => state.activeProjectId);
@@ -307,9 +307,9 @@ export default function BottomBar({ onOpenProject, onCloseProject, project = nul
             aria-label="Abrir configurações"
             title="Configurações"
             className="size-9 [&_svg]:size-5"
-            onClick={() => window.dispatchEvent(new CustomEvent("toph:open-settings", { detail: { section: "general" } }))}
+            onClick={() => window.dispatchEvent(new CustomEvent("jeff:open-settings", { detail: { section: "general" } }))}
           />
-          {tophControl}
+          {jeffControl}
         </div>
       </footer>
 

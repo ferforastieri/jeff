@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Toph",
+  "productName": "Jeff",
   "version": "0.1.0",
-  "identifier": "br.com.ferforastieri.toph",
+  "identifier": "br.com.ferforastieri.jeff",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Toph · Seu workbench",
+        "title": "Jeff · Seu workbench",
         "width": 1120,
         "height": 760,
         "minWidth": 900,
@@ -40,9 +40,9 @@
       "icons/icon.ico"
     ],
     "shortDescription": "Seu workbench local e self-hosted",
-    "longDescription": "Toph é seu workbench para servidores self-hosted e workspaces locais, com identidade própria em cada projeto.",
-    "publisher": "Toph",
-    "copyright": "Copyright © 2026 Toph",
+    "longDescription": "Jeff é seu workbench para servidores self-hosted e workspaces locais, com identidade própria em cada projeto.",
+    "publisher": "Jeff",
+    "copyright": "Copyright © 2026 Jeff",
     "homepage": "https://github.com/ferforastieri/toph",
     "category": "DeveloperTool",
     "license": "MIT",
@@ -55,7 +55,7 @@
         "uninstallerHeaderImage": "installer/nsis-uninstaller-header.bmp",
         "sidebarImage": "installer/nsis-sidebar.bmp",
         "installMode": "both",
-        "startMenuFolder": "Toph",
+        "startMenuFolder": "Jeff",
         "languages": [
           "PortugueseBR",
           "English",

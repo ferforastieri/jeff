@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown } from "@toph/icons";
+import { ChevronDown } from "@jeff/icons";
 import LoadingState from "../../../shared/ui/LoadingState";
 import { api, type Project, type SearchMatch } from "../../../shared/api";
 import { basename, dirname } from "../../../shared/lib";
 import FileIcon from "./FileIcon";
-import { Icon, SearchField } from "@toph/ui";
-import { cx } from "@toph/ui";
+import { Icon, SearchField } from "@jeff/ui";
+import { cx } from "@jeff/ui";
 import { useDebouncedValue } from "../../../shared/ui/useDebouncedValue";
 
 interface Props {

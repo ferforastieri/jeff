@@ -1,13 +1,13 @@
 [package]
-name = "toph-client"
+name = "jeff-client"
 version = "0.1.0"
-description = "Toph Client"
-authors = ["Toph"]
+description = "Jeff Client"
+authors = ["Jeff"]
 edition = "2021"
 rust-version = "1.90"
 
 [lib]
-name = "toph_client_lib"
+name = "jeff_client_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -28,7 +28,7 @@ sha2 = "0.10"
 if-addrs = "0.15"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-toph-server = { path = "../../backend" }
+jeff-server = { path = "../../backend" }
 
 [dev-dependencies]
 tempfile = "3"

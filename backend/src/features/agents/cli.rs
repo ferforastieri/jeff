@@ -17,10 +17,10 @@ use super::models::{AgentSpec, Attachment};
 use super::skill_service::ManagedSkill;
 use crate::features::integrations::mcp::Server;
 
-/// A stable private home/config directory per Toph session. The engine runs in
+/// A stable private home/config directory per Jeff session. The engine runs in
 /// the project itself, but native harnesses need a fixed home whose config and
 /// session files survive resumed turns and server restarts. It lives under the
-/// data directory and is cleaned only when the chat/Toph is deleted.
+/// data directory and is cleaned only when the chat/Jeff is deleted.
 pub fn work_dir(session_id: &str) -> PathBuf {
     let safe: String = session_id
         .chars()
@@ -32,11 +32,11 @@ pub fn work_dir(session_id: &str) -> PathBuf {
             }
         })
         .collect();
-    let base = std::env::var_os("TOPH_CLI_HOME")
+    let base = std::env::var_os("JEFF_CLI_HOME")
         .map(PathBuf::from)
-        .or_else(|| std::env::var_os("TOPH_DATA_DIR").map(|dir| PathBuf::from(dir).join("cli")))
+        .or_else(|| std::env::var_os("JEFF_DATA_DIR").map(|dir| PathBuf::from(dir).join("cli")))
         .unwrap_or_else(std::env::temp_dir);
-    base.join(format!("toph-cli-{safe}"))
+    base.join(format!("jeff-cli-{safe}"))
 }
 
 /// Writes every attachment into the private CLI home, keeping its extension,
@@ -106,19 +106,19 @@ pub fn attachments_note(attachments: &[Attachment], files: &[PathBuf]) -> String
     note
 }
 
-/// Toph-only tools selected for one Toph (the email connector), exposed as a
+/// Jeff-only tools selected for one Jeff (the email connector), exposed as a
 /// native stdio MCP server. The harness sees normal MCP tools and executes them
-/// itself; there is no Toph gateway.
+/// itself; there is no Jeff gateway.
 pub fn native_server(accounts: &[String]) -> Option<Server> {
     if accounts.is_empty() {
         return None;
     }
     let executable = std::env::current_exe().ok()?;
     let mut env = HashMap::new();
-    env.insert("TOPH_EMAIL_ACCOUNTS".into(), accounts.join(","));
+    env.insert("JEFF_EMAIL_ACCOUNTS".into(), accounts.join(","));
     Some(Server {
-        id: "toph-tools".into(),
-        name: "toph_tools".into(),
+        id: "jeff-tools".into(),
+        name: "jeff_tools".into(),
         transport: "stdio".into(),
         url: String::new(),
         command: vec![executable.display().to_string(), "mcp-tools".into()],
@@ -129,7 +129,7 @@ pub fn native_server(accounts: &[String]) -> Option<Server> {
     })
 }
 
-/// A stable UUID for a Toph conversation, used by Claude Code's native
+/// A stable UUID for a Jeff conversation, used by Claude Code's native
 /// session id/resume flags.
 pub fn session_uuid(value: &str) -> String {
     let digest = Sha256::digest(value.as_bytes());
@@ -163,7 +163,7 @@ fn safe_name(value: &str) -> String {
     }
 }
 
-/// Materializes the Toph-managed skills as native SKILL.md files. OpenCode,
+/// Materializes the Jeff-managed skills as native SKILL.md files. OpenCode,
 /// Claude and Codex all discover skills from files, so this is configuration,
 /// not a prompt wrapper.
 async fn materialize_skills(work: &Path, skills: &[ManagedSkill]) -> AppResult<Option<PathBuf>> {
@@ -215,7 +215,7 @@ fn native_mcp(servers: &[Server], envs: &mut HashMap<String, String>) -> Value {
                 "timeout": { "startup": timeout, "execution": timeout },
             });
             if !server.token.is_empty() {
-                let key = format!("TOPH_MCP_{index}_TOKEN");
+                let key = format!("JEFF_MCP_{index}_TOKEN");
                 envs.insert(key.clone(), server.token.clone());
                 value["headers"] = json!({"Authorization": format!("Bearer {{env:{key}}}")});
             }
@@ -223,7 +223,7 @@ fn native_mcp(servers: &[Server], envs: &mut HashMap<String, String>) -> Value {
         } else {
             let mut environment = serde_json::Map::new();
             for (key, value) in &server.env {
-                let env_key = format!("TOPH_MCP_{index}_{}", safe_name(key).to_uppercase());
+                let env_key = format!("JEFF_MCP_{index}_{}", safe_name(key).to_uppercase());
                 envs.insert(env_key.clone(), value.clone());
                 environment.insert(key.clone(), json!(format!("{{env:{env_key}}}")));
             }
@@ -259,7 +259,7 @@ fn claude_mcp_config(servers: &[Server], envs: &mut HashMap<String, String>) -> 
                 "url": server.url,
             });
             if !server.token.is_empty() {
-                let key = format!("TOPH_MCP_{index}_TOKEN");
+                let key = format!("JEFF_MCP_{index}_TOKEN");
                 envs.insert(key.clone(), server.token.clone());
                 value["headers"] = json!({"Authorization": format!("Bearer ${{{key}}}")});
             }
@@ -275,7 +275,7 @@ fn claude_mcp_config(servers: &[Server], envs: &mut HashMap<String, String>) -> 
             if !server.env.is_empty() {
                 let mut environment = serde_json::Map::new();
                 for (key, value) in &server.env {
-                    let env_key = format!("TOPH_MCP_{index}_{}", safe_name(key).to_uppercase());
+                    let env_key = format!("JEFF_MCP_{index}_{}", safe_name(key).to_uppercase());
                     envs.insert(env_key.clone(), value.clone());
                     environment.insert(key.clone(), json!(format!("${{{env_key}}}")));
                 }
@@ -289,7 +289,7 @@ fn claude_mcp_config(servers: &[Server], envs: &mut HashMap<String, String>) -> 
 }
 
 /// Builds a session-only Claude plugin containing the skills selected for
-/// this Toph. The user's own `~/.claude/skills` and project skills stay
+/// this Jeff. The user's own `~/.claude/skills` and project skills stay
 /// untouched and available.
 async fn claude_plugin(work: &Path, skills: &[ManagedSkill]) -> AppResult<Option<PathBuf>> {
     if skills.is_empty() {
@@ -303,13 +303,13 @@ async fn claude_plugin(work: &Path, skills: &[ManagedSkill]) -> AppResult<Option
         .file_name()
         .and_then(|name| name.to_str())
         .map(|name| safe_name(name).replace('_', "-"))
-        .unwrap_or_else(|| "toph-skills".into());
+        .unwrap_or_else(|| "jeff-skills".into());
     tokio::fs::write(
         manifest_dir.join("plugin.json"),
         json!({
-            "name": format!("toph-{name}"),
+            "name": format!("jeff-{name}"),
             "version": "1.0.0",
-            "description": "Skills selected for this Toph"
+            "description": "Skills selected for this Jeff"
         })
         .to_string(),
     )
@@ -324,7 +324,7 @@ fn opencode_config(system: &str, skills: Option<&Path>, mcp: Value) -> Value {
         "autoupdate": false,
         "snapshot": false,
         "agents": {
-            "toph": {
+            "jeff": {
                 "mode": "primary",
                 "system": system
             }
@@ -351,7 +351,7 @@ pub struct CliUsage {
 }
 
 /// A completed tool call reported by a native harness. The runtime stores it
-/// as a normal Toph tool message so the transcript keeps the same shape.
+/// as a normal Jeff tool message so the transcript keeps the same shape.
 #[derive(Clone, Debug)]
 pub struct NativeTool {
     pub id: String,
@@ -363,7 +363,7 @@ pub struct NativeTool {
     pub finished_at: Option<i64>,
 }
 
-/// Maps a Toph connection to the provider id OpenCode uses for the same API.
+/// Maps a Jeff connection to the provider id OpenCode uses for the same API.
 /// `custom` connections are identified by their base URL; unknown endpoints
 /// keep the OpenCode Go default so a legacy model id still has a valid shape.
 fn opencode_provider(config: &AiConfig) -> &'static str {
@@ -406,7 +406,7 @@ fn opencode_provider(config: &AiConfig) -> &'static str {
     }
 }
 
-/// The model OpenCode should run. Existing Toph model ids are migrated:
+/// The model OpenCode should run. Existing Jeff model ids are migrated:
 /// `default::deepseek-v4.1-flash` becomes `opencode-go/deepseek-v4.1-flash`,
 /// and a named connection keeps its real provider (`openai/gpt-5`). The
 /// selected reasoning effort becomes the OpenCode variant (`model#max`).
@@ -463,7 +463,7 @@ fn provider_model(model: &str, accepted: &[&str]) -> Option<String> {
         .then(|| value.to_string())
 }
 
-/// Toph's own secrets must not reach the harness or the shells it spawns.
+/// Jeff's own secrets must not reach the harness or the shells it spawns.
 /// Variables for the selected MCP servers are passed explicitly and kept.
 ///
 /// This is not a sandbox: the harness still runs as the same user, so a shell
@@ -485,11 +485,11 @@ where
 fn server_secret(key: &str) -> bool {
     matches!(
         key,
-        "TOPH_ADMIN_PASSWORD"
-            | "TOPH_FIREBASE_CREDENTIALS_FILE"
-            | "TOPH_FIREBASE_PROJECT_ID"
-            | "TOPH_GITHUB_TOKEN"
-    ) || key.starts_with("TOPH_MCP_")
+        "JEFF_ADMIN_PASSWORD"
+            | "JEFF_FIREBASE_CREDENTIALS_FILE"
+            | "JEFF_FIREBASE_PROJECT_ID"
+            | "JEFF_GITHUB_TOKEN"
+    ) || key.starts_with("JEFF_MCP_")
 }
 
 /// Runs a CLI once, with the prompt on stdin, and captures both streams.
@@ -577,7 +577,7 @@ async fn run_capture<S: AsRef<str>>(
 }
 
 /// Runs Claude Code headless with its native harness: native tools, project
-/// config/skills and the Toph system prompt. Toph still owns the chat, run
+/// config/skills and the Jeff system prompt. Jeff still owns the chat, run
 /// state and final transcript.
 pub async fn run_claude(
     model: &str,
@@ -602,7 +602,7 @@ pub async fn run_claude(
         "--output-format".into(),
         "json".into(),
         "--dangerously-skip-permissions".into(),
-        // The headless question tool has no one to answer; Toph exposes
+        // The headless question tool has no one to answer; Jeff exposes
         // ask_user through MCP instead.
         "--disallowedTools".into(),
         "AskUserQuestion".into(),
@@ -631,7 +631,7 @@ pub async fn run_claude(
     let mut secrets = HashMap::new();
     if !mcp_servers.is_empty() {
         tokio::fs::create_dir_all(cwd).await?;
-        let path = cwd.join("toph-mcp.json");
+        let path = cwd.join("jeff-mcp.json");
         tokio::fs::write(
             &path,
             claude_mcp_config(mcp_servers, &mut secrets).to_string(),
@@ -703,7 +703,7 @@ async fn link_or_copy(from: &Path, to: &Path) -> AppResult<()> {
 }
 
 /// Builds a private Codex home that keeps the user's native auth/config and
-/// adds the skills selected for this Toph. Codex reads skills from
+/// adds the skills selected for this Jeff. Codex reads skills from
 /// `$CODEX_HOME/skills`; the real `$HOME/.agents/skills` still loads because
 /// only `CODEX_HOME` changes, not `HOME`.
 async fn codex_home(work: &Path, skills: &[ManagedSkill]) -> AppResult<PathBuf> {
@@ -747,7 +747,7 @@ async fn codex_home(work: &Path, skills: &[ManagedSkill]) -> AppResult<PathBuf> 
 }
 
 /// Runs Codex headless with its native harness (`codex exec --json`). Native
-/// shell/edit/search tools are enabled; Toph only stores the run and messages.
+/// shell/edit/search tools are enabled; Jeff only stores the run and messages.
 pub async fn run_codex(
     model: &str,
     system: &str,
@@ -791,7 +791,7 @@ pub async fn run_codex(
                 serde_json::to_string(&server.url).unwrap_or_default()
             ));
             if !server.token.is_empty() {
-                let key = format!("TOPH_MCP_{index}_TOKEN");
+                let key = format!("JEFF_MCP_{index}_TOKEN");
                 envs.push((key.clone(), server.token.clone()));
                 args.push("-c".into());
                 args.push(format!("mcp_servers.{name}.bearer_token_env_var={key:?}"));
@@ -916,8 +916,8 @@ pub async fn run_codex(
 /// Serializes updates to the shared Antigravity MCP config across runs.
 static AGY_MCP_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-/// Antigravity reads MCP servers from `~/.gemini/config/mcp_config.json`. Toph
-/// owns only the `toph*` entries, so the user's own servers stay untouched.
+/// Antigravity reads MCP servers from `~/.gemini/config/mcp_config.json`. Jeff
+/// owns only the `jeff*` entries, so the user's own servers stay untouched.
 /// The long timeout matters: `ask_user` waits for a person, not for a tool.
 fn configure_antigravity_mcp(servers: &[Server]) -> AppResult<()> {
     let _guard = AGY_MCP_LOCK
@@ -946,17 +946,17 @@ fn configure_antigravity_mcp(servers: &[Server]) -> AppResult<()> {
     };
     let managed: Vec<String> = configured
         .keys()
-        .filter(|name| name.starts_with("toph_") || name.as_str() == "toph")
+        .filter(|name| name.starts_with("jeff_") || name.as_str() == "jeff")
         .cloned()
         .collect();
     for name in managed {
         configured.remove(&name);
     }
     for server in servers {
-        let name = if server.id == "toph" {
-            "toph".to_string()
+        let name = if server.id == "jeff" {
+            "jeff".to_string()
         } else {
-            format!("toph_{}", safe_name(&server.id))
+            format!("jeff_{}", safe_name(&server.id))
         };
         let entry = if server.transport == "http" {
             let mut headers = serde_json::Map::new();
@@ -1002,7 +1002,7 @@ fn configure_antigravity_mcp(servers: &[Server]) -> AppResult<()> {
 }
 
 /// Runs one Antigravity CLI turn with the CLI's own Google login. Print mode
-/// returns a single JSON envelope; Toph keeps the conversation id as the
+/// returns a single JSON envelope; Jeff keeps the conversation id as the
 /// session ledger so the next turn resumes the same thread.
 pub async fn run_antigravity(
     model: &str,
@@ -1090,7 +1090,7 @@ pub async fn run_antigravity(
 }
 
 /// Runs one OpenCode turn with its native harness. Native tools, project
-/// config, skills and plugins stay available; Toph injects identity and stores
+/// config, skills and plugins stay available; Jeff injects identity and stores
 /// the transcript.
 pub async fn run_opencode<F, R, T>(
     model: &str,
@@ -1123,7 +1123,7 @@ where
     tokio::fs::create_dir_all(&home).await?;
     let config_path = home.join("opencode.json");
     tokio::fs::write(&config_path, config.to_string()).await?;
-    // systemd starts Toph with a minimal PATH; resolve the CLI the same way the
+    // systemd starts Jeff with a minimal PATH; resolve the CLI the same way the
     // Settings detector does instead of relying on PATH containing ~/.local/bin.
     let binary = super::engines::find_binary("opencode").ok_or_else(|| {
         bad_request(
@@ -1145,7 +1145,7 @@ where
         .arg("--auto")
         .arg("--thinking")
         .arg("--agent")
-        .arg("toph")
+        .arg("jeff")
         .arg("-m")
         .arg(model);
     for (attachment, file) in attachments.iter().zip(files) {
@@ -1322,21 +1322,21 @@ mod tests {
     use super::server_secret;
 
     #[test]
-    fn only_toph_secrets_are_hidden_from_the_harness() {
+    fn only_jeff_secrets_are_hidden_from_the_harness() {
         for key in [
-            "TOPH_ADMIN_PASSWORD",
-            "TOPH_MCP_0_TOKEN",
-            "TOPH_MCP_1_TOPH_PROJECT_ROOT",
-            "TOPH_FIREBASE_CREDENTIALS_FILE",
-            "TOPH_FIREBASE_PROJECT_ID",
-            "TOPH_GITHUB_TOKEN",
+            "JEFF_ADMIN_PASSWORD",
+            "JEFF_MCP_0_TOKEN",
+            "JEFF_MCP_1_JEFF_PROJECT_ROOT",
+            "JEFF_FIREBASE_CREDENTIALS_FILE",
+            "JEFF_FIREBASE_PROJECT_ID",
+            "JEFF_GITHUB_TOKEN",
         ] {
             assert!(server_secret(key), "{key} must be hidden");
         }
         for key in [
-            "TOPH_DATA_DIR",
-            "TOPH_WORKSPACES",
-            "TOPH_PYTHON",
+            "JEFF_DATA_DIR",
+            "JEFF_WORKSPACES",
+            "JEFF_PYTHON",
             "PATH",
             "HOME",
             "OPENCODE_CONFIG",

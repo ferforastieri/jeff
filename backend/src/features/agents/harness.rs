@@ -1,5 +1,5 @@
 //! The OpenCode service: the models it offers (with their effort variants) and
-//! the titles of the sessions it runs. The Toph server proxies it so the app
+//! the titles of the sessions it runs. The Jeff server proxies it so the app
 //! never reads provider keys of its own.
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -8,16 +8,16 @@ use std::time::Duration;
 const DEFAULT_URL: &str = "http://127.0.0.1:3005";
 
 fn base_url() -> String {
-    std::env::var("TOPH_OPENCODE_URL")
+    std::env::var("JEFF_OPENCODE_URL")
         .ok()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| DEFAULT_URL.to_string())
 }
 
 /// The service's own password (the CLI's background service file), or the
-/// header the deployment passes in `TOPH_OPENCODE_AUTH`.
+/// header the deployment passes in `JEFF_OPENCODE_AUTH`.
 fn password() -> Option<String> {
-    if let Ok(auth) = std::env::var("TOPH_OPENCODE_AUTH") {
+    if let Ok(auth) = std::env::var("JEFF_OPENCODE_AUTH") {
         let value = auth.trim();
         if !value.is_empty() {
             return Some(value.to_string());

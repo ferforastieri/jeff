@@ -1,11 +1,11 @@
 import { createPortal } from "react-dom";
-import { Icon } from "@toph/ui";
+import { Icon } from "@jeff/ui";
 import { useApp } from "../../../app/store";
 
 /**
- * The Tophs toast: the kit's own `.ac-toast` card (surface, hairline, overlay
+ * The Jeffs toast: the kit's own `.ac-toast` card (surface, hairline, overlay
  * shadow and the tone's glow), with its icon, one line of words and the close
- * on the first line. Bottom-right, as in Tophs.
+ * on the first line. Bottom-right, as in Jeffs.
  */
 export default function Toasts() {
   const toasts = useApp((state) => state.toasts);

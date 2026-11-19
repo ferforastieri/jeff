@@ -7,7 +7,7 @@ export interface ProjectEvent {
   at: number;
 }
 
-export const PROJECT_EVENT = "toph:project-event";
+export const PROJECT_EVENT = "jeff:project-event";
 
 /**
  * Subscribes a component to live project changes. The single WebSocket is

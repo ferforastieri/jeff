@@ -9,9 +9,9 @@
     <link rel="icon" type="image/png" sizes="48x48" href="/brand/favicon-48.png" />
     <link rel="icon" href="/brand/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
-    <meta property="og:image" content="/brand/toph-og-1200x630.png" />
-    <meta name="description" content="Toph documentation: self-hosted workbench for code, databases, AI and self-hosted web apps." />
-    <title>Toph — Documentation</title>
+    <meta property="og:image" content="/brand/jeff-og-1200x630.png" />
+    <meta name="description" content="Jeff documentation: self-hosted workbench for code, databases, AI and self-hosted web apps." />
+    <title>Jeff — Documentation</title>
     <style>
       :root {
         --bg: #041310;
@@ -86,8 +86,8 @@
   <body>
     <header>
       <div class="bar">
-        <img class="logo" src="/brand/toph-mark.png" alt="" />
-        <strong>Toph</strong>
+        <img class="logo" src="/brand/jeff-mark.png" alt="" />
+        <strong>Jeff</strong>
         <nav>
           <a href="/">Home</a>
           <a href="/app">Open app</a>
@@ -98,9 +98,9 @@
 
     <main>
       <span class="tag">Documentation</span>
-      <h1>Toph, in one page.</h1>
+      <h1>Jeff, in one page.</h1>
       <p class="lead">
-        Toph is a self-hosted workbench for machines you control. It combines a code editor, a
+        Jeff is a self-hosted workbench for machines you control. It combines a code editor, a
         database console, native agent sessions, a terminal and web app tabs in one
         workspace. The same Go backend serves the browser client and the Android APK.
       </p>
@@ -109,7 +109,7 @@
         agent-oriented summary, see <a href="/llms.txt">/llms.txt</a>.
       </p>
 
-      <h2>What Toph is</h2>
+      <h2>What Jeff is</h2>
       <ul>
         <li>A single-tenant, self-hosted application. There is no hosted account or vendor backend.</li>
         <li>A client-server system: files, shells, database drivers, credentials and AI sessions live on the server.</li>
@@ -117,7 +117,7 @@
         <li>Available as a browser app and as a real Android APK.</li>
       </ul>
       <p>
-        Toph is not a multi-tenant SaaS, not a VS Code fork, and not a DBeaver replacement
+        Jeff is not a multi-tenant SaaS, not a VS Code fork, and not a DBeaver replacement
         with every database feature. It is a focused self-hosted workbench that runs where
         your repositories and services already are.
       </p>
@@ -127,7 +127,7 @@
         │                                   │
         └────────── HTTPS / WSS ────────────┘
                           │
-                      toph (Go)
+                      jeff (Go)
         ├── auth, sessions, CSRF
         ├── projects and workspace files
         ├── search and git status
@@ -154,16 +154,16 @@
       <pre><code>curl -fsSL https://github.com/ferforastieri/toph/releases/latest/download/install.sh | sudo sh</code></pre>
       <p>
         The installer supports Debian/Ubuntu and creates a systemd service, a
-        <code>toph</code> user, the data directory, the workspace directory and the first
+        <code>jeff</code> user, the data directory, the workspace directory and the first
         admin password.
       </p>
 
       <h2>Install with Docker</h2>
       <pre><code>git clone https://github.com/ferforastieri/toph.git
-cd toph
+cd jeff
 
-TOPH_WORKSPACES_HOST=/srv/workspaces \
-TOPH_ADMIN_PASSWORD='choose-a-strong-password' \
+JEFF_WORKSPACES_HOST=/srv/workspaces \
+JEFF_ADMIN_PASSWORD='choose-a-strong-password' \
 docker compose -f deploy/compose.yaml up --build</code></pre>
       <p>
         Open <code>http://127.0.0.1:8787/app</code>. The Compose file publishes the port
@@ -172,24 +172,24 @@ docker compose -f deploy/compose.yaml up --build</code></pre>
       </p>
       <div class="callout">
         <strong>Permissions:</strong> the container runs as UID 1000. The mounted
-        workspace and the <code>toph-data</code> volume must be writable by that UID.
+        workspace and the <code>jeff-data</code> volume must be writable by that UID.
       </div>
 
       <h2>Install as a binary</h2>
       <pre><code>make build
-TOPH_WORKSPACES=/srv/workspaces \
-TOPH_ADMIN_PASSWORD='choose-a-strong-password' \
-./bin/toph</code></pre>
+JEFF_WORKSPACES=/srv/workspaces \
+JEFF_ADMIN_PASSWORD='choose-a-strong-password' \
+./bin/jeff</code></pre>
       <p>
         <code>make build</code> builds the web client, embeds it into the Go binary and
-        writes <code>bin/toph</code>.
+        writes <code>bin/jeff</code>.
       </p>
 
       <h2>Android APK</h2>
       <p>
         Download the signed APK from
         <a href="https://github.com/ferforastieri/toph/releases">GitHub Releases</a>.
-        Debug APKs are not published. On first launch, enter the Toph server URL,
+        Debug APKs are not published. On first launch, enter the Jeff server URL,
         username and password. Use LAN, VPN or Tailscale.
       </p>
       <p>
@@ -202,20 +202,20 @@ TOPH_ADMIN_PASSWORD='choose-a-strong-password' \
       <table>
         <thead><tr><th>Variable</th><th>Default</th><th>Meaning</th></tr></thead>
         <tbody>
-          <tr><td><code>TOPH_ADDR</code></td><td><code>127.0.0.1:8787</code></td><td>HTTP listen address.</td></tr>
-          <tr><td><code>TOPH_DATA_DIR</code></td><td><code>./data</code></td><td>SQLite database, master key and runtime data.</td></tr>
-          <tr><td><code>TOPH_WORKSPACES</code></td><td><code>/workspaces</code></td><td>Colon-separated roots that projects may use.</td></tr>
-          <tr><td><code>TOPH_ADMIN_PASSWORD</code></td><td>generated</td><td>Initial password. Generated and printed once when empty.</td></tr>
-          <tr><td><code>TOPH_SECURE_COOKIES</code></td><td><code>false</code></td><td>Require HTTPS for browser sessions.</td></tr>
-          <tr><td><code>TOPH_BUILD_ID</code></td><td>generated</td><td>Build identifier used by the web update toast.</td></tr>
-          <tr><td><code>TOPH_WEB_DIR</code></td><td>embedded build</td><td>Serve a web build from disk during development.</td></tr>
+          <tr><td><code>JEFF_ADDR</code></td><td><code>127.0.0.1:8787</code></td><td>HTTP listen address.</td></tr>
+          <tr><td><code>JEFF_DATA_DIR</code></td><td><code>./data</code></td><td>SQLite database, master key and runtime data.</td></tr>
+          <tr><td><code>JEFF_WORKSPACES</code></td><td><code>/workspaces</code></td><td>Colon-separated roots that projects may use.</td></tr>
+          <tr><td><code>JEFF_ADMIN_PASSWORD</code></td><td>generated</td><td>Initial password. Generated and printed once when empty.</td></tr>
+          <tr><td><code>JEFF_SECURE_COOKIES</code></td><td><code>false</code></td><td>Require HTTPS for browser sessions.</td></tr>
+          <tr><td><code>JEFF_BUILD_ID</code></td><td>generated</td><td>Build identifier used by the web update toast.</td></tr>
+          <tr><td><code>JEFF_WEB_DIR</code></td><td>embedded build</td><td>Serve a web build from disk during development.</td></tr>
         </tbody>
       </table>
 
       <h2>Projects</h2>
       <p>
         A project is a directory on the server. The path must exist and be inside one of
-        the configured workspace roots. Toph stores project metadata, per-user layout,
+        the configured workspace roots. Jeff stores project metadata, per-user layout,
         database connections and web targets in SQLite under the data directory. It does
         not copy or modify the project directory except when you edit and save a file.
       </p>
@@ -225,7 +225,7 @@ TOPH_ADMIN_PASSWORD='choose-a-strong-password' \
         <li>Web: Monaco, the editor engine behind VS Code.</li>
         <li>Android: CodeMirror 6 in a local WebView, optimized for touch and IME.</li>
         <li>File tree, search with ripgrep, git status and atomic saves.</li>
-        <li>Save conflicts are detected by content hash; Toph refuses to overwrite a file changed on disk.</li>
+        <li>Save conflicts are detected by content hash; Jeff refuses to overwrite a file changed on disk.</li>
       </ul>
 
       <h2>Databases</h2>
@@ -276,12 +276,12 @@ Neo4j         MATCH (n:User) RETURN n LIMIT 100;</code></pre>
         actions. Updates use the primary-key columns in the <code>WHERE</code> clause.
       </p>
 
-      <h2>Native Toph harness</h2>
-      <p>Toph runs agents in its Rust backend. Configure a direct OpenAI, Anthropic,
+      <h2>Native Jeff harness</h2>
+      <p>Jeff runs agents in its Rust backend. Configure a direct OpenAI, Anthropic,
       Ollama or compatible API URL, key and model in Settings → AI. Named connections
       are available under Conexões de IA. Keys are encrypted on the server.</p>
       <p>Sessions, tool calls, cancellation, approvals and delegation are persisted by
-      Toph. The browser follows SSE events; closing it does not stop a run. Incremental
+      Jeff. The browser follows SSE events; closing it does not stop a run. Incremental
       context summaries preserve the original searchable history. Provider errors never
       switch the selected model.</p>
       <p>MCP supports local stdio commands and remote Streamable HTTP endpoints with
@@ -304,7 +304,7 @@ Neo4j         MATCH (n:User) RETURN n LIMIT 100;</code></pre>
       <h3>Android</h3>
       <p>
         The APK checks the latest GitHub release. When a newer release contains an APK,
-        Toph shows an update toast; clicking downloads the APK and opens the Android
+        Jeff shows an update toast; clicking downloads the APK and opens the Android
         installer. Android always requires the final install confirmation. Release builds
         are signed when the Android keystore secrets are configured; otherwise the
         workflow fails rather than publishing a debug APK.
@@ -337,11 +337,11 @@ Neo4j         MATCH (n:User) RETURN n LIMIT 100;</code></pre>
 
       <h2>Security</h2>
       <ul>
-        <li>Bind Toph to localhost, a LAN or a VPN. Never expose it directly to the internet.</li>
+        <li>Bind Jeff to localhost, a LAN or a VPN. Never expose it directly to the internet.</li>
         <li>Put TLS in front, for example Caddy or Tailscale HTTPS.</li>
         <li>Use a strong password. Login is rate-limited; sessions are opaque tokens stored as hashes.</li>
         <li>Database credentials stay on the server and are encrypted at rest.</li>
-        <li>Treat Toph as remote administration: it can read repositories, open shells and reach databases.</li>
+        <li>Treat Jeff as remote administration: it can read repositories, open shells and reach databases.</li>
         <li>Project paths are restricted to configured roots, with symlink escape checks.</li>
       </ul>
 
@@ -361,14 +361,14 @@ cd ../mobile
       </p>
 
       <h2>Troubleshooting</h2>
-      <h3>Toph starts but has no projects</h3>
+      <h3>Jeff starts but has no projects</h3>
       <p>
-        Check <code>TOPH_WORKSPACES</code>. It is a colon-separated list of existing
+        Check <code>JEFF_WORKSPACES</code>. It is a colon-separated list of existing
         directories. Create a project from the app with a path inside one of those roots.
       </p>
       <h3>A model provider is unavailable</h3>
       <p>Check the API URL, key and selected model in Settings → AI. The model must
-      support streaming and tools. Toph reports provider errors without changing the
+      support streaming and tools. Jeff reports provider errors without changing the
       model or connecting to another agent service.</p>
       <h3>The Android app cannot connect</h3>
       <p>
@@ -377,12 +377,12 @@ cd ../mobile
       </p>
       <h3>A database profile fails</h3>
       <p>
-        Test the DSN from the server first. Toph opens connections from the container or
+        Test the DSN from the server first. Jeff opens connections from the container or
         host running the Go process, not from your laptop.
       </p>
 
       <footer>
-        <span>Toph · MIT · self-hosted</span>
+        <span>Jeff · MIT · self-hosted</span>
         <span><a href="/">Home</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/ferforastieri/toph">GitHub</a></span>
       </footer>
     </main>

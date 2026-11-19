@@ -56,7 +56,7 @@ function canonicalProvider(provider: string): string {
   return value;
 }
 
-const PREFERRED_MODEL_KEY = "toph_preferred_model";
+const PREFERRED_MODEL_KEY = "jeff_preferred_model";
 
 function preferredModel(): string {
   try {
@@ -81,7 +81,7 @@ export function rememberModel(model: string): void {
 }
 
 /**
- * The model a conversation starts on when neither it nor its Toph names one:
+ * The model a conversation starts on when neither it nor its Jeff names one:
  * the last model picked in a task, then the harness default (the first
  * OpenCode Go model), with variants when it has them so the effort control is
  * there from the start.

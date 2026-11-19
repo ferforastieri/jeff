@@ -8,7 +8,7 @@ export interface SkillRecord {
   name: string;
   description: string;
   body: string;
-  /** Empty means every Toph in the project. */
+  /** Empty means every Jeff in the project. */
   agents: string[];
   state: SkillState;
   replaces?: string | null;

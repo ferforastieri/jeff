@@ -18,7 +18,7 @@ export interface ModalProps {
   className?: string;
   /** A class of the app's own CSS for the body. */
   bodyClassName?: string;
-  /** Kept for the screens that ask for a phone sheet: Tophs has one dialog, the same on every screen. */
+  /** Kept for the screens that ask for a phone sheet: Jeffs has one dialog, the same on every screen. */
   placement?: "center" | "bottom";
   /** Accessible name when no visible title is supplied. */
   label?: string;
@@ -28,7 +28,7 @@ export interface ModalProps {
 
 /**
  * The app's one modal: the kit's `Dialog` itself, never a second frame over it — the
- * Tophs surface, border, radius, scrim, head and animation, and its own icons.
+ * Jeffs surface, border, radius, scrim, head and animation, and its own icons.
  */
 const widths: Record<ModalSize, number> = { sm: 400, md: 520, lg: 680, xl: 900, full: 1120 };
 
@@ -64,7 +64,7 @@ export function Modal({
           size="sm"
           iconOnly
           icon="close"
-          className="ac-btn--glyph toph-modal-close"
+          className="ac-btn--glyph jeff-modal-close"
           aria-label="Fechar"
           onClick={onClose}
         />

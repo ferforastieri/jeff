@@ -388,14 +388,14 @@ export async function probeServer(raw: string): Promise<string> {
     throw new Error(`Server returned ${response.status}.`);
   }
   const body = (await response.json()) as { name?: string };
-  if (body.name !== "toph") {
-    throw new Error("That URL does not point to a Toph server.");
+  if (body.name !== "jeff") {
+    throw new Error("That URL does not point to a Jeff server.");
   }
   return base;
 }
 
 function csrfToken(): string {
-  const match = document.cookie.match(/(?:^|;\s*)toph_csrf=([^;]+)/);
+  const match = document.cookie.match(/(?:^|;\s*)jeff_csrf=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : "";
 }
 
@@ -426,7 +426,7 @@ async function send<T>(path: string, options: RequestInit): Promise<T> {
   if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
     const csrf = csrfToken();
     if (csrf) {
-      headers.set("X-Toph-CSRF", csrf);
+      headers.set("X-Jeff-CSRF", csrf);
     }
   }
   const response = await fetch(`${apiBase}${API_BASE}${path}`, {
@@ -1027,7 +1027,7 @@ export const api = {
       signal,
       headers: {
         "Content-Type": "application/json",
-        ...(csrfToken() ? { "X-Toph-CSRF": csrfToken() } : {}),
+        ...(csrfToken() ? { "X-Jeff-CSRF": csrfToken() } : {}),
       },
       body: JSON.stringify(input),
     });

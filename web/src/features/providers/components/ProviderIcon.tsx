@@ -1,4 +1,4 @@
-import { Icon, cx } from "@toph/ui";
+import { Icon, cx } from "@jeff/ui";
 import { PROVIDER_LOGOS, type ProviderLogo } from "../logos";
 
 interface Props {

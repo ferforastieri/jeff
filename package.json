@@ -1,5 +1,5 @@
 {
-  "name": "toph",
+  "name": "jeff",
   "private": true,
   "version": "0.8.10",
   "workspaces": [
@@ -12,15 +12,15 @@
     "packages/icons"
   ],
   "scripts": {
-    "dev:web": "npm run dev --workspace @toph/web",
-    "dev:landing": "npm run dev --workspace @toph/landing",
-    "build:web": "npm run build --workspace @toph/web",
-    "build:landing": "npm run build --workspace @toph/landing",
+    "dev:web": "npm run dev --workspace @jeff/web",
+    "dev:landing": "npm run dev --workspace @jeff/landing",
+    "build:web": "npm run build --workspace @jeff/web",
+    "build:landing": "npm run build --workspace @jeff/landing",
     "build:client": "npm run build:desktop",
-    "build:desktop": "npm run build --workspace @toph/desktop",
-    "build:mobile": "npm run build --workspace @toph/mobile",
-    "test": "npm run test --workspace @toph/web",
-    "build:server": "cargo build --release --manifest-path backend/Cargo.toml --bin toph",
+    "build:desktop": "npm run build --workspace @jeff/desktop",
+    "build:mobile": "npm run build --workspace @jeff/mobile",
+    "test": "npm run test --workspace @jeff/web",
+    "build:server": "cargo build --release --manifest-path backend/Cargo.toml --bin jeff",
     "test:server": "cargo test --manifest-path backend/Cargo.toml"
   },
   "overrides": {

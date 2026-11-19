@@ -5,7 +5,7 @@ use crate::errors::{AppError, AppResult};
 
 /// An exclusive lock on a data directory.
 ///
-/// Toph recovers unfinished runs when it starts. A second process pointed at
+/// Jeff recovers unfinished runs when it starts. A second process pointed at
 /// the same directory must fail *before* that recovery, otherwise it marks the
 /// first instance's live runs as interrupted and the chat shows a false
 /// "server stopped" error. The OS releases the lock when the holder exits, so
@@ -17,7 +17,7 @@ pub struct InstanceLock {
 impl InstanceLock {
     pub fn acquire(data_dir: &Path) -> AppResult<Self> {
         std::fs::create_dir_all(data_dir)?;
-        let path = data_dir.join(".toph.lock");
+        let path = data_dir.join(".jeff.lock");
         let mut options = OpenOptions::new();
         options.write(true).create(true);
         #[cfg(windows)]
@@ -51,7 +51,7 @@ impl InstanceLock {
 
 fn busy() -> AppError {
     AppError::ServiceUnavailable(
-        "Outra instância do Toph já está usando este diretório de dados.".into(),
+        "Outra instância do Jeff já está usando este diretório de dados.".into(),
     )
 }
 
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn a_second_instance_is_refused_and_the_lock_is_released_on_drop() {
-        let dir = std::env::temp_dir().join(format!("toph-lock-{}", crate::crypto::new_id()));
+        let dir = std::env::temp_dir().join(format!("jeff-lock-{}", crate::crypto::new_id()));
         let first = InstanceLock::acquire(&dir).expect("first lock");
         let second = InstanceLock::acquire(&dir);
         assert!(

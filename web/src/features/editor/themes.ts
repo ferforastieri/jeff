@@ -114,7 +114,7 @@ const darkTheme: editor.IStandaloneThemeData = {
     "editorLineNumber.foreground": "#3C3C3C",
     "editorLineNumber.activeForeground": "#969696",
     "editorCursor.foreground": "#FF50FF",
-    "editorGhostText.foreground": "#0F766EDD",
+    "editorGhostText.foreground": "#0063D1DD",
     "editorGhostText.background": "#00000000",
     "editor.selectionBackground": "#96969659",
     "editor.selectionForeground": "#C8C8C8",
@@ -171,11 +171,11 @@ const darkTheme: editor.IStandaloneThemeData = {
   },
 };
 
-export function monacoThemeName(theme: Theme): "toph-dark" | "toph-light" {
-  return theme === "light" ? "toph-light" : "toph-dark";
+export function monacoThemeName(theme: Theme): "jeff-dark" | "jeff-light" {
+  return theme === "light" ? "jeff-light" : "jeff-dark";
 }
 
 export function registerEditorThemes(monaco: Monaco): void {
-  monaco.editor.defineTheme("toph-dark", darkTheme);
-  monaco.editor.defineTheme("toph-light", lightTheme);
+  monaco.editor.defineTheme("jeff-dark", darkTheme);
+  monaco.editor.defineTheme("jeff-light", lightTheme);
 }

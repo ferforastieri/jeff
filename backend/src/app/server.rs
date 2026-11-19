@@ -89,9 +89,9 @@ use crate::terminal::TerminalManager;
 use crate::update::{UpdateManager, UpdateStart, UpdateStatus, VERSION};
 use crate::workspace::WorkspaceService;
 
-const SESSION_COOKIE: &str = "toph_session";
-const CSRF_COOKIE: &str = "toph_csrf";
-const CSRF_HEADER: &str = "x-toph-csrf";
+const SESSION_COOKIE: &str = "jeff_session";
+const CSRF_COOKIE: &str = "jeff_csrf";
+const CSRF_HEADER: &str = "x-jeff-csrf";
 
 /// One-time codes that let a phone join a local server without typing the
 /// generated admin password. Codes live in memory only: they expire after ten
@@ -293,11 +293,11 @@ impl AppState {
         DRIVERS.call_once(sqlx::any::install_default_drivers);
 
         config.ensure_dirs()?;
-        let store = Store::open(&config.data_dir.join("toph.db")).await?;
+        let store = Store::open(&config.data_dir.join("jeff.db")).await?;
         let auth = AuthManager::new(store.clone(), config.secure_cookies);
         if let Some(password) = auth.bootstrap(&config.admin_password).await? {
             eprintln!(
-                "\n  Toph initial admin password: {password}\n  Set TOPH_ADMIN_PASSWORD before the next start if you want a fixed password.\n"
+                "\n  Jeff initial admin password: {password}\n  Set JEFF_ADMIN_PASSWORD before the next start if you want a fixed password.\n"
             );
         }
 
@@ -531,7 +531,7 @@ impl AppState {
             id: new_id(),
             name,
             root: root.to_string_lossy().to_string(),
-            color: "#0F766E".into(),
+            color: "#0063D1".into(),
             created_at: String::new(),
             updated_at: String::new(),
         };
@@ -643,7 +643,7 @@ pub async fn serve(config: Config) -> AppResult<()> {
     let addr = config.addr.clone();
     let state = AppState::build(config).await?;
     let listener = TcpListener::bind(&addr).await?;
-    tracing::info!(%addr, data = %state.config.data_dir.display(), "toph listening");
+    tracing::info!(%addr, data = %state.config.data_dir.display(), "jeff listening");
     // Relaunch turns that a previous process left in flight before accepting
     // new requests.
     state.agents.resume_interrupted().await;
@@ -656,7 +656,7 @@ pub async fn serve(config: Config) -> AppResult<()> {
             result.map_err(|error| AppError::Internal(error.into()))?;
         }
         _ = shutdown_signal() => {
-            tracing::info!("toph shutting down");
+            tracing::info!("jeff shutting down");
         }
     }
     // Long-lived WebSockets and SSE streams do not complete on their own.
@@ -926,8 +926,8 @@ fn router(state: Arc<AppState>) -> Router {
             delete(delete_chat),
         )
         .route(
-            "/api/projects/{project_id}/agent/tophs/{toph_id}",
-            delete(delete_toph),
+            "/api/projects/{project_id}/agent/jeffs/{jeff_id}",
+            delete(delete_jeff),
         )
         .route(
             "/api/projects/{project_id}/agent/approvals/{call_id}",
@@ -1074,7 +1074,7 @@ async fn auth_middleware(
         }
     };
     // The preview proxy forwards the app's own requests. They belong to the
-    // previewed app, not to a Toph form, so Toph's CSRF token does not apply.
+    // previewed app, not to a Jeff form, so Jeff's CSRF token does not apply.
     let preview_proxy = request.uri().path().starts_with("/api/web-preview/");
     if from_cookie && unsafe_method(request.method()) && !preview_proxy {
         let csrf = cookie_value(request.headers(), CSRF_COOKIE).unwrap_or_default();
@@ -1121,7 +1121,7 @@ fn client_key(headers: &HeaderMap, connect: Option<SocketAddr>, trusted: &[IpNet
 async fn health(State(state): State<Arc<AppState>>) -> Json<Value> {
     Json(json!({
         "ok": true,
-        "name": "toph",
+        "name": "jeff",
         "version": VERSION.trim_start_matches('v'),
         "buildId": state.config.build_id,
     }))
@@ -1129,7 +1129,7 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<Value> {
 
 async fn version(State(state): State<Arc<AppState>>) -> Json<Value> {
     Json(json!({
-        "name": "toph",
+        "name": "jeff",
         "version": VERSION.trim_start_matches('v'),
         "buildId": state.config.build_id,
     }))
@@ -1320,7 +1320,7 @@ mod lifecycle_tests {
     }
 
     #[tokio::test]
-    async fn agent_completion_notification_carries_project_toph_and_content() {
+    async fn agent_completion_notification_carries_project_jeff_and_content() {
         let dir = tempfile::tempdir().unwrap();
         let workspace = dir.path().join("workspace");
         std::fs::create_dir_all(&workspace).unwrap();
@@ -1347,7 +1347,7 @@ mod lifecycle_tests {
                 project_id: project.id.clone(),
                 chat_id: "chat-1".into(),
                 session_id: "session-1".into(),
-                agent_id: "toph-1".into(),
+                agent_id: "jeff-1".into(),
                 agent_name: "Beto".into(),
                 agent_role: "Dev".into(),
                 text: "```sh\nnpm test\n```\nTudo passou no teste final.".into(),

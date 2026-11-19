@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronDown, Copy, LoaderCircle, X } from "@toph/icons";
+import { Check, ChevronDown, Copy, LoaderCircle, X } from "@jeff/icons";
 import type { AiMessage } from "../../../app/store";
 import type { Project } from "../../../shared/api";
-import type { ChatToph } from "../store";
+import type { ChatJeff } from "../store";
 import { isActive, type AgentQuestionPrompt, type AgentRun, type NativeMessage } from "../../agents/api";
 import { TranscriptMessage, toolLabel } from "./AgentTranscript";
 import { stepDuration, toolError, toolStep } from "../steps";
 import AgentQuestionCard from "./AgentQuestionCard";
 import BotAvatar from "../../agents/components/BotAvatar";
-import { Button } from "@toph/ui/app";
-import { cx } from "@toph/ui";
+import { Button } from "@jeff/ui/app";
+import { cx } from "@jeff/ui";
 
 /** The harnesses report a whole text part at the end of each step, so the
  * reveal is paced here: each new chunk types in instead of popping at once. */
@@ -67,7 +67,7 @@ function fallbackActivity(message: NativeMessage): string {
   if (name === "remember") return "salvou uma memória do projeto";
   if (name === "fetch_url") return "consultou um link";
   if (name === "read_artifact") return "leu um anexo";
-  if (name === "delegate") return "passou uma tarefa para outro Toph";
+  if (name === "delegate") return "passou uma tarefa para outro Jeff";
   if (name.startsWith("email_")) return "consultou o e-mail";
   if (name === "mcp_list") return "listou as ferramentas da integração";
   if (name === "mcp_call") return "usou uma integração";
@@ -76,7 +76,7 @@ function fallbackActivity(message: NativeMessage): string {
 
 interface Props {
   messages: NativeMessage[];
-  tophs: ChatToph[];
+  jeffs: ChatJeff[];
   runs: AgentRun[];
   project: Project;
   mobile: boolean;
@@ -143,7 +143,7 @@ function StreamedTranscript({ message, project, mobile }: { message: NativeMessa
 
 function UserMessage({ message }: { message: NativeMessage }) {
   return (
-    <article data-testid="chat-user-message" className="toph-msg-in group/msg flex min-w-0 flex-col items-end gap-1 py-1.5">
+    <article data-testid="chat-user-message" className="jeff-msg-in group/msg flex min-w-0 flex-col items-end gap-1 py-1.5">
       <p className="max-w-[min(78%,620px)] rounded-[18px] rounded-br-[6px] bg-background-tertiary-default px-3.5 py-2 text-[14px] leading-[1.65] whitespace-pre-wrap break-words text-text-primary">
         {message.content}
       </p>
@@ -155,20 +155,20 @@ function UserMessage({ message }: { message: NativeMessage }) {
   );
 }
 
-function AgentMessage({ message, toph, project, grouped, mobile }: {
+function AgentMessage({ message, jeff, project, grouped, mobile }: {
   message: NativeMessage;
-  toph: ChatToph;
+  jeff: ChatJeff;
   project: Project;
   grouped: boolean;
   mobile: boolean;
 }) {
   return (
-    <article data-testid="chat-agent-message" className="toph-msg-in group/msg flex min-w-0 gap-3 py-1.5">
-      <div className="w-[40px] shrink-0">{grouped ? null : <BotAvatar bot={toph} size={40} />}</div>
+    <article data-testid="chat-agent-message" className="jeff-msg-in group/msg flex min-w-0 gap-3 py-1.5">
+      <div className="w-[40px] shrink-0">{grouped ? null : <BotAvatar bot={jeff} size={40} />}</div>
       <div className="min-w-0 flex-1">
         {grouped ? null : (
           <div className="mb-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <strong className="truncate text-[13.5px] font-semibold text-text-primary">{toph.name}</strong>
+            <strong className="truncate text-[13.5px] font-semibold text-text-primary">{jeff.name}</strong>
             <span className="text-[11px] text-text-tertiary">{timeLabel(message.createdAt)}</span>
             <CopyMessageButton content={message.content} label="Copiar resposta" />
           </div>
@@ -310,7 +310,7 @@ function RunSteps({ steps, working, defaultOpen = false, startedAt }: { steps: N
         ) : (
           <ChevronDown className={cx("size-3 shrink-0 transition-transform duration-300", open ? "rotate-0" : "-rotate-90")} />
         )}
-        <span className={cx("shrink-0", working && "toph-steps-shimmer")}>{summary}</span>
+        <span className={cx("shrink-0", working && "jeff-steps-shimmer")}>{summary}</span>
         {working && labels.length > 0 ? <span className="min-w-0 truncate text-text-tertiary">{labels.slice(0, 3).join(", ")}</span> : null}
       </button>
       {open && steps.length === 0 && working ? (
@@ -326,22 +326,22 @@ function RunSteps({ steps, working, defaultOpen = false, startedAt }: { steps: N
   );
 }
 
-function StepGroup({ messages, toph, showAvatar }: { messages: NativeMessage[]; toph: ChatToph; showAvatar: boolean }) {
+function StepGroup({ messages, jeff, showAvatar }: { messages: NativeMessage[]; jeff: ChatJeff; showAvatar: boolean }) {
   const working = messages.some((message) => message.status === "running");
   return (
-    <div data-testid="chat-step-group" className="toph-msg-in flex min-w-0 gap-3 py-0.5">
-      <div className="flex w-[40px] shrink-0 justify-center">{showAvatar ? <BotAvatar bot={toph} size={20} /> : null}</div>
+    <div data-testid="chat-step-group" className="jeff-msg-in flex min-w-0 gap-3 py-0.5">
+      <div className="flex w-[40px] shrink-0 justify-center">{showAvatar ? <BotAvatar bot={jeff} size={20} /> : null}</div>
       <div className="min-w-0 flex-1"><RunSteps steps={messages} working={working} /></div>
     </div>
   );
 }
 
-function ActivityStatus({ toph, activity, startedAt }: { toph: ChatToph; activity: { label: string; detail?: string }; startedAt: number }) {
+function ActivityStatus({ jeff, activity, startedAt }: { jeff: ChatJeff; activity: { label: string; detail?: string }; startedAt: number }) {
   return (
-    <div className="toph-msg-in flex min-w-0 gap-3 py-1">
-      <div className="w-[40px] shrink-0"><BotAvatar bot={toph} size={40} /></div>
+    <div className="jeff-msg-in flex min-w-0 gap-3 py-1">
+      <div className="w-[40px] shrink-0"><BotAvatar bot={jeff} size={40} /></div>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-[12.5px] text-text-secondary">
-        <strong className="text-[13px] font-semibold text-text-primary">{toph.name}</strong>
+        <strong className="text-[13px] font-semibold text-text-primary">{jeff.name}</strong>
         <LoaderCircle className="size-3.5 shrink-0 animate-spin text-accent-500" />
         <span className="shrink-0 text-accent-600">{activity.label}</span>
         {activity.detail ? <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] text-text-tertiary" dir="ltr">{activity.detail}</span> : <span className="min-w-0 flex-1" />}
@@ -353,7 +353,7 @@ function ActivityStatus({ toph, activity, startedAt }: { toph: ChatToph; activit
 
 export default function ChatMessages({
   messages,
-  tophs,
+  jeffs,
   runs,
   project,
   mobile = false,
@@ -363,8 +363,8 @@ export default function ChatMessages({
   const ordered = useMemo(() => [...messages].sort(messageOrder), [messages]);
   const activeRuns = runs.filter(isActive);
 
-  function currentActivity(toph: ChatToph, run: AgentRun): { label: string; detail?: string } {
-    const own = ordered.filter((message) => message.tophId === toph.id && message.createdAt >= run.createdAt);
+  function currentActivity(jeff: ChatJeff, run: AgentRun): { label: string; detail?: string } {
+    const own = ordered.filter((message) => message.jeffId === jeff.id && message.createdAt >= run.createdAt);
     const last = own[own.length - 1];
     if (!last) return { label: "Pensando" };
     if (last.role === "tool") {
@@ -378,61 +378,61 @@ export default function ChatMessages({
 
   const rows: ReactNode[] = [];
   const groupWindow = 5 * 60 * 1000;
-  let lastTophId: string | null = null;
-  let lastTophAt = 0;
+  let lastJeffId: string | null = null;
+  let lastJeffAt = 0;
   let pendingSteps: NativeMessage[] = [];
-  let pendingToph: ChatToph | null = null;
+  let pendingJeff: ChatJeff | null = null;
   let pendingShowAvatar = false;
 
   function flushSteps() {
-    if (!pendingToph || pendingSteps.length === 0) return;
-    rows.push(<StepGroup key={`steps-${pendingSteps[0].id}`} messages={pendingSteps} toph={pendingToph} showAvatar={pendingShowAvatar} />);
+    if (!pendingJeff || pendingSteps.length === 0) return;
+    rows.push(<StepGroup key={`steps-${pendingSteps[0].id}`} messages={pendingSteps} jeff={pendingJeff} showAvatar={pendingShowAvatar} />);
     pendingSteps = [];
-    pendingToph = null;
+    pendingJeff = null;
   }
 
   for (const message of ordered) {
     if (message.role === "user") {
       flushSteps();
-      lastTophId = null;
+      lastJeffId = null;
       rows.push(<UserMessage key={message.id} message={message} />);
       continue;
     }
     if (message.role === "system") {
       flushSteps();
-      lastTophId = null;
+      lastJeffId = null;
       rows.push(<p key={message.id} className="py-1 text-center text-[11px] text-text-tertiary">{message.content}</p>);
       continue;
     }
     if (message.role === "error") {
       flushSteps();
-      lastTophId = null;
+      lastJeffId = null;
       rows.push(<p key={message.id} className="rounded-xl bg-status-rose-background px-3 py-2 text-[12px] text-status-rose-text">{message.content}</p>);
       continue;
     }
 
-    const toph = tophs.find((item) => item.id === message.tophId);
-    if (!toph) {
+    const jeff = jeffs.find((item) => item.id === message.jeffId);
+    if (!jeff) {
       flushSteps();
       const value = toTranscriptMessage(message);
       rows.push(
-        <div key={message.id} className="toph-msg-in min-w-0">
+        <div key={message.id} className="jeff-msg-in min-w-0">
           <TranscriptMessage message={value} projectId={project.id} projectRoot={project.root} />
         </div>,
       );
       continue;
     }
 
-    const grouped = lastTophId === toph.id && message.createdAt - lastTophAt < groupWindow;
+    const grouped = lastJeffId === jeff.id && message.createdAt - lastJeffAt < groupWindow;
     if (message.role === "activity" || message.role === "tool" || message.role === "reasoning") {
-      if (!pendingToph || pendingToph.id !== toph.id) {
+      if (!pendingJeff || pendingJeff.id !== jeff.id) {
         flushSteps();
-        pendingToph = toph;
+        pendingJeff = jeff;
         pendingShowAvatar = !grouped;
       }
       pendingSteps.push(message);
-      lastTophId = toph.id;
-      lastTophAt = message.createdAt;
+      lastJeffId = jeff.id;
+      lastJeffAt = message.createdAt;
       continue;
     }
     if (message.role === "assistant") {
@@ -442,14 +442,14 @@ export default function ChatMessages({
         <AgentMessage
           key={message.id}
           message={message}
-          toph={toph}
+          jeff={jeff}
           project={project}
           grouped={grouped}
           mobile={mobile}
         />,
       );
-      lastTophId = toph.id;
-      lastTophAt = message.createdAt;
+      lastJeffId = jeff.id;
+      lastJeffAt = message.createdAt;
     }
   }
 
@@ -457,13 +457,13 @@ export default function ChatMessages({
 
   for (const run of activeRuns) {
     if (ordered.some((message) => message.runId === run.id && message.role === "assistant" && message.status === "running")) continue;
-    const toph = tophs.find((item) => item.id === run.agentId);
-    if (!toph) continue;
-    const activity = currentActivity(toph, run);
+    const jeff = jeffs.find((item) => item.id === run.agentId);
+    if (!jeff) continue;
+    const activity = currentActivity(jeff, run);
     rows.push(
       <ActivityStatus
         key={`run-${run.id}`}
-        toph={toph}
+        jeff={jeff}
         activity={activity}
         startedAt={run.createdAt}
       />,
@@ -471,12 +471,12 @@ export default function ChatMessages({
   }
 
   for (const prompt of questions) {
-    const toph = tophs.find((item) => item.id === prompt.agentId);
+    const jeff = jeffs.find((item) => item.id === prompt.agentId);
     rows.push(
-      <section key={`question-${prompt.id}`} className="toph-msg-in flex min-w-0 max-w-full items-start gap-2.5">
-        <div className="w-[40px] shrink-0">{toph ? <BotAvatar bot={toph} size={40} /> : null}</div>
+      <section key={`question-${prompt.id}`} className="jeff-msg-in flex min-w-0 max-w-full items-start gap-2.5">
+        <div className="w-[40px] shrink-0">{jeff ? <BotAvatar bot={jeff} size={40} /> : null}</div>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          {toph ? <strong className="text-caption-1-semibold text-text-primary">{toph.name}</strong> : null}
+          {jeff ? <strong className="text-caption-1-semibold text-text-primary">{jeff.name}</strong> : null}
           <AgentQuestionCard
             questions={prompt.questions}
             onSubmit={onAnswer ? (answer) => onAnswer(prompt.id, answer) : undefined}

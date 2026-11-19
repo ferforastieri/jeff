@@ -99,7 +99,7 @@ impl Repository {
             out.push_str(if role == "user" {
                 "Usuário: "
             } else {
-                "Toph: "
+                "Jeff: "
             });
             out.push_str(text.trim());
             out.push('\n');
@@ -133,7 +133,7 @@ impl Repository {
                 serde_json::from_str(row.get::<&str, _>("display")).unwrap_or(Value::Null);
             out.push((
                 row.get::<String, _>("role"),
-                display["tophId"].as_str().unwrap_or("").to_string(),
+                display["jeffId"].as_str().unwrap_or("").to_string(),
                 row.get::<String, _>("content_text")
                     .chars()
                     .take(700)
@@ -655,7 +655,7 @@ impl Repository {
         for (id, name) in pending {
             let mid = new_id();
             let text="Execution was interrupted. Effects may already exist; inspect state before retrying.";
-            self.message(ctx,&mid,json!({"role":"tool","tool_call_id":id,"name":name,"content":text}),json!({"id":mid,"chatId":ctx.run.chat_id,"tophId":ctx.agent.id,"sessionId":ctx.run.session_id,"role":"tool","title":name,"content":text,"status":"error","createdAt":now()})).await?;
+            self.message(ctx,&mid,json!({"role":"tool","tool_call_id":id,"name":name,"content":text}),json!({"id":mid,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"role":"tool","title":name,"content":text,"status":"error","createdAt":now()})).await?;
         }
         Ok(())
     }

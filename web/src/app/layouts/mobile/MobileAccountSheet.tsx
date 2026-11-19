@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { LogOut } from "@toph/icons";
+import { LogOut } from "@jeff/icons";
 import { api, getApiBase, type User } from "../../../shared/api";
 import { useApp } from "../../store";
-import { Button } from "@toph/ui/app";
-import { Modal } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { Modal } from "@jeff/ui/app";
 
 interface Props {
   open: boolean;
@@ -40,7 +40,7 @@ export default function MobileAccountSheet({ open, user, onClose }: Props) {
     <Modal isOpen={open} onClose={onClose} title="Conta" description="Sessão deste dispositivo." size="sm">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3 rounded-2xl border border-border-button-default bg-background-secondary-default p-3">
-          <img src={`${import.meta.env.BASE_URL}tophs/toph-logo.png?v=7`} alt="" width={48} height={48} className="size-12 select-none object-contain" draggable={false} />
+          <img src={`${import.meta.env.BASE_URL}jeffs/jeff-logo.png?v=7`} alt="" width={48} height={48} className="size-12 select-none object-contain" draggable={false} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-body-medium text-text-primary">{user?.username ?? "Conta"}</p>
             <p className="truncate text-caption-1-regular text-text-secondary">{server}</p>

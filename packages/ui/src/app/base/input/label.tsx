@@ -4,7 +4,7 @@ import type { ReactNode, Ref } from "react";
 import { Icon } from "../../../icons/Icon";
 import type { LabelProps as AriaLabelProps } from "react-aria-components";
 import { Label as AriaLabel } from "react-aria-components";
-import { cx } from "@toph/ui/app/utils/cx";
+import { cx } from "@jeff/ui/app/utils/cx";
 
 /**
  * Field label. Wraps `react-aria-components`' Label so the parent `TextField`

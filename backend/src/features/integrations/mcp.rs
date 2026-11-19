@@ -52,7 +52,7 @@ fn default_timeout() -> u64 {
     120
 }
 
-/// The model usually knows an MCP server by its display name, while the Toph
+/// The model usually knows an MCP server by its display name, while the Jeff
 /// profile stores the server id. Compare both, ignoring case, spacing and
 /// punctuation, so `Jira (Atlassian)`, `jira atlassian` and the id all reach
 /// the same server.
@@ -69,7 +69,7 @@ fn fold(value: &str) -> String {
 }
 
 fn is_selected(ids: &[String], server: &Server) -> bool {
-    // There is one Toph per project now and no per-Toph MCP selection UI:
+    // There is one Jeff per project now and no per-Jeff MCP selection UI:
     // every configured server is available unless a client sends an explicit list.
     ids.is_empty()
         || ids
@@ -77,7 +77,7 @@ fn is_selected(ids: &[String], server: &Server) -> bool {
             .any(|value| value == &server.id || fold(value) == fold(&server.name))
 }
 
-/// Picks one server from the Toph's allowed servers. Accepts the id, the exact
+/// Picks one server from the Jeff's allowed servers. Accepts the id, the exact
 /// name, or unique words from the name (`atlassian` for `Jira (Atlassian)`).
 fn pick<'a>(servers: &[&'a Server], requested: &str) -> Result<&'a Server, String> {
     let available = || {
@@ -88,7 +88,7 @@ fn pick<'a>(servers: &[&'a Server], requested: &str) -> Result<&'a Server, Strin
             .join(", ")
     };
     if servers.is_empty() {
-        return Err("No MCP server is selected for this Toph.".into());
+        return Err("No MCP server is selected for this Jeff.".into());
     }
     let requested = requested.trim();
     if requested.is_empty() {
@@ -147,7 +147,7 @@ fn pick<'a>(servers: &[&'a Server], requested: &str) -> Result<&'a Server, Strin
         ));
     }
     Err(format!(
-        "MCP server \"{requested}\" is not selected for this Toph. Available: {}",
+        "MCP server \"{requested}\" is not selected for this Jeff. Available: {}",
         available()
     ))
 }
@@ -206,7 +206,7 @@ impl Service {
     pub async fn list(&self) -> AppResult<Value> {
         Ok(json!(self.servers().await?.iter().map(|s|json!({"id":s.id,"name":s.name,"transport":s.transport,"url":s.url,"command":s.command,"hasToken":!s.token.is_empty(),"envKeys":s.env.keys().collect::<Vec<_>>(),"timeoutSeconds":s.timeout_seconds,"autoApprove":s.auto_approve})).collect::<Vec<_>>()))
     }
-    /// Id and display name of the MCP servers selected for one Toph.
+    /// Id and display name of the MCP servers selected for one Jeff.
     pub async fn selected(&self, ids: &[String]) -> AppResult<Vec<(String, String)>> {
         Ok(self
             .servers()
@@ -217,7 +217,7 @@ impl Service {
             .collect())
     }
 
-    /// Full definitions of the MCP servers selected for one Toph. Native
+    /// Full definitions of the MCP servers selected for one Jeff. Native
     /// harnesses receive these as their own MCP configuration; secrets are
     /// injected as environment placeholders by the caller.
     pub async fn selected_servers(&self, ids: &[String]) -> AppResult<Vec<Server>> {
@@ -229,7 +229,7 @@ impl Service {
             .collect())
     }
     /// Resolve what the model called (`server`) to a configured server the
-    /// Toph may use. Accepts the id, the display name or a unique word from it.
+    /// Jeff may use. Accepts the id, the display name or a unique word from it.
     pub async fn resolve(&self, ids: &[String], requested: &str) -> AppResult<Server> {
         let servers = self.servers().await?;
         let allowed = servers
@@ -371,7 +371,7 @@ impl Service {
                 link.process = Some((child, input, BufReader::new(output)));
             }
             let budget = Duration::from_secs(link.server.timeout_seconds.clamp(5, 600));
-            let initialized=tokio::time::timeout(budget,link.rpc("initialize",json!({"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"Toph","version":crate::VERSION}}),false)).await.map_err(|_|bad_request("MCP initialize timed out"))??;
+            let initialized=tokio::time::timeout(budget,link.rpc("initialize",json!({"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"Jeff","version":crate::VERSION}}),false)).await.map_err(|_|bad_request("MCP initialize timed out"))??;
             link.version = initialized["protocolVersion"]
                 .as_str()
                 .unwrap_or("2025-03-26")

@@ -29,10 +29,10 @@ interface PairingInfo {
   expiresIn: number;
 }
 
-const SERVER_KEY = "toph_desktop_server";
-const LEGACY_RECENT_KEY = "toph_desktop_recent_servers";
-const LOCAL_WORKSPACE_KEY = "toph_desktop_local_workspace";
-const SHARE_NETWORK_KEY = "toph_desktop_share_network";
+const SERVER_KEY = "jeff_desktop_server";
+const LEGACY_RECENT_KEY = "jeff_desktop_recent_servers";
+const LOCAL_WORKSPACE_KEY = "jeff_desktop_local_workspace";
+const SHARE_NETWORK_KEY = "jeff_desktop_share_network";
 
 function mobileUserAgent(): boolean {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -287,7 +287,7 @@ export default function App() {
           return next;
         });
       }
-      setEnvironmentLog((log) => `${log}\nAmbiente instalado. Reinicie o Toph para carregar o PATH atualizado.\n`);
+      setEnvironmentLog((log) => `${log}\nAmbiente instalado. Reinicie o Jeff para carregar o PATH atualizado.\n`);
     } catch (err) {
       setEnvironmentError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -296,7 +296,7 @@ export default function App() {
     }
   }
 
-  async function restartToph() {
+  async function restartJeff() {
     await invoke("restart_app");
   }
 
@@ -402,7 +402,7 @@ export default function App() {
       const result = await scan({ formats: [Format.QRCode] });
       const content = result.content.trim();
       const base = scannedServerBase(content);
-      if (!base) throw new Error("Este QR code não aponta para um servidor Toph.");
+      if (!base) throw new Error("Este QR code não aponta para um servidor Jeff.");
       localStorage.setItem(SERVER_KEY, base);
       localStorage.removeItem(LEGACY_RECENT_KEY);
       try {
@@ -426,8 +426,8 @@ export default function App() {
         <div className="ambient ambient-one" />
         <div className="ambient ambient-two" />
         <section className="boot-card">
-          <img src="/toph-app-icon.png?v=5" alt="" />
-          <h1>Toph</h1>
+          <img src="/jeff-app-icon.png?v=5" alt="" />
+          <h1>Jeff</h1>
           <p>Conectando ao servidor...</p>
           <span className="boot-pulse" />
         </section>
@@ -441,9 +441,9 @@ export default function App() {
       <div className="ambient ambient-two" />
       <section className="launcher">
         <header className="brand">
-          <img src="/toph-app-icon.png?v=5" alt="" />
+          <img src="/jeff-app-icon.png?v=5" alt="" />
           <div>
-            <h1>Toph</h1>
+            <h1>Jeff</h1>
             <p>{mobile ? "Seu workbench, no seu servidor." : "Seu workbench, no servidor ou neste computador."}</p>
           </div>
         </header>
@@ -451,8 +451,8 @@ export default function App() {
         <div className="mode-card">
           <div className="mode-heading">
             <span className="eyebrow">Servidor</span>
-            <h2>Conectar a um Toph</h2>
-            <p>Informe apenas a URL do seu servidor. O Toph cuida do resto.</p>
+            <h2>Conectar a um Jeff</h2>
+            <p>Informe apenas a URL do seu servidor. O Jeff cuida do resto.</p>
           </div>
           {mobile && (
             <button
@@ -475,7 +475,7 @@ export default function App() {
               <input
                 value={url}
                 onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://toph.exemplo.com"
+                placeholder="https://jeff.exemplo.com"
                 autoFocus
                 spellCheck={false}
                 autoComplete="url"
@@ -512,7 +512,7 @@ export default function App() {
                 <span>
                   <strong>Acessar pelo celular nesta rede</strong>
                   <small>
-                    Mostra um QR para o app Android. O Toph fica visível na rede Wi-Fi
+                    Mostra um QR para o app Android. O Jeff fica visível na rede Wi-Fi
                     enquanto estiver aberto.
                   </small>
                 </span>
@@ -605,9 +605,9 @@ export default function App() {
                 type="button"
                 className="secondary"
                 disabled={environmentBusy}
-                onClick={() => void restartToph()}
+                onClick={() => void restartJeff()}
               >
-                Reiniciar Toph
+                Reiniciar Jeff
               </button>
               {tools.length > 0 && tools.every((tool) => tool.installed) ? (
                 <button type="button" className="primary" disabled={environmentBusy} onClick={() => setEnvironmentOpen(false)}>
@@ -641,7 +641,7 @@ export default function App() {
                 <span className="eyebrow">Pareamento</span>
                 <h2>Conecte o celular</h2>
                 <p>
-                  Abra o Toph no Android e toque em <strong>Escanear QR do computador</strong>.
+                  Abra o Jeff no Android e toque em <strong>Escanear QR do computador</strong>.
                 </p>
               </div>
             </div>
@@ -656,7 +656,7 @@ export default function App() {
                     marginSize={2}
                     bgColor="#ffffff"
                     fgColor="#050505"
-                    title="QR de pareamento do Toph"
+                    title="QR de pareamento do Jeff"
                   />
                 </div>
                 <div className="pairing-details">
@@ -703,7 +703,7 @@ export default function App() {
 
             <p className="environment-note pairing-note">
               O computador e o celular precisam estar na mesma rede. Se o Windows pedir permissão
-              de firewall, permita o acesso em redes privadas. O acesso fica ativo enquanto o Toph
+              de firewall, permita o acesso em redes privadas. O acesso fica ativo enquanto o Jeff
               estiver aberto.
             </p>
 
@@ -729,7 +729,7 @@ export default function App() {
         </div>
       )}
 
-      <footer>Toph Client · cliente self-hosted</footer>
+      <footer>Jeff Client · cliente self-hosted</footer>
     </main>
   );
 }

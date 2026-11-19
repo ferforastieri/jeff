@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    toph_client_lib::run()
+    jeff_client_lib::run()
 }

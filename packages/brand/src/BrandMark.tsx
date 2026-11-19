@@ -3,13 +3,13 @@ import { useEffect, useRef } from "react";
 interface Props {
   size?: "small" | "large" | "";
   className?: string;
-  /** Makes the mark follow the pointer like the Toph avatars. */
+  /** Makes the mark follow the pointer like the Jeff avatars. */
   look?: boolean;
 }
 
 const EYES = [
-  { left: "38.5%", top: "42.4%", rx: "6.5%", ry: "10%" },
-  { left: "60.9%", top: "42.4%", rx: "6.5%", ry: "10%" },
+  { left: "40.8%", top: "53.9%", rx: "7%", ry: "10%" },
+  { left: "59.8%", top: "53.9%", rx: "7%", ry: "10%" },
 ];
 
 const mask = ({ left, top, rx, ry }: (typeof EYES)[number]) =>
@@ -17,8 +17,8 @@ const mask = ({ left, top, rx, ry }: (typeof EYES)[number]) =>
 
 export default function BrandMark({ size = "small", className = "", look = true }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
-  const base = `${import.meta.env.BASE_URL}brand/toph-mark-eyeless.png?v=5`;
-  const eyes = `${import.meta.env.BASE_URL}brand/toph-mark.png?v=5`;
+  const base = `${import.meta.env.BASE_URL}brand/jeff-mark-eyeless.png?v=5`;
+  const eyes = `${import.meta.env.BASE_URL}brand/jeff-mark.png?v=5`;
   const pixels = size === "large" ? 56 : size === "small" ? 28 : undefined;
 
   useEffect(() => {

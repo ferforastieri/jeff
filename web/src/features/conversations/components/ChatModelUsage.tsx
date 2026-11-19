@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "@toph/icons";
-import { cx } from "@toph/ui";
+import { Check, ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "@jeff/icons";
+import { cx } from "@jeff/ui";
 import { engineApi, type UsageLimits, type UsageWindow } from "../../agents/api";
 import ProviderIcon from "../../providers/components/ProviderIcon";
 import {
@@ -14,15 +14,15 @@ import {
   useAI,
 } from "../../providers/store";
 import type { AIModel } from "../../../shared/api";
-import { useChats, type ChatToph, type TophChat } from "../store";
+import { useChats, type ChatJeff, type JeffChat } from "../store";
 import ComposerMenu from "./ComposerMenu";
 import { effortLabel } from "../../providers/components/ModelPicker";
 import { useIsMobile } from "../../../shared/ui/useIsMobile";
 
 interface Props {
   projectId: string;
-  chat: TophChat;
-  tophs: ChatToph[];
+  chat: JeffChat;
+  jeffs: ChatJeff[];
   chatName: string;
 }
 
@@ -66,14 +66,14 @@ function tone(left: number | null): string {
  * chosen model's own mark inside a ring that shows what is left of the plan.
  * The desktop keeps both side by side; the phone uses two compact tabs.
  */
-export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Props) {
+export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Props) {
   const models = useAI((state) => state.models);
   const config = useAI((state) => state.config);
   const loadModels = useAI((state) => state.loadModels);
-  const updateChatToph = useChats((state) => state.updateChatToph);
+  const updateChatJeff = useChats((state) => state.updateChatJeff);
   const mobile = useIsMobile();
-  const member = tophs[0] ?? null;
-  const override = member ? chat.tophSettings?.[member.id] ?? {} : {};
+  const member = jeffs[0] ?? null;
+  const override = member ? chat.jeffSettings?.[member.id] ?? {} : {};
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"model" | "usage">("model");
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
@@ -100,8 +100,8 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
   // Older conversations stored only the model; keep the engine in sync with it.
   useEffect(() => {
     if (!member || !found?.engine || override.engine === found.engine) return;
-    updateChatToph(projectId, chat.id, member.id, { engine: found.engine });
-  }, [member, found?.engine, override.engine, projectId, chat.id, updateChatToph]);
+    updateChatJeff(projectId, chat.id, member.id, { engine: found.engine });
+  }, [member, found?.engine, override.engine, projectId, chat.id, updateChatJeff]);
 
   const load = useCallback(async (manual = false) => {
     if (engine !== "opencode") {
@@ -162,7 +162,7 @@ export default function ChatModelUsage({ projectId, chat, tophs, chatName }: Pro
 
   function choose(item: AIModel) {
     const nextVariants = item.variants ?? [];
-    updateChatToph(projectId, chat.id, member!.id, {
+    updateChatJeff(projectId, chat.id, member!.id, {
       model: item.id,
       engine: item.engine ?? "opencode",
       ...(nextVariants.includes(effort) ? {} : { effort: "" }),

@@ -8,7 +8,7 @@ import {
   FileDiff,
   TriangleAlert,
   Undo2,
-} from "@toph/icons";
+} from "@jeff/icons";
 import { api, type GitState, type Project } from "../../../shared/api";
 import { expandGitPattern } from "../../../shared/lib";
 import { suggestGitChanges } from "../ai";
@@ -16,9 +16,9 @@ import { parseGitStatus, statusLabel } from "../status";
 import { useSettings } from "../../settings/store";
 import { useApp } from "../../../app/store";
 import { useAI } from "../../providers/store";
-import { Button } from "@toph/ui/app";
-import { IconButton } from "@toph/ui/app";
-import { Input } from "@toph/ui/app";
+import { Button } from "@jeff/ui/app";
+import { IconButton } from "@jeff/ui/app";
+import { Input } from "@jeff/ui/app";
 import FileIcon from "../../explorer/components/FileIcon";
 import GitStatusIcon from "./GitStatusIcon";
 import { useConfirm } from "../../../shared/ui/confirm";
@@ -89,8 +89,8 @@ export default function SourceControlPanel({
 
   useEffect(() => {
     const refresh = () => void load();
-    window.addEventListener("toph:git-changed", refresh);
-    return () => window.removeEventListener("toph:git-changed", refresh);
+    window.addEventListener("jeff:git-changed", refresh);
+    return () => window.removeEventListener("jeff:git-changed", refresh);
   }, [load]);
 
   const parsed = useMemo(() => parseGitStatus(status), [status]);
