@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bot, Database, FileCode2, FileDiff, Globe2, LoaderCircle, X } from "@jeff/icons";
+import { Database, FileCode2, FileDiff, Globe2, LoaderCircle, X } from "@jeff/icons";
 import { useApp, type Tab } from "../store";
 import { chatSessionTitle, chatJeffs, useChats } from "../../features/conversations/store";
 import BotAvatar from "../../features/agents/components/BotAvatar";
@@ -10,9 +10,10 @@ import { useSettings } from "../../features/settings/store";
 import { useConfirm } from "../../shared/ui/confirm";
 import { IconButton } from "@jeff/ui/app";
 import FileIcon from "../../features/explorer/components/FileIcon";
+import BrandGlyph from "../../shared/ui/BrandGlyph";
 import { cx } from "@jeff/ui";
 
-const icons = { editor: FileCode2, db: Database, ai: Bot, web: Globe2, diff: FileDiff };
+const icons = { editor: FileCode2, db: Database, ai: BrandGlyph, web: Globe2, diff: FileDiff };
 
 interface ContextMenuState {
   tab: Tab;

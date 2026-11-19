@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Boxes, Bug, Database, Files, GitBranch, Globe2, MoreHorizontal, Plus, TerminalSquare } from "@jeff/icons";
+import { Boxes, Bug, Database, Files, GitBranch, Globe2, MoreHorizontal, Plus, TerminalSquare } from "@jeff/icons";
 import { api, type Project, type SchemaTable, type WebTarget } from "../../../shared/api";
 import { useApp } from "../../store";
 import { useIsMobile } from "../../../shared/ui/useIsMobile";
 import { nativePushToken, requestMobileNotificationPermission } from "../../../features/notifications/notifications";
 import { basename, quoteIdentifier } from "../../../shared/lib";
 import BrandMark from "@jeff/brand";
+import BrandGlyph from "../../../shared/ui/BrandGlyph";
 import { Button } from "@jeff/ui/app";
 import { Modal } from "@jeff/ui/app";
 import BotStudioTab from "../../../features/conversations/components/BotStudioTab";
@@ -81,7 +82,7 @@ export default function MobileApp() {
     workspace: activeTab?.title ?? "Trabalho",
     more: "Mais",
   };
-  const screenIcons = { bots: Bot, files: Files, scm: GitBranch, db: Database, web: Globe2, debug: Bug, workspace: Boxes, more: MoreHorizontal };
+  const screenIcons = { bots: BrandGlyph, files: Files, scm: GitBranch, db: Database, web: Globe2, debug: Bug, workspace: Boxes, more: MoreHorizontal };
   const pageTitle = screenTitles[screen];
   const pageSubtitle = screen === "scm" && currentBranch ? currentBranch : (project?.name ?? "");
   const pageIcon = screenIcons[screen];
@@ -392,7 +393,7 @@ export default function MobileApp() {
               />
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8 text-center">
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Bot size={22} /></span>
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><BrandGlyph size={22} /></span>
                 <strong className="text-title-3-medium text-text-primary">Nenhuma sessão aberta</strong>
                 <p className="max-w-xs text-caption-1-regular text-text-secondary">Abra uma sessão ou comece uma nova tarefa com o Jeff.</p>
                 <Button variant="secondary" size="small" onClick={openConversations}>Ver sessões</Button>

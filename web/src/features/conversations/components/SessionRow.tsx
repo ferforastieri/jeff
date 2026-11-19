@@ -1,7 +1,8 @@
-import { Bot, Trash2 } from "@jeff/icons";
+import { Trash2 } from "@jeff/icons";
 import { PixelSpinner } from "@jeff/ui";
 import { cx } from "@jeff/ui";
 import { IconButton } from "@jeff/ui/app";
+import BrandGlyph from "../../../shared/ui/BrandGlyph";
 import { sessionWhen } from "../sessions";
 
 interface Props {
@@ -46,7 +47,7 @@ export default function SessionRow({
           )}
           aria-hidden
         >
-          {running ? <PixelSpinner size={14} /> : <Bot className="size-4" />}
+          {running ? <PixelSpinner size={14} /> : <BrandGlyph size={16} />}
         </span>
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
           <span className="truncate text-caption-1-medium text-text-primary">{title}</span>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Bot, MessageSquarePlus } from "@jeff/icons";
+import { MessageSquarePlus } from "@jeff/icons";
 import type { Project } from "../../../shared/api";
 import { useChats } from "../../conversations/store";
 import { chatTabId, openChatTab } from "../../conversations/navigation";
@@ -14,6 +14,7 @@ import { useActiveSessionIds } from "../useActiveSessionIds";
 import SessionRow from "../../conversations/components/SessionRow";
 import { agentApi, type HarnessSession } from "../api";
 import { useConfirm } from "../../../shared/ui/confirm";
+import BrandGlyph from "../../../shared/ui/BrandGlyph";
 
 interface Props {
   project: Project;
@@ -116,7 +117,7 @@ export default function BotsSidebar({ project, headerControl, onSelectChat }: Pr
     <div className="flex h-full min-h-0 flex-col bg-background-primary-default">
       <SidebarHeader
         control={headerControl}
-        icon={<Bot size={15} className="text-accent-500" />}
+        icon={<BrandGlyph size={16} className="text-accent-500" />}
         title="Mensagens"
         count={
           sessions.length > 0 ? (

@@ -102,6 +102,65 @@ describe("useChats v5", () => {
     expect(project.messages).toHaveLength(2);
   });
 
+  it("migrates legacy tophs layouts without losing the composer", () => {
+    useChats.getState().load("p", {
+      version: 5,
+      chats: [{
+        id: "chat-old",
+        name: "Toph",
+        subject: "Conversa antiga",
+        participantIds: ["toph-1"],
+        tophSettings: { "toph-1": { model: "m" } },
+        createdAt: 1,
+        updatedAt: 1,
+      }],
+      tophs: [{ ...legacyJeff("toph-1", "chat-old", "Toph"), role: "Toph" }],
+      messages: [],
+      activeChatId: "chat-old",
+    } as never);
+
+    const project = useChats.getState().byProject.p;
+    expect(project.jeffs).toHaveLength(1);
+    expect(project.jeffs[0]).toMatchObject({
+      id: "toph-1",
+      name: "Jeff",
+      handle: "jeff",
+      role: "Jeff",
+      avatar: "jeff-logo",
+      color: "#0063D1",
+    });
+    expect(project.chats[0]).toMatchObject({
+      id: "chat-old",
+      name: "",
+      participantIds: ["toph-1"],
+      jeffSettings: { "toph-1": { model: "m" } },
+    });
+    expect(chatJeffs(project, "chat-old").map((jeff) => jeff.id)).toEqual(["toph-1"]);
+  });
+
+  it("reconnects conversations that lost their participants", () => {
+    useChats.getState().load("p", {
+      version: 5,
+      chats: [{
+        id: "chat",
+        name: "",
+        subject: "Antiga",
+        description: "",
+        participantIds: [],
+        jeffSettings: {},
+        createdAt: 1,
+        updatedAt: 1,
+      }],
+      jeffs: [legacyJeff("j1", "", "Jeff")],
+      messages: [],
+      activeChatId: "chat",
+    } as never);
+
+    const project = useChats.getState().byProject.p;
+    expect(project.chats[0].participantIds).toEqual(["j1"]);
+    expect(chatJeffs(project, "chat").map((jeff) => jeff.id)).toEqual(["j1"]);
+  });
+
   it("creates project Jeffs and reuses one in many tasks", () => {
     const leo = useChats.getState().createJeff("p", preset("Leo", "Dev"))!;
     const nico = useChats.getState().createJeff("p", preset("Nico", "Revisor"))!;

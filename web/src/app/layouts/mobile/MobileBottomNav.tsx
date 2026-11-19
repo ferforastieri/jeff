@@ -1,7 +1,8 @@
-import { Bot, Boxes, Files, GitBranch, MoreHorizontal } from "@jeff/icons";
+import { Boxes, Files, GitBranch, MoreHorizontal } from "@jeff/icons";
 import { cx } from "@jeff/ui";
 import type { ComponentType } from "react";
 import type { MobileScreen } from "./mobile-nav";
+import BrandGlyph from "../../../shared/ui/BrandGlyph";
 
 interface Props {
   screen: MobileScreen;
@@ -11,7 +12,7 @@ interface Props {
 const tabs: Array<{ id: MobileScreen; label: string; icon: ComponentType<{ className?: string }> }> = [
   { id: "workspace", label: "Trabalho", icon: Boxes },
   { id: "scm", label: "Git", icon: GitBranch },
-  { id: "bots", label: "Jeff", icon: Bot },
+  { id: "bots", label: "Jeff", icon: BrandGlyph },
   { id: "files", label: "Arquivos", icon: Files },
   { id: "more", label: "Mais", icon: MoreHorizontal },
 ];

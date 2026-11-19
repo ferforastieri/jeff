@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { BOT_AVATARS, type BotAvatar, type BotLanguage } from "../agents/avatars";
 
 const DEFAULT_JEFF_COLOR = "#0063D1";
-const LEGACY_BRAND_COLORS = new Set(["#FFB547", "#F01F31", "#FF5C69", "#FF98A1", "#0F766E", "#14B8A6", "#5EEAD4"]);
+const LEGACY_BRAND_COLORS = new Set(["#FFB547", "#F01F31", "#FF5C69", "#FF98A1", "#0F766E", "#14B8A6", "#5EEAD4", "#B9DE7A", "#DE7A7A"]);
 
 function currentBrandColor(color?: string): string {
   const value = color?.trim();
@@ -142,12 +142,17 @@ function uniqueHandle(desired: string, used: Set<string>): string {
 }
 
 function normalizeJeff(jeff: Partial<ChatJeff>): ChatJeff {
-  const name = jeff.name?.trim() || "Jeff";
+  const rawName = jeff.name?.trim() || "Jeff";
+  const name = /^tophs?$/i.test(rawName) ? "Jeff" : rawName;
+  const rawHandle = jeff.handle?.trim() ?? "";
+  const handle = !rawHandle || /^tophs?$/i.test(rawHandle) ? slugifyJeff(name) : rawHandle;
+  const rawRole = jeff.role?.trim() || "Jeff";
+  const role = /^tophs?$/i.test(rawRole) ? "Jeff" : rawRole;
   return {
     id: String(jeff.id),
     name,
-    handle: jeff.handle || slugifyJeff(name),
-    role: jeff.role?.trim() || "Jeff",
+    handle,
+    role,
     description: jeff.description ?? "",
     personality: jeff.personality ?? "",
     prompt: jeff.prompt ?? "",
@@ -204,13 +209,21 @@ function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
   const raw = input as unknown as {
     version?: number;
     chat?: Partial<JeffChat> & { kind?: string };
-    chats?: Array<Partial<JeffChat> & { kind?: string; participantIds?: string[] }>;
+    chats?: Array<Partial<JeffChat> & {
+      kind?: string;
+      participantIds?: string[];
+      tophSettings?: Record<string, { model?: string; effort?: string; engine?: string }>;
+    }>;
     jeffs?: Array<Partial<ChatJeff> & { chatId?: string }>;
+    /** Legacy layouts written before the rebrand. */
+    tophs?: Array<Partial<ChatJeff> & { chatId?: string }>;
     messages?: ChatMessage[];
     activeChatId?: string | null;
   };
 
-  const rawJeffs = Array.isArray(raw.jeffs) ? raw.jeffs : [];
+  const rawJeffs = Array.isArray(raw.jeffs) && raw.jeffs.length > 0
+    ? raw.jeffs
+    : Array.isArray(raw.tophs) ? raw.tophs : [];
   const seenJeffs = new Set<string>();
   const jeffs: ChatJeff[] = [];
   for (const item of rawJeffs) {
@@ -223,9 +236,23 @@ function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
     jeff.handle = uniqueHandle(jeff.handle || jeff.name, handles);
     handles.add(jeff.handle);
   }
+  // A legacy layout can carry conversations without any Jeff (the rebrand
+  // removed the old `tophs`). Give those projects the default Jeff so their
+  // composer stays usable instead of rendering an empty conversation.
+  if (jeffs.length === 0 && (
+    (Array.isArray(raw.chats) && raw.chats.length > 0)
+    || Boolean(raw.chat)
+    || (Array.isArray(raw.messages) && raw.messages.length > 0)
+  )) {
+    jeffs.push(normalizeJeff({ id: newId("jeff"), name: "Jeff" }));
+  }
   const jeffIds = new Set(jeffs.map((jeff) => jeff.id));
 
-  let rawChats: Array<Partial<JeffChat> & { kind?: string; participantIds?: string[] }> = [];
+  let rawChats: Array<Partial<JeffChat> & {
+    kind?: string;
+    participantIds?: string[];
+    tophSettings?: Record<string, { model?: string; effort?: string; engine?: string }>;
+  }> = [];
   if (Array.isArray(raw.chats)) rawChats = raw.chats.filter((item) => item && typeof item.id === "string" && item.id);
   else if (raw.chat && typeof raw.chat.id === "string" && raw.chat.id) rawChats = [raw.chat];
 
@@ -240,18 +267,30 @@ function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
       .filter((jeff) => jeff && typeof jeff.id === "string" && jeffIds.has(jeff.id) && jeff.chatId === item.id)
       .map((jeff) => jeff.id!);
     const participantIds = [...new Set(explicit.length > 0 ? explicit : legacy)];
-    const name = item.name?.trim() === "Equipe" ? "" : item.name?.trim() ?? "";
+    const rawName = item.name?.trim() ?? "";
+    const name = /^(equipe|tophs?)$/i.test(rawName) ? "" : rawName;
+    const settings = { ...(item.tophSettings ?? {}), ...(item.jeffSettings ?? {}) };
     return [{
       id: item.id,
       name,
       subject: typeof item.subject === "string" ? item.subject.trim() : "",
       description: item.description ?? "",
       participantIds,
-      jeffSettings: normalizeJeffSettings(item.jeffSettings),
+      jeffSettings: normalizeJeffSettings(settings),
       createdAt: Number.isFinite(item.createdAt) ? Number(item.createdAt) : now,
       updatedAt: Number.isFinite(item.updatedAt) ? Number(item.updatedAt) : now,
     }];
   });
+
+  // Older conversations stopped carrying participants when the legacy
+  // `tophs` list disappeared. The project now has a single Jeff, so attach it
+  // to those conversations instead of leaving them without a composer.
+  if (jeffs.length > 0) {
+    const primary = jeffs[0].id;
+    chats = chats.map((chat) => chat.participantIds.length > 0
+      ? chat
+      : { ...chat, participantIds: [primary] });
+  }
 
   if (chats.length === 0 && (jeffs.length > 0 || (Array.isArray(raw.messages) && raw.messages.length > 0))) {
     chats = [{
@@ -763,7 +802,9 @@ export function chatJeffs(project: ProjectChats | undefined, chatId: string | nu
   const chat = project.chats.find((item) => item.id === chatId);
   if (!chat) return [];
   const byId = new Map(project.jeffs.map((jeff) => [jeff.id, jeff]));
-  return chat.participantIds.flatMap((id) => byId.get(id) ?? []);
+  const members = chat.participantIds.flatMap((id) => byId.get(id) ?? []);
+  if (members.length > 0) return members;
+  return project.jeffs.length > 0 ? [project.jeffs[0]] : [];
 }
 
 export function conversations(project: ProjectChats | undefined): JeffChat[] {
