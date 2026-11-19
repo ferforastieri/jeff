@@ -182,7 +182,7 @@ export default function UpdateToast() {
 
   async function update() {
     if (!status || phase === "updating") return;
-    const target = status.latestVersion;
+    let target = status.latestVersion;
     // Only the installed clients download a file: the browser updates the
     // server it is served from, never the desktop installer.
     const native = Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
@@ -267,6 +267,10 @@ export default function UpdateToast() {
         setDetail("");
         return;
       }
+      // The status poll can be older than the release the server actually
+      // started. Follow the version returned by the server, not the stale
+      // toast target, or this waits forever for a version that was skipped.
+      target = start.version.replace(/^v/i, "");
     } catch (err) {
       // 409 means another update request is already in flight. Keep polling
       // it instead of showing a dead-end error.
@@ -285,23 +289,23 @@ export default function UpdateToast() {
         const update = await api.updateStatus();
         const elapsed = Date.now() - startedAt;
         if (update.busy) setDetail("O servidor está aplicando a atualização…");
-        if (!update.busy && update.error && elapsed > 5_000) {
+        if (!update.busy && update.error && elapsed > 5_000 && versions(update.currentVersion, target) < 0) {
           setPhase("error");
           setError(update.error);
           return;
         }
-        if (!update.busy && elapsed > 20_000 && update.currentVersion !== target) {
+        if (!update.busy && elapsed > 20_000 && versions(update.currentVersion, target) < 0) {
           // The updater may be waiting for its path unit. Say so instead of
           // spinning silently until the deadline.
           setDetail("Aguardando o serviço de atualização…");
         }
-        if (!update.busy && elapsed > 45_000 && update.currentVersion !== target) {
+        if (!update.busy && elapsed > 45_000 && versions(update.currentVersion, target) < 0) {
           setPhase("error");
           setError("O serviço de atualização não iniciou. Confira `systemctl status jeff-update.path` no servidor e tente de novo.");
           return;
         }
         const health = await api.health();
-        if (health.version === target || update.currentVersion === target) {
+        if (versions(health.version, target) >= 0 || versions(update.currentVersion, target) >= 0) {
           setDetail("Reiniciando com a nova versão…");
           await clearClientCaches();
           window.location.replace(window.location.href);
