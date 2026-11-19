@@ -42,6 +42,10 @@
         margin: 0; color: #8f8f89; font: 600 11px/1 ui-monospace, monospace;
         letter-spacing: .18em; text-transform: uppercase;
       }
+      .toph-boot--done {
+        opacity: 0; pointer-events: none;
+        transition: opacity .3s ease;
+      }
       @keyframes toph-hop {
         0%,100% { transform: translateY(0) scale(1,1); }
         12% { transform: translateY(0) scale(1.08,.92); }
@@ -72,14 +76,13 @@
         document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
       } catch {}
     </script>
-    <div id="root">
-      <div class="toph-boot" role="status" aria-label="Carregando Toph">
-        <div class="toph-boot__stage" aria-hidden="true">
-          <img class="toph-boot__hop" src="%BASE_URL%brand/toph-mark.png?v=5" alt="" draggable="false" />
-          <span class="toph-boot__shadow"></span>
-        </div>
-        <p class="toph-boot__label">Toph</p>
+    <div id="root"></div>
+    <div id="toph-boot" class="toph-boot" role="status" aria-label="Carregando Toph">
+      <div class="toph-boot__stage" aria-hidden="true">
+        <img class="toph-boot__hop" src="%BASE_URL%brand/toph-mark.png?v=5" alt="" draggable="false" />
+        <span class="toph-boot__shadow"></span>
       </div>
+      <p class="toph-boot__label">Toph</p>
     </div>
     <script type="module" src="./src/main.tsx"></script>
   </body>

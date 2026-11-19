@@ -6,9 +6,7 @@ import Login from "../features/auth/components/Login";
 import ServerSetup from "../features/auth/components/ServerSetup";
 import UpdateToast from "../features/updates/components/UpdateToast";
 const Workbench = lazy(() => import("./components/Workbench"));
-import MobileBoot from "./layouts/mobile/MobileBoot";
-import { isMobileViewport } from "../shared/ui/useIsMobile";
-import TophBoot from "../shared/ui/TophBoot";
+
 
 const SERVER_KEY = "toph_server_url";
 
@@ -43,6 +41,23 @@ function AppShell() {
   const setUser = useApp((state) => state.setUser);
   const setAuthReady = useApp((state) => state.setAuthReady);
   const [serverUrl, setServerUrl] = useState<string | null>(initialServerUrl);
+
+  // Warm the workbench chunk while the index.html splash is still covering
+  // the app, so leaving the splash never reveals a second loading screen.
+  useEffect(() => {
+    void import("./components/Workbench");
+  }, []);
+
+  useEffect(() => {
+    if (!authReady) return;
+    const boot = document.getElementById("toph-boot");
+    if (!boot) return;
+    const timer = window.setTimeout(() => {
+      boot.classList.add("toph-boot--done");
+      window.setTimeout(() => boot.remove(), 320);
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [authReady]);
 
   useEffect(() => {
     if (!serverUrl) {
@@ -105,10 +120,8 @@ function AppShell() {
     setServerUrl(null);
   }
 
-  if (!authReady) {
-    if (isMobileViewport()) return <MobileBoot />;
-    return <TophBoot />;
-  }
+  // The index.html splash covers this first frame; no React boot screen here.
+  if (!authReady) return null;
 
   if (!serverUrl) {
     return <ServerSetup defaultUrl={`${window.location.protocol}//${window.location.host}`} onConnected={connected} />;
@@ -125,7 +138,7 @@ function AppShell() {
 
   return (
     <>
-      <Suspense fallback={<MobileBoot />}><Workbench /></Suspense>
+      <Suspense fallback={null}><Workbench /></Suspense>
       <UpdateToast />
     </>
   );
