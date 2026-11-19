@@ -16,6 +16,26 @@ export type SoundChoice = SoundStyle | "off";
 
 const STORAGE_KEY = "jeff_sound_style";
 const CHANGE_EVENT = "jeff:sound-choice";
+const QUESTION_KEY = "jeff_question_sound";
+const QUESTION_EVENT = "jeff:question-sound";
+
+/** The old kit's short sounds a question can use. */
+export const QUESTION_SOUNDS = [
+  "attention",
+  "mention",
+  "reply",
+  "done",
+  "approved",
+  "error",
+  "stop",
+  "send",
+] as const satisfies readonly SoundName[];
+export type QuestionSound = (typeof QUESTION_SOUNDS)[number];
+export const DEFAULT_QUESTION_SOUND: QuestionSound = "attention";
+
+function isQuestionSound(value: unknown): value is QuestionSound {
+  return typeof value === "string" && (QUESTION_SOUNDS as readonly string[]).includes(value);
+}
 /** A cue under the conversation, never over it. */
 const VOLUME = 0.35;
 /** The same sound twice this close is one (a burst of events). */
@@ -32,13 +52,33 @@ function read(): SoundChoice {
 
 let choice: SoundChoice = read();
 
+function readQuestionSound(): QuestionSound {
+  try {
+    const saved = localStorage.getItem(QUESTION_KEY);
+    return isQuestionSound(saved) ? saved : DEFAULT_QUESTION_SOUND;
+  } catch {
+    return DEFAULT_QUESTION_SOUND;
+  }
+}
+
+let question: QuestionSound = readQuestionSound();
+
 export function soundChoice(): SoundChoice {
   return choice;
+}
+
+export function questionSound(): QuestionSound {
+  return question;
 }
 
 export function onSoundChoiceChange(callback: () => void): () => void {
   window.addEventListener(CHANGE_EVENT, callback);
   return () => window.removeEventListener(CHANGE_EVENT, callback);
+}
+
+export function onQuestionSoundChange(callback: () => void): () => void {
+  window.addEventListener(QUESTION_EVENT, callback);
+  return () => window.removeEventListener(QUESTION_EVENT, callback);
 }
 
 /** Saves the choice and plays a sample of the new style. */
@@ -51,6 +91,18 @@ export function setSoundChoice(next: SoundChoice): void {
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));
   play("mention");
+}
+
+/** Saves the question sound and plays a sample of it. */
+export function setQuestionSound(next: QuestionSound): void {
+  question = next;
+  try {
+    localStorage.setItem(QUESTION_KEY, next);
+  } catch {
+    // Storage can be unavailable; the choice still lives for this session.
+  }
+  window.dispatchEvent(new Event(QUESTION_EVENT));
+  play(next);
 }
 
 let context: AudioContext | null = null;
@@ -118,5 +170,5 @@ export function playBotResponseSound(): void {
 
 /** Attention signal used when the Jeff is waiting for an answer. */
 export function playQuestionSound(): void {
-  play("attention");
+  play(question);
 }

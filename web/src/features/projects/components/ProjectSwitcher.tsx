@@ -3,6 +3,7 @@ import { Bell, FolderGit2, FolderPlus, LoaderCircle, X } from "@jeff/icons";
 import { api, ApiError, type Repository } from "../../../shared/api";
 import { useApp } from "../../../app/store";
 import ProjectJeffAvatar from "./ProjectJeffAvatar";
+import ProjectRunningDot from "./ProjectRunningDot";
 import { Button, Checkbox, Input, Select, SelectItem } from "@jeff/ui/app";
 import { SearchField } from "@jeff/ui";
 import NotificationBadge from "../../notifications/components/NotificationBadge";
@@ -252,7 +253,10 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
                 onClick={() => onSelect(item.id)}
                 className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-2 text-start text-text-primary transition-colors hover:bg-dropdown-item-hover-background focus-visible:bg-dropdown-item-hover-background"
               >
-                <ProjectJeffAvatar project={item} size={28} showInitial />
+                <span className="relative inline-flex shrink-0">
+                  <ProjectJeffAvatar project={item} size={28} showInitial />
+                  <ProjectRunningDot projectId={item.id} className="-end-1 -bottom-1" />
+                </span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span className="truncate text-body-2-medium text-text-primary">{item.name}</span>

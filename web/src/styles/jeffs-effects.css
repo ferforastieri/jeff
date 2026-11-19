@@ -291,6 +291,34 @@ html:not(.dark) .text-accent-600 {
   }
 }
 
+/* The plan consumption ring around the model mark. The app stylesheet is plain
+   CSS (no Tailwind), so the ring needs its own box: as a plain inline-flex the
+   span collapsed to the mark's 16px and the arc sat underneath the icon. */
+.model-usage-ring {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  outline: none;
+}
+
+.model-usage-ring__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+.model-usage-ring__arc {
+  transition: stroke-dashoffset 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* The merged model + plan menu: compact, the list beside the usage on the web
    and stacked on a phone. */
 .model-usage-menu {

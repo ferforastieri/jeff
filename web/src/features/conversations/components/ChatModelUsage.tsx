@@ -55,10 +55,10 @@ function time(value: number): string {
 }
 
 function tone(left: number | null): string {
-  if (left == null) return "stroke-border-button-default";
-  if (left <= 10) return "stroke-status-rose-text";
-  if (left <= 30) return "stroke-status-yellow-text";
-  return "stroke-accent-500";
+  if (left == null) return "var(--color-border-button-default)";
+  if (left <= 10) return "var(--color-status-rose-text)";
+  if (left <= 30) return "var(--color-status-yellow-text)";
+  return "var(--color-accent-500)";
 }
 
 /**
@@ -329,11 +329,11 @@ export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Pro
       trigger={
         <>
         <span
-          className="relative inline-flex size-[30px] shrink-0 items-center justify-center rounded-full outline-none"
+          className="model-usage-ring"
           title={`${modelDisplay(info)} · ${remainingLabel}`}
         >
-          <svg viewBox="0 0 30 30" className="absolute inset-0 size-full -rotate-90" aria-hidden>
-            <circle cx="15" cy="15" r="13" fill="none" strokeWidth="2" className="stroke-border-button-default" />
+          <svg viewBox="0 0 30 30" className="model-usage-ring__svg" aria-hidden>
+            <circle cx="15" cy="15" r="13" fill="none" strokeWidth="2" style={{ stroke: "var(--color-border-button-default)" }} />
             {used != null ? (
               <circle
                 cx="15"
@@ -344,7 +344,8 @@ export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Pro
                 strokeLinecap="round"
                 strokeDasharray={CIRCUMFERENCE}
                 strokeDashoffset={CIRCUMFERENCE * (1 - used / 100)}
-                className={cx("transition-[stroke-dashoffset] duration-500", tone(left))}
+                style={{ stroke: tone(left) }}
+                className="model-usage-ring__arc"
               />
             ) : null}
           </svg>
@@ -366,6 +367,7 @@ export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Pro
             <div className="min-w-0 flex-1">
               <strong className="block truncate text-body-2-medium text-text-primary">{info?.label ?? "Modelo"}</strong>
               <span className="block truncate text-caption-2-regular text-text-tertiary">{providerLabel(group)} · {effortLabel(effort)}</span>
+              <span className="block truncate text-caption-2-regular text-text-tertiary">{remainingLabel}</span>
             </div>
           </div>
           <div className="model-usage-tabs" role="tablist" aria-label="Modelo e consumo">
