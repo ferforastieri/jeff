@@ -16,8 +16,9 @@ const WorkspaceSettings = lazy(() => import("./WorkspaceSettings"));
 const SkillsPanel = lazy(() => import("../../skills/components/SkillsPanel"));
 const HarnessSettings = lazy(() => import("./HarnessSettings"));
 const ConnectorsSettings = lazy(() => import("./ConnectorsSettings"));
+const NotificationSettings = lazy(() => import("./NotificationSettings"));
 
-type Section = "general" | "skills" | "connectors" | "harness" | "workspace";
+type Section = "general" | "notifications" | "skills" | "connectors" | "harness" | "workspace";
 
 interface Props {
   user: User | null;
@@ -36,6 +37,7 @@ interface SectionItem {
 /** The list of Settings sections, the Jeffs settings' own left column. */
 const sections: SectionItem[] = [
   { id: "general", label: "Geral", icon: "person" },
+  { id: "notifications", label: "Notificações", icon: "bell" },
   { id: "skills", label: "Skills", icon: "routines" },
   { id: "connectors", label: "Conectores", icon: "link" },
   { id: "harness", label: "Harness", icon: "plug" },
@@ -44,6 +46,7 @@ const sections: SectionItem[] = [
 
 const copy: Record<Section, { title: string; meta: string }> = {
   general: { title: "Geral", meta: "Sua conta, o servidor e o que o Jeff usa." },
+  notifications: { title: "Notificações", meta: "Som e avisos neste dispositivo." },
   skills: { title: "Skills", meta: "Receitas globais que o Jeff lê sob demanda." },
   connectors: { title: "Conectores", meta: "Serviços que o Jeff usa em todos os projetos, por API token ou MCP." },
   harness: { title: "Harness", meta: "O CLI conduz o loop do agente; o Jeff entrega contexto, ferramentas, permissões e aprovações." },
@@ -231,6 +234,8 @@ export default function JeffSettings({ user, projectRoot, projectId, hideTrigger
                     />
                   </Card>
                 </>
+              ) : section === "notifications" ? (
+                <NotificationSettings />
               ) : section === "skills" ? (
                 <Card padded><SkillsPanel projectId={projectId} /></Card>
               ) : section === "connectors" ? (

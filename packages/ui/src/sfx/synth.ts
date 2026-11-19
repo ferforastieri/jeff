@@ -12,7 +12,26 @@ export const SOUND_STYLES = ["tactile", "sky", "pixel"] as const;
 export type SoundStyle = (typeof SOUND_STYLES)[number];
 export const DEFAULT_SOUND_STYLE: SoundStyle = "tactile";
 
-export const SOUNDS = ["send", "reply", "done", "attention", "approved", "error", "stop", "mention"] as const;
+export const SOUNDS = [
+  "send",
+  "reply",
+  "done",
+  "attention",
+  "approved",
+  "error",
+  "stop",
+  "mention",
+  "voiceEnter",
+  "voiceJoin",
+  "voiceLeave",
+  "voiceExit",
+  "voiceMute",
+  "voiceUnmute",
+  "voiceScreen",
+  "voiceScreenOff",
+  "voiceCamera",
+  "voiceCameraOff",
+] as const;
 export type SoundName = (typeof SOUNDS)[number];
 
 export const isSoundStyle = (v: unknown): v is SoundStyle => (SOUND_STYLES as readonly unknown[]).includes(v);
@@ -355,6 +374,69 @@ const SCORE: Record<SoundName, [peak: number, score: Score]> = {
       if (s === "pixel") v(o, grace * 3, "E7", { d: 0.2, g: 0.2 });
     },
   ],
+  /*
+   * A voice room's marks: short, low and on the same pentatonic as everything else, so they sit under a
+   * conversation instead of over it. Entering rises, leaving falls; the small actions are one or two notes.
+   */
+  voiceEnter: [
+    0.6,
+    (o, v) => {
+      v(o, 0, "E5", { d: 0.18, g: 0.75 });
+      v(o, 0.09, "B5", { d: 0.34 });
+    },
+  ],
+  voiceJoin: [
+    0.5,
+    (o, v) => {
+      v(o, 0, "G#5", { d: 0.14, g: 0.8 });
+      v(o, 0.07, "B5", { d: 0.24 });
+    },
+  ],
+  voiceLeave: [
+    0.5,
+    (o, v) => {
+      v(o, 0, "B5", { d: 0.14, g: 0.8 });
+      v(o, 0.07, "G#5", { d: 0.28 });
+    },
+  ],
+  voiceExit: [
+    0.55,
+    (o, v) => {
+      v(o, 0, "E5", { d: 0.2, g: 0.75 });
+      v(o, 0.09, "B4", { d: 0.2, g: 0.75 });
+      v(o, 0.18, "G#4", { d: 0.42 });
+    },
+  ],
+  voiceMute: [
+    0.4,
+    (o, v, s) => {
+      if (s === "tactile") noise(o, { d: 0.012, g: 0.3, type: "lp", fc: 1400 });
+      v(o, 0, "E4", { d: 0.12, g: 0.8 });
+    },
+  ],
+  voiceUnmute: [
+    0.45,
+    (o, v) => {
+      v(o, 0, "E5", { d: 0.11, g: 0.75 });
+      v(o, 0.05, "G#5", { d: 0.2 });
+    },
+  ],
+  voiceScreen: [
+    0.5,
+    (o, v) => {
+      v(o, 0, "E6", { d: 0.1, g: 0.6 });
+      v(o, 0.06, "B6", { d: 0.22 });
+    },
+  ],
+  voiceScreenOff: [
+    0.5,
+    (o, v) => {
+      v(o, 0, "B6", { d: 0.1, g: 0.6 });
+      v(o, 0.06, "E6", { d: 0.24 });
+    },
+  ],
+  voiceCamera: [0.38, (o, v) => v(o, 0, "G#5", { d: 0.12, g: 0.8 })],
+  voiceCameraOff: [0.38, (o, v) => v(o, 0, "G#4", { d: 0.14, g: 0.8 })],
 };
 
 /** One sound's samples (mono, `SAMPLE_RATE`, peak under 0.9). */
