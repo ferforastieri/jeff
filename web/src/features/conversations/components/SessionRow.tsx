@@ -2,7 +2,6 @@ import { Trash2 } from "@jeff/icons";
 import { PixelSpinner } from "@jeff/ui";
 import { cx } from "@jeff/ui";
 import { IconButton } from "@jeff/ui/app";
-import BrandGlyph from "../../../shared/ui/BrandGlyph";
 import { sessionWhen } from "../sessions";
 
 interface Props {
@@ -35,21 +34,13 @@ export default function SessionRow({
         aria-current={selected ? "true" : undefined}
         aria-label={`${title}${state ? `. ${state}` : ""}${unread ? ". Resposta não lida" : ""}`}
         className={cx(
-          "flex w-full min-w-0 items-center gap-2.5 rounded-xl px-2 py-2 text-start transition-colors",
+          "flex w-full min-w-0 items-center rounded-xl px-2 py-2 text-start transition-colors",
           onDelete && "pe-9",
           selected ? "bg-background-tertiary-default" : "hover:bg-background-primary-hover",
         )}
       >
-        <span
-          className={cx(
-            "flex size-8 shrink-0 items-center justify-center rounded-full",
-            running ? "bg-accent-500/12 text-accent-600" : "bg-accent-500/10 text-accent-600",
-          )}
-          aria-hidden
-        >
-          {running ? <PixelSpinner size={14} /> : <BrandGlyph size={16} />}
-        </span>
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
+          {running ? <PixelSpinner size={14} className="shrink-0" /> : null}
           <span className="truncate text-caption-1-medium text-text-primary">{title}</span>
           {unread ? (
             <span

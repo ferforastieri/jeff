@@ -433,6 +433,7 @@ async function send<T>(path: string, options: RequestInit): Promise<T> {
     ...options,
     headers,
     credentials: "include",
+    cache: "no-store",
   });
   if (!response.ok) {
     let message = response.statusText;

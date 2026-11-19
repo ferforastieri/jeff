@@ -13,18 +13,35 @@ interface TauriInternals {
 }
 
 async function clearClientCaches() {
+  const tasks: Promise<unknown>[] = [];
   if ("caches" in window) {
-    const keys = await caches.keys();
-    await Promise.all(keys.map((key) => caches.delete(key)));
+    tasks.push((async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    })().catch(() => undefined));
   }
   if ("serviceWorker" in navigator) {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map((registration) => registration.update()));
+    tasks.push((async () => {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.update().catch(() => undefined)));
+    })().catch(() => undefined));
   }
+  // A stalled service-worker update must never keep the toast spinning after
+  // the server already restarted: reload even if the caches did not answer.
+  await Promise.race([Promise.all(tasks), wait(2_000)]);
 }
 
 function wait(milliseconds: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  return new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+/** A poll of a server that is restarting must not hang the update loop forever. */
+async function poll<T>(request: () => Promise<T>, timeout = 5_000): Promise<T | null> {
+  try {
+    return await Promise.race([request(), wait(timeout).then(() => null)]);
+  } catch {
+    return null;
+  }
 }
 
 async function downloadApk(url: string, version: string) {
@@ -285,34 +302,31 @@ export default function UpdateToast() {
     const deadline = startedAt + 180_000;
     while (Date.now() < deadline) {
       await wait(2_000);
-      try {
-        const update = await api.updateStatus();
-        const elapsed = Date.now() - startedAt;
-        if (update.busy) setDetail("O servidor está aplicando a atualização…");
-        if (!update.busy && update.error && elapsed > 5_000 && versions(update.currentVersion, target) < 0) {
-          setPhase("error");
-          setError(update.error);
-          return;
-        }
-        if (!update.busy && elapsed > 20_000 && versions(update.currentVersion, target) < 0) {
-          // The updater may be waiting for its path unit. Say so instead of
-          // spinning silently until the deadline.
-          setDetail("Aguardando o serviço de atualização…");
-        }
-        if (!update.busy && elapsed > 45_000 && versions(update.currentVersion, target) < 0) {
-          setPhase("error");
-          setError("O serviço de atualização não iniciou. Confira `systemctl status jeff-update.path` no servidor e tente de novo.");
-          return;
-        }
-        const health = await api.health();
-        if (versions(health.version, target) >= 0 || versions(update.currentVersion, target) >= 0) {
-          setDetail("Reiniciando com a nova versão…");
-          await clearClientCaches();
-          window.location.replace(window.location.href);
-          return;
-        }
-      } catch {
-        // The server is restarting; keep polling.
+      const update = await poll(() => api.updateStatus());
+      if (!update) continue;
+      const elapsed = Date.now() - startedAt;
+      if (update.busy) setDetail("O servidor está aplicando a atualização…");
+      if (!update.busy && update.error && elapsed > 5_000 && versions(update.currentVersion, target) < 0) {
+        setPhase("error");
+        setError(update.error);
+        return;
+      }
+      if (!update.busy && elapsed > 20_000 && versions(update.currentVersion, target) < 0) {
+        // The updater may be waiting for its path unit. Say so instead of
+        // spinning silently until the deadline.
+        setDetail("Aguardando o serviço de atualização…");
+      }
+      if (!update.busy && elapsed > 45_000 && versions(update.currentVersion, target) < 0) {
+        setPhase("error");
+        setError("O serviço de atualização não iniciou. Confira `systemctl status jeff-update.path` no servidor e tente de novo.");
+        return;
+      }
+      const health = await poll(() => api.health());
+      if (health && (versions(health.version, target) >= 0 || versions(update.currentVersion, target) >= 0)) {
+        setDetail("Reiniciando com a nova versão…");
+        await clearClientCaches();
+        window.location.replace(window.location.href);
+        return;
       }
     }
     setPhase("error");
