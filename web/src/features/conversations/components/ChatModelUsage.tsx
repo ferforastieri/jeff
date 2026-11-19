@@ -26,7 +26,7 @@ interface Props {
   chatName: string;
 }
 
-const CIRCUMFERENCE = 2 * Math.PI * 11.5;
+const CIRCUMFERENCE = 2 * Math.PI * 13;
 const WINDOWS: Array<{ key: keyof NonNullable<UsageLimits["go"]>; label: string }> = [
   { key: "rolling", label: "5 horas" },
   { key: "weekly", label: "Semanal" },
@@ -143,7 +143,8 @@ export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Pro
     return values.reduce((worst, item) => ((item.window?.percent ?? 0) > (worst.window?.percent ?? 0) ? item : worst));
   }, [go]);
   const left = tightest?.left ?? null;
-  const remainingLabel = left == null ? "Limite do plano indisponível" : `Restante do plano: ${left}%`;
+  const used = left == null ? null : 100 - left;
+  const remainingLabel = used == null ? "Consumo do plano indisponível" : `Consumo do plano: ${used}%`;
 
   const groups = useMemo(() => {
     const grouped = new Map<string, AIModel[]>();
@@ -328,26 +329,26 @@ export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Pro
       trigger={
         <>
         <span
-          className="relative inline-flex size-[26px] shrink-0 items-center justify-center rounded-full outline-none"
+          className="relative inline-flex size-[30px] shrink-0 items-center justify-center rounded-full outline-none"
           title={`${modelDisplay(info)} · ${remainingLabel}`}
         >
-          <svg viewBox="0 0 26 26" className="absolute inset-0 size-full -rotate-90" aria-hidden>
-            <circle cx="13" cy="13" r="11.5" fill="none" strokeWidth="1.6" className="stroke-border-button-default" />
-            {left != null ? (
+          <svg viewBox="0 0 30 30" className="absolute inset-0 size-full -rotate-90" aria-hidden>
+            <circle cx="15" cy="15" r="13" fill="none" strokeWidth="2" className="stroke-border-button-default" />
+            {used != null ? (
               <circle
-                cx="13"
-                cy="13"
-                r="11.5"
+                cx="15"
+                cy="15"
+                r="13"
                 fill="none"
-                strokeWidth="1.6"
+                strokeWidth="2.2"
                 strokeLinecap="round"
                 strokeDasharray={CIRCUMFERENCE}
-                strokeDashoffset={CIRCUMFERENCE * (1 - left / 100)}
+                strokeDashoffset={CIRCUMFERENCE * (1 - used / 100)}
                 className={cx("transition-[stroke-dashoffset] duration-500", tone(left))}
               />
             ) : null}
           </svg>
-          <ProviderIcon provider={brand} className="relative size-3.5 text-text-primary" />
+          <ProviderIcon provider={brand} className="relative size-4 text-text-primary" />
         </span>
         {mobile ? <span className="min-w-0 max-w-[76px] truncate text-caption-2-regular text-text-tertiary">{shortLabel}</span> : null}
         </>

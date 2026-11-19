@@ -52,12 +52,35 @@ function AppShell() {
     if (!authReady) return;
     const boot = document.getElementById("jeff-boot");
     if (!boot) return;
-    const timer = window.setTimeout(() => {
-      boot.classList.add("jeff-boot--done");
-      window.setTimeout(() => boot.remove(), 320);
-    }, 120);
-    return () => window.clearTimeout(timer);
-  }, [authReady]);
+    let revealed = false;
+    let revealTimer = 0;
+    let removeTimer = 0;
+    let fallbackTimer = 0;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      window.clearTimeout(fallbackTimer);
+      revealTimer = window.setTimeout(() => {
+        boot.classList.add("jeff-boot--done");
+        removeTimer = window.setTimeout(() => boot.remove(), 320);
+      }, 120);
+    };
+    const ready = () => reveal();
+    if (!user || (window as Window & { __jeffWorkbenchReady?: boolean }).__jeffWorkbenchReady) {
+      reveal();
+    } else {
+      // The workbench keeps the splash until projects (and the active one)
+      // are on screen; the fallback avoids a splash stuck forever on a bad API.
+      window.addEventListener("jeff:workbench-ready", ready, { once: true });
+      fallbackTimer = window.setTimeout(reveal, 15_000);
+    }
+    return () => {
+      window.removeEventListener("jeff:workbench-ready", ready);
+      window.clearTimeout(revealTimer);
+      window.clearTimeout(removeTimer);
+      window.clearTimeout(fallbackTimer);
+    };
+  }, [authReady, user]);
 
   useEffect(() => {
     if (!serverUrl) {

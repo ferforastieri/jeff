@@ -38,10 +38,11 @@ export default function ConversationEffortPicker({ projectId, chat, jeffs }: Pro
         </>
       }
       triggerClassName="max-w-[110px]"
-      popoverClassName="w-[168px] p-1"
+      popoverClassName="w-[236px] p-1"
     >
       {(close) => (
         <div className="flex flex-col gap-0.5">
+          <p className="px-2 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">Esforço</p>
           {variants.length === 0 ? (
             <p className="px-2 py-2 text-caption-1-regular text-text-tertiary">
               Este modelo não oferece níveis de esforço.

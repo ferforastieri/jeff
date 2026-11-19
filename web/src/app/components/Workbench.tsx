@@ -537,6 +537,18 @@ export default function Workbench() {
     setActiveProject(projects[0].id);
   }, [projectsLoaded, project, projects, setActiveProject]);
 
+  // Keep the index.html splash (Jeff jumping) up until the workbench has
+  // something real to show, instead of a black frame between the two.
+  useEffect(() => {
+    if (!projectsLoaded) return;
+    if (projects.length > 0 && !project) return;
+    const frame = window.requestAnimationFrame(() => {
+      (window as Window & { __jeffWorkbenchReady?: boolean }).__jeffWorkbenchReady = true;
+      window.dispatchEvent(new Event("jeff:workbench-ready"));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [projectsLoaded, project, projects.length]);
+
   useEffect(() => {
     if (!activeProjectId) return;
     let cancelled = false;
