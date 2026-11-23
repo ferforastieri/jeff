@@ -211,9 +211,9 @@ if [ -z "$VERSION" ]; then
         name=$0
         sub(/^.*"name"[[:space:]]*:[[:space:]]*"/, "", name)
         sub(/".*$/, "", name)
-        if (name == asset && tag != "") { print tag; exit }
+        if (!found && name == asset && tag != "") { print tag; found=1 }
       }
-    ')"
+    ' || true)"
   fi
   if [ -z "$VERSION" ]; then
     VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
