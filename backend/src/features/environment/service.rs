@@ -59,7 +59,10 @@ pub async fn install(id: &str) -> AppResult<Value> {
     if packages.is_empty() {
         return Err(bad_request("Componente sem pacotes."));
     }
+    #[cfg(unix)]
     let root = unsafe { libc::geteuid() } == 0;
+    #[cfg(not(unix))]
+    let root = false;
     let mut command = if root {
         let mut command = Command::new("apt-get");
         command.args([

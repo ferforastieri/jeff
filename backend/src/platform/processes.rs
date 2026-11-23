@@ -1,7 +1,11 @@
-use std::collections::{HashMap, HashSet};
+#[cfg(not(windows))]
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(not(windows))]
 use std::thread;
+#[cfg(not(windows))]
 use std::time::Duration;
 
 use serde::Serialize;
