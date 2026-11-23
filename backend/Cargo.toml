@@ -24,6 +24,7 @@ axum = { version = "0.8", features = ["ws", "macros"] }
 base64 = "0.22"
 bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
 clickhouse = { version = "0.15", features = ["rustls-tls-ring", "rustls-tls-webpki-roots"] }
 futures-util = "0.3"
 hex = "0.4"
@@ -43,11 +44,13 @@ redis = { version = "1.0", features = ["tokio-rustls-comp", "connection-manager"
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls", "cookies", "multipart"] }
 rust-embed = { version = "8", features = ["include-exclude"] }
 scylla = { version = "1.9", features = ["rustls-023"] }
+sea-orm = { version = "1", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
+sea-orm-migration = { version = "1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 subtle = "2"
-sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio-rustls", "any", "derive", "sqlite", "postgres", "mysql", "chrono", "uuid", "json"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio-rustls", "any", "derive", "postgres", "mysql", "chrono", "uuid", "json"] }
 thiserror = "2"
 tiberius = { version = "0.13", default-features = false, features = ["tds80", "rustls", "tokio", "chrono"] }
 tokio = { version = "1", features = ["full"] }

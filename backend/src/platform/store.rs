@@ -1,113 +1,52 @@
 use std::path::Path;
-use std::str::FromStr;
-use std::time::Duration;
 
 use chrono::Utc;
-use serde_json::Value;
-use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
-use sqlx::{Row, SqlitePool};
+use sqlx::PgPool;
 
+use crate::db::Database;
 use crate::errors::{AppError, AppResult};
 pub use crate::features::conversations::repository::{
     WorkspaceMessageCursor, WorkspaceMessagePage,
 };
 
+/// The application database. PostgreSQL only: the schema and its migrations
+/// belong to `crate::db`, and the pool is shared with the SeaORM connection.
 #[derive(Clone)]
 pub struct Store {
-    pub(crate) pool: SqlitePool,
+    pub(crate) pool: PgPool,
+    _database: Database,
 }
 
 impl Store {
-    pub async fn open(path: &Path) -> AppResult<Self> {
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        // Preserve the history of installs created before the Jeff rename.
-        if path.file_name().and_then(|name| name.to_str()) == Some("jeff.db") {
-            if let Some(parent) = path.parent() {
-                for suffix in ["", "-wal", "-shm"] {
-                    let legacy = parent.join(format!("toph.db{suffix}"));
-                    let current = parent.join(format!("jeff.db{suffix}"));
-                    if legacy.exists() && !current.exists() {
-                        let _ = std::fs::rename(&legacy, &current);
-                    }
-                }
-            }
-        }
-        let options = SqliteConnectOptions::from_str(&path.to_string_lossy())
-            .map_err(|error| crate::errors::internal(error.to_string()))?
-            .create_if_missing(true)
-            .journal_mode(SqliteJournalMode::Wal)
-            .synchronous(SqliteSynchronous::Normal)
-            .foreign_keys(true)
-            .busy_timeout(Duration::from_secs(5));
-        let pool = SqlitePoolOptions::new()
-            .max_connections(1)
-            .connect_with(options)
-            .await?;
-        sqlx::raw_sql(include_str!("schema.sql"))
-            .execute(&pool)
-            .await?;
-        sqlx::raw_sql(include_str!("../features/agents/schema.sql"))
-            .execute(&pool)
-            .await?;
-        // Older local databases may predate these columns.
-        let _ = sqlx::query("ALTER TABLE db_profiles ADD COLUMN folder TEXT NOT NULL DEFAULT ''")
-            .execute(&pool)
-            .await;
-        let _ =
-            sqlx::query("ALTER TABLE db_profiles ADD COLUMN project_root TEXT NOT NULL DEFAULT ''")
-                .execute(&pool)
-                .await;
-        // Clean break from the old team/individual Jeff model. New chat
-        // messages use mode = 'chat' and are preserved.
-        let _ = sqlx::query("DELETE FROM bot_messages WHERE mode <> 'chat'")
-            .execute(&pool)
-            .await;
-        if let Ok(rows) = sqlx::query("SELECT user_id, project_id, layout FROM workspaces")
-            .fetch_all(&pool)
-            .await
-        {
-            for row in rows {
-                let user_id: i64 = row.get("user_id");
-                let project_id: String = row.get("project_id");
-                let raw: String = row.get("layout");
-                let Ok(mut layout) = serde_json::from_str::<Value>(&raw) else {
-                    continue;
-                };
-                let Some(object) = layout.as_object_mut() else {
-                    continue;
-                };
-                let mut changed = false;
-                for key in [
-                    "bots",
-                    "savedSolo",
-                    "savedTeam",
-                    "mode",
-                    "modeExplicit",
-                    "activeBotId",
-                ] {
-                    if object.remove(key).is_some() {
-                        changed = true;
-                    }
-                }
-                if changed {
-                    let _ = sqlx::query(
-                        "UPDATE workspaces SET layout = ?, updated_at = ? WHERE user_id = ? AND project_id = ?",
-                    )
-                    .bind(layout.to_string())
-                    .bind(now())
-                    .bind(user_id)
-                    .bind(&project_id)
-                    .execute(&pool)
-                    .await;
-                }
-            }
-        }
-        Ok(Self { pool })
+    pub async fn connect(url: &str) -> AppResult<Self> {
+        let database = Database::connect(url).await?;
+        let pool = database.pool().clone();
+        Ok(Self {
+            pool,
+            _database: database,
+        })
     }
 
-    pub fn pool(&self) -> &SqlitePool {
+    /// Test helper. The path is ignored; tests connect to `TEST_DATABASE_URL`
+    /// (or `JEFF_DATABASE_URL`) and, with `JEFF_TEST_SCHEMA=1`, each Store gets
+    /// its own schema so tests can run in parallel.
+    pub async fn open(_path: &Path) -> AppResult<Self> {
+        let url = std::env::var("TEST_DATABASE_URL")
+            .or_else(|_| std::env::var("JEFF_DATABASE_URL"))
+            .map_err(|_| {
+                AppError::ServiceUnavailable(
+                    "TEST_DATABASE_URL or JEFF_DATABASE_URL is required".into(),
+                )
+            })?;
+        if url.trim().is_empty() {
+            return Err(AppError::ServiceUnavailable(
+                "TEST_DATABASE_URL is empty".into(),
+            ));
+        }
+        Self::connect(&url).await
+    }
+
+    pub fn pool(&self) -> &PgPool {
         &self.pool
     }
 

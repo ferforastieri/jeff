@@ -88,7 +88,7 @@ impl Service {
         Self(store)
     }
 
-    fn row(row: &sqlx::sqlite::SqliteRow) -> AppResult<ManagedSkill> {
+    fn row(row: &sqlx::postgres::PgRow) -> AppResult<ManagedSkill> {
         let agents: String = row.get("agents");
         Ok(ManagedSkill {
             id: row.get("id"),
@@ -121,7 +121,7 @@ impl Service {
     pub async fn get(&self, id: &str) -> AppResult<ManagedSkill> {
         let row = sqlx::query(
             "SELECT id,project_id,name,description,body,agents,state,replaces,proposed_by,reason,source,created_at,updated_at \
-             FROM agent_skills WHERE id=?",
+             FROM agent_skills WHERE id=$1",
         )
         .bind(id)
         .fetch_optional(self.0.pool())
@@ -133,7 +133,7 @@ impl Service {
     async fn active_by_name(&self, name: &str) -> AppResult<Option<ManagedSkill>> {
         let row = sqlx::query(
             "SELECT id,project_id,name,description,body,agents,state,replaces,proposed_by,reason,source,created_at,updated_at \
-             FROM agent_skills WHERE state='active' AND name=?",
+             FROM agent_skills WHERE state='active' AND name=$1",
         )
         .bind(name)
         .fetch_optional(self.0.pool())
@@ -160,7 +160,7 @@ impl Service {
 
     async fn keep(&self, skill: &ManagedSkill, by: &str) -> AppResult<()> {
         sqlx::query(
-            "INSERT INTO agent_skill_versions(skill_id,name,description,body,by,at) VALUES(?,?,?,?,?,?)",
+            "INSERT INTO agent_skill_versions(skill_id,name,description,body,by,at) VALUES($1,$2,$3,$4,$5,$6)",
         )
         .bind(&skill.id)
         .bind(&skill.name)
@@ -199,7 +199,7 @@ impl Service {
         if let Some(id) = input.id.as_deref() {
             let previous = self.get(id).await?;
             if previous.source.is_some() {
-                sqlx::query("UPDATE agent_skills SET agents=?,updated_at=? WHERE id=?")
+                sqlx::query("UPDATE agent_skills SET agents=$1,updated_at=$2 WHERE id=$3")
                     .bind(json!(agents).to_string())
                     .bind(at)
                     .bind(id)
@@ -220,8 +220,8 @@ impl Service {
                 }
             }
             sqlx::query(
-                "UPDATE agent_skills SET name=?,description=?,body=?,agents=?,state='active',replaces=NULL,proposed_by=NULL,reason=NULL,updated_at=? \
-                 WHERE id=?",
+                "UPDATE agent_skills SET name=$1,description=$2,body=$3,agents=$4,state='active',replaces=NULL,proposed_by=NULL,reason=NULL,updated_at=$5 \
+                 WHERE id=$6",
             )
             .bind(&name)
             .bind(&description)
@@ -239,7 +239,7 @@ impl Service {
         let id = new_id();
         sqlx::query(
             "INSERT INTO agent_skills(id,project_id,name,description,body,agents,state,source,created_at,updated_at) \
-             VALUES(?,?,?,?,?,?,'active',?,?,?)",
+             VALUES($1,$2,$3,$4,$5,$6,'active',$7,$8,$9)",
         )
         .bind(&id)
         .bind(project)
@@ -275,12 +275,14 @@ impl Service {
             .into_iter()
             .find(|skill| skill.source.as_deref() == Some(canonical.as_str()))
         {
-            sqlx::query("UPDATE agent_skills SET agents=?,state='active',updated_at=? WHERE id=?")
-                .bind(json!(agents).to_string())
-                .bind(now())
-                .bind(&existing.id)
-                .execute(self.0.pool())
-                .await?;
+            sqlx::query(
+                "UPDATE agent_skills SET agents=$1,state='active',updated_at=$2 WHERE id=$3",
+            )
+            .bind(json!(agents).to_string())
+            .bind(now())
+            .bind(&existing.id)
+            .execute(self.0.pool())
+            .await?;
             return self.get(&existing.id).await;
         }
         let name = normalize_name(&found.name)?;
@@ -299,7 +301,7 @@ impl Service {
         let id = new_id();
         sqlx::query(
             "INSERT INTO agent_skills(id,project_id,name,description,body,agents,state,source,created_at,updated_at) \
-             VALUES(?,?,?,?,?,?,'active',?,?,?)",
+             VALUES($1,$2,$3,$4,$5,$6,'active',$7,$8,$9)",
         )
         .bind(&id)
         .bind(project)
@@ -343,19 +345,21 @@ impl Service {
             }
             let mut agents = existing.agents.clone();
             agents.push(agent.to_string());
-            sqlx::query("UPDATE agent_skills SET agents=?,state='active',updated_at=? WHERE id=?")
-                .bind(json!(agents).to_string())
-                .bind(now())
-                .bind(&existing.id)
-                .execute(self.0.pool())
-                .await?;
+            sqlx::query(
+                "UPDATE agent_skills SET agents=$1,state='active',updated_at=$2 WHERE id=$3",
+            )
+            .bind(json!(agents).to_string())
+            .bind(now())
+            .bind(&existing.id)
+            .execute(self.0.pool())
+            .await?;
             return Ok(());
         }
         let at = now();
         let id = new_id();
         sqlx::query(
             "INSERT INTO agent_skills(id,project_id,name,description,body,agents,state,source,created_at,updated_at) \
-             VALUES(?,?,?,?,?,?,'active',?,?,?)",
+             VALUES($1,$2,$3,$4,$5,$6,'active',$7,$8,$9)",
         )
         .bind(&id)
         .bind(project)
@@ -392,7 +396,7 @@ impl Service {
             )));
         }
         let pending: i64 = sqlx::query_scalar(
-            "SELECT count(*) FROM agent_skills WHERE state='pending' AND proposed_by=?",
+            "SELECT count(*) FROM agent_skills WHERE state='pending' AND proposed_by=$1",
         )
         .bind(agent)
         .fetch_one(self.0.pool())
@@ -414,7 +418,7 @@ impl Service {
             }
         }
         let waiting = sqlx::query(
-            "SELECT id FROM agent_skills WHERE state='pending' AND proposed_by=? AND name=?",
+            "SELECT id FROM agent_skills WHERE state='pending' AND proposed_by=$1 AND name=$2",
         )
         .bind(agent)
         .bind(&name)
@@ -424,8 +428,8 @@ impl Service {
         let id = if let Some(row) = waiting {
             let id: String = row.get("id");
             sqlx::query(
-                "UPDATE agent_skills SET description=?,body=?,agents=?,replaces=?,reason=?,updated_at=? \
-                 WHERE id=?",
+                "UPDATE agent_skills SET description=$1,body=$2,agents=$3,replaces=$4,reason=$5,updated_at=$6 \
+                 WHERE id=$7",
             )
             .bind(&description)
             .bind(&body)
@@ -441,7 +445,7 @@ impl Service {
             let id = new_id();
             sqlx::query(
                 "INSERT INTO agent_skills(id,project_id,name,description,body,agents,state,replaces,proposed_by,reason,created_at,updated_at) \
-                 VALUES(?,?,?,?,?,?,'pending',?,?,?,?,?)",
+                 VALUES($1,$2,$3,$4,$5,$6,'pending',$7,$8,$9,$10,$11)",
             )
             .bind(&id)
             .bind(project)
@@ -480,13 +484,15 @@ impl Service {
             if target.state == "active" {
                 self.keep(&target, pending.proposed_by.as_deref().unwrap_or("me"))
                     .await?;
-                sqlx::query("UPDATE agent_skills SET description=?,body=?,updated_at=? WHERE id=?")
-                    .bind(&pending.description)
-                    .bind(&pending.body)
-                    .bind(now())
-                    .bind(target_id)
-                    .execute(self.0.pool())
-                    .await?;
+                sqlx::query(
+                    "UPDATE agent_skills SET description=$1,body=$2,updated_at=$3 WHERE id=$4",
+                )
+                .bind(&pending.description)
+                .bind(&pending.body)
+                .bind(now())
+                .bind(target_id)
+                .execute(self.0.pool())
+                .await?;
                 self.remove(id).await?;
                 return Ok(Some(self.get(target_id).await?));
             }
@@ -495,8 +501,8 @@ impl Service {
             return Err(bad_request("Já existe uma skill ativa com esse nome."));
         }
         sqlx::query(
-            "UPDATE agent_skills SET state='active',replaces=NULL,proposed_by=NULL,reason=NULL,updated_at=? \
-             WHERE id=?",
+            "UPDATE agent_skills SET state='active',replaces=NULL,proposed_by=NULL,reason=NULL,updated_at=$1 \
+             WHERE id=$2",
         )
         .bind(now())
         .bind(id)
@@ -508,7 +514,7 @@ impl Service {
     pub async fn versions(&self, id: &str) -> AppResult<Vec<ManagedSkillVersion>> {
         self.get(id).await?;
         let rows = sqlx::query(
-            "SELECT id,skill_id,name,description,body,by,at FROM agent_skill_versions WHERE skill_id=? ORDER BY at DESC,id DESC",
+            "SELECT id,skill_id,name,description,body,by,at FROM agent_skill_versions WHERE skill_id=$1 ORDER BY at DESC,id DESC",
         )
         .bind(id)
         .fetch_all(self.0.pool())
@@ -532,7 +538,7 @@ impl Service {
     pub async fn restore(&self, id: &str, version_id: i64) -> AppResult<ManagedSkill> {
         let current = self.get(id).await?;
         let version = sqlx::query(
-            "SELECT name,description,body FROM agent_skill_versions WHERE id=? AND skill_id=?",
+            "SELECT name,description,body FROM agent_skill_versions WHERE id=$1 AND skill_id=$2",
         )
         .bind(version_id)
         .bind(id)
@@ -546,14 +552,16 @@ impl Service {
             name
         };
         self.keep(&current, "me").await?;
-        sqlx::query("UPDATE agent_skills SET name=?,description=?,body=?,updated_at=? WHERE id=?")
-            .bind(&name)
-            .bind(version.get::<String, _>("description"))
-            .bind(version.get::<String, _>("body"))
-            .bind(now())
-            .bind(id)
-            .execute(self.0.pool())
-            .await?;
+        sqlx::query(
+            "UPDATE agent_skills SET name=$1,description=$2,body=$3,updated_at=$4 WHERE id=$5",
+        )
+        .bind(&name)
+        .bind(version.get::<String, _>("description"))
+        .bind(version.get::<String, _>("body"))
+        .bind(now())
+        .bind(id)
+        .execute(self.0.pool())
+        .await?;
         self.get(id).await
     }
 
@@ -565,7 +573,7 @@ impl Service {
         if !archived && self.active_by_name(&skill.name).await?.is_some() {
             return Err(bad_request("Já existe uma skill ativa com esse nome."));
         }
-        sqlx::query("UPDATE agent_skills SET state=?,updated_at=? WHERE id=?")
+        sqlx::query("UPDATE agent_skills SET state=$1,updated_at=$2 WHERE id=$3")
             .bind(if archived { "archived" } else { "active" })
             .bind(now())
             .bind(id)
@@ -576,11 +584,11 @@ impl Service {
 
     pub async fn remove(&self, id: &str) -> AppResult<()> {
         self.get(id).await?;
-        sqlx::query("DELETE FROM agent_skill_versions WHERE skill_id=?")
+        sqlx::query("DELETE FROM agent_skill_versions WHERE skill_id=$1")
             .bind(id)
             .execute(self.0.pool())
             .await?;
-        sqlx::query("DELETE FROM agent_skills WHERE id=?")
+        sqlx::query("DELETE FROM agent_skills WHERE id=$1")
             .bind(id)
             .execute(self.0.pool())
             .await?;

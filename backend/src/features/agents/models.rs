@@ -78,7 +78,7 @@ pub struct Session {
     pub chat_id: String,
     pub agent_id: String,
     pub title: String,
-    pub archived: bool,
+    pub archived: i64,
     pub created_at: i64,
     pub updated_at: i64,
 }

@@ -241,7 +241,7 @@ impl Tools {
         let path = self.artifacts.join(&id);
         tokio::fs::create_dir_all(&self.artifacts).await?;
         tokio::fs::write(&path, bytes).await?;
-        sqlx::query("INSERT INTO agent_artifacts VALUES(?,?,?,?,?,?,?,?,?)")
+        sqlx::query("INSERT INTO agent_artifacts VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)")
             .bind(&id)
             .bind(ctx.user_id)
             .bind(&ctx.project_id)
@@ -263,7 +263,7 @@ impl Tools {
         id: &str,
     ) -> AppResult<(String, Vec<u8>, PathBuf)> {
         let row = sqlx::query(
-            "SELECT path,mime FROM agent_artifacts WHERE id=? AND user_id=? AND project_id=?",
+            "SELECT path,mime FROM agent_artifacts WHERE id=$1 AND user_id=$2 AND project_id=$3",
         )
         .bind(id)
         .bind(user)
@@ -415,7 +415,7 @@ impl Tools {
                     .map(|s| format!("\"{}\"", s.replace('"', "\"\"")))
                     .collect::<Vec<_>>()
                     .join(" OR ");
-                let rows=sqlx::query("SELECT m.id,m.session_id,substr(m.content_text,1,1200) AS text FROM agent_history_fts f JOIN agent_messages m ON m.seq=f.rowid JOIN agent_sessions s ON s.id=m.session_id WHERE f.content_text MATCH ? AND s.user_id=? AND s.project_id=? ORDER BY f.rank LIMIT 5")
+                let rows=sqlx::query("SELECT m.id,m.session_id,substr(m.content_text,1,1200) AS text FROM agent_history_fts f JOIN agent_messages m ON m.seq=f.rowid JOIN agent_sessions s ON s.id=m.session_id WHERE f.search @@ websearch_to_tsquery('simple', $1) AND s.user_id=$2 AND s.project_id=$3 ORDER BY ts_rank(f.search, websearch_to_tsquery('simple', $1)) DESC LIMIT 5")
                     .bind(query).bind(ctx.user_id).bind(&ctx.project_id).fetch_all(self.store.pool()).await?;
                 Ok(json!(rows.iter().map(|r|json!({"id":r.get::<String,_>("id"),"sessionId":r.get::<String,_>("session_id"),"text":r.get::<String,_>("text")})).collect::<Vec<_>>()))
             }
@@ -425,13 +425,13 @@ impl Tools {
                 if content.len() > 2000 {
                     return Err(AppError::TooLarge);
                 }
-                let count:i64=sqlx::query_scalar("SELECT count(*) FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id WHERE m.id=? AND s.user_id=? AND s.project_id=?")
+                let count:i64=sqlx::query_scalar("SELECT count(*) FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id WHERE m.id=$1 AND s.user_id=$2 AND s.project_id=$3")
                     .bind(source).bind(ctx.user_id).bind(&ctx.project_id).fetch_one(self.store.pool()).await?;
                 if count == 0 {
                     return Err(bad_request("Memory source must be a project message id"));
                 }
                 let id = crate::crypto::new_id();
-                sqlx::query("INSERT INTO agent_memories VALUES(?,?,?,?,?,?)")
+                sqlx::query("INSERT INTO agent_memories VALUES($1,$2,$3,$4,$5,$6)")
                     .bind(&id)
                     .bind(ctx.user_id)
                     .bind(&ctx.project_id)
@@ -443,7 +443,7 @@ impl Tools {
                 Ok(json!({"id":id,"saved":true}))
             }
             "search_memory" => {
-                let rows=sqlx::query("SELECT id,content,source_id FROM agent_memories WHERE user_id=? AND project_id=? AND instr(lower(content),lower(?))>0 ORDER BY created_at DESC LIMIT 5")
+                let rows=sqlx::query("SELECT id,content,source_id FROM agent_memories WHERE user_id=$1 AND project_id=$2 AND instr(lower(content),lower($3))>0 ORDER BY created_at DESC LIMIT 5")
                     .bind(ctx.user_id).bind(&ctx.project_id).bind(text(args,"query")?).fetch_all(self.store.pool()).await?;
                 Ok(json!(rows.iter().map(|r|json!({"id":r.get::<String,_>("id"),"content":r.get::<String,_>("content"),"sourceId":r.get::<String,_>("source_id")})).collect::<Vec<_>>()))
             }

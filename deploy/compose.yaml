@@ -16,11 +16,18 @@ services:
       JEFF_DATA_DIR: /data
       JEFF_WORKSPACES: /workspaces
       JEFF_ADMIN_PASSWORD: ${JEFF_ADMIN_PASSWORD:-}
+      JEFF_DATABASE_URL: ${JEFF_DATABASE_URL:-postgres://jeff:jeff@postgres:5432/jeff}
+      JEFF_REDIS_URL: ${JEFF_REDIS_URL:-redis://redis:6379}
       JEFF_SECURE_COOKIES: ${JEFF_SECURE_COOKIES:-false}
       JEFF_TRUSTED_PROXIES: ${JEFF_TRUSTED_PROXIES:-}
       JEFF_BUILD_ID: ${JEFF_BUILD_ID:-}
       JEFF_FIREBASE_CREDENTIALS_FILE: ${JEFF_FIREBASE_CREDENTIALS_FILE:-}
       JEFF_FIREBASE_PROJECT_ID: ${JEFF_FIREBASE_PROJECT_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -29,6 +36,42 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jeff
+      POSTGRES_PASSWORD: jeff
+      POSTGRES_DB: jeff
+    volumes:
+      - jeff-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jeff -d jeff"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 128mb
+      - --maxmemory-policy
+      - allkeys-lru
+    volumes:
+      - jeff-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
 volumes:
   jeff-data:
     name: jeff-data
+  jeff-pgdata:
+  jeff-redis:

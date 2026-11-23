@@ -16,7 +16,7 @@ impl Store {
     pub async fn create_web_target(&self, target: WebTarget) -> AppResult<WebTarget> {
         let created = now();
         sqlx::query(
-            "INSERT INTO web_targets (id, name, url, icon, created_at) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO web_targets (id, name, url, icon, created_at) VALUES ($1, $2, $3, $4, $5)",
         )
         .bind(&target.id)
         .bind(&target.name)
@@ -32,7 +32,7 @@ impl Store {
     }
 
     pub async fn delete_web_target(&self, id: &str) -> AppResult<()> {
-        let result = sqlx::query("DELETE FROM web_targets WHERE id = ?")
+        let result = sqlx::query("DELETE FROM web_targets WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
             .await?;

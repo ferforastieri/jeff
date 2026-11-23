@@ -7,18 +7,8 @@ pub(super) async fn debug_browser_info(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<String>,
 ) -> AppResult<Json<Value>> {
-    let project = state.store.project(&project_id).await?;
-    let session = state
-        .browser
-        .session(&project_id, FsPath::new(&project.root))
-        .await?;
-    let info = session.info();
-    Ok(Json(json!({
-        "id": info.id,
-        "projectId": info.project_id,
-        "pageUrl": info.page_url,
-        "wsUrl": info.ws_url,
-    })))
+    let session = browser_session(&state, &project_id, &project_id).await?;
+    Ok(Json(session_info(&session)))
 }
 
 pub(super) async fn debug_browser_ws(
@@ -26,15 +16,7 @@ pub(super) async fn debug_browser_ws(
     Path(project_id): Path<String>,
     ws: WebSocketUpgrade,
 ) -> Response {
-    let project = match state.store.project(&project_id).await {
-        Ok(project) => project,
-        Err(error) => return error.into_response(),
-    };
-    let session = match state
-        .browser
-        .session(&project_id, FsPath::new(&project.root))
-        .await
-    {
+    let session = match browser_session(&state, &project_id, &project_id).await {
         Ok(session) => session,
         Err(error) => return error.into_response(),
     };
@@ -42,6 +24,69 @@ pub(super) async fn debug_browser_ws(
         .clients
         .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     ws.on_upgrade(move |socket| browser_socket(socket, session))
+}
+
+/// The bot's own persistent browser, watched from the room.
+pub(super) async fn bot_browser_info(
+    State(state): State<Arc<AppState>>,
+    Path((project_id, agent_id)): Path<(String, String)>,
+) -> AppResult<Json<Value>> {
+    let key = format!("bot-{agent_id}");
+    let session = browser_session(&state, &project_id, &key).await?;
+    Ok(Json(session_info(&session)))
+}
+
+pub(super) async fn bot_browser_ws(
+    State(state): State<Arc<AppState>>,
+    Path((project_id, agent_id)): Path<(String, String)>,
+    ws: WebSocketUpgrade,
+) -> Response {
+    let key = format!("bot-{agent_id}");
+    let session = match browser_session(&state, &project_id, &key).await {
+        Ok(session) => session,
+        Err(error) => return error.into_response(),
+    };
+    session
+        .clients
+        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    ws.on_upgrade(move |socket| browser_socket(socket, session))
+}
+
+async fn browser_session(
+    state: &Arc<AppState>,
+    project_id: &str,
+    key: &str,
+) -> AppResult<Arc<BrowserSession>> {
+    let project = state.store.project(project_id).await?;
+    state.browser.session(key, FsPath::new(&project.root)).await
+}
+
+fn session_info(session: &BrowserSession) -> Value {
+    let info = session.info();
+    json!({
+        "id": info.id,
+        "projectId": info.project_id,
+        "pageUrl": info.page_url,
+        "wsUrl": info.ws_url,
+        "takeover": session.is_takeover(),
+    })
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct TakeoverInput {
+    active: bool,
+}
+
+pub(super) async fn bot_browser_takeover(
+    State(state): State<Arc<AppState>>,
+    Path((project_id, agent_id)): Path<(String, String)>,
+    Json(input): Json<TakeoverInput>,
+) -> AppResult<Json<Value>> {
+    let key = format!("bot-{agent_id}");
+    let session = browser_session(&state, &project_id, &key).await?;
+    session.set_takeover(input.active);
+    Ok(Json(json!({ "active": input.active })))
 }
 
 async fn browser_socket(mut socket: WebSocket, session: Arc<BrowserSession>) {

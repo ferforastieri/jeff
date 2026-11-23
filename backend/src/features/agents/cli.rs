@@ -116,6 +116,11 @@ pub fn native_server(accounts: &[String]) -> Option<Server> {
     let executable = std::env::current_exe().ok()?;
     let mut env = HashMap::new();
     env.insert("JEFF_EMAIL_ACCOUNTS".into(), accounts.join(","));
+    // The helper opens the same Postgres database. The URL is a secret, so it
+    // is passed explicitly instead of being inherited by the harness.
+    if let Ok(url) = std::env::var("JEFF_DATABASE_URL") {
+        env.insert("JEFF_DATABASE_URL".into(), url);
+    }
     Some(Server {
         id: "jeff-tools".into(),
         name: "jeff_tools".into(),
@@ -486,6 +491,8 @@ fn server_secret(key: &str) -> bool {
     matches!(
         key,
         "JEFF_ADMIN_PASSWORD"
+            | "JEFF_DATABASE_URL"
+            | "JEFF_REDIS_URL"
             | "JEFF_FIREBASE_CREDENTIALS_FILE"
             | "JEFF_FIREBASE_PROJECT_ID"
             | "JEFF_GITHUB_TOKEN"

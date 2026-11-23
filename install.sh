@@ -18,8 +18,9 @@ usage() {
   cat <<'USAGE'
 Usage: install.sh [--components git,node,pnpm,rust,go,python|all] [--no-components]
 
-JEFF_DEV_COMPONENTS may also be set in the environment. If omitted and the
-installer is interactive, it asks whether to install the development toolchain.
+Development tools are optional and are never installed by a prompt. Pass
+--components to install them now, or set JEFF_DEV_COMPONENTS. They can also be
+installed later from the Jeff settings.
 USAGE
 }
 
@@ -37,15 +38,6 @@ while [ "$#" -gt 0 ]; do
   esac
   shift
 done
-
-if [ -z "$DEV_COMPONENTS" ] && [ -t 0 ]; then
-  printf 'Install development tools on this server (git,node,pnpm,rust,go,python)? [y/N] ' >/dev/tty
-  read -r ANSWER </dev/tty || ANSWER=""
-  case "$ANSWER" in
-    y|Y|yes|YES|s|S|sim|SIM) DEV_COMPONENTS="git,node,pnpm,rust,go,python" ;;
-    *) DEV_COMPONENTS="none" ;;
-  esac
-fi
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run this installer as root (sudo)." >&2
@@ -135,6 +127,72 @@ install_debug_adapters() {
   fi
 }
 
+# Jeff stores its data in PostgreSQL. A fresh install gets a local database
+# with a generated password; set JEFF_DATABASE_URL to use an existing server.
+provision_postgres() {
+  if ! command -v apt-get >/dev/null 2>&1; then
+    echo "PostgreSQL is required. Install it and rerun with JEFF_DATABASE_URL=postgres://user:pass@host:5432/jeff." >&2
+    exit 1
+  fi
+  echo "Installing PostgreSQL for Jeff..."
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql
+  systemctl enable --now postgresql >/dev/null 2>&1 || true
+  for _ in $(seq 1 30); do
+    if runuser -u postgres -- pg_isready -q 2>/dev/null; then
+      break
+    fi
+    sleep 1
+  done
+  if ! runuser -u postgres -- pg_isready -q 2>/dev/null; then
+    echo "PostgreSQL was installed but did not start. Start it and rerun the installer." >&2
+    exit 1
+  fi
+
+  local password role_exists database_exists
+  password="$(openssl rand -hex 16)"
+  role_exists="$(runuser -u postgres -- psql -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_roles WHERE rolname='jeff'")"
+  if [ "$role_exists" = "1" ]; then
+    runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "ALTER ROLE jeff WITH LOGIN PASSWORD '${password}'" >/dev/null
+  else
+    runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE ROLE jeff LOGIN PASSWORD '${password}'" >/dev/null
+  fi
+  database_exists="$(runuser -u postgres -- psql -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname='jeff'")"
+  if [ "$database_exists" != "1" ]; then
+    runuser -u postgres -- createdb -O jeff jeff
+  else
+    runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "ALTER DATABASE jeff OWNER TO jeff" >/dev/null
+  fi
+  PROVISIONED_DATABASE_URL="postgres://jeff:${password}@127.0.0.1:5432/jeff"
+}
+
+provision_redis() {
+  if ! command -v apt-get >/dev/null 2>&1; then
+    echo "Redis is required. Install it and rerun with JEFF_REDIS_URL=redis://127.0.0.1:6379." >&2
+    exit 1
+  fi
+  if command -v redis-cli >/dev/null 2>&1 \
+    && redis-cli -h 127.0.0.1 -p 6379 ping 2>/dev/null | grep -q PONG; then
+    PROVISIONED_REDIS_URL="redis://127.0.0.1:6379"
+    return 0
+  fi
+  echo "Installing Redis for Jeff..."
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends redis-server
+  systemctl enable --now redis-server >/dev/null 2>&1 || true
+  for _ in $(seq 1 30); do
+    if redis-cli -h 127.0.0.1 -p 6379 ping 2>/dev/null | grep -q PONG; then
+      break
+    fi
+    sleep 1
+  done
+  if ! redis-cli -h 127.0.0.1 -p 6379 ping 2>/dev/null | grep -q PONG; then
+    echo "Redis was installed but did not start. Start it and rerun the installer." >&2
+    exit 1
+  fi
+  PROVISIONED_REDIS_URL="redis://127.0.0.1:6379"
+}
+
 ARCH="$(uname -m)"
 case "$ARCH" in
   x86_64|amd64) ASSET="jeff-linux-amd64" ;;
@@ -196,6 +254,8 @@ if [ -f "$ENV_FILE" ]; then
   if [ -n "$ENV_WORKSPACES" ]; then
     WORKSPACES="$ENV_WORKSPACES"
   fi
+  ENV_DATABASE_URL="$(sed -n 's/^JEFF_DATABASE_URL=//p' "$ENV_FILE" | tail -n 1)"
+  ENV_REDIS_URL="$(sed -n 's/^JEFF_REDIS_URL=//p' "$ENV_FILE" | tail -n 1)"
 fi
 
 if [ -z "$SERVICE_USER" ] && [ -f "$SERVICE" ]; then
@@ -223,6 +283,17 @@ if [ "$EXISTING" -eq 0 ]; then
   install -d -m 0755 /etc/jeff
 fi
 
+DATABASE_URL="${ENV_DATABASE_URL:-${JEFF_DATABASE_URL:-}}"
+if [ -z "$DATABASE_URL" ]; then
+  provision_postgres
+  DATABASE_URL="$PROVISIONED_DATABASE_URL"
+fi
+REDIS_URL="${ENV_REDIS_URL:-${JEFF_REDIS_URL:-}}"
+if [ -z "$REDIS_URL" ]; then
+  provision_redis
+  REDIS_URL="$PROVISIONED_REDIS_URL"
+fi
+
 PREVIOUS_VERSION=""
 HEALTH_URL="http://127.0.0.1:${PORT}/api/health"
 if curl -fsS --max-time 3 "$HEALTH_URL" >/tmp/jeff-existing-health.json 2>/dev/null; then
@@ -234,6 +305,12 @@ install -m 0755 "$TMP" /usr/local/bin/jeff
 install_debug_adapters
 
 if [ -f "$ENV_FILE" ]; then
+  if ! grep -q '^JEFF_DATABASE_URL=' "$ENV_FILE"; then
+    echo "JEFF_DATABASE_URL=${DATABASE_URL}" >> "$ENV_FILE"
+  fi
+  if ! grep -q '^JEFF_REDIS_URL=' "$ENV_FILE"; then
+    echo "JEFF_REDIS_URL=${REDIS_URL}" >> "$ENV_FILE"
+  fi
   if grep -q '^JEFF_BUILD_ID=' "$ENV_FILE"; then
     sed -i "s|^JEFF_BUILD_ID=.*|JEFF_BUILD_ID=${VERSION}-$(date +%s)|" "$ENV_FILE"
   else
@@ -247,6 +324,8 @@ else
     echo "JEFF_WORKSPACES=${WORKSPACES}"
     echo "JEFF_ADMIN_PASSWORD=${NEW_PASSWORD}"
     echo "JEFF_BUILD_ID=${VERSION}-$(date +%s)"
+    echo "JEFF_DATABASE_URL=${DATABASE_URL}"
+    echo "JEFF_REDIS_URL=${REDIS_URL}"
     echo "JEFF_SECURE_COOKIES=true"
     [ -n "${JEFF_TRUSTED_PROXIES:-}" ] && echo "JEFF_TRUSTED_PROXIES=${JEFF_TRUSTED_PROXIES}"
     [ -n "${JEFF_FIREBASE_CREDENTIALS_FILE:-}" ] && echo "JEFF_FIREBASE_CREDENTIALS_FILE=${JEFF_FIREBASE_CREDENTIALS_FILE}"

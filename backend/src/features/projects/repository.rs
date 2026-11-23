@@ -33,9 +33,37 @@ impl Store {
             .collect())
     }
 
+    /// Admin sees every project; a member sees only the projects the admin
+    /// granted. The same rule is enforced again by the project middleware.
+    pub async fn list_projects_for(&self, user_id: i64, is_admin: bool) -> AppResult<Vec<Project>> {
+        let rows = if is_admin {
+            sqlx::query_as::<_, Project>(
+                "SELECT id, name, root, color, created_at, updated_at FROM projects ORDER BY name",
+            )
+            .fetch_all(&self.pool)
+            .await?
+        } else {
+            sqlx::query_as::<_, Project>(
+                "SELECT p.id, p.name, p.root, p.color, p.created_at, p.updated_at
+                 FROM projects p JOIN project_members m ON m.project_id = p.id
+                 WHERE m.user_id = $1 ORDER BY p.name",
+            )
+            .bind(user_id)
+            .fetch_all(&self.pool)
+            .await?
+        };
+        Ok(rows
+            .into_iter()
+            .map(|project| Project {
+                color: current_brand_color(project.color),
+                ..project
+            })
+            .collect())
+    }
+
     pub async fn project(&self, id: &str) -> AppResult<Project> {
         let mut project = sqlx::query_as::<_, Project>(
-            "SELECT id, name, root, color, created_at, updated_at FROM projects WHERE id = ?",
+            "SELECT id, name, root, color, created_at, updated_at FROM projects WHERE id = $1",
         )
         .bind(id)
         .fetch_one(&self.pool)
@@ -47,7 +75,7 @@ impl Store {
 
     pub async fn project_by_root(&self, root: &str) -> AppResult<Project> {
         let mut project = sqlx::query_as::<_, Project>(
-            "SELECT id, name, root, color, created_at, updated_at FROM projects WHERE root = ?",
+            "SELECT id, name, root, color, created_at, updated_at FROM projects WHERE root = $1",
         )
         .bind(root)
         .fetch_one(&self.pool)
@@ -65,7 +93,7 @@ impl Store {
         let created = now();
         let result = sqlx::query(
             "INSERT INTO projects (id, name, root, color, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?)",
+             VALUES ($1, $2, $3, $4, $5, $6)",
         )
         .bind(&project.id)
         .bind(&project.name)
@@ -93,7 +121,7 @@ impl Store {
         };
         let updated = now();
         let result = sqlx::query(
-            "UPDATE projects SET name = ?, root = ?, color = ?, updated_at = ? WHERE id = ?",
+            "UPDATE projects SET name = $1, root = $2, color = $3, updated_at = $4 WHERE id = $5",
         )
         .bind(&project.name)
         .bind(&project.root)
@@ -114,7 +142,7 @@ impl Store {
     }
 
     pub async fn delete_project(&self, id: &str) -> AppResult<()> {
-        let result = sqlx::query("DELETE FROM projects WHERE id = ?")
+        let result = sqlx::query("DELETE FROM projects WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
             .await?;

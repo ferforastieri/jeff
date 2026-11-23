@@ -118,7 +118,12 @@ pub async fn serve() -> anyhow::Result<()> {
         .map(str::to_string)
         .collect::<Vec<_>>();
     let config = Config::load()?;
-    let store = Store::open(&config.data_dir.join("jeff.db")).await?;
+    let database_url = config
+        .database_url
+        .as_deref()
+        .filter(|url| !url.trim().is_empty())
+        .ok_or_else(|| anyhow::anyhow!("JEFF_DATABASE_URL is required"))?;
+    let store = Store::connect(database_url).await?;
     let email = EmailService::new(store, &config.data_dir, &config.master_key_file)?;
     let authorized = email
         .list()

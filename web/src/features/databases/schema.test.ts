@@ -22,13 +22,11 @@ describe("database schema tree", () => {
     expect(schemaLabel("redis", "redis")).toBe("Chaves");
     expect(schemaLabel("elasticsearch", "elasticsearch")).toBe("Índices");
     expect(schemaLabel("neo4j", "neo4j")).toBe("Rótulos");
-    expect(schemaLabel("main", "sqlite")).toBe("main");
     expect(schemaLabel("", "mysql")).toBe("Estrutura");
   });
 
   it("shows friendly driver names", () => {
     expect(driverName("postgres")).toBe("PostgreSQL");
-    expect(driverName("sqlite")).toBe("SQLite");
     expect(driverName("custom")).toBe("custom");
   });
 });

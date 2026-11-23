@@ -67,6 +67,7 @@ export interface AppNotification {
   chatId?: string;
   sessionId?: string;
   notificationId?: string;
+  roomId?: string;
   botId?: string;
   botName?: string;
   botRole?: string;

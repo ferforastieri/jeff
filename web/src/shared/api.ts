@@ -2,6 +2,64 @@ export interface User {
   id: number;
   username: string;
   createdAt: string;
+  role?: string;
+  displayName?: string;
+  activity?: string;
+  onboardedAt?: string | null;
+}
+
+export interface VoiceParticipant {
+  principalId: string;
+  name: string;
+  sessionId: string;
+  tracks: string[];
+}
+
+export interface VoiceTrack {
+  mid: string;
+  trackName: string;
+}
+
+export interface VoiceSubscribe {
+  mid: string;
+  sessionId: string;
+  trackName: string;
+}
+
+export interface RoomEventItem {
+  id: string;
+  roomId: string | null;
+  cardId: string | null;
+  actorId: string | null;
+  actorName: string | null;
+  actorHandle: string | null;
+  kind: string;
+  detail: string;
+  createdAt: number;
+}
+
+export interface OnboardingStatus {
+  done: boolean;
+  mode: string;
+  activity: string;
+  objective: string;
+  tools: string;
+  teamName: string;
+  agentId: string;
+  projectId: string;
+  needsProject: boolean;
+  isAdmin: boolean;
+}
+
+export interface Invite {
+  id: string;
+  token: string;
+  role: string;
+  createdBy: number;
+  createdAt: string;
+  expiresAt: string;
+  usedAt: string | null;
+  usedBy: number | null;
 }
 
 export interface Project {
@@ -553,6 +611,207 @@ export const api = {
     });
   },
 
+  async onboarding(): Promise<OnboardingStatus> {
+    return request<OnboardingStatus>("/onboarding");
+  },
+
+  async completeOnboarding(input: {
+    mode: "solo" | "team";
+    activity: string;
+    objective: string;
+    tools: string;
+    agentName: string;
+    projectId: string;
+    teamName?: string;
+  }): Promise<{
+    ok: boolean;
+    projectId: string;
+    agentId: string;
+    dmRoomId: string;
+    roomId: string;
+    invite: Invite | null;
+  }> {
+    return request("/onboarding", { method: "POST", ...json(input) });
+  },
+
+  async roomSearch(
+    projectId: string,
+    query: string,
+  ): Promise<{
+    messages: Array<{ id: string; roomId: string; roomName: string; text: string; createdAt: number; author: string }>;
+    cards: Array<{ id: string; title: string; description: string; column: string; roomId: string | null }>;
+    rooms: Array<{ id: string; name: string; title: string }>;
+  }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/room-search?q=${encodeURIComponent(query)}`,
+    );
+  },
+
+  async vault(projectId: string): Promise<{
+    items: Array<{
+      id: string;
+      projectId: string;
+      kind: "login" | "card";
+      name: string;
+      username: string;
+      meta: Record<string, unknown>;
+      createdAt: number;
+      updatedAt: number;
+    }>;
+  }> {
+    return request(`/projects/${encodeURIComponent(projectId)}/vault`);
+  },
+
+  async addVault(
+    projectId: string,
+    body: {
+      kind: "login" | "card";
+      name: string;
+      username?: string;
+      secret: string;
+      meta?: Record<string, unknown>;
+    },
+  ): Promise<{ id: string; name: string }> {
+    return request(`/projects/${encodeURIComponent(projectId)}/vault`, {
+      method: "POST",
+      ...json(body),
+    });
+  },
+
+  async deleteVault(projectId: string, id: string): Promise<{ ok: boolean }> {
+    return request(`/projects/${encodeURIComponent(projectId)}/vault/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+  },
+
+  async roomEvents(projectId: string, roomId: string): Promise<{ events: RoomEventItem[] }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/rooms/${encodeURIComponent(roomId)}/events`,
+    );
+  },
+
+  async cardEvents(projectId: string, cardId: string): Promise<{ events: RoomEventItem[] }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/cards/${encodeURIComponent(cardId)}/events`,
+    );
+  },
+
+  async voiceConfig(): Promise<{ appId: string; configured: boolean }> {
+    return request("/voice/config");
+  },
+
+  async saveVoiceConfig(appId: string, secret: string): Promise<{ appId: string; configured: boolean }> {
+    return request("/voice/config", { method: "PUT", ...json({ appId, secret }) });
+  },
+
+  async voiceJoin(
+    projectId: string,
+    roomId: string,
+    body: { sdp: string; tracks: VoiceTrack[] },
+  ): Promise<{ sessionId: string; sdp: string; tracks: unknown }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/rooms/${encodeURIComponent(roomId)}/voice/join`,
+      { method: "POST", ...json(body) },
+    );
+  },
+
+  async voiceExchange(
+    projectId: string,
+    roomId: string,
+    body: { sdp: string; publish?: VoiceTrack[]; subscribe?: VoiceSubscribe[] },
+  ): Promise<{ sdp: string; tracks: unknown }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/rooms/${encodeURIComponent(roomId)}/voice/exchange`,
+      { method: "POST", ...json(body) },
+    );
+  },
+
+  async voiceLeave(projectId: string, roomId: string): Promise<{ ok: boolean }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/rooms/${encodeURIComponent(roomId)}/voice/leave`,
+      { method: "POST" },
+    );
+  },
+
+  async voiceParticipants(
+    projectId: string,
+    roomId: string,
+  ): Promise<{ participants: VoiceParticipant[] }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/rooms/${encodeURIComponent(roomId)}/voice/participants`,
+    );
+  },
+
+  async environment(): Promise<{
+    components: Array<{ id: string; label: string; installed: boolean }>;
+  }> {
+    return request("/environment");
+  },
+
+  async installEnvironment(component: string): Promise<{
+    ok: boolean;
+    component: string;
+    output: string;
+  }> {
+    return request("/environment/install", { method: "POST", ...json({ component }) });
+  },
+
+  async team(): Promise<{ users: User[] }> {
+    return request("/team");
+  },
+
+  async invites(): Promise<{ invites: Invite[] }> {
+    return request("/invites");
+  },
+
+  async createInvite(role = "member", days = 30): Promise<Invite> {
+    return request("/invites", { method: "POST", ...json({ role, days }) });
+  },
+
+  async revokeInvite(id: string): Promise<{ ok: boolean }> {
+    return request(`/invites/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
+
+  async setRole(userId: number, role: string): Promise<{ ok: boolean }> {
+    return request(`/team/${userId}`, { method: "PATCH", ...json({ role }) });
+  },
+
+  async removeUser(userId: number): Promise<{ ok: boolean }> {
+    return request(`/team/${userId}`, { method: "DELETE" });
+  },
+
+  async projectMembers(projectId: string): Promise<{ members: User[] }> {
+    return request(`/projects/${encodeURIComponent(projectId)}/members`);
+  },
+
+  async addProjectMember(projectId: string, userId: number): Promise<{ ok: boolean }> {
+    return request(`/projects/${encodeURIComponent(projectId)}/members`, {
+      method: "POST",
+      ...json({ userId }),
+    });
+  },
+
+  async removeProjectMember(projectId: string, userId: number): Promise<{ ok: boolean }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/members/${userId}`,
+      { method: "DELETE" },
+    );
+  },
+
+  async inviteInfo(token: string): Promise<{ valid: boolean; role: string; expiresAt: string }> {
+    return request(`/auth/invite/${encodeURIComponent(token)}`);
+  },
+
+  async acceptInvite(
+    token: string,
+    input: { username: string; password: string; displayName?: string },
+  ): Promise<{ csrfToken: string; user: User }> {
+    return request(`/auth/invite/${encodeURIComponent(token)}`, {
+      method: "POST",
+      ...json(input),
+    });
+  },
+
 
   async repos(query = ""): Promise<Repository[]> {
     const suffix = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
@@ -839,6 +1098,15 @@ export const api = {
     return request(`/projects/${encodeURIComponent(projectId)}/debug/browser`);
   },
 
+  async botBrowser(
+    projectId: string,
+    agentId: string,
+  ): Promise<{ id: string; projectId: string; pageUrl: string; wsUrl: string; takeover?: boolean }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/bots/${encodeURIComponent(agentId)}/browser`,
+    );
+  },
+
   async debugEval(projectId: string, code: string): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     return request(`/projects/${encodeURIComponent(projectId)}/debug/eval`, {
       method: "POST",
@@ -882,6 +1150,22 @@ export const api = {
   debugBrowserSocketUrl(projectId: string): string {
     const base = (apiBase || window.location.origin).replace(/\/+$/, "");
     return `${base.replace(/^http:/i, "ws:").replace(/^https:/i, "wss:")}/api/projects/${encodeURIComponent(projectId)}/debug/browser/ws`;
+  },
+
+  async botBrowserTakeover(
+    projectId: string,
+    agentId: string,
+    active: boolean,
+  ): Promise<{ active: boolean }> {
+    return request(
+      `/projects/${encodeURIComponent(projectId)}/bots/${encodeURIComponent(agentId)}/browser/takeover`,
+      { method: "POST", ...json({ active }) },
+    );
+  },
+
+  botBrowserSocketUrl(projectId: string, agentId: string): string {
+    const base = (apiBase || window.location.origin).replace(/\/+$/, "");
+    return `${base.replace(/^http:/i, "ws:").replace(/^https:/i, "wss:")}/api/projects/${encodeURIComponent(projectId)}/bots/${encodeURIComponent(agentId)}/browser/ws`;
   },
 
   async dbProfiles(projectRoot?: string): Promise<DBProfile[]> {

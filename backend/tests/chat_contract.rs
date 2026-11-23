@@ -7,7 +7,7 @@ async fn usage_is_scoped_to_the_chat_and_keeps_each_jeff_separate() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(&dir.path().join("db")).await.unwrap();
     let user = store
-        .create_user("owner", "unused-fixture-hash")
+        .create_user("owner", "unused-fixture-hash", "admin", "Owner")
         .await
         .unwrap();
     let project = store.create_project(serde_json::from_value(json!({"id":"project","name":"Project","root":dir.path().display().to_string(),"color":"#0063D1","createdAt":"","updatedAt":""})).unwrap()).await.unwrap();
@@ -29,7 +29,7 @@ async fn usage_is_scoped_to_the_chat_and_keeps_each_jeff_separate() {
             .create_run(user.id, &project.id, &session, id, None, &agent)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO agent_model_calls VALUES(?,?,'turn','custom','model',?,?,0,0,?,1,'stop',1)")
+        sqlx::query("INSERT INTO agent_model_calls VALUES($1,$2,'turn','custom','model',$3,$4,0,0,$5,1,'stop',1)")
             .bind(id).bind(run.id).bind(input).bind(output).bind(context).execute(store.pool()).await.unwrap();
     }
     let one = repo

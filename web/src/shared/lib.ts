@@ -65,8 +65,6 @@ export function quoteIdentifier(driver: string, schema: string, table: string): 
     case "mysql":
     case "clickhouse":
       return qualified("`", "`");
-    case "sqlite":
-      return `"${table}"`;
     case "sqlserver":
     case "mssql":
       return qualified("[", "]");

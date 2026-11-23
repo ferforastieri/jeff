@@ -323,7 +323,7 @@ function readOnlyTableQuery(sql: string, driver?: string): boolean {
   if (driver === "redis") return /^scan\b/i.test(text);
   if (driver === "neo4j") return /^match\b[\s\S]*\breturn\b/i.test(text);
   if (driver === "cassandra" || !driver) return /^select\b/i.test(text);
-  if (driver === "postgres" || driver === "mysql" || driver === "sqlite" || driver === "sqlserver") {
+  if (driver === "postgres" || driver === "mysql" || driver === "sqlserver") {
     return /^select\b/i.test(text);
   }
   return /^select\b/i.test(text);

@@ -30,7 +30,7 @@ impl Repository {
         payload: Value,
     ) -> AppResult<i64> {
         let id = new_id();
-        sqlx::query("INSERT INTO agent_events(id,session_id,run_id,kind,payload,created_at) VALUES(?,?,?,?,?,?)")
+        sqlx::query("INSERT INTO agent_events(id,session_id,run_id,kind,payload,created_at) VALUES($1,$2,$3,$4,$5,$6)")
             .bind(&id)
             .bind(&ctx.run.session_id)
             .bind(&ctx.run.id)
@@ -40,7 +40,7 @@ impl Repository {
             .execute(self.0.pool())
             .await?;
         Ok(
-            sqlx::query_scalar("SELECT seq FROM agent_events WHERE id=?")
+            sqlx::query_scalar("SELECT seq FROM agent_events WHERE id=$1")
                 .bind(id)
                 .fetch_one(self.0.pool())
                 .await?,
@@ -51,7 +51,7 @@ impl Repository {
     /// parts. The research phase must see exactly what the user sent.
     pub async fn user_task(&self, run: &str) -> AppResult<Option<(String, Value)>> {
         let row = sqlx::query(
-            "SELECT payload FROM agent_events WHERE run_id=? AND kind='user_task' ORDER BY seq LIMIT 1",
+            "SELECT payload FROM agent_events WHERE run_id=$1 AND kind='user_task' ORDER BY seq LIMIT 1",
         )
         .bind(run)
         .fetch_optional(self.0.pool())
@@ -81,7 +81,7 @@ impl Repository {
         limit: i64,
     ) -> AppResult<String> {
         let rows = sqlx::query(
-            "SELECT role,content_text FROM agent_messages WHERE session_id=? AND id<>? AND id NOT LIKE 'import-%' AND role IN ('user','assistant') AND content_text<>'' ORDER BY seq DESC LIMIT ?",
+            "SELECT role,content_text FROM agent_messages WHERE session_id=$1 AND id<>$2 AND id NOT LIKE 'import-%' AND role IN ('user','assistant') AND content_text<>'' ORDER BY seq DESC LIMIT $3",
         )
         .bind(session)
         .bind(exclude_id)
@@ -119,11 +119,11 @@ impl Repository {
     ) -> AppResult<Vec<(String, String, String)>> {
         let rows = sqlx::query(
             "SELECT m.role,m.content_text,m.display FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id \
-             WHERE s.user_id=? AND s.project_id=? AND s.chat_id=? AND s.archived=0 \
+             WHERE s.user_id=$1 AND s.project_id=$2 AND s.chat_id=$3 AND s.archived=0 \
                AND m.role IN ('user','assistant') AND m.content_text<>'' \
-               AND COALESCE(json_extract(m.display,'$.hidden'),0)=0 \
-               AND (? IS NULL OR m.created_at<?) \
-             ORDER BY m.seq DESC LIMIT ?",
+               AND COALESCE((json_extract(m.display,'$.hidden'))::bigint,0)=0 \
+               AND ($4 IS NULL OR m.created_at<$5) \
+             ORDER BY m.seq DESC LIMIT $6",
         )
         .bind(user).bind(project).bind(chat).bind(before).bind(before).bind(limit)
         .fetch_all(self.0.pool()).await?;
@@ -148,7 +148,7 @@ impl Repository {
             "INSERT INTO agent_events(id,session_id,run_id,kind,payload,created_at)
              SELECT 'legacy:'||m.id, m.session_id, m.run_id,
                     CASE m.role WHEN 'user' THEN 'user_task' WHEN 'tool' THEN 'tool' ELSE 'assistant' END,
-                    json_object('body', json(m.body), 'display', json(m.display)),
+                    json_build_object('body', m.body::json, 'display', m.display::json),
                     m.created_at
              FROM agent_messages m
              WHERE m.id NOT LIKE 'import-%'
@@ -172,7 +172,7 @@ impl Repository {
         // bubbles in the timeline.
         let chat_messages: i64 = sqlx::query_scalar(
             "SELECT count(*) FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id \
-             WHERE s.user_id=? AND s.project_id=? AND s.chat_id=?",
+             WHERE s.user_id=$1 AND s.project_id=$2 AND s.chat_id=$3",
         )
         .bind(ctx.user_id)
         .bind(&ctx.project_id)
@@ -184,7 +184,7 @@ impl Repository {
         }
         let mut tx = self.0.pool().begin().await?;
         let sessions: i64 = sqlx::query_scalar(
-            "SELECT count(*) FROM agent_sessions WHERE user_id=? AND project_id=? AND agent_id=?",
+            "SELECT count(*) FROM agent_sessions WHERE user_id=$1 AND project_id=$2 AND agent_id=$3",
         )
         .bind(ctx.user_id)
         .bind(&ctx.project_id)
@@ -192,21 +192,21 @@ impl Repository {
         .fetch_one(&mut *tx)
         .await?;
         let messages: i64 =
-            sqlx::query_scalar("SELECT count(*) FROM agent_messages WHERE session_id=?")
+            sqlx::query_scalar("SELECT count(*) FROM agent_messages WHERE session_id=$1")
                 .bind(&ctx.run.session_id)
                 .fetch_one(&mut *tx)
                 .await?;
         if sessions == 1 && messages == 0 {
-            sqlx::query("INSERT INTO agent_messages(id,session_id,role,body,display,content_text,estimated_tokens,created_at) SELECT ? || message_id,?,role,json_object('role',role,'content',json_extract(payload,'$.content')),json_set(payload,'$.id',? || message_id,'$.sessionId',?,'$.status','complete'),json_extract(payload,'$.content'),length(CAST(json_extract(payload,'$.content') AS BLOB))/3+32,created_at FROM bot_messages WHERE user_id=? AND project_id=? AND channel=? AND mode='chat' AND (role='user' OR (role='assistant' AND bot_id=?)) AND coalesce(json_extract(payload,'$.pending'),0)=0 ORDER BY created_at,message_id")
+            sqlx::query("INSERT INTO agent_messages(id,session_id,role,body,display,content_text,estimated_tokens,created_at) SELECT $1 || message_id,$2,role,json_build_object('role',role,'content',json_extract(payload,'$.content')),jsonb_set(jsonb_set(jsonb_set(payload::jsonb, ARRAY['id'], to_jsonb($3 || message_id)), ARRAY['sessionId'], to_jsonb($4)), ARRAY['status'], '\"complete\"'::jsonb)::text,json_extract(payload,'$.content'),length(json_extract(payload,'$.content'))/3+32,created_at FROM bot_messages WHERE user_id=$5 AND project_id=$6 AND channel=$7 AND mode='chat' AND (role='user' OR (role='assistant' AND bot_id=$8)) AND coalesce((json_extract(payload,'$.pending'))::bigint,0)=0 ORDER BY created_at,message_id")
                 .bind(format!("import-{}-",ctx.run.session_id)).bind(&ctx.run.session_id).bind(format!("import-{}-",ctx.run.session_id)).bind(&ctx.run.session_id)
                 .bind(ctx.user_id).bind(&ctx.project_id).bind(&ctx.run.chat_id).bind(&ctx.agent.id).execute(&mut *tx).await?;
             let seq: Option<i64> =
-                sqlx::query_scalar("SELECT max(seq) FROM agent_messages WHERE session_id=?")
+                sqlx::query_scalar("SELECT max(seq) FROM agent_messages WHERE session_id=$1")
                     .bind(&ctx.run.session_id)
                     .fetch_one(&mut *tx)
                     .await?;
             if let Some(seq) = seq {
-                sqlx::query("INSERT INTO agent_checkpoints VALUES(?,?,?,?,?,?)").bind(new_id()).bind(&ctx.run.session_id).bind(seq)
+                sqlx::query("INSERT INTO agent_checkpoints VALUES($1,$2,$3,$4,$5,$6)").bind(new_id()).bind(&ctx.run.session_id).bind(seq)
                     .bind("A transcrição anterior foi importada e está disponível em search_history. Recupere fatos, decisões e restrições relevantes quando o pedido depender do histórico anterior; ele não foi reenviado integralmente.").bind(90i64).bind(now()).execute(&mut *tx).await?;
             }
         }
@@ -240,7 +240,7 @@ impl Repository {
                 attempts: row.get("attempts"),
             })
             .collect();
-        sqlx::query("UPDATE agent_runs SET state='interrupted',error='Server stopped during execution; inspect tool effects before retrying',finished_at=? WHERE state IN ('queued','running','waiting')")
+        sqlx::query("UPDATE agent_runs SET state='interrupted',error='Server stopped during execution; inspect tool effects before retrying',finished_at=$1 WHERE state IN ('queued','running','waiting')")
             .bind(now()).execute(self.0.pool()).await?;
         sqlx::query("UPDATE agent_tool_calls SET state='interrupted' WHERE state IN ('running','waiting','pending')").execute(self.0.pool()).await?;
         sqlx::query("UPDATE agent_model_calls SET finish='interrupted' WHERE finish='pending'")
@@ -251,7 +251,7 @@ impl Repository {
 
     /// Counts one automatic resume for a run, persisting across restarts.
     pub async fn record_recovery(&self, run_id: &str) -> AppResult<()> {
-        sqlx::query("INSERT INTO agent_run_recoveries(run_id,attempts,updated_at) VALUES(?,1,?) ON CONFLICT(run_id) DO UPDATE SET attempts=attempts+1,updated_at=excluded.updated_at")
+        sqlx::query("INSERT INTO agent_run_recoveries(run_id,attempts,updated_at) VALUES($1,1,$2) ON CONFLICT(run_id) DO UPDATE SET attempts=agent_run_recoveries.attempts+1,updated_at=excluded.updated_at")
             .bind(run_id)
             .bind(now())
             .execute(self.0.pool())
@@ -261,7 +261,7 @@ impl Repository {
 
     /// Forgets the recovery counter once a run really ends.
     pub async fn clear_recovery(&self, run_id: &str) -> AppResult<()> {
-        sqlx::query("DELETE FROM agent_run_recoveries WHERE run_id=?")
+        sqlx::query("DELETE FROM agent_run_recoveries WHERE run_id=$1")
             .bind(run_id)
             .execute(self.0.pool())
             .await?;
@@ -270,7 +270,7 @@ impl Repository {
 
     /// Puts an interrupted run back in flight without touching its transcript.
     pub async fn requeue(&self, run_id: &str, error: &str) -> AppResult<()> {
-        sqlx::query("UPDATE agent_runs SET state='queued',error=?,finished_at=NULL WHERE id=?")
+        sqlx::query("UPDATE agent_runs SET state='queued',error=$1,finished_at=NULL WHERE id=$2")
             .bind(error)
             .bind(run_id)
             .execute(self.0.pool())
@@ -281,7 +281,7 @@ impl Repository {
     pub async fn profiles(&self, user: i64, project: &str, agents: &[AgentSpec]) -> AppResult<()> {
         let mut tx = self.0.pool().begin().await?;
         for a in agents {
-            let rows=sqlx::query("INSERT INTO agent_profiles(id,user_id,project_id,chat_id,config) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET config=excluded.config,chat_id=excluded.chat_id WHERE agent_profiles.user_id=excluded.user_id AND agent_profiles.project_id=excluded.project_id")
+            let rows=sqlx::query("INSERT INTO agent_profiles(id,user_id,project_id,chat_id,config) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO UPDATE SET config=excluded.config,chat_id=excluded.chat_id WHERE agent_profiles.user_id=excluded.user_id AND agent_profiles.project_id=excluded.project_id")
                 .bind(&a.id).bind(user).bind(project).bind(&a.chat_id).bind(serde_json::to_string(a)?).execute(&mut *tx).await?.rows_affected();
             if rows == 0 {
                 return Err(AppError::Forbidden);
@@ -299,19 +299,19 @@ impl Repository {
         selected: Option<&str>,
     ) -> AppResult<Session> {
         if let Some(id) = selected {
-            return sqlx::query_as("SELECT id,chat_id,agent_id,title,archived,created_at,updated_at FROM agent_sessions WHERE id=? AND user_id=? AND project_id=? AND agent_id=? AND chat_id=?")
+            return sqlx::query_as("SELECT id,chat_id,agent_id,title,archived,created_at,updated_at FROM agent_sessions WHERE id=$1 AND user_id=$2 AND project_id=$3 AND agent_id=$4 AND chat_id=$5")
                 .bind(id).bind(user).bind(project).bind(&agent.id).bind(&agent.chat_id).fetch_optional(self.0.pool()).await?.ok_or(AppError::NotFound);
         }
-        sqlx::query("INSERT OR IGNORE INTO agent_sessions(id,user_id,project_id,chat_id,agent_id,title,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)")
+        sqlx::query("INSERT INTO agent_sessions(id,user_id,project_id,chat_id,agent_id,title,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING")
             .bind(new_id()).bind(user).bind(project).bind(&agent.chat_id).bind(&agent.id).bind(&agent.name).bind(now()).bind(now()).execute(self.0.pool()).await?;
-        sqlx::query_as("SELECT id,chat_id,agent_id,title,archived,created_at,updated_at FROM agent_sessions WHERE user_id=? AND project_id=? AND chat_id=? AND agent_id=? AND archived=0")
+        sqlx::query_as("SELECT id,chat_id,agent_id,title,archived,created_at,updated_at FROM agent_sessions WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 AND agent_id=$4 AND archived=0")
             .bind(user).bind(project).bind(&agent.chat_id).bind(&agent.id).fetch_one(self.0.pool()).await.map_err(Into::into)
     }
 
     /// Every live harness session of the project, newest first: the app's
     /// session list reads this, not a list of its own conversations.
     pub async fn harness_sessions(&self, user: i64, project: &str) -> AppResult<Vec<Session>> {
-        Ok(sqlx::query_as("SELECT id,chat_id,agent_id,title,archived,created_at,updated_at FROM agent_sessions WHERE user_id=? AND project_id=? AND archived=0 ORDER BY updated_at DESC LIMIT 200")
+        Ok(sqlx::query_as("SELECT id,chat_id,agent_id,title,archived,created_at,updated_at FROM agent_sessions WHERE user_id=$1 AND project_id=$2 AND archived=0 ORDER BY updated_at DESC LIMIT 200")
             .bind(user).bind(project).fetch_all(self.0.pool()).await?)
     }
 
@@ -322,7 +322,7 @@ impl Repository {
         agent: &str,
         chat: &str,
     ) -> AppResult<Vec<Session>> {
-        Ok(sqlx::query_as("SELECT id,chat_id,agent_id,title,archived,created_at,updated_at FROM agent_sessions WHERE user_id=? AND project_id=? AND chat_id=? AND agent_id=? ORDER BY updated_at DESC LIMIT 100")
+        Ok(sqlx::query_as("SELECT id,chat_id,agent_id,title,archived,created_at,updated_at FROM agent_sessions WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 AND agent_id=$4 ORDER BY updated_at DESC LIMIT 100")
             .bind(user).bind(project).bind(chat).bind(agent).fetch_all(self.0.pool()).await?)
     }
 
@@ -335,20 +335,20 @@ impl Repository {
         selected: Option<&str>,
     ) -> AppResult<()> {
         let mut tx = self.0.pool().begin().await?;
-        let active:i64=sqlx::query_scalar("SELECT count(*) FROM agent_runs WHERE user_id=? AND project_id=? AND chat_id=? AND agent_id=? AND state IN ('queued','running','waiting')")
+        let active:i64=sqlx::query_scalar("SELECT count(*) FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 AND agent_id=$4 AND state IN ('queued','running','waiting')")
             .bind(user).bind(project).bind(chat).bind(agent).fetch_one(&mut *tx).await?;
         if active > 0 {
             return Err(AppError::Conflict);
         }
         if let Some(id) = selected {
-            let count:i64=sqlx::query_scalar("SELECT count(*) FROM agent_sessions WHERE id=? AND user_id=? AND project_id=? AND chat_id=? AND agent_id=?")
+            let count:i64=sqlx::query_scalar("SELECT count(*) FROM agent_sessions WHERE id=$1 AND user_id=$2 AND project_id=$3 AND chat_id=$4 AND agent_id=$5")
                 .bind(id).bind(user).bind(project).bind(chat).bind(agent).fetch_one(&mut *tx).await?;
             if count != 1 {
                 return Err(AppError::NotFound);
             }
         }
         sqlx::query(
-            "UPDATE agent_sessions SET archived=1 WHERE user_id=? AND project_id=? AND chat_id=? AND agent_id=?",
+            "UPDATE agent_sessions SET archived=1 WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 AND agent_id=$4",
         )
         .bind(user)
         .bind(project)
@@ -357,7 +357,7 @@ impl Repository {
         .execute(&mut *tx)
         .await?;
         if let Some(id) = selected {
-            sqlx::query("UPDATE agent_sessions SET archived=0,updated_at=? WHERE id=?")
+            sqlx::query("UPDATE agent_sessions SET archived=0,updated_at=$1 WHERE id=$2")
                 .bind(now())
                 .bind(id)
                 .execute(&mut *tx)
@@ -373,21 +373,21 @@ impl Repository {
         project: &str,
         request: &str,
     ) -> AppResult<Option<Run>> {
-        Ok(sqlx::query_as("SELECT id,session_id,parent_id,chat_id,agent_id,state,error,created_at,finished_at FROM agent_runs WHERE user_id=? AND project_id=? AND request_id=?")
+        Ok(sqlx::query_as("SELECT id,session_id,parent_id,chat_id,agent_id,state,error,created_at,finished_at FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND request_id=$3")
             .bind(user).bind(project).bind(request).fetch_optional(self.0.pool()).await?)
     }
     pub async fn get_run(&self, user: i64, project: &str, id: &str) -> AppResult<Run> {
-        sqlx::query_as("SELECT id,session_id,parent_id,chat_id,agent_id,state,error,created_at,finished_at FROM agent_runs WHERE user_id=? AND project_id=? AND id=?")
+        sqlx::query_as("SELECT id,session_id,parent_id,chat_id,agent_id,state,error,created_at,finished_at FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND id=$3")
             .bind(user).bind(project).bind(id).fetch_optional(self.0.pool()).await?.ok_or(AppError::NotFound)
     }
     /// The runs still in flight in a project, the newest first.
     pub async fn active_runs(&self, user: i64, project: &str) -> AppResult<Vec<Run>> {
-        Ok(sqlx::query_as("SELECT id,session_id,parent_id,chat_id,agent_id,state,error,created_at,finished_at FROM agent_runs WHERE user_id=? AND project_id=? AND state IN ('queued','running','waiting') ORDER BY created_at DESC")
+        Ok(sqlx::query_as("SELECT id,session_id,parent_id,chat_id,agent_id,state,error,created_at,finished_at FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND state IN ('queued','running','waiting') ORDER BY created_at DESC")
             .bind(user).bind(project).fetch_all(self.0.pool()).await?)
     }
     /// ask_user calls that are still waiting, across every chat of the project.
     pub async fn pending_questions(&self, user: i64, project: &str) -> AppResult<Vec<Value>> {
-        let rows = sqlx::query("SELECT t.id,r.chat_id,r.id AS run_id,r.agent_id FROM agent_tool_calls t JOIN agent_runs r ON r.id=t.run_id WHERE r.user_id=? AND r.project_id=? AND r.state IN ('queued','running','waiting') AND t.state='waiting' AND t.name='ask_user' ORDER BY t.created_at")
+        let rows = sqlx::query("SELECT t.id,r.chat_id,r.id AS run_id,r.agent_id FROM agent_tool_calls t JOIN agent_runs r ON r.id=t.run_id WHERE r.user_id=$1 AND r.project_id=$2 AND r.state IN ('queued','running','waiting') AND t.state='waiting' AND t.name='ask_user' ORDER BY t.created_at")
             .bind(user).bind(project).fetch_all(self.0.pool()).await?;
         Ok(rows
             .into_iter()
@@ -421,14 +421,14 @@ impl Repository {
             created_at: now(),
             finished_at: None,
         };
-        sqlx::query("INSERT INTO agent_runs(id,session_id,parent_id,user_id,project_id,chat_id,agent_id,request_id,state,config,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
+        sqlx::query("INSERT INTO agent_runs(id,session_id,parent_id,user_id,project_id,chat_id,agent_id,request_id,state,config,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)")
             .bind(&run.id).bind(&run.session_id).bind(parent).bind(user).bind(project).bind(&run.chat_id).bind(&run.agent_id).bind(request).bind(&run.state).bind(serde_json::to_string(agent)?).bind(run.created_at)
             .execute(self.0.pool()).await.map_err(|e| if e.as_database_error().is_some_and(|e|e.is_unique_violation()){AppError::Conflict}else{e.into()})?;
         Ok(run)
     }
     pub async fn state(&self, id: &str, state: &str, error: &str) -> AppResult<()> {
         let done = matches!(state, "completed" | "failed" | "cancelled" | "interrupted");
-        sqlx::query("UPDATE agent_runs SET state=?,error=?,finished_at=? WHERE id=?")
+        sqlx::query("UPDATE agent_runs SET state=$1,error=$2,finished_at=$3 WHERE id=$4")
             .bind(state)
             .bind(error)
             .bind(if done { Some(now()) } else { None })
@@ -450,17 +450,17 @@ impl Repository {
             .map(str::to_string)
             .unwrap_or_else(|| super::context::content_text(&body["content"]));
         let mut tx = self.0.pool().begin().await?;
-        sqlx::query("INSERT INTO agent_messages(id,session_id,run_id,role,body,display,content_text,estimated_tokens,created_at) VALUES(?,?,?,?,?,?,?,?,?)")
+        sqlx::query("INSERT INTO agent_messages(id,session_id,run_id,role,body,display,content_text,estimated_tokens,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)")
             .bind(id).bind(&ctx.run.session_id).bind(&ctx.run.id).bind(body["role"].as_str().unwrap_or("assistant"))
             .bind(body.to_string()).bind(display.to_string()).bind(text).bind(estimate(&body) as i64).bind(now()).execute(&mut *tx).await?;
         // The UI orders by the message sequence; the event sequence is an
         // internal harness detail and must not leak into snapshots.
-        let seq: i64 = sqlx::query_scalar("SELECT seq FROM agent_messages WHERE id=?")
+        let seq: i64 = sqlx::query_scalar("SELECT seq FROM agent_messages WHERE id=$1")
             .bind(id)
             .fetch_one(&mut *tx)
             .await?;
         let event_id = format!("msg:{id}");
-        sqlx::query("INSERT INTO agent_events(id,session_id,run_id,kind,payload,created_at) VALUES(?,?,?,?,?,?)")
+        sqlx::query("INSERT INTO agent_events(id,session_id,run_id,kind,payload,created_at) VALUES($1,$2,$3,$4,$5,$6)")
             .bind(&event_id)
             .bind(&ctx.run.session_id)
             .bind(&ctx.run.id)
@@ -470,10 +470,10 @@ impl Repository {
             .execute(&mut *tx)
             .await?;
         // Keep the existing chat transcript as an archive, in the same transaction.
-        sqlx::query("INSERT INTO bot_messages(user_id,project_id,message_id,mode,channel,role,bot_id,created_at,payload,updated_at) VALUES(?,?,?,'chat',?,?,?,?,?,?) ON CONFLICT(user_id,project_id,mode,channel,message_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at")
+        sqlx::query("INSERT INTO bot_messages(user_id,project_id,message_id,mode,channel,role,bot_id,created_at,payload,updated_at) VALUES($1,$2,$3,'chat',$4,$5,$6,$7,$8,$9) ON CONFLICT(user_id,project_id,mode,channel,message_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at")
             .bind(ctx.user_id).bind(&ctx.project_id).bind(id).bind(&ctx.run.chat_id).bind(display["role"].as_str().unwrap_or("assistant"))
             .bind(&ctx.agent.id).bind(now()).bind(display.to_string()).bind(chrono::Utc::now().to_rfc3339()).execute(&mut *tx).await?;
-        sqlx::query("UPDATE agent_sessions SET updated_at=? WHERE id=?")
+        sqlx::query("UPDATE agent_sessions SET updated_at=$1 WHERE id=$2")
             .bind(now())
             .bind(&ctx.run.session_id)
             .execute(&mut *tx)
@@ -483,7 +483,7 @@ impl Repository {
     }
 
     pub async fn context(&self, session: &str, after: i64) -> AppResult<Vec<ContextMessage>> {
-        let rows=sqlx::query("SELECT seq,body,estimated_tokens FROM agent_messages WHERE session_id=? AND seq>? ORDER BY seq LIMIT 512")
+        let rows=sqlx::query("SELECT seq,body,estimated_tokens FROM agent_messages WHERE session_id=$1 AND seq>$2 ORDER BY seq LIMIT 512")
             .bind(session).bind(after).fetch_all(self.0.pool()).await?;
         rows.into_iter()
             .map(|r| {
@@ -499,7 +499,7 @@ impl Repository {
     /// session manager uses the ids and block hashes to know what it saw.
     pub async fn transcript(&self, session: &str) -> AppResult<Vec<(String, String, String)>> {
         let rows = sqlx::query(
-            "SELECT id,role,content_text FROM agent_messages WHERE session_id=? AND role IN ('user','assistant') AND content_text<>'' AND id NOT LIKE 'import-%' ORDER BY seq",
+            "SELECT id,role,content_text FROM agent_messages WHERE session_id=$1 AND role IN ('user','assistant') AND content_text<>'' AND id NOT LIKE 'import-%' ORDER BY seq",
         )
         .bind(session)
         .fetch_all(self.0.pool())
@@ -528,10 +528,10 @@ impl Repository {
         let rows = sqlx::query(
             "SELECT m.id,m.session_id,s.chat_id,s.agent_id,m.role,substr(m.content_text,1,400) AS text,m.created_at \
              FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id \
-             WHERE s.user_id=? AND s.project_id=? AND m.role IN ('user','assistant') AND m.content_text<>'' \
-               AND COALESCE(json_extract(m.display,'$.hidden'),0)=0 \
-               AND instr(lower(m.content_text), lower(?))>0 \
-             ORDER BY m.seq DESC LIMIT ?",
+             WHERE s.user_id=$1 AND s.project_id=$2 AND m.role IN ('user','assistant') AND m.content_text<>'' \
+               AND COALESCE((json_extract(m.display,'$.hidden'))::bigint,0)=0 \
+               AND instr(lower(m.content_text), lower($3))>0 \
+             ORDER BY m.seq DESC LIMIT $4",
         )
         .bind(user)
         .bind(project)
@@ -556,11 +556,11 @@ impl Repository {
     }
 
     pub async fn checkpoint(&self, session: &str) -> AppResult<(i64, String)> {
-        Ok(sqlx::query_as("SELECT through_seq,summary FROM agent_checkpoints WHERE session_id=? ORDER BY through_seq DESC LIMIT 1").bind(session).fetch_optional(self.0.pool()).await?.unwrap_or((0,String::new())))
+        Ok(sqlx::query_as("SELECT through_seq,summary FROM agent_checkpoints WHERE session_id=$1 ORDER BY through_seq DESC LIMIT 1").bind(session).fetch_optional(self.0.pool()).await?.unwrap_or((0,String::new())))
     }
     pub async fn ledger(&self, session: &str) -> AppResult<String> {
         Ok(
-            sqlx::query_scalar("SELECT ledger FROM agent_session_state WHERE session_id=?")
+            sqlx::query_scalar("SELECT ledger FROM agent_session_state WHERE session_id=$1")
                 .bind(session)
                 .fetch_optional(self.0.pool())
                 .await?
@@ -568,7 +568,7 @@ impl Repository {
         )
     }
     pub async fn save_ledger(&self, session: &str, ledger: &str) -> AppResult<()> {
-        sqlx::query("INSERT INTO agent_session_state(session_id,ledger,updated_at) VALUES(?,?,?) ON CONFLICT(session_id) DO UPDATE SET ledger=excluded.ledger,updated_at=excluded.updated_at")
+        sqlx::query("INSERT INTO agent_session_state(session_id,ledger,updated_at) VALUES($1,$2,$3) ON CONFLICT(session_id) DO UPDATE SET ledger=excluded.ledger,updated_at=excluded.updated_at")
             .bind(session)
             .bind(ledger)
             .bind(now())
@@ -584,7 +584,7 @@ impl Repository {
         chat: &str,
         before: Option<i64>,
     ) -> AppResult<Value> {
-        let rows=sqlx::query("SELECT m.seq,m.display FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id WHERE s.user_id=? AND s.project_id=? AND s.chat_id=? AND s.archived=0 AND COALESCE(json_extract(m.display,'$.hidden'),0)=0 AND (? IS NULL OR m.seq<?) ORDER BY m.seq DESC LIMIT 161")
+        let rows=sqlx::query("SELECT m.seq,m.display FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id WHERE s.user_id=$1 AND s.project_id=$2 AND s.chat_id=$3 AND s.archived=0 AND COALESCE((json_extract(m.display,'$.hidden'))::bigint,0)=0 AND ($4 IS NULL OR m.seq<$5) ORDER BY m.seq DESC LIMIT 161")
             .bind(user).bind(project).bind(chat).bind(before).bind(before).fetch_all(self.0.pool()).await?;
         let more = rows.len() > 160;
         let mut items = Vec::new();
@@ -597,9 +597,9 @@ impl Repository {
             items.push(v);
         }
         items.reverse();
-        let runs:Vec<Run>=sqlx::query_as("SELECT id,session_id,parent_id,chat_id,agent_id,state,error,created_at,finished_at FROM agent_runs WHERE user_id=? AND project_id=? AND chat_id=? ORDER BY created_at DESC LIMIT 32")
+        let runs:Vec<Run>=sqlx::query_as("SELECT id,session_id,parent_id,chat_id,agent_id,state,error,created_at,finished_at FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 ORDER BY created_at DESC LIMIT 32")
             .bind(user).bind(project).bind(chat).fetch_all(self.0.pool()).await?;
-        let waiting=sqlx::query("SELECT t.id,t.name,t.arguments,r.id AS run_id,r.agent_id,r.session_id FROM agent_tool_calls t JOIN agent_runs r ON r.id=t.run_id WHERE r.user_id=? AND r.project_id=? AND r.chat_id=? AND t.state='waiting'")
+        let waiting=sqlx::query("SELECT t.id,t.name,t.arguments,r.id AS run_id,r.agent_id,r.session_id FROM agent_tool_calls t JOIN agent_runs r ON r.id=t.run_id WHERE r.user_id=$1 AND r.project_id=$2 AND r.chat_id=$3 AND t.state='waiting'")
             .bind(user).bind(project).bind(chat).fetch_all(self.0.pool()).await?;
         // Questions share the waiting state with permissions; the UI must not
         // offer "authorize ask_user", so they travel in their own list.
@@ -622,10 +622,10 @@ impl Repository {
     }
 
     pub async fn usage(&self, user: i64, project: &str, chat: Option<&str>) -> AppResult<Value> {
-        let rows = sqlx::query("SELECT r.agent_id,coalesce(sum(c.input_tokens),0) AS input,coalesce(sum(c.output_tokens),0) AS output,coalesce(sum(c.cached_tokens),0) AS cached,count(*) AS calls FROM agent_model_calls c JOIN agent_runs r ON r.id=c.run_id WHERE r.user_id=? AND r.project_id=? AND (? IS NULL OR r.chat_id=?) AND c.finish<>'pending' GROUP BY r.agent_id")
+        let rows = sqlx::query("SELECT r.agent_id,coalesce(sum(c.input_tokens),0)::bigint AS input,coalesce(sum(c.output_tokens),0)::bigint AS output,coalesce(sum(c.cached_tokens),0)::bigint AS cached,count(*) AS calls FROM agent_model_calls c JOIN agent_runs r ON r.id=c.run_id WHERE r.user_id=$1 AND r.project_id=$2 AND ($3 IS NULL OR r.chat_id=$4) AND c.finish<>'pending' GROUP BY r.agent_id")
             .bind(user).bind(project).bind(chat).bind(chat).fetch_all(self.0.pool()).await?;
         let by_agent = rows.iter().map(|r| json!({"agentId":r.get::<String,_>("agent_id"),"inputTokens":r.get::<i64,_>("input"),"outputTokens":r.get::<i64,_>("output"),"cachedTokens":r.get::<i64,_>("cached"),"calls":r.get::<i64,_>("calls")})).collect::<Vec<_>>();
-        let last: Option<(i64,String)> = sqlx::query_as("SELECT c.estimated_input,r.agent_id FROM agent_model_calls c JOIN agent_runs r ON r.id=c.run_id WHERE r.user_id=? AND r.project_id=? AND (? IS NULL OR r.chat_id=?) AND c.kind='turn' ORDER BY c.created_at DESC LIMIT 1")
+        let last: Option<(i64,String)> = sqlx::query_as("SELECT c.estimated_input,r.agent_id FROM agent_model_calls c JOIN agent_runs r ON r.id=c.run_id WHERE r.user_id=$1 AND r.project_id=$2 AND ($3 IS NULL OR r.chat_id=$4) AND c.kind='turn' ORDER BY c.created_at DESC LIMIT 1")
             .bind(user).bind(project).bind(chat).bind(chat).fetch_optional(self.0.pool()).await?;
         let total = |column: &str| rows.iter().map(|r| r.get::<i64, _>(column)).sum::<i64>();
         Ok(

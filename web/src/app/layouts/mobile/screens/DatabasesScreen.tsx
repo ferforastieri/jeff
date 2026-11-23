@@ -19,7 +19,7 @@ interface Props {
 }
 
 const DRIVERS = [
-  ["postgres", "PostgreSQL"], ["mysql", "MySQL / MariaDB"], ["sqlite", "SQLite"], ["sqlserver", "SQL Server"],
+  ["postgres", "PostgreSQL"], ["mysql", "MySQL / MariaDB"], ["sqlserver", "SQL Server"],
   ["oracle", "Oracle"], ["clickhouse", "ClickHouse"], ["mongodb", "MongoDB"], ["redis", "Redis"],
   ["cassandra", "Cassandra"], ["elasticsearch", "Elasticsearch"], ["neo4j", "Neo4j"],
 ];
@@ -27,7 +27,6 @@ const DRIVERS = [
 const HINTS: Record<string, string> = {
   postgres: "postgres://user:pass@host:5432/db",
   mysql: "user:pass@tcp(host:3306)/db",
-  sqlite: "/path/to/database.db",
   sqlserver: "sqlserver://user:pass@host:1433?database=db",
   oracle: "oracle://user:pass@host:1521/service",
   clickhouse: "clickhouse://user:pass@host:9000/db",

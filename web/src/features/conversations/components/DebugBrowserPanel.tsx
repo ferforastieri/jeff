@@ -6,6 +6,8 @@ import { Input } from "@jeff/ui/app";
 
 interface Props {
   projectId: string;
+  /** The bot's own persistent browser instead of the project debug one. */
+  agentId?: string;
 }
 
 interface Frame {
@@ -16,7 +18,7 @@ interface Frame {
 }
 
 /** The live Chromium a debug-mode agent drives, streamed over CDP. */
-export default function DebugBrowserPanel({ projectId }: Props) {
+export default function DebugBrowserPanel({ projectId, agentId }: Props) {
   const [frame, setFrame] = useState<Frame | null>(null);
   const [pageUrl, setPageUrl] = useState("");
   const [draftUrl, setDraftUrl] = useState("");
@@ -35,13 +37,18 @@ export default function DebugBrowserPanel({ projectId }: Props) {
 
     async function connect() {
       try {
-        await api.debugBrowser(projectId);
+        if (agentId) await api.botBrowser(projectId, agentId);
+        else await api.debugBrowser(projectId);
       } catch (err) {
         if (!disposed.current) setError(err instanceof Error ? err.message : "Não foi possível abrir o navegador de debug.");
         return;
       }
       if (disposed.current) return;
-      const socket = new WebSocket(api.debugBrowserSocketUrl(projectId));
+      const socket = new WebSocket(
+        agentId
+          ? api.botBrowserSocketUrl(projectId, agentId)
+          : api.debugBrowserSocketUrl(projectId),
+      );
       socketRef.current = socket;
       socket.onopen = () => {
         retry = 0;
@@ -88,7 +95,7 @@ export default function DebugBrowserPanel({ projectId }: Props) {
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [projectId]);
+  }, [projectId, agentId]);
 
   function send(value: unknown) {
     const socket = socketRef.current;

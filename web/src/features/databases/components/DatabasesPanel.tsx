@@ -181,7 +181,7 @@ function ConnectionForm({ projectRoot, onCreated }: { projectRoot: string; onCre
   const [readOnly, setReadOnly] = useState(true);
   const [busy, setBusy] = useState(false);
   const hints: Record<string, string> = {
-    postgres: "postgres://user:pass@host:5432/db?sslmode=disable", mysql: "user:pass@tcp(host:3306)/db", sqlite: "/path/to/database.db",
+    postgres: "postgres://user:pass@host:5432/db?sslmode=disable", mysql: "user:pass@tcp(host:3306)/db",
     sqlserver: "sqlserver://user:pass@host:1433?database=db", oracle: "oracle://user:pass@host:1521/service", clickhouse: "clickhouse://user:pass@host:9000/db",
     mongodb: "mongodb://user:pass@host:27017", redis: "redis://user:pass@host:6379/0", cassandra: "cassandra://host:9042/keyspace",
     elasticsearch: "http://user:pass@host:9200", neo4j: "neo4j://user:pass@host:7687",
@@ -197,7 +197,7 @@ function ConnectionForm({ projectRoot, onCreated }: { projectRoot: string; onCre
       <Input placeholder="Connection name" value={name} onChange={setName} isRequired />
       <Input placeholder="Folder (optional)" value={folder} onChange={setFolder} />
       <Select selectedKey={driver} onSelectionChange={(key) => setDriver(String(key))} aria-label="Driver" className="w-full">
-        {[["postgres","PostgreSQL"],["mysql","MySQL / MariaDB"],["sqlite","SQLite"],["sqlserver","SQL Server"],["oracle","Oracle"],["clickhouse","ClickHouse"],["mongodb","MongoDB"],["redis","Redis"],["cassandra","Cassandra"],["elasticsearch","Elasticsearch"],["neo4j","Neo4j"]].map(([value, label]) => <SelectItem key={value} id={value}>{label}</SelectItem>)}
+        {[["postgres","PostgreSQL"],["mysql","MySQL / MariaDB"],["sqlserver","SQL Server"],["oracle","Oracle"],["clickhouse","ClickHouse"],["mongodb","MongoDB"],["redis","Redis"],["cassandra","Cassandra"],["elasticsearch","Elasticsearch"],["neo4j","Neo4j"]].map(([value, label]) => <SelectItem key={value} id={value}>{label}</SelectItem>)}
       </Select>
       <Input placeholder={hints[driver]} value={dsn} onChange={setDsn} isRequired />
       <Checkbox isSelected={readOnly} onChange={setReadOnly}>Somente leitura</Checkbox>

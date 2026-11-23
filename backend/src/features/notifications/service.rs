@@ -75,8 +75,10 @@ impl PushService {
         self.inner.is_some()
     }
 
-    pub async fn register(&self, token: &str, platform: &str) -> AppResult<()> {
-        self.store.register_push_token(token, platform).await
+    pub async fn register(&self, token: &str, platform: &str, user_id: i64) -> AppResult<()> {
+        self.store
+            .register_push_token(token, platform, user_id)
+            .await
     }
 
     pub async fn notify_ai(&self) {
@@ -86,6 +88,20 @@ impl PushService {
             ..PushMessage::default()
         })
         .await;
+    }
+
+    pub async fn notify_for_user(&self, user_id: i64, message: &PushMessage) {
+        let Some(inner) = &self.inner else {
+            return;
+        };
+        let tokens = match self.store.list_push_tokens_for_user(user_id).await {
+            Ok(tokens) => tokens,
+            Err(error) => {
+                tracing::warn!(%error, "could not list push tokens");
+                return;
+            }
+        };
+        self.send_all(inner, &tokens, message).await;
     }
 
     pub async fn notify(&self, message: &PushMessage) {
@@ -99,8 +115,12 @@ impl PushService {
                 return;
             }
         };
+        self.send_all(inner, &tokens, message).await;
+    }
+
+    async fn send_all(&self, inner: &PushInner, tokens: &[String], message: &PushMessage) {
         for token in tokens {
-            match self.send(inner, &token, message).await {
+            match self.send(inner, token, message).await {
                 Ok(()) => {}
                 Err(error) => {
                     tracing::warn!(%error, "could not send push notification");

@@ -451,7 +451,7 @@ impl Runtime {
         let stuck: Vec<(String, i64, String)> = sqlx::query_as(
             "SELECT r.id,r.user_id,r.project_id FROM agent_runs r \
              JOIN agent_tool_calls t ON t.run_id=r.id \
-             WHERE r.state='waiting' AND t.state='waiting' AND t.created_at<?",
+             WHERE r.state='waiting' AND t.state='waiting' AND t.created_at<$1",
         )
         .bind(cutoff)
         .fetch_all(self.inner.repo.0.pool())
@@ -537,7 +537,7 @@ impl Runtime {
         // for the cancellation keeps the new user bubble after the previous
         // run's final output instead of above it.
         let active: Vec<String> = sqlx::query_scalar(
-            "SELECT id FROM agent_runs WHERE user_id=? AND project_id=? AND chat_id=? AND state IN ('queued','running','waiting')",
+            "SELECT id FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 AND state IN ('queued','running','waiting')",
         )
         .bind(user)
         .bind(project)
@@ -555,7 +555,7 @@ impl Runtime {
             }
             for _ in 0..50 {
                 let remaining: i64 = sqlx::query_scalar::<_, i64>(
-                    "SELECT COUNT(*) FROM agent_runs WHERE user_id=? AND project_id=? AND chat_id=? AND state IN ('queued','running','waiting')",
+                    "SELECT COUNT(*) FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 AND state IN ('queued','running','waiting')",
                 )
                 .bind(user)
                 .bind(project)
@@ -668,7 +668,7 @@ impl Runtime {
             // the current chat makes its history visible and keeps new runs there.
             if session.chat_id != responder.chat_id {
                 sqlx::query(
-                    "UPDATE agent_sessions SET chat_id=? WHERE id=? AND user_id=? AND project_id=?",
+                    "UPDATE agent_sessions SET chat_id=$1 WHERE id=$2 AND user_id=$3 AND project_id=$4",
                 )
                 .bind(&responder.chat_id)
                 .bind(&session.id)
@@ -1070,7 +1070,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
     /// showing "Pensando" and accepts a new message.
     async fn force_cancel(&self, user: i64, project: &str, run: &Run) -> AppResult<()> {
         let pending: Vec<String> = sqlx::query_scalar(
-            "SELECT id FROM agent_tool_calls WHERE run_id=? AND state='waiting'",
+            "SELECT id FROM agent_tool_calls WHERE run_id=$1 AND state='waiting'",
         )
         .bind(&run.id)
         .fetch_all(self.inner.repo.0.pool())
@@ -1093,7 +1093,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         }
         if matches!(run.state.as_str(), "queued" | "running" | "waiting") {
             let _ = sqlx::query(
-                "UPDATE agent_tool_calls SET state='interrupted' WHERE run_id=? AND state IN ('pending','running','waiting')",
+                "UPDATE agent_tool_calls SET state='interrupted' WHERE run_id=$1 AND state IN ('pending','running','waiting')",
             )
             .bind(&run.id)
             .execute(self.inner.repo.0.pool())
@@ -1151,7 +1151,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         project: &str,
         agent: Option<&str>,
     ) -> AppResult<()> {
-        let rows: Vec<(String, i64)> = sqlx::query_as("SELECT id,user_id FROM agent_runs WHERE project_id=? AND (? IS NULL OR user_id=?) AND (? IS NULL OR agent_id=?) AND state IN ('queued','running','waiting')")
+        let rows: Vec<(String, i64)> = sqlx::query_as("SELECT id,user_id FROM agent_runs WHERE project_id=$1 AND ($2 IS NULL OR user_id=$3) AND ($4 IS NULL OR agent_id=$5) AND state IN ('queued','running','waiting')")
             .bind(project).bind(user).bind(user).bind(agent).bind(agent).fetch_all(self.inner.repo.0.pool()).await?;
         for (id, owner) in rows {
             if let Ok(run) = self.inner.repo.get_run(owner, project, &id).await {
@@ -1166,7 +1166,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
     /// The in-memory harness sessions for that chat are dropped too.
     pub async fn delete_chat(&self, user: i64, project: &str, chat: &str) -> AppResult<()> {
         let session_ids: Vec<String> = sqlx::query_scalar(
-            "SELECT id FROM agent_sessions WHERE user_id=? AND project_id=? AND chat_id=?",
+            "SELECT id FROM agent_sessions WHERE user_id=$1 AND project_id=$2 AND chat_id=$3",
         )
         .bind(user)
         .bind(project)
@@ -1174,7 +1174,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         .fetch_all(self.inner.repo.0.pool())
         .await?;
         let active: Vec<String> = sqlx::query_scalar(
-            "SELECT id FROM agent_runs WHERE user_id=? AND project_id=? AND chat_id=? AND state IN ('queued','running','waiting')",
+            "SELECT id FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 AND state IN ('queued','running','waiting')",
         )
         .bind(user)
         .bind(project)
@@ -1225,7 +1225,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
     /// sessions, plus its profile. The UI asks for confirmation first.
     pub async fn delete_jeff(&self, user: i64, project: &str, agent: &str) -> AppResult<()> {
         let session_ids: Vec<String> = sqlx::query_scalar(
-            "SELECT id FROM agent_sessions WHERE user_id=? AND project_id=? AND agent_id=?",
+            "SELECT id FROM agent_sessions WHERE user_id=$1 AND project_id=$2 AND agent_id=$3",
         )
         .bind(user)
         .bind(project)
@@ -1233,7 +1233,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         .fetch_all(self.inner.repo.0.pool())
         .await?;
         let active: Vec<String> = sqlx::query_scalar(
-            "SELECT id FROM agent_runs WHERE user_id=? AND project_id=? AND agent_id=? AND state IN ('queued','running','waiting')",
+            "SELECT id FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND agent_id=$3 AND state IN ('queued','running','waiting')",
         )
         .bind(user).bind(project).bind(agent)
         .fetch_all(self.inner.repo.0.pool()).await?;
@@ -1275,7 +1275,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
     }
 
     pub async fn approve(&self, user: i64, project: &str, id: &str, value: Value) -> AppResult<()> {
-        let count:i64=sqlx::query_scalar("SELECT count(*) FROM agent_tool_calls t JOIN agent_runs r ON r.id=t.run_id WHERE t.id=? AND r.user_id=? AND r.project_id=? AND t.state='waiting'")
+        let count:i64=sqlx::query_scalar("SELECT count(*) FROM agent_tool_calls t JOIN agent_runs r ON r.id=t.run_id WHERE t.id=$1 AND r.user_id=$2 AND r.project_id=$3 AND t.state='waiting'")
             .bind(id).bind(user).bind(project).fetch_one(self.inner.repo.0.pool()).await?;
         if count == 0 {
             return Err(AppError::NotFound);
@@ -1310,10 +1310,10 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         }
         let _ = self.inner.repo.clear_recovery(&ctx.run.id).await;
         if state != "completed" {
-            let _=sqlx::query("UPDATE agent_runs SET state='interrupted',error='Parent execution ended',finished_at=? WHERE parent_id=? AND state IN ('queued','running','waiting')").bind(now()).bind(&ctx.run.id).execute(self.inner.repo.0.pool()).await;
+            let _=sqlx::query("UPDATE agent_runs SET state='interrupted',error='Parent execution ended',finished_at=$1 WHERE parent_id=$2 AND state IN ('queued','running','waiting')").bind(now()).bind(&ctx.run.id).execute(self.inner.repo.0.pool()).await;
         }
         let children: Vec<String> =
-            sqlx::query_scalar("SELECT id FROM agent_runs WHERE parent_id=?")
+            sqlx::query_scalar("SELECT id FROM agent_runs WHERE parent_id=$1")
                 .bind(&ctx.run.id)
                 .fetch_all(self.inner.repo.0.pool())
                 .await
@@ -1332,12 +1332,12 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 self.event(ctx, "run", json!(run));
             }
         }
-        let pending:Vec<String>=sqlx::query_scalar("SELECT t.id FROM agent_tool_calls t JOIN agent_runs r ON r.id=t.run_id WHERE (r.id=? OR r.parent_id=?) AND t.state IN ('pending','running','waiting')").bind(&ctx.run.id).bind(&ctx.run.id).fetch_all(self.inner.repo.0.pool()).await.unwrap_or_default();
+        let pending:Vec<String>=sqlx::query_scalar("SELECT t.id FROM agent_tool_calls t JOIN agent_runs r ON r.id=t.run_id WHERE (r.id=$1 OR r.parent_id=$2) AND t.state IN ('pending','running','waiting')").bind(&ctx.run.id).bind(&ctx.run.id).fetch_all(self.inner.repo.0.pool()).await.unwrap_or_default();
         for id in pending {
             self.inner.approvals.lock().unwrap().remove(&id);
         }
-        let _=sqlx::query("UPDATE agent_tool_calls SET state='interrupted' WHERE run_id IN (SELECT id FROM agent_runs WHERE id=? OR parent_id=?) AND state IN ('pending','running','waiting')").bind(&ctx.run.id).bind(&ctx.run.id).execute(self.inner.repo.0.pool()).await;
-        let _=sqlx::query("UPDATE agent_model_calls SET finish='interrupted' WHERE run_id IN (SELECT id FROM agent_runs WHERE id=? OR parent_id=?) AND finish='pending'").bind(&ctx.run.id).bind(&ctx.run.id).execute(self.inner.repo.0.pool()).await;
+        let _=sqlx::query("UPDATE agent_tool_calls SET state='interrupted' WHERE run_id IN (SELECT id FROM agent_runs WHERE id=$1 OR parent_id=$2) AND state IN ('pending','running','waiting')").bind(&ctx.run.id).bind(&ctx.run.id).execute(self.inner.repo.0.pool()).await;
+        let _=sqlx::query("UPDATE agent_model_calls SET finish='interrupted' WHERE run_id IN (SELECT id FROM agent_runs WHERE id=$1 OR parent_id=$2) AND finish='pending'").bind(&ctx.run.id).bind(&ctx.run.id).execute(self.inner.repo.0.pool()).await;
         self.inner.runs.lock().unwrap().remove(&ctx.run.id);
         self.inner.drafts.lock().unwrap().remove(&ctx.run.id);
         if !error.is_empty() {
@@ -1621,7 +1621,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                         let tx = record_tx.clone();
                         let session = cli::session_uuid(&ctx.run.session_id);
                         let resume = sqlx::query_scalar::<_, i64>(
-                            "SELECT COUNT(*) FROM agent_messages WHERE session_id=? AND role='assistant'",
+                            "SELECT COUNT(*) FROM agent_messages WHERE session_id=$1 AND role='assistant'",
                         )
                         .bind(&ctx.run.session_id)
                         .fetch_one(self.inner.repo.0.pool())
@@ -1731,7 +1731,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 }
                 let answer = last_answer.clone();
                 let _ = sqlx::query(
-            "INSERT INTO agent_model_calls(id,run_id,kind,provider,model,input_tokens,output_tokens,cached_tokens,reasoning_tokens,estimated_input,duration_ms,finish,created_at) VALUES(?,?,?,?,?,?,?,?,0,0,?,'stop',?)",
+            "INSERT INTO agent_model_calls(id,run_id,kind,provider,model,input_tokens,output_tokens,cached_tokens,reasoning_tokens,estimated_input,duration_ms,finish,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,0,0,$9,'stop',$10)",
         )
         .bind(new_id())
         .bind(&ctx.run.id)
@@ -1768,7 +1768,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             done["seq"] = json!(seq);
             self.event(ctx, "message", done);
             let _ = sqlx::query(
-            "INSERT INTO agent_model_calls(id,run_id,kind,provider,model,input_tokens,output_tokens,cached_tokens,reasoning_tokens,estimated_input,duration_ms,finish,created_at) VALUES(?,?,?,?,?,?,?,?,0,0,?,'stop',?)",
+            "INSERT INTO agent_model_calls(id,run_id,kind,provider,model,input_tokens,output_tokens,cached_tokens,reasoning_tokens,estimated_input,duration_ms,finish,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,0,0,$9,'stop',$10)",
         )
         .bind(new_id())
         .bind(&ctx.run.id)
@@ -1937,7 +1937,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         };
         let label = activity::tool_activity(name, &args);
         let tool_display = json!({"id":tid,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"role":"tool","title":name,"activity":label,"phase":"engine","content":args.to_string(),"status":"running","createdAt":now()});
-        sqlx::query("INSERT INTO agent_tool_calls(id,run_id,call_id,name,arguments,state,created_at) VALUES(?,?,?,?,?,'pending',?)")
+        sqlx::query("INSERT INTO agent_tool_calls(id,run_id,call_id,name,arguments,state,created_at) VALUES($1,$2,$3,$4,$5,'pending',$6)")
             .bind(&tid).bind(&ctx.run.id).bind(&call_id).bind(name).bind(args.to_string()).bind(now()).execute(self.inner.repo.0.pool()).await?;
         // A question is shown by the question card, not as a tool row.
         if name != "ask_user" {
@@ -1950,7 +1950,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         } else {
             true
         };
-        sqlx::query("UPDATE agent_tool_calls SET state='running' WHERE id=?")
+        sqlx::query("UPDATE agent_tool_calls SET state='running' WHERE id=$1")
             .bind(&tid)
             .execute(self.inner.repo.0.pool())
             .await?;
@@ -2121,7 +2121,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 .workspace_events
                 .publish(&ctx.project_id, "files", None);
         }
-        sqlx::query("UPDATE agent_tool_calls SET state=?,result=? WHERE id=?")
+        sqlx::query("UPDATE agent_tool_calls SET state=$1,result=$2 WHERE id=$3")
             .bind(if failed { "failed" } else { "completed" })
             .bind(result.to_string())
             .bind(&tid)
@@ -2193,7 +2193,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 }));
             }
             let busy: i64 = sqlx::query_scalar(
-                "SELECT count(*) FROM agent_runs WHERE user_id=? AND project_id=? AND chat_id=? AND agent_id=? AND state IN ('queued','running','waiting')",
+                "SELECT count(*) FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 AND agent_id=$4 AND state IN ('queued','running','waiting')",
             )
             .bind(parent.user_id).bind(&parent.project_id).bind(&parent.run.chat_id).bind(&target.id)
             .fetch_one(self.inner.repo.0.pool()).await.unwrap_or(0);
@@ -2216,7 +2216,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 .await?;
             if session.chat_id != parent.run.chat_id {
                 sqlx::query(
-                    "UPDATE agent_sessions SET chat_id=? WHERE id=? AND user_id=? AND project_id=?",
+                    "UPDATE agent_sessions SET chat_id=$1 WHERE id=$2 AND user_id=$3 AND project_id=$4",
                 )
                 .bind(&parent.run.chat_id)
                 .bind(&session.id)
@@ -2333,7 +2333,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         // An explicit delegate already ran the other Jeff and brought the
         // answer back; running the mention again would duplicate it.
         let used_delegate: i64 = sqlx::query_scalar(
-            "SELECT count(*) FROM agent_tool_calls WHERE run_id=? AND name='delegate' AND state='completed'",
+            "SELECT count(*) FROM agent_tool_calls WHERE run_id=$1 AND name='delegate' AND state='completed'",
         )
         .bind(&ctx.run.id)
         .fetch_one(self.inner.repo.0.pool())
@@ -2364,7 +2364,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         let mut available = Vec::new();
         for agent in candidates {
             let busy: i64 = sqlx::query_scalar(
-                "SELECT count(*) FROM agent_runs WHERE user_id=? AND project_id=? AND chat_id=? AND agent_id=? AND state IN ('queued','running','waiting')",
+                "SELECT count(*) FROM agent_runs WHERE user_id=$1 AND project_id=$2 AND chat_id=$3 AND agent_id=$4 AND state IN ('queued','running','waiting')",
             )
             .bind(ctx.user_id)
             .bind(&ctx.project_id)
@@ -2477,7 +2477,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             .lock()
             .unwrap()
             .insert(id.into(), sender);
-        sqlx::query("UPDATE agent_tool_calls SET state='waiting' WHERE id=?")
+        sqlx::query("UPDATE agent_tool_calls SET state='waiting' WHERE id=$1")
             .bind(id)
             .execute(self.inner.repo.0.pool())
             .await?;
@@ -2508,7 +2508,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             .lock()
             .unwrap()
             .insert(id.into(), sender);
-        sqlx::query("UPDATE agent_tool_calls SET state='waiting' WHERE id=?")
+        sqlx::query("UPDATE agent_tool_calls SET state='waiting' WHERE id=$1")
             .bind(id)
             .execute(self.inner.repo.0.pool())
             .await?;

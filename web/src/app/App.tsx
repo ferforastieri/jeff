@@ -1,11 +1,13 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { api, ApiError, setApiBase } from "../shared/api";
+import { api, ApiError, setApiBase, type OnboardingStatus } from "../shared/api";
 import { isDesktopClient } from "../features/settings/store";
 import { useApp } from "./store";
 import Login from "../features/auth/components/Login";
 import ServerSetup from "../features/auth/components/ServerSetup";
 import UpdateToast from "../features/updates/components/UpdateToast";
 const Workbench = lazy(() => import("./components/Workbench"));
+const Onboarding = lazy(() => import("../features/onboarding/Onboarding"));
+const AcceptInvite = lazy(() => import("../features/onboarding/AcceptInvite"));
 
 
 const SERVER_KEY = "jeff_server_url";
@@ -41,6 +43,8 @@ function AppShell() {
   const setUser = useApp((state) => state.setUser);
   const setAuthReady = useApp((state) => state.setAuthReady);
   const [serverUrl, setServerUrl] = useState<string | null>(initialServerUrl);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+  const [onboardingReady, setOnboardingReady] = useState(false);
 
   // Warm the workbench chunk while the index.html splash is still covering
   // the app, so leaving the splash never reveals a second loading screen.
@@ -130,6 +134,35 @@ function AppShell() {
     };
   }, [serverUrl, setAuthReady, setUser]);
 
+  useEffect(() => {
+    if (!user) {
+      setOnboarding(null);
+      setOnboardingReady(true);
+      return;
+    }
+    let cancelled = false;
+    setOnboardingReady(false);
+    void api
+      .onboarding()
+      .then((value) => {
+        if (cancelled) return;
+        setOnboarding(value);
+        setOnboardingReady(true);
+        if (!value.done) {
+          (window as Window & { __jeffWorkbenchReady?: boolean }).__jeffWorkbenchReady = true;
+          window.dispatchEvent(new Event("jeff:workbench-ready"));
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOnboarding(null);
+        setOnboardingReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   function connected(url: string) {
     localStorage.setItem(SERVER_KEY, url);
     setServerUrl(url);
@@ -151,11 +184,35 @@ function AppShell() {
   }
 
   if (!user) {
+    const invite = new URLSearchParams(window.location.search).get("invite");
+    if (invite) {
+      return (
+        <Suspense fallback={null}>
+          <AcceptInvite token={invite} />
+        </Suspense>
+      );
+    }
     return (
       <Login
         onChangeServer={changeServer}
         onOpenLauncher={isDesktopClient() ? () => void openLauncher() : undefined}
       />
+    );
+  }
+
+  if (!onboardingReady) return null;
+
+  if (onboarding && !onboarding.done) {
+    return (
+      <Suspense fallback={null}>
+        <Onboarding
+          status={onboarding}
+          onDone={() => {
+            localStorage.setItem("jeff_open_rooms", "1");
+            window.location.reload();
+          }}
+        />
+      </Suspense>
     );
   }
 

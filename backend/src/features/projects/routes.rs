@@ -54,14 +54,24 @@ pub(super) struct ProjectRequest {
 
 pub(super) async fn list_projects(
     State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
 ) -> AppResult<Json<Vec<Project>>> {
-    Ok(Json(state.store.list_projects().await?))
+    Ok(Json(
+        state
+            .store
+            .list_projects_for(auth.user.id, auth.user.is_admin())
+            .await?,
+    ))
 }
 
 pub(super) async fn create_project(
     State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
     Json(input): Json<ProjectRequest>,
 ) -> AppResult<Response> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
     let root = state
         .workspace
         .validate_root(PathBuf::from(&input.root).as_path())?;

@@ -7,7 +7,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(&dir.path().join("db")).await.unwrap();
     let user = store
-        .create_user("owner", "unused-fixture-hash")
+        .create_user("owner", "unused-fixture-hash", "admin", "Owner")
         .await
         .unwrap();
     let project = store
@@ -39,7 +39,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
         .create_run(user.id, &project.id, &session, "request", None, &agent)
         .await
         .unwrap();
-    sqlx::query("INSERT INTO agent_messages(id,session_id,run_id,role,body,display,content_text,estimated_tokens,created_at) VALUES('m1',?,?,'user','{}','{}','Implemente o login',1,1)")
+    sqlx::query("INSERT INTO agent_messages(id,session_id,run_id,role,body,display,content_text,estimated_tokens,created_at) VALUES('m1',$1,$2,'user','{}','{}','Implemente o login',1,1)")
         .bind(&run.session_id)
         .bind(&run.id)
         .execute(store.pool())
@@ -58,7 +58,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
     assert_eq!(stored.chat_id, "chat");
 
     let (state, finished): (String, Option<i64>) =
-        sqlx::query_as("SELECT state,finished_at FROM agent_runs WHERE id=?")
+        sqlx::query_as("SELECT state,finished_at FROM agent_runs WHERE id=$1")
             .bind(&run.id)
             .fetch_one(store.pool())
             .await
@@ -68,7 +68,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
 
     repo.record_recovery(&run.id).await.unwrap();
     let attempts: i64 =
-        sqlx::query_scalar("SELECT attempts FROM agent_run_recoveries WHERE run_id=?")
+        sqlx::query_scalar("SELECT attempts FROM agent_run_recoveries WHERE run_id=$1")
             .bind(&run.id)
             .fetch_one(store.pool())
             .await
@@ -77,7 +77,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
 
     repo.requeue(&run.id, "").await.unwrap();
     let (state, finished): (String, Option<i64>) =
-        sqlx::query_as("SELECT state,finished_at FROM agent_runs WHERE id=?")
+        sqlx::query_as("SELECT state,finished_at FROM agent_runs WHERE id=$1")
             .bind(&run.id)
             .fetch_one(store.pool())
             .await
@@ -86,7 +86,7 @@ async fn recover_returns_active_runs_with_prompt_and_tracks_resume_attempts() {
     assert!(finished.is_none());
 
     repo.clear_recovery(&run.id).await.unwrap();
-    let rows: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM agent_run_recoveries WHERE run_id=?")
+    let rows: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM agent_run_recoveries WHERE run_id=$1")
         .bind(&run.id)
         .fetch_one(store.pool())
         .await

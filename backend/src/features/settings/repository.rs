@@ -4,7 +4,7 @@ use crate::platform::store::Store;
 
 impl Store {
     pub async fn setting(&self, key: &str) -> AppResult<String> {
-        sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")
+        sqlx::query_scalar("SELECT value FROM settings WHERE key = $1")
             .bind(key)
             .fetch_one(&self.pool)
             .await
@@ -13,7 +13,7 @@ impl Store {
 
     pub async fn set_setting(&self, key: &str, value: &str) -> AppResult<()> {
         sqlx::query(
-            "INSERT INTO settings (key, value) VALUES (?, ?)
+            "INSERT INTO settings (key, value) VALUES ($1, $2)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         )
         .bind(key)

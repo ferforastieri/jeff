@@ -16,9 +16,11 @@ import Tabs from "./Tabs";
 import Toasts from "../../features/notifications/components/Toasts";
 import CloseProjectModal from "../../features/projects/components/CloseProjectModal";
 import ProjectSwitcher from "../../features/projects/components/ProjectSwitcher";
+import { useRoomsUI } from "../../features/rooms/store";
 import BranchPicker from "../../features/git/components/BranchPicker";
 import BottomBar from "./BottomBar";
 import { handleAiCompletion, type AiCompletionPayload } from "../../features/notifications/completion";
+import { playQuestionSound } from "../../features/conversations/sound";
 import { unlockBotSound } from "../../features/conversations/sound";
 import { IconButton } from "@jeff/ui/app";
 import BrandMark from "@jeff/brand";
@@ -48,6 +50,7 @@ const WebPanelTab = lazy(() => import("../../features/previews/components/WebPan
 const DiffPanelTab = lazy(() => import("../../features/editor/components/DiffPanelTab"));
 const TerminalPanel = lazy(() => import("../../features/terminal/components/TerminalPanel"));
 const SourceControlPanel = lazy(() => import("../../features/git/components/SourceControlPanel"));
+const RoomsOverlay = lazy(() => import("../../features/rooms/RoomsOverlay"));
 
 type RightPanel = "files" | "scm" | "db" | "web" | "bots";
 const rightPanelFeatures: Record<RightPanel, WorkspaceFeature | null> = {
@@ -129,6 +132,15 @@ export default function Workbench() {
   const updateSettings = useSettings((state) => state.update);
   const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
   const confirm = useConfirm();
+
+  // Landing after the first configuration: open the rooms surface once.
+  useEffect(() => {
+    if (localStorage.getItem("jeff_open_rooms") === "1") {
+      localStorage.removeItem("jeff_open_rooms");
+      useRoomsUI.getState().openRooms();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [closeTarget, setCloseTarget] = useState<Project | null>(null);
   const [closeBusy, setCloseBusy] = useState(false);
@@ -421,6 +433,14 @@ export default function Workbench() {
     const stream = new EventSource(`${getApiBase()}/api/notifications/stream`, {
       withCredentials: true,
     });
+    type RoomPayload = {
+      title?: string;
+      body?: string;
+      projectId?: string;
+      projectName?: string;
+      roomId?: string;
+      notificationId?: string;
+    };
     const onAI = (event: MessageEvent) => {
       try {
         const payload = JSON.parse(event.data) as PushPayload;
@@ -429,9 +449,28 @@ export default function Workbench() {
         // Ignore malformed notification events.
       }
     };
+    const onRoom = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data) as RoomPayload;
+        useApp.getState().addNotification({
+          kind: "system",
+          title: payload.title ?? "Sala",
+          body: payload.body ?? "",
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          roomId: payload.roomId,
+          notificationId: payload.notificationId,
+        });
+        playQuestionSound();
+      } catch {
+        // Ignore malformed notification events.
+      }
+    };
     stream.addEventListener("ai.done", onAI as EventListener);
+    stream.addEventListener("room", onRoom as EventListener);
     return () => {
       stream.removeEventListener("ai.done", onAI as EventListener);
+      stream.removeEventListener("room", onRoom as EventListener);
       stream.close();
       delete (window as unknown as { __jeffPush?: (payload: { title?: string; body?: string }) => void }).__jeffPush;
     };
@@ -1071,7 +1110,13 @@ export default function Workbench() {
     <ResizeHandle className="sidebar-resize" orientation="vertical" value={sidebarWidth} min={220} max={320} label="Redimensionar barra lateral" onChange={(width) => document.documentElement.style.setProperty("--sidebar-width", `${width}px`)} onCommit={(width) => updateSettings({ sidebarWidth: width })} />
   );
 
-  if (mobile) return <Suspense fallback={null}><MobileApp /></Suspense>;
+  if (mobile)
+    return (
+      <Suspense fallback={null}>
+        <MobileApp />
+        {project ? <RoomsOverlay project={project} /> : null}
+      </Suspense>
+    );
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-[var(--side)]">
@@ -1208,6 +1253,11 @@ export default function Workbench() {
         onConfirm={() => void confirmCloseProject()}
       />
       <Toasts />
+      {project ? (
+        <Suspense fallback={null}>
+          <RoomsOverlay project={project} />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use futures_util::{SinkExt, StreamExt};
 use serde::Serialize;
@@ -45,6 +45,7 @@ struct CommandRequest {
 pub struct BrowserManager {
     data_dir: PathBuf,
     sessions: Mutex<HashMap<String, Arc<BrowserSession>>>,
+    proxies: Mutex<HashMap<String, String>>,
 }
 
 pub struct BrowserSession {
@@ -57,8 +58,12 @@ pub struct BrowserSession {
     console: Arc<Mutex<Vec<Value>>>,
     network: Arc<Mutex<Vec<Value>>>,
     streaming: AtomicBool,
+    last_used: AtomicI64,
     pub clients: AtomicUsize,
     closed: AtomicBool,
+    takeover: AtomicBool,
+    recording_on: AtomicBool,
+    recording: Mutex<Vec<Value>>,
     child: Mutex<Option<Child>>,
 }
 
@@ -67,7 +72,33 @@ impl BrowserManager {
         Self {
             data_dir,
             sessions: Mutex::new(HashMap::new()),
+            proxies: Mutex::new(HashMap::new()),
         }
+    }
+
+    pub fn set_proxy(&self, key: &str, proxy: &str) {
+        let mut proxies = self.proxies.lock().unwrap();
+        if proxy.trim().is_empty() {
+            proxies.remove(key);
+        } else {
+            proxies.insert(key.to_string(), proxy.trim().to_string());
+        }
+    }
+
+    /// Closes Chromium profiles nobody is watching and nobody used recently.
+    pub fn maintain_idle(&self, max_age: Duration) {
+        let now = chrono::Utc::now().timestamp_millis();
+        let age = max_age.as_millis() as i64;
+        let mut sessions = self.sessions.lock().unwrap();
+        sessions.retain(|_, session| {
+            let idle = now - session.last_used.load(Ordering::SeqCst);
+            if session.clients.load(Ordering::SeqCst) == 0 && idle > age {
+                session.close_now();
+                false
+            } else {
+                true
+            }
+        });
     }
 
     pub fn get(&self, project_id: &str) -> Option<Arc<BrowserSession>> {
@@ -81,7 +112,13 @@ impl BrowserManager {
             }
             self.close_project(project_id).await;
         }
-        let session = launch(project_id, root, &self.data_dir).await?;
+        let proxy = self
+            .proxies
+            .lock()
+            .ok()
+            .and_then(|proxies| proxies.get(project_id).cloned())
+            .unwrap_or_default();
+        let session = launch(project_id, root, &self.data_dir, &proxy).await?;
         let mut sessions = self.sessions.lock().map_err(|_| internal("browser lock"))?;
         if let Some(existing) = sessions.get(project_id) {
             if !existing.closed.load(Ordering::SeqCst) {
@@ -136,6 +173,62 @@ impl BrowserManager {
 }
 
 impl BrowserSession {
+    pub fn set_takeover(&self, active: bool) {
+        self.takeover.store(active, Ordering::SeqCst);
+    }
+
+    pub fn is_takeover(&self) -> bool {
+        self.takeover.load(Ordering::SeqCst)
+    }
+
+    pub fn record_start(&self) {
+        self.recording.lock().unwrap().clear();
+        self.recording_on.store(true, Ordering::SeqCst);
+    }
+
+    pub fn record_stop(&self) -> Vec<Value> {
+        self.recording_on.store(false, Ordering::SeqCst);
+        self.recording.lock().unwrap().clone()
+    }
+
+    fn record(&self, step: Value) {
+        if self.recording_on.load(Ordering::SeqCst) {
+            if let Ok(mut steps) = self.recording.lock() {
+                steps.push(step);
+            }
+        }
+    }
+
+    async fn element_label(&self, reference: &str) -> String {
+        let reference = reference.replace('"', "");
+        let expression = format!(
+            "(() => {{ const el = document.querySelector('[data-jeff-ref=\"{reference}\"]'); \
+             if (!el) return ''; return (el.getAttribute('aria-label') || el.getAttribute('placeholder') \
+               || el.getAttribute('title') || el.innerText || el.value || el.tagName).trim().slice(0, 90); }})()"
+        );
+        self.evaluate(&expression)
+            .await
+            .ok()
+            .and_then(|value| value.as_str().map(str::to_string))
+            .unwrap_or_default()
+    }
+
+    pub async fn fill_secret(&self, reference: &str, text: &str) -> AppResult<Value> {
+        let reference = valid_ref(reference)?;
+        let expression = format!(
+            "(() => {{ const el = document.querySelector('[data-jeff-ref=\"{reference}\"]'); \
+             if (!el) return false; el.focus(); if (typeof el.select === 'function') el.select(); return true; }})()"
+        );
+        if self.evaluate(&expression).await?.as_bool() != Some(true) {
+            return Err(AppError::BadRequest("A referência não existe mais.".into()));
+        }
+        self.command("Input.insertText", json!({ "text": text }))
+            .await
+            .map_err(AppError::Upstream)?;
+        self.record(json!({ "action": "fill-secret", "ref": reference }));
+        Ok(json!({ "ok": true }))
+    }
+
     pub fn info(&self) -> BrowserInfo {
         BrowserInfo {
             id: self.id.clone(),
@@ -190,6 +283,10 @@ impl BrowserSession {
     }
 
     pub async fn command(&self, method: &str, params: Value) -> Result<Value, String> {
+        self.last_used.store(
+            chrono::Utc::now().timestamp_millis(),
+            std::sync::atomic::Ordering::SeqCst,
+        );
         if self.closed.load(Ordering::SeqCst) {
             return Err("O navegador de debug foi encerrado.".into());
         }
@@ -224,6 +321,7 @@ impl BrowserSession {
             *page_url = parsed.to_string();
         }
         tokio::time::sleep(Duration::from_millis(600)).await;
+        self.record(json!({ "action": "open", "url": parsed.as_str() }));
         self.read().await
     }
 
@@ -314,6 +412,327 @@ impl BrowserSession {
             .await
             .map_err(AppError::Upstream)?;
         Ok(json!({ "ok": true, "typed": text.chars().count() }))
+    }
+
+    /// The interactive page for an agent: every visible control gets a stable
+    /// `data-jeff-ref` for this revision, and the text is what a person reads.
+    pub async fn snapshot(&self) -> AppResult<Value> {
+        const SCRIPT: &str = r#"(() => {
+  const MAX = 400;
+  document.querySelectorAll('[data-jeff-ref]').forEach((el) => el.removeAttribute('data-jeff-ref'));
+  const visible = (el) => {
+    const r = el.getBoundingClientRect();
+    const s = getComputedStyle(el);
+    return r.width > 1 && r.height > 1 && s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0';
+  };
+  const roleOf = (el) => el.getAttribute('role') || ({
+    a: 'link', button: 'button',
+    input: el.type === 'checkbox' ? 'checkbox' : el.type === 'radio' ? 'radio' : 'textbox',
+    textarea: 'textbox', select: 'combobox',
+    h1: 'heading', h2: 'heading', h3: 'heading', h4: 'heading'
+  }[el.tagName.toLowerCase()] || '');
+  const nameOf = (el) => (el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.getAttribute('title') || el.innerText || el.value || el.getAttribute('name') || '').trim().replace(/\s+/g, ' ').slice(0, 160);
+  const out = [];
+  let n = 0;
+  for (const el of document.querySelectorAll('a,button,input,textarea,select,[role],[contenteditable="true"],h1,h2,h3,h4')) {
+    if (n >= MAX) break;
+    if (!visible(el)) continue;
+    const ref = 'r' + (++n);
+    el.setAttribute('data-jeff-ref', ref);
+    out.push({ ref, tag: el.tagName.toLowerCase(), role: roleOf(el), name: nameOf(el), value: (el.value || '').slice(0, 160), disabled: !!el.disabled, href: el.href || null });
+  }
+  return JSON.stringify({
+    url: location.href,
+    title: document.title,
+    text: (document.body && document.body.innerText || '').slice(0, 12000),
+    elements: out
+  });
+})()"#;
+        let result = self
+            .command(
+                "Runtime.evaluate",
+                json!({ "expression": SCRIPT, "returnByValue": true }),
+            )
+            .await
+            .map_err(AppError::Upstream)?;
+        let raw = result["result"]["result"]["value"].as_str().unwrap_or("{}");
+        let mut page: Value = serde_json::from_str(raw).unwrap_or_else(|_| json!({ "text": raw }));
+        page["revision"] = json!(crate::crypto::new_id());
+        Ok(page)
+    }
+
+    pub async fn click_ref(&self, reference: &str) -> AppResult<Value> {
+        let reference = valid_ref(reference)?;
+        let expression = format!(
+            "(() => {{ const el = document.querySelector('[data-jeff-ref=\"{reference}\"]'); \
+             if (!el) return 'missing'; el.scrollIntoView({{block:'center', inline:'center'}}); el.click(); return 'ok'; }})()"
+        );
+        let result = self
+            .command(
+                "Runtime.evaluate",
+                json!({ "expression": expression, "returnByValue": true }),
+            )
+            .await
+            .map_err(AppError::Upstream)?;
+        let value = result["result"]["result"]["value"].as_str().unwrap_or("");
+        if value != "ok" {
+            return Err(AppError::BadRequest(format!(
+                "A referência {reference} não existe mais; tire um snapshot novo."
+            )));
+        }
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        let label = self.element_label(reference).await;
+        self.record(json!({ "action": "click", "ref": reference, "label": label }));
+        Ok(json!({ "ok": true, "ref": reference }))
+    }
+
+    pub async fn type_ref(&self, reference: &str, text: &str) -> AppResult<Value> {
+        let reference = valid_ref(reference)?;
+        let expression = format!(
+            "(() => {{ const el = document.querySelector('[data-jeff-ref=\"{reference}\"]'); \
+             if (!el) return 'missing'; el.focus(); if (typeof el.select === 'function') el.select(); return 'ok'; }})()"
+        );
+        let result = self
+            .command(
+                "Runtime.evaluate",
+                json!({ "expression": expression, "returnByValue": true }),
+            )
+            .await
+            .map_err(AppError::Upstream)?;
+        let value = result["result"]["result"]["value"].as_str().unwrap_or("");
+        if value != "ok" {
+            return Err(AppError::BadRequest(format!(
+                "A referência {reference} não existe mais; tire um snapshot novo."
+            )));
+        }
+        self.command("Input.insertText", json!({ "text": text }))
+            .await
+            .map_err(AppError::Upstream)?;
+        let label = self.element_label(reference).await;
+        self.record(json!({ "action": "type", "ref": reference, "label": label, "text": text }));
+        Ok(json!({ "ok": true, "ref": reference, "typed": text.chars().count() }))
+    }
+
+    pub async fn evaluate(&self, expression: &str) -> AppResult<Value> {
+        let result = self
+            .command(
+                "Runtime.evaluate",
+                json!({
+                    "expression": expression,
+                    "returnByValue": true,
+                    "awaitPromise": true,
+                }),
+            )
+            .await
+            .map_err(AppError::Upstream)?;
+        if let Some(exception) = result.get("exceptionDetails") {
+            return Err(AppError::BadRequest(format!(
+                "A página lançou um erro: {}",
+                exception["text"].as_str().unwrap_or("exceção")
+            )));
+        }
+        Ok(result["result"]["result"]["value"].clone())
+    }
+
+    pub async fn select_option(&self, reference: &str, value: &str) -> AppResult<Value> {
+        let reference = valid_ref(reference)?;
+        let expression = format!(
+            "(() => {{ const el = document.querySelector('[data-jeff-ref=\"{reference}\"]'); \
+             if (!el) return false; el.value = {}; \
+             el.dispatchEvent(new Event('input', {{bubbles:true}})); \
+             el.dispatchEvent(new Event('change', {{bubbles:true}})); return true; }})()",
+            serde_json::to_string(value).unwrap_or_else(|_| "\"\"".into())
+        );
+        if self.evaluate(&expression).await?.as_bool() != Some(true) {
+            return Err(AppError::BadRequest("A referência não existe mais.".into()));
+        }
+        Ok(json!({ "ok": true, "value": value }))
+    }
+
+    pub async fn set_checked(&self, reference: &str, checked: bool) -> AppResult<Value> {
+        let reference = valid_ref(reference)?;
+        let expression = format!(
+            "(() => {{ const el = document.querySelector('[data-jeff-ref=\"{reference}\"]'); \
+             if (!el) return false; el.checked = {checked}; \
+             el.dispatchEvent(new Event('input', {{bubbles:true}})); \
+             el.dispatchEvent(new Event('change', {{bubbles:true}})); return true; }})()"
+        );
+        if self.evaluate(&expression).await?.as_bool() != Some(true) {
+            return Err(AppError::BadRequest("A referência não existe mais.".into()));
+        }
+        Ok(json!({ "ok": true, "checked": checked }))
+    }
+
+    pub async fn wait_for_text(&self, text: &str, timeout_ms: u64) -> AppResult<Value> {
+        let needle = serde_json::to_string(text).unwrap_or_else(|_| "\"\"".into());
+        let expression = format!("!!(document.body && document.body.innerText.includes({needle}))");
+        let deadline = Instant::now() + Duration::from_millis(timeout_ms.clamp(500, 30_000));
+        loop {
+            if self.evaluate(&expression).await?.as_bool() == Some(true) {
+                return Ok(json!({ "found": true, "text": text }));
+            }
+            if Instant::now() >= deadline {
+                return Err(AppError::BadRequest(format!(
+                    "O texto \"{text}\" não apareceu a tempo."
+                )));
+            }
+            tokio::time::sleep(Duration::from_millis(300)).await;
+        }
+    }
+
+    pub async fn fill_fields(&self, fields: &[(String, String)]) -> AppResult<Value> {
+        let mut items = Vec::new();
+        for (reference, value) in fields {
+            let reference = valid_ref(reference)?;
+            items.push(json!({ "ref": reference, "value": value }));
+        }
+        let expression = format!(
+            "(() => {{ const items = {}; let filled = 0; \
+             for (const item of items) {{ \
+               const el = document.querySelector('[data-jeff-ref=\"' + item.ref + '\"]'); \
+               if (!el) continue; el.focus(); el.value = item.value; \
+               el.dispatchEvent(new Event('input', {{bubbles:true}})); \
+               el.dispatchEvent(new Event('change', {{bubbles:true}})); filled++; \
+             }} return filled; }})()",
+            serde_json::to_string(&items).unwrap_or_else(|_| "[]".into())
+        );
+        let filled = self.evaluate(&expression).await?;
+        Ok(json!({ "ok": true, "filled": filled }))
+    }
+
+    pub async fn drag_ref(&self, from: &str, to: &str) -> AppResult<Value> {
+        let from = valid_ref(from)?;
+        let to = valid_ref(to)?;
+        let expression = format!(
+            "(() => {{ const a = document.querySelector('[data-jeff-ref=\"{from}\"]'); \
+             const b = document.querySelector('[data-jeff-ref=\"{to}\"]'); \
+             if (!a || !b) return null; const ra = a.getBoundingClientRect(); \
+             const rb = b.getBoundingClientRect(); \
+             return {{x1: ra.left + ra.width / 2, y1: ra.top + ra.height / 2, \
+                      x2: rb.left + rb.width / 2, y2: rb.top + rb.height / 2}}; }})()"
+        );
+        let points = self.evaluate(&expression).await?;
+        let (Some(x1), Some(y1), Some(x2), Some(y2)) = (
+            points["x1"].as_f64(),
+            points["y1"].as_f64(),
+            points["x2"].as_f64(),
+            points["y2"].as_f64(),
+        ) else {
+            return Err(AppError::BadRequest(
+                "As referências do arrasto não existem mais.".into(),
+            ));
+        };
+        for (kind, x, y) in [
+            ("mousePressed", x1, y1),
+            ("mouseMoved", (x1 + x2) / 2.0, (y1 + y2) / 2.0),
+            ("mouseMoved", x2, y2),
+            ("mouseReleased", x2, y2),
+        ] {
+            self.command(
+                "Input.dispatchMouseEvent",
+                json!({
+                    "type": kind,
+                    "x": x,
+                    "y": y,
+                    "button": "left",
+                    "buttons": if kind == "mouseReleased" { 0 } else { 1 },
+                    "clickCount": if kind == "mousePressed" { 1 } else { 0 },
+                }),
+            )
+            .await
+            .map_err(AppError::Upstream)?;
+            tokio::time::sleep(Duration::from_millis(80)).await;
+        }
+        Ok(json!({ "ok": true }))
+    }
+
+    pub async fn screenshot(&self) -> AppResult<Value> {
+        let result = self
+            .command("Page.captureScreenshot", json!({ "format": "png" }))
+            .await
+            .map_err(AppError::Upstream)?;
+        let data = result["result"]["data"]
+            .as_str()
+            .ok_or_else(|| AppError::Upstream("O Chromium não devolveu a imagem.".into()))?;
+        Ok(json!({
+            "__image": { "data": data, "mimeType": "image/png" }
+        }))
+    }
+
+    pub async fn set_environment(
+        &self,
+        width: Option<u32>,
+        height: Option<u32>,
+        color_scheme: Option<&str>,
+        reduced_motion: Option<bool>,
+    ) -> AppResult<Value> {
+        if let (Some(width), Some(height)) = (width, height) {
+            self.command(
+                "Emulation.setDeviceMetricsOverride",
+                json!({
+                    "width": width.clamp(240, 3840),
+                    "height": height.clamp(240, 2160),
+                    "deviceScaleFactor": 1,
+                    "mobile": false,
+                }),
+            )
+            .await
+            .map_err(AppError::Upstream)?;
+        }
+        if let Some(scheme) = color_scheme.filter(|value| ["light", "dark"].contains(value)) {
+            self.command(
+                "Emulation.setEmulatedMedia",
+                json!({ "features": [{ "name": "prefers-color-scheme", "value": scheme }] }),
+            )
+            .await
+            .map_err(AppError::Upstream)?;
+        }
+        if let Some(reduced) = reduced_motion {
+            self.command(
+                "Emulation.setEmulatedMedia",
+                json!({
+                    "features": [{
+                        "name": "prefers-reduced-motion",
+                        "value": if reduced { "reduce" } else { "no-preference" }
+                    }]
+                }),
+            )
+            .await
+            .map_err(AppError::Upstream)?;
+        }
+        Ok(json!({ "ok": true }))
+    }
+
+    pub async fn upload_files(&self, reference: &str, paths: &[String]) -> AppResult<Value> {
+        let reference = valid_ref(reference)?;
+        let document = self
+            .command("DOM.getDocument", json!({ "depth": -1 }))
+            .await
+            .map_err(AppError::Upstream)?;
+        let root = document["result"]["root"]["nodeId"]
+            .as_i64()
+            .ok_or_else(|| AppError::Upstream("DOM indisponível.".into()))?;
+        let found = self
+            .command(
+                "DOM.querySelector",
+                json!({
+                    "nodeId": root,
+                    "selector": format!("[data-jeff-ref=\"{reference}\"]"),
+                }),
+            )
+            .await
+            .map_err(AppError::Upstream)?;
+        let node = found["result"]["nodeId"]
+            .as_i64()
+            .filter(|node| *node != 0)
+            .ok_or_else(|| AppError::BadRequest("O campo de arquivo não existe mais.".into()))?;
+        self.command(
+            "DOM.setFileInputFiles",
+            json!({ "files": paths, "nodeId": node }),
+        )
+        .await
+        .map_err(AppError::Upstream)?;
+        Ok(json!({ "ok": true, "files": paths.len() }))
     }
 
     pub async fn press(&self, key: &str) -> AppResult<Value> {
@@ -437,7 +856,12 @@ impl BrowserSession {
     }
 }
 
-async fn launch(project_id: &str, root: &Path, data_dir: &Path) -> AppResult<Arc<BrowserSession>> {
+async fn launch(
+    project_id: &str,
+    root: &Path,
+    data_dir: &Path,
+    proxy: &str,
+) -> AppResult<Arc<BrowserSession>> {
     let binary = chromium_binary().ok_or_else(|| {
         AppError::ServiceUnavailable(
             "Chromium não encontrado no servidor; defina JEFF_CHROMIUM com o caminho do binário."
@@ -472,6 +896,11 @@ async fn launch(project_id: &str, root: &Path, data_dir: &Path) -> AppResult<Arc
         .arg("--remote-debugging-address=127.0.0.1")
         .arg("--remote-debugging-port=0")
         .arg(format!("--user-data-dir={}", user_data.display()))
+        .args(if proxy.trim().is_empty() {
+            vec![]
+        } else {
+            vec![format!("--proxy-server={}", proxy.trim())]
+        })
         .arg("about:blank")
         .current_dir(root)
         .stdin(Stdio::null())
@@ -567,8 +996,12 @@ async fn launch(project_id: &str, root: &Path, data_dir: &Path) -> AppResult<Arc
         console,
         network,
         streaming: AtomicBool::new(false),
+        last_used: AtomicI64::new(chrono::Utc::now().timestamp_millis()),
         clients: AtomicUsize::new(0),
         closed: AtomicBool::new(false),
+        takeover: AtomicBool::new(false),
+        recording_on: AtomicBool::new(false),
+        recording: Mutex::new(Vec::new()),
         child: Mutex::new(Some(child)),
     });
 
@@ -760,6 +1193,19 @@ fn console_text(params: &Value) -> String {
                 .join(" ")
         })
         .unwrap_or_default()
+}
+
+fn valid_ref(value: &str) -> AppResult<&str> {
+    let reference = value.trim();
+    let valid = reference.len() >= 2
+        && reference.starts_with('r')
+        && reference[1..].chars().all(|c| c.is_ascii_digit());
+    if !valid {
+        return Err(AppError::BadRequest(
+            "Referência inválida; use a do último snapshot.".into(),
+        ));
+    }
+    Ok(reference)
 }
 
 fn key_fields(key: &str) -> (&'static str, u32, &'static str) {

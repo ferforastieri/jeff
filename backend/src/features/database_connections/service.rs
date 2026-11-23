@@ -8,7 +8,6 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
-use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use futures_util::{StreamExt, TryStreamExt};
@@ -19,8 +18,7 @@ use sqlx::error::BoxDynError;
 use sqlx::mysql::{MySqlArguments, MySqlPool, MySqlPoolOptions, MySqlRow};
 use sqlx::postgres::{PgArgumentBuffer, PgArguments, PgPool, PgPoolOptions, PgRow};
 use sqlx::query::Query as SqlxQuery;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions, SqliteRow};
-use sqlx::{Column, Executor, MySql, Postgres, Row, Sqlite, TypeInfo, ValueRef};
+use sqlx::{Column, Executor, MySql, Postgres, Row, TypeInfo, ValueRef};
 use tokio_util::compat::TokioAsyncWriteCompatExt;
 use url::Url;
 
@@ -167,12 +165,6 @@ impl DatabaseService {
                 pool.close().await;
                 Ok(())
             }
-            "sqlite" => {
-                let pool = open_sqlite(&dsn, profile.read_only).await?;
-                ping_sqlite(&pool).await?;
-                pool.close().await;
-                Ok(())
-            }
             _ => Err(AppError::UnsupportedDriver),
         }
     }
@@ -204,7 +196,6 @@ impl DatabaseService {
             "neo4j" => query_neo4j(&dsn, sql, max_rows).await,
             "postgres" => query_pg(&dsn, sql, max_rows, profile.read_only).await,
             "mysql" => query_mysql(&dsn, sql, max_rows).await,
-            "sqlite" => query_sqlite(&dsn, sql, max_rows, profile.read_only).await,
             "sqlserver" => query_sqlserver(&dsn, sql, max_rows, profile.read_only).await,
             "oracle" => query_oracle(&dsn, sql, max_rows).await,
             "clickhouse" => query_clickhouse(&dsn, sql, max_rows).await,
@@ -229,12 +220,6 @@ impl DatabaseService {
             "mysql" => {
                 let pool = open_mysql(&dsn).await?;
                 let result = schema_mysql(&pool).await;
-                pool.close().await;
-                result
-            }
-            "sqlite" => {
-                let pool = open_sqlite(&dsn, profile.read_only).await?;
-                let result = schema_sqlite(&pool).await;
                 pool.close().await;
                 result
             }
@@ -368,9 +353,7 @@ impl DatabaseService {
             return Err(AppError::BadRequest("profile is read-only".into()));
         }
         match profile.driver.as_str() {
-            "postgres" | "mysql" | "sqlite" | "sqlserver" | "oracle" | "clickhouse" => {
-                Ok((profile, dsn))
-            }
+            "postgres" | "mysql" | "sqlserver" | "oracle" | "clickhouse" => Ok((profile, dsn)),
             _ => Err(AppError::BadRequest(
                 "row editing is available for SQL profiles only".into(),
             )),
@@ -383,7 +366,6 @@ fn supported(driver: &str) -> bool {
         driver,
         "postgres"
             | "mysql"
-            | "sqlite"
             | "sqlserver"
             | "oracle"
             | "clickhouse"
@@ -510,18 +492,6 @@ fn is_read_only_neo4j(query: &str) -> bool {
     ["match", "return", "call", "with", "unwind", "show"]
         .iter()
         .any(|prefix| lower.starts_with(prefix))
-}
-
-fn sqlite_read_only(dsn: &str) -> String {
-    if dsn.starts_with("file:") {
-        if dsn.contains('?') {
-            format!("{dsn}&mode=ro")
-        } else {
-            format!("{dsn}?mode=ro")
-        }
-    } else {
-        format!("file:{dsn}?mode=ro")
-    }
 }
 
 fn postgres_read_only(dsn: &str) -> String {
@@ -873,40 +843,6 @@ async fn ping_mysql(pool: &MySqlPool) -> AppResult<()> {
         .map(|_| ())
         .map_err(|error| upstream("mysql", error))
 }
-
-async fn open_sqlite(dsn: &str, read_only: bool) -> AppResult<SqlitePool> {
-    let effective = if read_only {
-        sqlite_read_only(dsn)
-    } else {
-        dsn.to_string()
-    };
-    let mut options =
-        SqliteConnectOptions::from_str(&effective).map_err(|error| upstream("sqlite", error))?;
-    if !read_only {
-        options = options.create_if_missing(true);
-    }
-    SqlitePoolOptions::new()
-        .max_connections(2)
-        .min_connections(0)
-        .max_lifetime(Duration::from_secs(300))
-        .idle_timeout(Duration::from_secs(60))
-        .acquire_timeout(CONNECT_TIMEOUT)
-        .connect_with(options)
-        .await
-        .map_err(|error| upstream("sqlite", error))
-}
-
-async fn ping_sqlite(pool: &SqlitePool) -> AppResult<()> {
-    sqlx::query("SELECT 1")
-        .execute(pool)
-        .await
-        .map(|_| ())
-        .map_err(|error| upstream("sqlite", error))
-}
-
-// ---------------------------------------------------------------------------
-// Postgres query / schema
-// ---------------------------------------------------------------------------
 
 async fn query_pg(
     dsn: &str,
@@ -1483,151 +1419,6 @@ async fn schema_mysql(pool: &MySqlPool) -> AppResult<Vec<SchemaTable>> {
                 primary: primary != 0,
             });
         }
-    }
-    Ok(tables)
-}
-
-// ---------------------------------------------------------------------------
-// SQLite query / schema
-// ---------------------------------------------------------------------------
-
-async fn query_sqlite(
-    dsn: &str,
-    sql: &str,
-    max_rows: usize,
-    read_only: bool,
-) -> AppResult<QueryResult> {
-    let pool = open_sqlite(dsn, read_only).await?;
-    let started = Instant::now();
-    let work = async {
-        let mut columns = match pool.describe(sql).await {
-            Ok(description) => description
-                .columns()
-                .iter()
-                .map(|column| QueryColumn {
-                    name: column.name().to_string(),
-                    type_name: column.type_info().name().to_string(),
-                })
-                .collect::<Vec<_>>(),
-            Err(_) => Vec::new(),
-        };
-        let mut rows: Vec<Vec<Value>> = Vec::new();
-        let mut truncated = false;
-        let mut stream = sqlx::query(sql).fetch(&pool);
-        while let Some(row) = stream
-            .try_next()
-            .await
-            .map_err(|error| upstream("sqlite", error))?
-        {
-            if rows.len() >= max_rows {
-                truncated = true;
-                break;
-            }
-            if columns.is_empty() {
-                columns = row
-                    .columns()
-                    .iter()
-                    .map(|column| QueryColumn {
-                        name: column.name().to_string(),
-                        type_name: column.type_info().name().to_string(),
-                    })
-                    .collect();
-            }
-            rows.push(sqlite_row_values(&row));
-        }
-        Ok(QueryResult {
-            columns,
-            row_count: rows.len(),
-            rows,
-            truncated,
-            duration_ms: started.elapsed().as_millis() as i64,
-        })
-    };
-    let result = tokio::time::timeout(QUERY_TIMEOUT, work)
-        .await
-        .map_err(|_| upstream("sqlite", "query timed out"))?;
-    pool.close().await;
-    result
-}
-
-fn sqlite_row_values(row: &SqliteRow) -> Vec<Value> {
-    let mut values = Vec::with_capacity(row.columns().len());
-    for index in 0..row.columns().len() {
-        values.push(sqlite_value(row, index));
-    }
-    values
-}
-
-fn sqlite_value(row: &SqliteRow, index: usize) -> Value {
-    let raw = match row.try_get_raw(index) {
-        Ok(raw) => raw,
-        Err(_) => return Value::Null,
-    };
-    if raw.is_null() {
-        return Value::Null;
-    }
-    let type_name = raw.type_info().name().to_string();
-    match type_name.as_str() {
-        "INTEGER" => row
-            .try_get::<i64, _>(index)
-            .map(json_integer)
-            .unwrap_or(Value::Null),
-        "REAL" => row
-            .try_get::<f64, _>(index)
-            .map(json_number)
-            .unwrap_or(Value::Null),
-        "TEXT" => row
-            .try_get::<String, _>(index)
-            .map(Value::String)
-            .unwrap_or(Value::Null),
-        "BLOB" => row
-            .try_get::<Vec<u8>, _>(index)
-            .map(|bytes| normalize_bytes(&bytes))
-            .unwrap_or(Value::Null),
-        _ => match row.try_get::<String, _>(index) {
-            Ok(value) => Value::String(value),
-            Err(_) => match row.try_get::<Vec<u8>, _>(index) {
-                Ok(bytes) => normalize_bytes(&bytes),
-                Err(_) => Value::Null,
-            },
-        },
-    }
-}
-
-async fn schema_sqlite(pool: &SqlitePool) -> AppResult<Vec<SchemaTable>> {
-    let names = sqlx::query(
-        "SELECT name FROM sqlite_master
-         WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%'
-         ORDER BY name",
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|error| upstream("sqlite", error))?;
-
-    let mut tables = Vec::with_capacity(names.len());
-    for row in names {
-        let name: String = row.try_get(0)?;
-        let mut table = SchemaTable {
-            schema: "main".into(),
-            name: name.clone(),
-            columns: Vec::new(),
-        };
-        let pragma = format!("PRAGMA table_info({})", quote_ident("sqlite", &name));
-        let column_rows = sqlx::query(&pragma)
-            .fetch_all(pool)
-            .await
-            .map_err(|error| upstream("sqlite", error))?;
-        for column in column_rows {
-            let not_null: i64 = column.try_get(3)?;
-            let primary: i64 = column.try_get(5)?;
-            table.columns.push(SchemaColumn {
-                name: column.try_get(1)?,
-                type_name: column.try_get(2)?,
-                nullable: not_null == 0,
-                primary: primary > 0,
-            });
-        }
-        tables.push(table);
     }
     Ok(tables)
 }
@@ -3910,19 +3701,6 @@ async fn execute_sql(driver: &str, dsn: &str, sql: &str, params: &[Value]) -> Ap
             pool.close().await;
             Ok(result?.rows_affected())
         }
-        "sqlite" => {
-            let pool = open_sqlite(dsn, false).await?;
-            let mut query = sqlx::query(sql);
-            for param in params {
-                query = bind_sqlite(query, param);
-            }
-            let result = query
-                .execute(&pool)
-                .await
-                .map_err(|error| upstream("sqlite", error));
-            pool.close().await;
-            Ok(result?.rows_affected())
-        }
         "sqlserver" => execute_sqlserver(dsn, sql, params).await,
         "oracle" => execute_oracle(dsn, sql, params).await,
         "clickhouse" => execute_clickhouse(dsn, sql, params).await,
@@ -3988,29 +3766,6 @@ fn bind_mysql<'q>(
         }
         Value::String(value) => query.bind(value.clone()),
         Value::Array(_) | Value::Object(_) => query.bind(sqlx::types::Json(value.clone())),
-    }
-}
-
-fn bind_sqlite<'q>(
-    query: SqlxQuery<'q, Sqlite, sqlx::sqlite::SqliteArguments<'q>>,
-    value: &Value,
-) -> SqlxQuery<'q, Sqlite, sqlx::sqlite::SqliteArguments<'q>> {
-    match value {
-        Value::Null => query.bind(Option::<String>::None),
-        Value::Bool(value) => query.bind(*value),
-        Value::Number(number) => {
-            if let Some(value) = number.as_i64() {
-                query.bind(value)
-            } else if let Some(value) = number.as_u64() {
-                query.bind(value as f64)
-            } else {
-                query.bind(number.as_f64().unwrap_or_default())
-            }
-        }
-        Value::String(value) => query.bind(value.clone()),
-        Value::Array(_) | Value::Object(_) => {
-            query.bind(serde_json::to_string(value).unwrap_or_default())
-        }
     }
 }
 

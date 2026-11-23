@@ -10,7 +10,6 @@ const GENERIC_SCHEMAS: Record<string, string> = {
 const DRIVER_NAMES: Record<string, string> = {
   postgres: "PostgreSQL",
   mysql: "MySQL",
-  sqlite: "SQLite",
   sqlserver: "SQL Server",
   oracle: "Oracle",
   clickhouse: "ClickHouse",

@@ -35,7 +35,7 @@ RUN pip install --no-cache-dir --target /debugpy debugpy==1.8.22
 
 FROM debian:bookworm-slim
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates bash git ripgrep openssh-client tini libsqlite3-0 python3 chromium fonts-liberation \
+    && apt-get install -y --no-install-recommends ca-certificates bash git ripgrep openssh-client tini python3 chromium fonts-liberation \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 --shell /bin/bash jeff \
     && mkdir -p /data /workspaces \

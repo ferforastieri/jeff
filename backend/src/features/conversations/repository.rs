@@ -4,8 +4,8 @@ use crate::platform::store::Store;
 use chrono::Utc;
 use serde_json::json;
 use serde_json::Value;
+use sqlx::Postgres;
 use sqlx::Row;
-use sqlx::Sqlite;
 use sqlx::Transaction;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,11 +35,12 @@ struct StoredWorkspaceMessage {
 
 impl Store {
     pub async fn workspace_layout(&self, user_id: i64, project_id: &str) -> AppResult<String> {
-        let row = sqlx::query("SELECT layout FROM workspaces WHERE user_id = ? AND project_id = ?")
-            .bind(user_id)
-            .bind(project_id)
-            .fetch_optional(&self.pool)
-            .await?;
+        let row =
+            sqlx::query("SELECT layout FROM workspaces WHERE user_id = $1 AND project_id = $2")
+                .bind(user_id)
+                .bind(project_id)
+                .fetch_optional(&self.pool)
+                .await?;
         Ok(row
             .map(|row| row.get::<String, _>("layout"))
             .unwrap_or_else(|| "{}".into()))
@@ -52,7 +53,7 @@ impl Store {
         layout: &str,
     ) -> AppResult<()> {
         sqlx::query(
-            "INSERT INTO workspaces (user_id, project_id, layout, updated_at) VALUES (?, ?, ?, ?)
+            "INSERT INTO workspaces (user_id, project_id, layout, updated_at) VALUES ($1, $2, $3, $4)
              ON CONFLICT(user_id, project_id) DO UPDATE SET layout = excluded.layout, updated_at = excluded.updated_at",
         )
         .bind(user_id)
@@ -99,7 +100,7 @@ impl Store {
         let mut transaction = self.pool.begin().await?;
         sqlx::query(
             "DELETE FROM bot_messages
-             WHERE user_id = ? AND project_id = ? AND mode = ? AND channel = ?",
+             WHERE user_id = $1 AND project_id = $2 AND mode = $3 AND channel = $4",
         )
         .bind(user_id)
         .bind(project_id)
@@ -135,8 +136,8 @@ impl Store {
     ) -> AppResult<()> {
         sqlx::query(
             "UPDATE bot_messages
-             SET payload = ?, updated_at = ?
-             WHERE user_id = ? AND project_id = ? AND mode = 'chat' AND channel = ? AND message_id = ?",
+             SET payload = $1, updated_at = $2
+             WHERE user_id = $3 AND project_id = $4 AND mode = 'chat' AND channel = $5 AND message_id = $6",
         )
         .bind(payload)
         .bind(now())
@@ -167,21 +168,21 @@ impl Store {
         let rows = sqlx::query(
             "SELECT message_id, channel, created_at, payload
              FROM bot_messages
-             WHERE user_id = ? AND project_id = ? AND mode = ?
-               AND (? IS NULL OR channel = ?)
+             WHERE user_id = $1 AND project_id = $2 AND mode = $3
+               AND ($4 IS NULL OR channel = $5)
                AND (
-                 ? = 'all'
-                 OR (? = 'conversation' AND role NOT IN ('tool', 'reasoning'))
-                 OR (? = 'activity' AND role IN ('tool', 'reasoning'))
+                 $6 = 'all'
+                 OR ($7 = 'conversation' AND role NOT IN ('tool', 'reasoning'))
+                 OR ($8 = 'activity' AND role IN ('tool', 'reasoning'))
                )
                AND (
-                 ? IS NULL
-                 OR created_at < ?
-                 OR (created_at = ? AND channel < ?)
-                 OR (created_at = ? AND channel = ? AND message_id < ?)
+                 $9 IS NULL
+                 OR created_at < $10
+                 OR (created_at = $11 AND channel < $12)
+                 OR (created_at = $13 AND channel = $14 AND message_id < $15)
                )
              ORDER BY created_at DESC, channel DESC, message_id DESC
-             LIMIT ?",
+             LIMIT $16",
         )
         .bind(user_id)
         .bind(project_id)
@@ -235,10 +236,10 @@ impl Store {
     ) -> AppResult<u64> {
         let result = sqlx::query(
             "DELETE FROM bot_messages
-             WHERE user_id = ? AND project_id = ?
-               AND (? IS NULL OR mode = ?)
-               AND (? IS NULL OR channel = ?)
-               AND (? IS NULL OR bot_id = ?)",
+             WHERE user_id = $1 AND project_id = $2
+               AND ($3 IS NULL OR mode = $4)
+               AND ($5 IS NULL OR channel = $6)
+               AND ($7 IS NULL OR bot_id = $8)",
         )
         .bind(user_id)
         .bind(project_id)
@@ -321,7 +322,7 @@ fn stored_workspace_message(mut message: Value) -> AppResult<Option<StoredWorksp
 }
 
 async fn upsert_workspace_messages(
-    transaction: &mut Transaction<'_, Sqlite>,
+    transaction: &mut Transaction<'_, Postgres>,
     user_id: i64,
     project_id: &str,
     messages: Vec<StoredWorkspaceMessage>,
@@ -330,7 +331,7 @@ async fn upsert_workspace_messages(
         sqlx::query(
             "INSERT INTO bot_messages (
                user_id, project_id, message_id, mode, channel, role, bot_id, created_at, payload, updated_at
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              ON CONFLICT(user_id, project_id, mode, channel, message_id) DO UPDATE SET
                mode = excluded.mode,
                channel = excluded.channel,

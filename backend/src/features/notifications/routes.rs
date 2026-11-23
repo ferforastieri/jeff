@@ -67,6 +67,7 @@ pub(super) struct PushTokenRequest {
 
 pub(super) async fn register_push_token(
     State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
     Json(input): Json<PushTokenRequest>,
 ) -> AppResult<Json<Value>> {
     let token = input.token.trim();
@@ -78,7 +79,7 @@ pub(super) async fn register_push_token(
     } else {
         input.platform.trim()
     };
-    state.push.register(token, platform).await?;
+    state.push.register(token, platform, auth.user.id).await?;
     Ok(Json(json!({ "status": "registered" })))
 }
 

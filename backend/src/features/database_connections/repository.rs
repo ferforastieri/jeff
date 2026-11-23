@@ -23,7 +23,7 @@ impl Store {
 
     pub async fn db_profile(&self, id: &str) -> AppResult<DbProfile> {
         sqlx::query_as::<_, DbProfile>(
-            "SELECT id, name, folder, project_root, driver, dsn_encrypted, read_only, created_at, updated_at FROM db_profiles WHERE id = ?",
+            "SELECT id, name, folder, project_root, driver, dsn_encrypted, read_only, created_at, updated_at FROM db_profiles WHERE id = $1",
         )
         .bind(id)
         .fetch_one(&self.pool)
@@ -35,7 +35,7 @@ impl Store {
         let created = now();
         sqlx::query(
             "INSERT INTO db_profiles (id, name, folder, project_root, driver, dsn_encrypted, read_only, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(&profile.id)
         .bind(&profile.name)
@@ -56,7 +56,7 @@ impl Store {
     }
 
     pub async fn delete_db_profile(&self, id: &str) -> AppResult<()> {
-        let result = sqlx::query("DELETE FROM db_profiles WHERE id = ?")
+        let result = sqlx::query("DELETE FROM db_profiles WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
             .await?;

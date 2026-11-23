@@ -8,6 +8,31 @@ pub struct User {
     #[serde(skip)]
     pub password_hash: String,
     pub created_at: String,
+    pub role: String,
+    #[serde(default)]
+    pub display_name: String,
+    #[serde(default)]
+    pub activity: String,
+    pub onboarded_at: Option<String>,
+}
+
+impl User {
+    pub fn is_admin(&self) -> bool {
+        self.role == "admin"
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct Invite {
+    pub id: String,
+    pub token: String,
+    pub role: String,
+    pub created_by: i64,
+    pub created_at: String,
+    pub expires_at: String,
+    pub used_at: Option<String>,
+    pub used_by: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]

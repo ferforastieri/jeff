@@ -202,7 +202,7 @@ pub(super) async fn harness_sessions(
                 "chatId": session.chat_id,
                 "agentId": session.agent_id,
                 "title": title,
-                "archived": session.archived,
+                "archived": session.archived != 0,
                 "createdAt": session.created_at,
                 "updatedAt": updated,
                 "directory": directory,

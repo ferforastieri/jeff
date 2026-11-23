@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { MessageSquarePlus } from "@jeff/icons";
+import { MessageSquare, MessageSquarePlus } from "@jeff/icons";
 import type { Project } from "../../../shared/api";
 import { useChats } from "../../conversations/store";
 import { chatTabId, openChatTab } from "../../conversations/navigation";
@@ -11,6 +11,7 @@ import SidebarHeader from "../../../app/components/SidebarHeader";
 import { useApp } from "../../../app/store";
 import { ensureJeff } from "../default-jeff";
 import { useActiveSessionIds } from "../useActiveSessionIds";
+import { useRoomsUI } from "../../rooms/store";
 import SessionRow from "../../conversations/components/SessionRow";
 import { agentApi, type HarnessSession } from "../api";
 import { useConfirm } from "../../../shared/ui/confirm";
@@ -130,16 +131,27 @@ export default function BotsSidebar({ project, headerControl, onSelectChat }: Pr
           ) : undefined
         }
         actions={
-          <Button
-            variant="ghost"
-            size="xs"
-            iconOnly
-            leadingIcon={MessageSquarePlus}
-            aria-label="Nova tarefa"
-            title="Começar nova tarefa"
-            disabled={!chats?.hydrated}
-            onClick={newTask}
-          />
+          <>
+            <Button
+              variant="ghost"
+              size="xs"
+              iconOnly
+              leadingIcon={MessageSquare}
+              aria-label="Salas"
+              title="Salas do projeto"
+              onClick={() => useRoomsUI.getState().openRooms()}
+            />
+            <Button
+              variant="ghost"
+              size="xs"
+              iconOnly
+              leadingIcon={MessageSquarePlus}
+              aria-label="Nova tarefa"
+              title="Começar nova tarefa"
+              disabled={!chats?.hydrated}
+              onClick={newTask}
+            />
+          </>
         }
       />
       <div className="min-h-0 flex-1 overflow-y-auto p-2.5 pt-1">
