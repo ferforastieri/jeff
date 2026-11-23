@@ -53,10 +53,6 @@ fi
 if [ "$VERSION" = "latest" ]; then
   VERSION=""
 fi
-if [ -z "$VERSION" ]; then
-  echo "Could not determine the latest Jeff release." >&2
-  exit 1
-fi
 
 install_dev_components() {
   [ "$DEV_COMPONENTS" = "none" ] && return 0
