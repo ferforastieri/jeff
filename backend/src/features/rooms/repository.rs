@@ -168,13 +168,12 @@ impl Store {
         } else {
             normalize_handle(&input.handle)
         };
-        let taken: i64 = sqlx::query_scalar(
-            "SELECT count(*) FROM principals WHERE handle = $1 AND id <> $2",
-        )
-        .bind(&wanted)
-        .bind(id)
-        .fetch_one(&self.pool)
-        .await?;
+        let taken: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM principals WHERE handle = $1 AND id <> $2")
+                .bind(&wanted)
+                .bind(id)
+                .fetch_one(&self.pool)
+                .await?;
         if taken > 0 {
             return Err(AppError::Conflict);
         }
