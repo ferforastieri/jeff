@@ -10,7 +10,9 @@ services:
     restart: unless-stopped
     init: true
     ports:
-      - "127.0.0.1:${JEFF_PORT:-8787}:8787"
+      # Publish on every interface by default so a reverse proxy on another
+      # host can reach Jeff. Set JEFF_BIND_ADDRESS=127.0.0.1 for loopback-only.
+      - "${JEFF_BIND_ADDRESS:-0.0.0.0}:${JEFF_PORT:-8787}:8787"
     environment:
       JEFF_ADDR: 0.0.0.0:8787
       JEFF_DATA_DIR: /data
