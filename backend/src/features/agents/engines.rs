@@ -26,7 +26,7 @@ pub const ENGINES: &[Engine] = &[
         label: "OpenCode",
         binary: "opencode",
         login: "opencode auth login",
-        install: "curl -fsSL https://opencode.ai/v2/install | bash",
+        install: "curl -fsSL https://opencode.ai/v2/install -o /tmp/opencode-install.sh && bash /tmp/opencode-install.sh",
         site: "https://opencode.ai",
         supported: true,
     },
@@ -35,7 +35,7 @@ pub const ENGINES: &[Engine] = &[
         label: "Claude Code",
         binary: "claude",
         login: "claude auth login",
-        install: "curl -fsSL https://claude.ai/install.sh | bash",
+        install: "curl -fsSL https://claude.ai/install.sh -o /tmp/claude-install.sh && bash /tmp/claude-install.sh",
         site: "https://code.claude.com",
         supported: true,
     },
@@ -163,7 +163,7 @@ pub fn list() -> Vec<Value> {
         .collect()
 }
 
-async fn version(path: &Path) -> Option<String> {
+pub(crate) async fn version(path: &Path) -> Option<String> {
     let output = tokio::time::timeout(
         Duration::from_secs(10),
         Command::new(path).arg("--version").output(),
@@ -552,7 +552,7 @@ pub async fn install(id: &str) -> AppResult<Value> {
         "message": if installed {
             format!("{} instalado.", engine.label)
         } else {
-            format!("O instalador terminou, mas {} não apareceu no PATH. Abra um terminal novo e teste de novo.", engine.label)
+            format!("O instalador terminou, mas {} não foi encontrado. Veja a saída da instalação e tente de novo.", engine.label)
         },
     }))
 }

@@ -5,6 +5,7 @@ pub mod engines;
 pub mod event;
 pub mod gateway;
 pub mod harness;
+pub mod harness_updates;
 pub mod models;
 pub mod repository;
 pub mod runtime;

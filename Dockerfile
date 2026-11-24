@@ -36,11 +36,15 @@ RUN pip install --no-cache-dir --target /debugpy debugpy==1.8.22
 
 FROM debian:bookworm-slim
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates bash git ripgrep openssh-client tini python3 chromium fonts-liberation \
+    && apt-get install -y --no-install-recommends ca-certificates bash git ripgrep openssh-client tini python3 chromium fonts-liberation curl unzip xz-utils libstdc++6 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 --shell /bin/bash jeff \
     && mkdir -p /data /workspaces \
     && chown -R jeff:jeff /data /workspaces
+COPY --from=web /usr/local/bin/node /usr/local/bin/node
+COPY --from=web /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 COPY --from=build /src/backend/target/release/jeff /usr/local/bin/jeff
 COPY --from=pydebug /debugpy /usr/local/lib/jeff/debug-adapters/python
 USER jeff

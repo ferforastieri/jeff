@@ -456,6 +456,22 @@ impl AppState {
         state.spawn_notification_subscriber();
         state.rooms.recover().await;
         state.routines.spawn();
+        let harness_state = Arc::downgrade(&state);
+        tokio::spawn(async move {
+            tokio::time::sleep(crate::features::agents::harness_updates::FIRST_CHECK_DELAY).await;
+            loop {
+                let Some(state) = harness_state.upgrade() else {
+                    break;
+                };
+                if let Err(error) =
+                    crate::features::agents::harness_updates::check(&state.store, &state.push).await
+                {
+                    tracing::warn!(%error, "could not check harness updates");
+                }
+                drop(state);
+                tokio::time::sleep(crate::features::agents::harness_updates::CHECK_INTERVAL).await;
+            }
+        });
         let room_notify = Arc::downgrade(&state);
         state.rooms.set_on_complete(move |notice| {
             if let Some(state) = room_notify.upgrade() {
