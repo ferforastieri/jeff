@@ -177,15 +177,10 @@ impl Store {
         if taken > 0 {
             return Err(AppError::Conflict);
         }
-        let mut config = current.bot.unwrap_or(BotConfig {
-            engine: String::new(),
-            model: String::new(),
-            effort: String::new(),
-            title: String::new(),
-            persona: String::new(),
-            folders: Vec::new(),
-            proxy: String::new(),
-        });
+        let mut config: BotConfig = current
+            .bot
+            .and_then(|value| serde_json::from_value(value).ok())
+            .unwrap_or_default();
         config.engine = input.engine;
         config.model = input.model;
         config.effort = input.effort;
