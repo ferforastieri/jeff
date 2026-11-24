@@ -1,3 +1,5 @@
+import { Button as KitButton } from "@jeff/ui/kit";
+import { Input as KitInput, Textarea as KitTextarea, NativeSelect as KitSelect } from "@jeff/ui/kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Plus, Search, Send, X } from "@jeff/icons";
 import { api, type Project, type RoomEventItem } from "../../shared/api";
@@ -12,6 +14,7 @@ import TeamPanel from "./TeamPanel";
 import VaultPanel from "./VaultPanel";
 import VoicePanel from "./VoicePanel";
 import { useRoomsUI } from "./store";
+import { formatTime } from "../../shared/time";
 
 type RoomSearchResults = Awaited<ReturnType<typeof api.roomSearch>>;
 
@@ -23,7 +26,7 @@ const primaryButton =
   "inline-flex items-center gap-1 rounded-lg bg-accent-500 px-3 py-1.5 text-caption-1-medium text-white disabled:opacity-40";
 
 function clock(value: number): string {
-  return new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return formatTime(value);
 }
 
 function initials(name: string): string {
@@ -270,7 +273,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
         <header className="flex h-10 shrink-0 items-center gap-2 border-b border-separator-border px-3">
           <strong className="text-body-2-medium">Salas</strong>
           <span className="min-w-0 flex-1" />
-          <button
+          <KitButton variant="raw"
             className={`${quietButton} relative`}
             onClick={() => setBell((value) => !value)}
             aria-label="Notificações de sala"
@@ -282,10 +285,10 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                 {unreadRoom.length}
               </span>
             ) : null}
-          </button>
-          <button className={quietButton} onClick={close} aria-label="Fechar salas">
+          </KitButton>
+          <KitButton variant="raw" className={quietButton} onClick={close} aria-label="Fechar salas">
             <X size={16} />
-          </button>
+          </KitButton>
         </header>
         {bell ? (
           <div className="absolute inset-x-2 top-11 z-20 max-h-80 overflow-y-auto rounded-xl border border-border-button-white bg-background-primary-default p-1 shadow-2xl">
@@ -295,7 +298,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
               </p>
             ) : (
               unreadRoom.map((item) => (
-                <button
+                <KitButton variant="raw"
                   key={item.id}
                   className="block w-full rounded-lg px-2 py-1.5 text-left hover:bg-background-tertiary-default"
                   onClick={() => {
@@ -309,7 +312,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                   <span className="line-clamp-2 block text-caption-2-regular text-text-tertiary">
                     {item.body}
                   </span>
-                </button>
+                </KitButton>
               ))
             )}
           </div>
@@ -327,7 +330,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
               ["vault", "Cofre"],
             ] as const
           ).map(([id, label]) => (
-            <button
+            <KitButton variant="raw"
               key={id}
               className={
                 view === id
@@ -337,20 +340,20 @@ export default function RoomsOverlay({ project }: { project: Project }) {
               onClick={() => setView(id)}
             >
               {label}
-            </button>
+            </KitButton>
           ))}
         </div>
         <div className="flex gap-1 border-b border-separator-border px-2 py-2">
-          <button className={quietButton} onClick={() => setShowRoomForm(true)}>
+          <KitButton variant="raw" className={quietButton} onClick={() => setShowRoomForm(true)}>
             <Plus size={14} /> Sala
-          </button>
-          <button className={quietButton} onClick={() => setShowBotForm(true)}>
+          </KitButton>
+          <KitButton variant="raw" className={quietButton} onClick={() => setShowBotForm(true)}>
             <Bot size={14} /> Bot
-          </button>
+          </KitButton>
         </div>
         <div className="flex items-center gap-1 border-b border-separator-border px-2 py-1.5">
           <Search size={14} className="shrink-0 text-text-tertiary" />
-          <input
+          <KitInput raw
             className="min-w-0 flex-1 bg-transparent text-caption-1-regular text-text-primary outline-none placeholder:text-text-tertiary"
             placeholder="Buscar salas, mensagens e cards"
             value={query}
@@ -363,9 +366,9 @@ export default function RoomsOverlay({ project }: { project: Project }) {
           {searching ? (
             <span className="text-caption-2-regular text-text-tertiary">…</span>
           ) : results ? (
-            <button className={quietButton} onClick={clearSearch} aria-label="Limpar busca">
+            <KitButton variant="raw" className={quietButton} onClick={clearSearch} aria-label="Limpar busca">
               <X size={12} />
-            </button>
+            </KitButton>
           ) : null}
         </div>
         <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
@@ -377,7 +380,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                     Salas
                   </p>
                   {results.rooms.map((item) => (
-                    <button
+                    <KitButton variant="raw"
                       key={item.id}
                       className="block w-full rounded-lg px-2 py-1.5 text-left hover:bg-background-tertiary-default"
                       onClick={() => {
@@ -392,7 +395,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                           {item.title}
                         </span>
                       ) : null}
-                    </button>
+                    </KitButton>
                   ))}
                 </section>
               ) : null}
@@ -402,7 +405,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                     Mensagens
                   </p>
                   {results.messages.map((item) => (
-                    <button
+                    <KitButton variant="raw"
                       key={item.id}
                       className="block w-full rounded-lg px-2 py-1.5 text-left hover:bg-background-tertiary-default"
                       onClick={() => {
@@ -417,7 +420,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                       <span className="line-clamp-2 block text-caption-1-regular">
                         {item.text}
                       </span>
-                    </button>
+                    </KitButton>
                   ))}
                 </section>
               ) : null}
@@ -427,7 +430,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                     Cards
                   </p>
                   {results.cards.map((item) => (
-                    <button
+                    <KitButton variant="raw"
                       key={item.id}
                       className="block w-full rounded-lg px-2 py-1.5 text-left hover:bg-background-tertiary-default"
                       onClick={() => {
@@ -439,7 +442,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                       <span className="block truncate text-caption-2-regular text-text-tertiary">
                         {item.column}
                       </span>
-                    </button>
+                    </KitButton>
                   ))}
                 </section>
               ) : null}
@@ -451,11 +454,11 @@ export default function RoomsOverlay({ project }: { project: Project }) {
             </div>
           ) : rooms.length === 0 ? (
             <p className="px-2 py-6 text-caption-1-regular text-text-tertiary">
-              Nenhuma sala neste projeto ainda.
+              Nenhuma sala neste repo ainda.
             </p>
           ) : (
             rooms.map((item) => (
-              <button
+              <KitButton variant="raw"
                 key={item.id}
                 onClick={() => select(item.id)}
                 className={`flex w-full items-start gap-2 rounded-xl px-2 py-2 text-left ${
@@ -473,7 +476,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                     {item.title || `${item.members.length} membro${item.members.length === 1 ? "" : "s"}`}
                   </span>
                 </span>
-              </button>
+              </KitButton>
             ))
           )}
         </div>
@@ -530,7 +533,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
               <div className="min-w-0 flex-1">
                 <h2 className="truncate text-body-1-medium">{room.name}</h2>
                 <p className="truncate text-caption-1-regular text-text-tertiary">
-                  {room.title || room.instructions || "Sala do projeto"}
+                  {room.title || room.instructions || "Sala do repo"}
                 </p>
               </div>
               <div className="flex items-center gap-1">
@@ -548,15 +551,15 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                   </span>
                 ))}
               </div>
-              <button
+              <KitButton variant="raw"
                 className={quietButton}
                 onClick={() => void toggleHistory()}
                 title="Histórico da sala"
               >
                 <History size={14} />
-              </button>
+              </KitButton>
               {available.length > 0 ? (
-                <select
+                <KitSelect raw
                   className="rounded-lg border border-border-button-default bg-background-primary-default px-2 py-1 text-caption-1-regular"
                   value=""
                   onChange={(event) => {
@@ -569,7 +572,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                       {bot.name}
                     </option>
                   ))}
-                </select>
+                </KitSelect>
               ) : null}
             </header>
 
@@ -618,7 +621,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
 
             <footer className="shrink-0 border-t border-separator-border p-3">
               <div className="flex items-end gap-2">
-                <textarea
+                <KitTextarea raw
                   className={`${field} max-h-40 min-h-[44px] resize-none`}
                   placeholder={`Mensagem em ${room.name}`}
                   value={draft}
@@ -630,9 +633,9 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                     }
                   }}
                 />
-                <button className={primaryButton} onClick={() => void send()} disabled={sending || !draft.trim()}>
+                <KitButton variant="raw" className={primaryButton} onClick={() => void send()} disabled={sending || !draft.trim()}>
                   <Send size={14} /> Enviar
-                </button>
+                </KitButton>
               </div>
             </footer>
           </>
@@ -648,9 +651,9 @@ export default function RoomsOverlay({ project }: { project: Project }) {
           <section className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border-button-white bg-background-primary-default p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-body-1-medium">Histórico de {room?.name}</h3>
-              <button className={quietButton} onClick={() => setRoomHistory(null)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => setRoomHistory(null)}>
                 <CloseIcon size={14} />
-              </button>
+              </KitButton>
             </div>
             {roomHistory.length === 0 ? (
               <p className="text-caption-1-regular text-text-tertiary">Sem eventos ainda.</p>
@@ -677,14 +680,14 @@ export default function RoomsOverlay({ project }: { project: Project }) {
           <section className="w-full max-w-md rounded-2xl border border-border-button-white bg-background-primary-default p-4">
             <h3 className="mb-3 text-body-1-medium">Nova sala</h3>
             <div className="space-y-2">
-              <input
+              <KitInput raw
                 className={field}
                 placeholder="Nome da sala"
                 value={roomName}
                 onChange={(event) => setRoomName(event.target.value)}
                 autoFocus
               />
-              <textarea
+              <KitTextarea raw
                 className={`${field} min-h-20`}
                 placeholder="Instruções que todo membro lê (opcional)"
                 value={roomInstructions}
@@ -696,7 +699,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                   <div className="max-h-40 space-y-1 overflow-y-auto">
                     {bots.map((bot) => (
                       <label key={bot.id} className="flex items-center gap-2 text-caption-1-regular">
-                        <input
+                        <KitInput raw
                           type="checkbox"
                           checked={roomMembers.includes(bot.id)}
                           onChange={(event) =>
@@ -712,7 +715,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                     ))}
                   </div>
                   {roomMembers.length > 0 ? (
-                    <select
+                    <KitSelect raw
                       className={`${field} mt-2`}
                       value={roomLead}
                       onChange={(event) => setRoomLead(event.target.value)}
@@ -723,18 +726,18 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                           Líder: {bots.find((bot) => bot.id === id)?.name ?? id}
                         </option>
                       ))}
-                    </select>
+                    </KitSelect>
                   ) : null}
                 </div>
               ) : null}
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button className={quietButton} onClick={() => setShowRoomForm(false)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => setShowRoomForm(false)}>
                 Cancelar
-              </button>
-              <button className={primaryButton} onClick={() => void createRoom()}>
+              </KitButton>
+              <KitButton variant="raw" className={primaryButton} onClick={() => void createRoom()}>
                 Criar sala
-              </button>
+              </KitButton>
             </div>
           </section>
         </div>
@@ -745,33 +748,33 @@ export default function RoomsOverlay({ project }: { project: Project }) {
           <section className="w-full max-w-md rounded-2xl border border-border-button-white bg-background-primary-default p-4">
             <h3 className="mb-3 text-body-1-medium">Novo bot</h3>
             <div className="space-y-2">
-              <input
+              <KitInput raw
                 className={field}
                 placeholder="Nome"
                 value={botName}
                 onChange={(event) => setBotName(event.target.value)}
                 autoFocus
               />
-              <input
+              <KitInput raw
                 className={field}
                 placeholder="Handle (opcional)"
                 value={botHandle}
                 onChange={(event) => setBotHandle(event.target.value)}
               />
-              <input
+              <KitInput raw
                 className={field}
                 placeholder="Título (ex.: revisor de código)"
                 value={botTitle}
                 onChange={(event) => setBotTitle(event.target.value)}
               />
-              <textarea
+              <KitTextarea raw
                 className={`${field} min-h-20`}
                 placeholder="Persona e instruções"
                 value={botPersona}
                 onChange={(event) => setBotPersona(event.target.value)}
               />
               <div className="grid grid-cols-2 gap-2">
-                <select
+                <KitSelect raw
                   className={field}
                   value={botEngine}
                   onChange={(event) => setBotEngine(event.target.value)}
@@ -779,21 +782,21 @@ export default function RoomsOverlay({ project }: { project: Project }) {
                   <option value="claude">Claude Code</option>
                   <option value="codex">Codex</option>
                   <option value="opencode">OpenCode</option>
-                </select>
-                <input
+                </KitSelect>
+                <KitInput raw
                   className={field}
                   placeholder="Modelo"
                   value={botModel}
                   onChange={(event) => setBotModel(event.target.value)}
                 />
               </div>
-              <input
+              <KitInput raw
                 className={field}
                 placeholder="Effort (opcional)"
                 value={botEffort}
                 onChange={(event) => setBotEffort(event.target.value)}
               />
-              <input
+              <KitInput raw
                 className={field}
                 placeholder="Proxy do navegador (ex.: http://host:3128)"
                 value={botProxy}
@@ -801,12 +804,12 @@ export default function RoomsOverlay({ project }: { project: Project }) {
               />
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button className={quietButton} onClick={() => setShowBotForm(false)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => setShowBotForm(false)}>
                 Cancelar
-              </button>
-              <button className={primaryButton} onClick={() => void createBot()}>
+              </KitButton>
+              <KitButton variant="raw" className={primaryButton} onClick={() => void createBot()}>
                 Criar bot
-              </button>
+              </KitButton>
             </div>
           </section>
         </div>

@@ -95,7 +95,7 @@ export default function MobileTopBar({
           <button
             type="button"
             onClick={onProjects}
-            aria-label={`Projeto ${project.name}. ${question ? "Pergunta pendente. " : unreadCount > 0 ? `${unreadCount} notificações não lidas. ` : ""}${running ? "Agente rodando. " : ""}Ver projetos abertos`}
+            aria-label={`Repo ${project.name}. ${question ? "Pergunta pendente. " : unreadCount > 0 ? `${unreadCount} notificações não lidas. ` : ""}${running ? "Agente rodando. " : ""}Ver repos abertos`}
             title={`${project.name}\n${project.root}`}
             className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl border border-transparent bg-transparent transition-[background-color,border-color,transform] duration-300 hover:bg-background-primary-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
           >

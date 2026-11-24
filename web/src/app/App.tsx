@@ -2,10 +2,13 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { api, ApiError, setApiBase, type OnboardingStatus } from "../shared/api";
 import { isDesktopClient } from "../features/settings/store";
 import { useApp } from "./store";
-import Login from "../features/auth/components/Login";
+import { usePrefs } from "../shared/prefs";
+import EmailLogin from "../features/auth/components/EmailLogin";
 import ServerSetup from "../features/auth/components/ServerSetup";
 import UpdateToast from "../features/updates/components/UpdateToast";
+import { Button, Card } from "faang-ui";
 const Workbench = lazy(() => import("./components/Workbench"));
+const Workspace = lazy(() => import("../features/workspace/Workspace"));
 const Onboarding = lazy(() => import("../features/onboarding/Onboarding"));
 const AcceptInvite = lazy(() => import("../features/onboarding/AcceptInvite"));
 
@@ -34,6 +37,8 @@ function initialServerUrl(): string | null {
     localStorage.setItem(SERVER_KEY, queryServer);
     return queryServer;
   }
+  // The web build is served by the server it talks to; never ask for a URL first.
+  if (!isDesktopClient()) return window.location.origin;
   return localStorage.getItem(SERVER_KEY);
 }
 
@@ -42,15 +47,34 @@ function AppShell() {
   const authReady = useApp((state) => state.authReady);
   const setUser = useApp((state) => state.setUser);
   const setAuthReady = useApp((state) => state.setAuthReady);
+  const setWorkspaceTimezone = useApp((state) => state.setWorkspaceTimezone);
   const [serverUrl, setServerUrl] = useState<string | null>(initialServerUrl);
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
   const [onboardingReady, setOnboardingReady] = useState(false);
 
-  // Warm the workbench chunk while the index.html splash is still covering
-  // the app, so leaving the splash never reveals a second loading screen.
+  // Workspace/profile data is server-side now. Drop the old per-browser copies
+  // so a device never opens with a stale logo, avatar, timezone or room.
   useEffect(() => {
-    void import("./components/Workbench");
+    for (const key of [
+      "jeff_workspace_logo",
+      "jeff_profile_kind",
+      "jeff_profile_avatar",
+      "jeff_profile_photo",
+      "jeff_timezone",
+      "jeff_open_room",
+    ]) {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        /* private mode */
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (!authReady || !user) return;
+    void usePrefs.getState().load();
+  }, [authReady, user]);
 
   useEffect(() => {
     if (!authReady) return;
@@ -146,12 +170,11 @@ function AppShell() {
       .onboarding()
       .then((value) => {
         if (cancelled) return;
+        if (value.timezone) setWorkspaceTimezone(value.timezone);
         setOnboarding(value);
         setOnboardingReady(true);
-        if (!value.done) {
-          (window as Window & { __jeffWorkbenchReady?: boolean }).__jeffWorkbenchReady = true;
-          window.dispatchEvent(new Event("jeff:workbench-ready"));
-        }
+        (window as Window & { __jeffWorkbenchReady?: boolean }).__jeffWorkbenchReady = true;
+        window.dispatchEvent(new Event("jeff:workbench-ready"));
       })
       .catch(() => {
         if (cancelled) return;
@@ -166,14 +189,6 @@ function AppShell() {
   function connected(url: string) {
     localStorage.setItem(SERVER_KEY, url);
     setServerUrl(url);
-  }
-
-  function changeServer() {
-    localStorage.removeItem(SERVER_KEY);
-    setApiBase("");
-    setUser(null);
-    setAuthReady(false);
-    setServerUrl(null);
   }
 
   // The index.html splash covers this first frame; no React boot screen here.
@@ -193,8 +208,8 @@ function AppShell() {
       );
     }
     return (
-      <Login
-        onChangeServer={changeServer}
+      <EmailLogin
+        onConnected={connected}
         onOpenLauncher={isDesktopClient() ? () => void openLauncher() : undefined}
       />
     );
@@ -208,7 +223,6 @@ function AppShell() {
         <Onboarding
           status={onboarding}
           onDone={() => {
-            localStorage.setItem("jeff_open_rooms", "1");
             window.location.reload();
           }}
         />
@@ -216,11 +230,40 @@ function AppShell() {
     );
   }
 
+  const wantsDev = new URLSearchParams(window.location.search).get("dev") === "1";
+  if (onboarding?.devMode && wantsDev) {
+    localStorage.removeItem("jeff_open_rooms");
+    return (
+      <>
+        <Suspense fallback={null}><Workbench /></Suspense>
+        <UpdateToast />
+      </>
+    );
+  }
+
+  if (onboarding) {
+    return (
+      <>
+        <Suspense fallback={null}>
+          <Workspace status={onboarding} />
+        </Suspense>
+        <UpdateToast />
+      </>
+    );
+  }
+
   return (
-    <>
-      <Suspense fallback={null}><Workbench /></Suspense>
-      <UpdateToast />
-    </>
+    <main className="jeff-welcome">
+      <section className="jeff-welcome__main">
+        <Card className="jeff-step__card">
+          <h1 className="jeff-welcome__question">Não foi possível abrir o workspace</h1>
+          <p className="jeff-welcome__hint">Tente recarregar. O modo dev não é aberto por padrão.</p>
+          <Button variant="primary" size="sm" block onClick={() => window.location.reload()}>
+            Tentar de novo
+          </Button>
+        </Card>
+      </section>
+    </main>
   );
 }
 

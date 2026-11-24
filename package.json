@@ -21,7 +21,8 @@
     "build:mobile": "npm run build --workspace @jeff/mobile",
     "test": "npm run test --workspace @jeff/web",
     "build:server": "cargo build --release --manifest-path backend/Cargo.toml --bin jeff",
-    "test:server": "cargo test --manifest-path backend/Cargo.toml"
+    "test:server": "cargo test --manifest-path backend/Cargo.toml",
+    "dev:live": "JEFF_DEV_API=http://127.0.0.1:8790 npm run dev --workspace @jeff/web -- --port 5173 --strictPort"
   },
   "overrides": {
     "dompurify": "3.4.17"

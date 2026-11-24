@@ -270,3 +270,51 @@ async fn session_cache_serves_repeated_auth_and_invalidates_on_logout() {
     auth.logout(&login.session.id).await.unwrap();
     assert!(auth.authenticate(&login.token).await.is_err());
 }
+
+#[tokio::test]
+async fn email_login_claims_the_admin_and_then_reuses_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
+    let auth = AuthManager::new(store.clone(), false);
+    auth.bootstrap("secret").await.unwrap();
+
+    let first = auth
+        .login_by_email("Admin@Example.com", "web")
+        .await
+        .unwrap();
+    assert!(first.user.is_admin());
+    assert_eq!(first.user.display_name, "Admin");
+
+    let again = auth
+        .login_by_email("admin@example.com", "web")
+        .await
+        .unwrap();
+    assert_eq!(again.user.id, first.user.id);
+    assert!(again.user.is_admin());
+
+    let member = auth
+        .login_by_email("outra@example.com", "web")
+        .await
+        .unwrap();
+    assert_eq!(member.user.id, first.user.id + 1);
+    assert!(!member.user.is_admin());
+}
+
+#[tokio::test]
+async fn email_login_claims_an_admin_whose_email_is_an_empty_string() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
+    let auth = AuthManager::new(store.clone(), false);
+    auth.bootstrap("secret").await.unwrap();
+
+    let mut users = store.list_users().await.unwrap();
+    let admin = users.remove(0);
+    store.set_user_email(admin.id, "").await.unwrap();
+
+    let first = auth
+        .login_by_email("empty-admin@example.com", "web")
+        .await
+        .unwrap();
+    assert!(first.user.is_admin());
+    assert_eq!(first.user.id, admin.id);
+}

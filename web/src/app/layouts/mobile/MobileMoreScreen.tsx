@@ -7,7 +7,6 @@ import {
   Globe2,
   Moon,
   PlugZap,
-  MessageSquare,
   Settings2,
   Sparkles,
   Sun,
@@ -19,7 +18,6 @@ import { useSettings } from "../../../features/settings/store";
 import { cx } from "@jeff/ui";
 import { runThemeTransition } from "../../../shared/ui/theme-transition";
 import type { MobileScreen } from "./mobile-nav";
-import { useRoomsUI } from "../../../features/rooms/store";
 
 type SettingsSection = "general" | "skills" | "harness" | "workspace";
 
@@ -104,13 +102,12 @@ export default function MobileMoreScreen({
   const work: Action[] = [
     { id: "db", label: "Bancos de dados", description: "Conexões e queries", icon: Database, onSelect: () => onScreen("db") },
     { id: "web", label: "Web apps", description: "Sites e previews", icon: Globe2, onSelect: () => onScreen("web") },
-    { id: "terminal", label: "Terminal", description: "Shell do projeto", icon: TerminalSquare, onSelect: onTerminal },
-    { id: "rooms", label: "Salas", description: "Conversa, quadro e voz", icon: MessageSquare, onSelect: () => useRoomsUI.getState().openRooms() },
+    { id: "terminal", label: "Terminal", description: "Shell do repo", icon: TerminalSquare, onSelect: onTerminal },
     { id: "workspace", label: "Trabalho", description: activeTitle ? `Aba: ${activeTitle}` : "Editor e abas", icon: Boxes, onSelect: () => onScreen("workspace") },
   ];
 
   const projectActions: Action[] = [
-    { id: "projects", label: "Projetos", description: "Abrir ou fechar", icon: FolderGit2, onSelect: onProjects },
+    { id: "projects", label: "Repos", description: "Abrir ou fechar", icon: FolderGit2, onSelect: onProjects },
     { id: "branch", label: "Branch", description: "Trocar ou criar", icon: GitBranch, onSelect: onBranch },
     { id: "settings", label: "Configurações", description: "Sua conta e o servidor", icon: Settings2, onSelect: () => openSettings("general") },
     { id: "account", label: "Conta", description: "Sessão e servidor", icon: UserRound, onSelect: onAccount },
@@ -127,7 +124,7 @@ export default function MobileMoreScreen({
     <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto bg-background-secondary-default px-3 pb-5 pt-3">
       <Section title="Trabalho" actions={work} />
       <Section title="Jeff e IA" actions={jeffActions} />
-      <Section title="Projeto e app" actions={projectActions} />
+      <Section title="Repo e app" actions={projectActions} />
 
       <section className="flex shrink-0 items-center justify-between gap-2 rounded-2xl border border-border-button-white bg-background-primary-default px-3 py-2.5 shadow-xs">
         <span className="flex items-center gap-2 text-caption-1-medium text-text-primary">

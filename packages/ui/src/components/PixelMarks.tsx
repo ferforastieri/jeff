@@ -4,15 +4,14 @@ import type { CSSProperties } from "react";
 import { cx } from "../cx";
 
 /**
- * Pixel marks that sit next to the PixelSpinner:
- * `PixelDone`, one green pixel (the spinner grid's center cell) that pops in
- * when a step is done, `PixelFail`, an exclamation in two pixels of the danger
- * color when a step failed, and `PixelStop`, a solid rounded square that reads as
- * "stop" (it breathes while an agent works). Pure CSS; still under
- * prefers-reduced-motion. Decorative unless `label` is given.
+ * Pixel marks that sit next to the PixelSpinner: `PixelDone`, one green pixel
+ * that pops in when a step is done, `PixelFail`, an exclamation in two pixels
+ * of the danger color when a step failed, and `PixelStop`, a solid rounded
+ * square that reads as "stop" (it breathes while an agent works). Pure CSS;
+ * still under prefers-reduced-motion. Decorative unless `label` is given.
  */
 
-/** A cell of an n×n pixel grid `size` px wide: its pitch, the gap and the drawn side (PixelSpinner's rule). */
+/** A cell of an n×n pixel grid `size` px wide: its pitch, the gap and the drawn side (the pixel marks' rule). */
 export function pixelCell(size: number, n: 3 | 2) {
   const cell = size / n;
   const gap = Math.max(1, Math.round(cell * 0.14));
@@ -28,7 +27,7 @@ export interface PixelDoneProps {
   className?: string;
 }
 
-/** Done: one pixel in the ok color, the size of the spinner's center cell, popping in over ~160 ms. */
+/** Done: one pixel in the ok color, popping in over ~160 ms. */
 export function PixelDone({ size = 14, label, className }: PixelDoneProps) {
   const { inner } = pixelCell(size, 3);
   return (

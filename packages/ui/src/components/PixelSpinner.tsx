@@ -18,14 +18,18 @@ export interface PixelSpinnerProps {
 }
 
 /**
- * Our working indicator: a thin ring turning around its own axis, in the agent's color when the work is an
- * agent's and in the text's ink otherwise. Still under prefers-reduced-motion. Decorative unless `label` is
- * given: the chip or button next to it says what is happening.
+ * Our working indicator: a tiny pixel Jeff looking around and blinking, in the
+ * agent's color when the work is an agent's and in the text's ink otherwise.
+ * The face is one 7×7 sprite sheet drawn as a mask, so it takes the text's
+ * color and its eyes are the surface behind it. Still under
+ * prefers-reduced-motion. Decorative unless `label` is given: the chip or
+ * button next to it says what is happening.
  */
 export function PixelSpinner({ size = 16, color, label, className }: PixelSpinnerProps) {
   const style = {
     width: size,
     height: size,
+    "--mark-size": `${size}px`,
     ...(color ? { color: agentGradient(color)[1] } : {}),
   } as CSSProperties;
   return (

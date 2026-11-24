@@ -11,6 +11,120 @@ pub(super) struct LoginRequest {
 }
 
 #[derive(Deserialize)]
+pub(super) struct LoginEmailRequest {
+    email: String,
+    #[serde(default)]
+    kind: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct ProfileRequest {
+    display_name: String,
+}
+
+#[derive(Deserialize)]
+pub(super) struct PasswordRequest {
+    password: String,
+}
+
+/// Sets the password of the signed-in account (the first-run screen after the name).
+pub(super) async fn set_password(
+    State(state): State<Arc<AppState>>,
+    Extension(context): Extension<AuthContext>,
+    Json(input): Json<PasswordRequest>,
+) -> AppResult<Json<Value>> {
+    let length = input.password.chars().count();
+    if length < 8 {
+        return Err(AppError::BadRequest(
+            "A senha precisa ter pelo menos 8 caracteres.".into(),
+        ));
+    }
+    if length > 128 {
+        return Err(AppError::BadRequest(
+            "A senha pode ter no máximo 128 caracteres.".into(),
+        ));
+    }
+    let hash = hash_password(&input.password).map_err(|error| AppError::Internal(error.into()))?;
+    state
+        .store
+        .set_user_password(context.user.id, &hash)
+        .await?;
+    Ok(Json(json!({ "ok": true })))
+}
+
+#[derive(Deserialize)]
+pub(super) struct EmailStatusRequest {
+    email: String,
+}
+
+#[derive(Deserialize)]
+pub(super) struct RegisterRequest {
+    email: String,
+    name: String,
+    password: String,
+    #[serde(default)]
+    kind: String,
+}
+
+/// Checks the email without creating anything: the account only appears on "Criar conta".
+pub(super) async fn email_status(
+    State(state): State<Arc<AppState>>,
+    Json(input): Json<EmailStatusRequest>,
+) -> AppResult<Json<Value>> {
+    Ok(Json(json!({
+        "exists": state.auth.email_exists(&input.email).await?,
+    })))
+}
+
+pub(super) async fn register(
+    State(state): State<Arc<AppState>>,
+    ConnectInfo(connect): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+    Json(mut input): Json<RegisterRequest>,
+) -> Response {
+    let key = client_key(&headers, Some(connect), &state.config.trusted_proxies);
+    if !state.login_limiter.allow(&key) {
+        let mut response = AppError::RateLimited.into_response();
+        response
+            .headers_mut()
+            .insert(header::RETRY_AFTER, HeaderValue::from_static("60"));
+        return response;
+    }
+    if input.kind.is_empty() {
+        input.kind = "web".into();
+    }
+    if input.kind != "web" && input.kind != "mobile" {
+        return AppError::BadRequest("invalid client kind".into()).into_response();
+    }
+    let result = match state
+        .auth
+        .register_by_email(&input.email, &input.name, &input.password, &input.kind)
+        .await
+    {
+        Ok(value) => value,
+        Err(error) => return error.into_response(),
+    };
+    state.login_limiter.reset(&key);
+    let mut response = Json(json!({
+        "token": if input.kind == "mobile" { result.token.clone() } else { String::new() },
+        "csrfToken": result.csrf_token,
+        "expiresAt": result.session.expires_at,
+        "user": result.user,
+    }))
+    .into_response();
+    if input.kind == "web" {
+        append_auth_cookies(
+            response.headers_mut(),
+            &result.token,
+            &result.csrf_token,
+            state.auth.secure_cookies(),
+        );
+    }
+    response
+}
+
+#[derive(Deserialize)]
 pub(super) struct PairRequest {
     code: String,
     #[serde(default)]
@@ -72,6 +186,68 @@ pub(super) async fn pair(
         );
     }
     response
+}
+
+pub(super) async fn login_email(
+    State(state): State<Arc<AppState>>,
+    ConnectInfo(connect): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+    Json(mut input): Json<LoginEmailRequest>,
+) -> Response {
+    let key = client_key(&headers, Some(connect), &state.config.trusted_proxies);
+    if !state.login_limiter.allow(&key) {
+        let mut response = AppError::RateLimited.into_response();
+        response
+            .headers_mut()
+            .insert(header::RETRY_AFTER, HeaderValue::from_static("60"));
+        return response;
+    }
+    if input.kind.is_empty() {
+        input.kind = "web".into();
+    }
+    if input.kind != "web" && input.kind != "mobile" {
+        return AppError::BadRequest("invalid client kind".into()).into_response();
+    }
+    let result = match state.auth.login_by_email(&input.email, &input.kind).await {
+        Ok(value) => value,
+        Err(error) => return error.into_response(),
+    };
+    state.login_limiter.reset(&key);
+    let mut response = Json(json!({
+        "token": if input.kind == "mobile" { result.token.clone() } else { String::new() },
+        "csrfToken": result.csrf_token,
+        "expiresAt": result.session.expires_at,
+        "user": result.user,
+    }))
+    .into_response();
+    if input.kind == "web" {
+        append_auth_cookies(
+            response.headers_mut(),
+            &result.token,
+            &result.csrf_token,
+            state.auth.secure_cookies(),
+        );
+    }
+    response
+}
+
+pub(super) async fn update_profile(
+    State(state): State<Arc<AppState>>,
+    Extension(context): Extension<AuthContext>,
+    Json(input): Json<ProfileRequest>,
+) -> AppResult<Json<Value>> {
+    let name = input.display_name.trim();
+    if name.is_empty() || name.chars().count() > 80 {
+        return Err(crate::errors::bad_request(
+            "Informe um nome de até 80 caracteres.",
+        ));
+    }
+    state
+        .store
+        .set_user_display_name(context.user.id, name)
+        .await?;
+    let user = state.store.user_by_id(context.user.id).await?;
+    Ok(Json(json!({ "user": user })))
 }
 
 pub(super) async fn login(
@@ -324,10 +500,27 @@ pub(super) async fn list_users(
     Ok(Json(json!({ "users": state.store.list_users().await? })))
 }
 
+pub(super) async fn list_team_principals(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let mut principals = Vec::new();
+    for user in state.store.list_users().await? {
+        principals.push(state.store.ensure_human_principal(user.id).await?);
+    }
+    Ok(Json(json!({ "principals": principals })))
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct RoleRequest {
-    role: String,
+    #[serde(default)]
+    role: Option<String>,
+    #[serde(default)]
+    dev_access: Option<bool>,
 }
 
 pub(super) async fn set_role(
@@ -339,22 +532,38 @@ pub(super) async fn set_role(
     if !auth.user.is_admin() {
         return Err(AppError::Forbidden);
     }
-    if input.role == "member" {
-        let target = state.store.user_by_id(user_id).await?;
-        let admins = state
-            .store
-            .list_users()
-            .await?
-            .iter()
-            .filter(|user| user.is_admin())
-            .count() as i64;
-        if target.is_admin() && admins <= 1 {
-            return Err(AppError::BadRequest(
-                "O servidor precisa de pelo menos um admin.".into(),
-            ));
-        }
+    if input.role.is_none() && input.dev_access.is_none() {
+        return Err(AppError::BadRequest("Nada para atualizar.".into()));
     }
-    state.store.set_user_role(user_id, &input.role).await?;
+    let target = state.store.user_by_id(user_id).await?;
+    if let Some(role) = input.role.as_deref() {
+        if !["admin", "member"].contains(&role) {
+            return Err(AppError::BadRequest("Papel inválido.".into()));
+        }
+        if role == "member" {
+            let admins = state
+                .store
+                .list_users()
+                .await?
+                .iter()
+                .filter(|user| user.is_admin())
+                .count() as i64;
+            if target.is_admin() && admins <= 1 {
+                return Err(AppError::BadRequest(
+                    "O servidor precisa de pelo menos um admin.".into(),
+                ));
+            }
+        }
+        state.store.set_user_role(user_id, role).await?;
+    }
+    if let Some(allowed) = input.dev_access {
+        state.store.set_user_dev_access(user_id, allowed).await?;
+    }
+    // The user row is cached with the session; drop it so role and dev access
+    // changes apply on the next request instead of after the cache expires.
+    for session_id in state.store.session_ids_for_user(user_id).await? {
+        state.auth.invalidate_session_cache(&session_id).await;
+    }
     Ok(Json(json!({ "ok": true })))
 }
 

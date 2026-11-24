@@ -9,6 +9,7 @@ import { ensureJeff } from "../../../features/agents/default-jeff";
 import { useActiveSessionIds } from "../../../features/agents/useActiveSessionIds";
 import SessionRow from "../../../features/conversations/components/SessionRow";
 import { Button } from "@jeff/ui/app";
+import { PixelSpinner } from "@jeff/ui";
 import { Modal } from "@jeff/ui/app";
 import { useApp } from "../../store";
 
@@ -90,7 +91,7 @@ export default function MobileConversationsSheet({ open, project, onClose, onSel
       isOpen={open}
       onClose={onClose}
       title="Sessões"
-      description="As conversas deste projeto, a mais recente primeiro."
+      description="As conversas deste repo, a mais recente primeiro."
      
       size="sm"
       bodyClassName="p-2"
@@ -104,7 +105,7 @@ export default function MobileConversationsSheet({ open, project, onClose, onSel
       <div className="flex max-h-[min(60dvh,500px)] flex-col gap-0.5 overflow-y-auto">
         {!chats?.hydrated ? (
           <div className="flex items-center justify-center gap-2 py-8 text-caption-1-regular text-text-tertiary">
-            <span className="size-3 animate-spin rounded-full border-2 border-text-tertiary/30 border-t-text-tertiary" />
+            <PixelSpinner size={14} />
             Carregando...
           </div>
         ) : null}

@@ -43,6 +43,22 @@ pub struct Room {
     pub updated_at: i64,
     #[serde(default)]
     pub members: Vec<Principal>,
+    #[serde(default)]
+    pub repos: Vec<String>,
+    #[serde(default)]
+    pub category_id: Option<String>,
+    #[serde(default)]
+    pub visibility: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct ChannelCategory {
+    pub id: String,
+    pub name: String,
+    pub position: i64,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -117,6 +133,10 @@ pub struct CreateRoomInput {
     pub lead_id: Option<String>,
     #[serde(default)]
     pub member_ids: Vec<String>,
+    #[serde(default)]
+    pub category_id: Option<String>,
+    #[serde(default)]
+    pub visibility: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]

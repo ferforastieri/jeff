@@ -180,7 +180,9 @@
     "./widgets/spec": "./src/widgets/spec.ts",
     "./widgets/tiles": "./src/widgets/tiles.ts",
     "./app": "./src/app/index.ts",
-    "./app/*": "./src/app/*.ts"
+    "./app/*": "./src/app/*.ts",
+    "./kit": "./src/app/kit/index.ts",
+    "./styles/kit.css": "./src/styles/kit.css"
   },
   "files": [
     "src",
@@ -202,6 +204,7 @@
     "motion": "^12.43.0",
     "radix-ui": "^1.8.1",
     "react-aria-components": "^1.22.1",
-    "uqr": "0.1.3"
+    "uqr": "0.1.3",
+    "@jeff/icons": "*"
   }
 }

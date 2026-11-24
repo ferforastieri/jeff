@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ExternalLink, Globe2, LoaderCircle, RefreshCw } from "@jeff/icons";
+import { ArrowLeft, ArrowRight, ExternalLink, Globe2, RefreshCw } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import { api } from "../../../shared/api";
 import { IconButton } from "@jeff/ui/app";
 import { Input } from "@jeff/ui/app";
@@ -198,7 +199,7 @@ export default function DebugBrowserPanel({ projectId, agentId }: Props) {
           />
         ) : !frame ? (
           <div className="flex h-full items-center justify-center gap-2 text-caption-1-regular text-text-tertiary">
-            <LoaderCircle size={16} className="animate-spin" /> Abrindo o navegador do agente…
+            <PixelSpinner size={16} /> Abrindo o navegador do agente…
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-caption-1-regular text-text-tertiary">

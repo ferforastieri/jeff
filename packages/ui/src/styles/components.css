@@ -4200,7 +4200,7 @@ html:not([data-pointer]) .ac-color__hue:focus-visible {
   box-shadow: var(--focus-ring);
 }
 
-/* The bar above the composer: the orbit (or three dots while only people type), tiny avatars, "Theo está trabalhando…".
+/* The bar above the composer: the Jeff face (or three dots while only people type), tiny avatars, "Theo está trabalhando…".
    Its edges are the composer's: as wide as the column under it. */
 .ac-typing {
   display: flex;
@@ -4840,30 +4840,38 @@ html:not([data-pointer]) .ac-switch:focus-visible {
     transform: translateX(250%);
   }
 }
-/* The working indicator (PixelSpinner): a thin ring turning around its own axis, in `color` (the agent's or
-   the text's ink). Still under reduced motion. */
+/* The working indicator (PixelSpinner): a tiny pixel Jeff looking around and
+   blinking, in `color` (the agent's or the text's ink). One 7×7 sprite sheet,
+   six frames, drawn as a mask: the face takes the text's color and its eyes
+   are the surface behind it. Still under reduced motion. */
 .ac-spin {
   display: inline-block;
   flex: none;
   box-sizing: border-box;
-  border: 2px solid color-mix(in srgb, currentColor 22%, transparent);
-  border-top-color: color-mix(in srgb, currentColor 55%, transparent);
-  border-radius: 50%;
+  border: 0;
+  border-radius: 0;
+  background: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox%3D'0 0 42 7'%3E%3Cg transform%3D'translate(0 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M2 3h1v2h-1z M4 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(7 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M1 3h1v2h-1z M3 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(14 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M2 3h1v2h-1z M4 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(21 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M3 3h1v2h-1z M5 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(28 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M2 3h1v2h-1z M4 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(35 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z '%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox%3D'0 0 42 7'%3E%3Cg transform%3D'translate(0 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M2 3h1v2h-1z M4 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(7 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M1 3h1v2h-1z M3 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(14 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M2 3h1v2h-1z M4 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(21 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M3 3h1v2h-1z M5 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(28 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z M2 3h1v2h-1z M4 3h1v2h-1z'%2F%3E%3C%2Fg%3E%3Cg transform%3D'translate(35 0)'%3E%3Cpath fill%3D'%23fff' fill-rule%3D'evenodd' d%3D'M1 0h1v1h-1z M5 0h1v1h-1z M0 1h3v1h-3z M4 1h3v1h-3z M0 2h7v3h-7z M1 5h5v1h-5z M2 6h3v1h-3z '%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  -webkit-mask-size: 600% 100%;
+  mask-size: 600% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 @media (prefers-reduced-motion: no-preference) {
   .ac-spin {
-    border-top-color: currentColor;
-    animation: ac-spin 800ms linear infinite;
+    animation: ac-jeff-frames 1.8s steps(6, jump-none) infinite;
   }
-  @keyframes ac-spin {
+  @keyframes ac-jeff-frames {
     to {
-      transform: rotate(360deg);
+      -webkit-mask-position: 100% 0;
+      mask-position: 100% 0;
     }
   }
 }
 /*
  * In a line of text the pixel marks centre on the capitals, as an `.ac-iconline` lead does (a flex or grid item
- * ignores vertical-align): their box's bottom is their baseline (the spinner is a canvas, the others draw in an
+ * ignores vertical-align): their box's bottom is their baseline (the spinner is a masked face, the others draw in an
  * absolute child), raised by half the capitals' height less half their size (`--mark-size`, set by each).
  */
 .ac-spin,
@@ -4871,7 +4879,7 @@ html:not([data-pointer]) .ac-switch:focus-visible {
 .ac-pixstop {
   vertical-align: calc(var(--cap-top) - var(--cap-mid) - var(--mark-size, 14px) / 2);
 }
-/* Done: one pixel in the ok color, the spinner's center cell, popping in. */
+/* Done: one pixel in the ok color, popping in. */
 .ac-pixdone {
   display: inline-block;
   position: relative;
@@ -7073,6 +7081,10 @@ html:not([data-pointer]) .ac-react:focus-visible {
 
 /* Composer: the floating card at the center of the app */
 .ac-composer {
+  --composer-btn: 28px;
+  --composer-icon: 14px;
+  --composer-line: calc(var(--msg-text) + 6px);
+  --composer-row: var(--composer-btn);
   flex-direction: column;
   align-items: stretch;
   gap: 0;
@@ -7102,7 +7114,15 @@ html:not([data-pointer]) .ac-react:focus-visible {
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
+}
+.ac-composer__tools .ac-btn--icon:not(.ac-composer__send) {
+  width: var(--composer-btn);
+  height: var(--composer-btn);
+}
+.ac-composer__tools .ac-btn--icon .ac-icon {
+  width: var(--composer-icon);
+  height: var(--composer-icon);
 }
 .ac-composer__tools:empty {
   display: none;
@@ -7111,10 +7131,10 @@ html:not([data-pointer]) .ac-react:focus-visible {
    pin it to its minimum. */
 .ac-composer textarea {
   flex: none;
-  font-size: 15.5px;
-  line-height: 22px;
-  min-height: var(--control-h-sm);
-  padding: calc((var(--control-h-sm) - 22px) / 2) var(--space-2);
+  font-size: var(--msg-text);
+  line-height: var(--composer-line);
+  min-height: var(--composer-row);
+  padding: calc((var(--composer-row) - var(--composer-line)) / 2) var(--space-2);
 }
 /* The placeholder is always one line (Composer drops its tip when the box is narrow): what's still too long ends in
    "…" instead of wrapping into a second line that makes the empty box taller. */
@@ -7178,8 +7198,8 @@ html:not([data-pointer]) .ac-react:focus-visible {
 .ac-composer__send {
   margin-left: auto;
   flex: none;
-  height: var(--control-h-sm);
-  min-width: var(--control-h-sm);
+  height: var(--composer-row);
+  min-width: var(--composer-row);
   padding: 0;
   border-radius: var(--control-r-sm);
   border: 0;
@@ -7201,6 +7221,13 @@ html:not([data-pointer]) .ac-react:focus-visible {
     opacity 0.25s var(--spring),
     padding 0.25s var(--spring),
     transform 0.18s var(--spring);
+}
+.ac-composer__send.ac-btn--icon {
+  width: var(--composer-row);
+}
+.ac-composer__send .ac-icon {
+  width: var(--composer-icon);
+  height: var(--composer-icon);
 }
 .ac-composer__send[data-ready] {
   opacity: 1;
@@ -8760,10 +8787,10 @@ html:not([data-pointer]) .ac-msg:focus-within .ac-react--add,
   font-size: 14px;
 }
 /* No entrance: ⌘K opens it many times a day, from the keyboard; it is there at once. */
-/* Pending: the pixel orbit alone (a square in the round tick would poke out). */
+/* Pending: the pixel Jeff alone (a square in the round tick would poke out). */
 /*
  * The tools of one reply (ToolBlock): a card in one line while it works (the apps' logos, what it
- * does now, the steps, the orbit), opening into every call. Flat like every card: the hairline and the cut corner.
+ * does now, the steps, the face), opening into every call. Flat like every card: the hairline and the cut corner.
  */
 .ac-tools {
   max-width: var(--msg-card-w);
@@ -11454,6 +11481,13 @@ html:not([data-pointer]) .ac-msg__note:focus-visible {
   font-size: 14px;
   line-height: 24px;
   color: var(--ink-muted);
+}
+/* A control at the header's end, aligned with the name (the workspace's invite). */
+.ac-mo__action {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-left: auto;
 }
 .ac-mo__group {
   --menu-pad: var(--space-2);

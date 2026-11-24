@@ -109,7 +109,7 @@ export default function FilesScreen({ project, onOpenFile }: Props) {
         </div>
       </div>
 
-      <Modal isOpen={Boolean(createKind)} onClose={() => setCreateKind(null)} title={createKind === "folder" ? "Nova pasta" : "Novo arquivo"} description="Informe o caminho relativo ao projeto." size="sm" bodyClassName="p-3">
+      <Modal isOpen={Boolean(createKind)} onClose={() => setCreateKind(null)} title={createKind === "folder" ? "Nova pasta" : "Novo arquivo"} description="Informe o caminho relativo ao repo." size="sm" bodyClassName="p-3">
         <div className="flex flex-col gap-3">
           <Input value={name} onChange={setName} placeholder={createKind === "folder" ? "nova-pasta" : "novo-arquivo.ts"} aria-label={createKind === "folder" ? "Nome da pasta" : "Nome do arquivo"} fieldClassName="h-10" />
           <Button className="h-11 w-full justify-center" disabled={busy || !name.trim()} onClick={() => void create()}>

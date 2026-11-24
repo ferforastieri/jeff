@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "@jeff/icons";
 import LoadingState from "../../../shared/ui/LoadingState";
 import { api, type Project, type SearchMatch } from "../../../shared/api";
@@ -18,12 +18,16 @@ interface Props {
   /** Where the result panel opens: above the field when it lives in the footer. */
   placement?: "below" | "above";
   className?: string;
+  /** The field's placeholder (the dev sidebar says "Ir para…"). */
+  placeholder?: string;
+  /** A hint at the field's end (Ctrl K in the sidebar). */
+  shortcut?: ReactNode;
 }
 
 type Result = { kind: "file"; path: string } | { kind: "match"; match: SearchMatch };
 const MAX_FILES = 30;
 
-export default function QuickOpen({ project, focusToken, onOpenFile, floating = false, showChevron = false, placement = "below", className }: Props) {
+export default function QuickOpen({ project, focusToken, onOpenFile, floating = false, showChevron = false, placement = "below", className, placeholder, shortcut }: Props) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 220);
   const [open, setOpen] = useState(false);
@@ -186,7 +190,7 @@ export default function QuickOpen({ project, focusToken, onOpenFile, floating = 
               ref={inputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar por nome ou conteúdo..."
+              placeholder={placeholder ?? "Buscar por nome ou conteúdo..."}
               aria-label="Busca rápida"
               onClear={() => setQuery("")}
               clearLabel="Limpar busca"
@@ -207,12 +211,12 @@ export default function QuickOpen({ project, focusToken, onOpenFile, floating = 
             ref={inputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar por nome ou conteúdo..."
+            placeholder={placeholder ?? "Buscar por nome ou conteúdo..."}
             aria-label="Busca rápida"
             size="sm"
             onClear={() => setQuery("")}
             clearLabel="Limpar busca"
-            shortcut={busy ? <Icon name="spinner" size={14} /> : showChevron ? <ChevronDown aria-hidden className={cx("size-4 text-foreground-icon-tertiary transition-[rotate] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]", open && "rotate-180")} /> : undefined}
+            shortcut={busy ? <Icon name="spinner" size={14} /> : shortcut ?? (showChevron ? <ChevronDown aria-hidden className={cx("size-4 text-foreground-icon-tertiary transition-[rotate] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]", open && "rotate-180")} /> : undefined)}
           />
           {open && (
             <div className={cx("dropdown-reveal absolute inset-x-0 z-[300] max-h-80 overflow-y-auto rounded-2xl border border-border-button-default bg-background-primary-default p-1.5 shadow-dropdown", placement === "above" ? "bottom-full mb-1" : "top-full mt-1")}>

@@ -6,7 +6,7 @@ import type { AgentColor } from "./AgentLook";
 import { PixelSpinner } from "./PixelSpinner";
 
 /**
- * The agent at work before it has words: the pixel orbit in its color, what it
+ * The agent at work before it has words: the pixel Jeff in its color, what it
  * is doing and three dots that keep the line alive. A sentence, never a bare
  * spinner, so the pause has a reason on screen.
  */

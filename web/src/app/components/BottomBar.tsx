@@ -1,5 +1,5 @@
 import { useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { Bell, Database, Files, GitPullRequest, Globe2, MessageCircleQuestion, Moon, Plus, Settings2, Sun, TerminalSquare, X } from "@jeff/icons";
+import { Bell, Database, Files, GitPullRequest, Globe2, MessageCircleQuestion, Plus, Settings2, TerminalSquare, X } from "@jeff/icons";
 import { useApp, type Sidebar } from "../store";
 import { featureEnabled, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import type { Project } from "../../shared/api";
@@ -9,7 +9,7 @@ import ProjectRunningDot from "../../features/projects/components/ProjectRunning
 import { useProjectQuestion } from "../../features/agents/activity";
 import QuickOpen from "../../features/explorer/components/QuickOpen";
 import BrandGlyph from "../../shared/ui/BrandGlyph";
-import { runThemeTransition } from "../../shared/ui/theme-transition";
+import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import { Button } from "@jeff/ui/app";
 import { Modal } from "@jeff/ui/app";
 import { cx } from "@jeff/ui";
@@ -35,32 +35,7 @@ interface Props {
   leading?: ReactNode;
 }
 
-function ThemeToggle() {
-  const theme = useSettings((state) => state.theme);
-  const setTheme = useSettings((state) => state.setTheme);
-  const light = theme === "light";
-  function toggle(event: React.MouseEvent<HTMLButtonElement>) {
-    const next = light ? "dark" : "light";
-    const rect = event.currentTarget.getBoundingClientRect();
-    const origin = event.detail === 0
-      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-      : { x: event.clientX, y: event.clientY };
-    void runThemeTransition(origin, () => setTheme(next));
-  }
-  return (
-    <button
-      type="button"
-      aria-label={light ? "Ativar modo escuro" : "Ativar modo claro"}
-      aria-pressed={light}
-      title={light ? "Modo escuro" : "Modo claro"}
-      onClick={toggle}
-      className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-foreground-icon-secondary transition-colors hover:bg-background-primary-hover hover:text-foreground-icon-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring"
-    >
-      <Sun className={cx("absolute size-[18px] transition-all duration-300", light ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-50 opacity-0")} />
-      <Moon className={cx("absolute size-[18px] transition-all duration-300", light ? "rotate-90 scale-50 opacity-0" : "rotate-0 scale-100 opacity-100")} />
-    </button>
-  );
-}
+export { ThemeToggle };
 
 function WorkspaceOptions({ vertical = false, onOpenAuxiliary }: { vertical?: boolean; onOpenAuxiliary?: (sidebar: Sidebar) => void }) {
   const sidebar = useApp((state) => state.sidebar);
@@ -168,7 +143,7 @@ function ProjectPicker({ open, onClose, onSelect }: { open: boolean; onClose: ()
     <Modal
       isOpen={open}
       onClose={onClose}
-      title="Abrir projeto"
+      title="Abrir repo"
       description="Abra um repositório existente ou crie uma pasta nova no servidor."
       size="md"
       bodyClassName="p-4"
@@ -223,15 +198,15 @@ export default function BottomBar({ onOpenProject, onCloseProject, project = nul
           size="medium"
           iconOnly
           leadingIcon={Plus}
-          aria-label="Abrir projeto"
-          title="Abrir ou criar projeto"
+          aria-label="Abrir repo"
+          title="Abrir ou criar repo"
           className="size-9 shrink-0 [&_svg]:size-5"
           onClick={() => setPickerOpen(true)}
         />
 
         <div className="flex min-w-0 shrink items-center gap-1 overflow-x-auto py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {openProjects.length === 0 ? (
-            <span className="truncate px-1 text-caption-2-regular text-text-tertiary">Nenhum projeto aberto</span>
+            <span className="truncate px-1 text-caption-2-regular text-text-tertiary">Nenhum repo aberto</span>
           ) : null}
           {openProjects.map((project) => {
             const active = project.id === activeProjectId;

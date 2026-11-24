@@ -5,3 +5,7 @@
 @import "./styles/app.css";
 @import "./styles/jeffs-settings.css";
 @import "./styles/jeffs-effects.css";
+@import "./styles/workspace.css";
+@import "@jeff/ui/styles/kit.css";
+@import "./styles/pixel-spinner.css";
+@import "./styles/open-animations.css";

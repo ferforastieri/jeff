@@ -35,16 +35,16 @@ pub fn tool_activity(name: &str, args: &Value) -> String {
                     .unwrap_or("")
             )
         ),
-        "glob" => "procurou arquivos no projeto".into(),
-        "list" | "list_files" => "listou arquivos do projeto".into(),
-        "shell" => "executou um comando no projeto".into(),
+        "glob" => "procurou arquivos no repo".into(),
+        "list" | "list_files" => "listou arquivos do repo".into(),
+        "shell" => "executou um comando no repo".into(),
         "fetch_url" | "webfetch" => "consultou um link".into(),
         "task" => "delegou uma tarefa".into(),
         "todowrite" | "todoread" => "atualizou o plano".into(),
         "read_artifact" => "leu um anexo".into(),
         "search_history" => "consultou o histórico".into(),
-        "search_memory" => "consultou a memória do projeto".into(),
-        "remember" => "salvou uma memória do projeto".into(),
+        "search_memory" => "consultou a memória do repo".into(),
+        "remember" => "salvou uma memória do repo".into(),
         "read_skill" => format!(
             "carregou a skill `{}`",
             short(args["name"].as_str().unwrap_or("skill"))
@@ -88,7 +88,7 @@ mod tests {
     #[test]
     fn shell_never_leaks_the_raw_command() {
         let text = tool_activity("shell", &json!({"command":"rm -rf /"}));
-        assert_eq!(text, "executou um comando no projeto");
+        assert_eq!(text, "executou um comando no repo");
         assert!(!text.contains("rm -rf"));
     }
 

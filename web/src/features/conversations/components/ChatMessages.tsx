@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronDown, Copy, LoaderCircle, X } from "@jeff/icons";
+import { Check, ChevronDown, Copy, X } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import type { AiMessage } from "../../../app/store";
 import type { Project } from "../../../shared/api";
 import type { ChatJeff } from "../store";
@@ -58,13 +59,13 @@ function fallbackActivity(message: NativeMessage): string {
   if (name === "read_file") return path ? `leu \`${path}\`` : "leu um arquivo";
   if (name === "edit_file" || name === "write_file") return path ? `editou \`${path}\`` : "editou um arquivo";
   if (name === "delete_file") return path ? `removeu \`${path}\`` : "removeu um arquivo";
-  if (name === "search") return query ? `pesquisou por \`${query}\`` : "pesquisou no projeto";
-  if (name === "list_files") return "listou arquivos do projeto";
-  if (name === "shell") return "executou um comando no projeto";
+  if (name === "search") return query ? `pesquisou por \`${query}\`` : "pesquisou no repo";
+  if (name === "list_files") return "listou arquivos do repo";
+  if (name === "shell") return "executou um comando no repo";
   if (name === "read_skill") return "consultou uma skill";
   if (name === "search_history") return "consultou o histórico";
-  if (name === "search_memory") return "consultou a memória do projeto";
-  if (name === "remember") return "salvou uma memória do projeto";
+  if (name === "search_memory") return "consultou a memória do repo";
+  if (name === "remember") return "salvou uma memória do repo";
   if (name === "fetch_url") return "consultou um link";
   if (name === "read_artifact") return "leu um anexo";
   if (name === "delegate") return "passou uma tarefa para outro Jeff";
@@ -233,7 +234,7 @@ function StepItem({ message }: { message: NativeMessage }) {
         "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full",
         failed ? "bg-status-rose-background text-status-rose-text" : running ? "text-accent-500" : "bg-status-lime-background text-status-lime-text",
       )}>
-        {running ? <LoaderCircle className="size-3.5 animate-spin" /> : failed ? <X size={12} /> : <Check size={12} />}
+        {running ? <PixelSpinner size={14} /> : failed ? <X size={12} /> : <Check size={12} />}
       </span>
       <span className={cx("shrink-0 font-medium", failed ? "text-status-rose-text" : "text-text-primary")}>{view.label}</span>
       {view.note ? null : view.detail ? <code className="min-w-0 max-w-full truncate text-[11.5px] text-text-tertiary" dir="ltr">{view.detail}</code> : null}
@@ -342,7 +343,7 @@ function ActivityStatus({ jeff, activity, startedAt }: { jeff: ChatJeff; activit
       <div className="w-[40px] shrink-0"><BotAvatar bot={jeff} size={40} /></div>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-[12.5px] text-text-secondary">
         <strong className="text-[13px] font-semibold text-text-primary">{jeff.name}</strong>
-        <LoaderCircle className="size-3.5 shrink-0 animate-spin text-accent-500" />
+        <PixelSpinner size={14} className="shrink-0 text-accent-500" />
         <span className="shrink-0 text-accent-600">{activity.label}</span>
         {activity.detail ? <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] text-text-tertiary" dir="ltr">{activity.detail}</span> : <span className="min-w-0 flex-1" />}
         <Elapsed startedAt={startedAt} />

@@ -1,0 +1,196 @@
+/*
+ * The opening language of the workspace menu, on every other surface: the
+ * same short spring, a small scale/slide from the trigger, and a blurred app
+ * behind dialogs. Small surfaces use a shorter run than the full-screen menu.
+ */
+:root {
+  --open-spring: cubic-bezier(0.3, 1.2, 0.4, 1);
+}
+
+/* Menus, popovers, selects and the notification inbox. */
+@media (prefers-reduced-motion: no-preference) {
+  .ac-menu[data-state="open"],
+  .ac-menu[data-state="delayed-open"],
+  .ac-hint__bubble[data-state="open"] {
+    animation-duration: 220ms;
+    animation-timing-function: var(--open-spring);
+  }
+
+  .ac-dialog[data-state="open"] {
+    animation: 260ms var(--open-spring) both open-dialog-in;
+  }
+
+  .jeff-modal {
+    animation: 180ms ease-out both open-scrim-in;
+  }
+
+  .jeff-modal__card {
+    animation: 260ms var(--open-spring) both open-card-in;
+  }
+}
+
+/* The dark behind a dialog blurs, as the app does behind the workspace menu. */
+.ac-dialog__scrim,
+.jeff-modal {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+@keyframes open-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 10px)) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes open-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes open-scrim-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * The generic menu's small trip: the same spring and a slightly deeper start
+ * than the kit's 4px/0.98, so it reads as the workspace menu's little sibling.
+ */
+@keyframes ac-pop-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ac-pop-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ac-pop-left {
+  from {
+    opacity: 0;
+    transform: translateX(6px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ac-pop-right {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The shells' content: a channel, a view or a dev tab opens like the menu. */
+@media (prefers-reduced-motion: no-preference) {
+  .ws-shell {
+    animation: 280ms var(--open-spring) both open-channel-in;
+  }
+
+  .dev-tab-content {
+    animation: 240ms var(--open-spring) both open-tab-in;
+  }
+
+  .dev-workbench__right {
+    animation: 240ms var(--open-spring) both open-panel-in;
+  }
+
+  .dev-workbench__terminal {
+    animation: 240ms var(--open-spring) both open-terminal-in;
+  }
+}
+
+@keyframes open-channel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.995);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes open-tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.997);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes open-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes open-terminal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dev-panel-content {
+    animation: 220ms var(--open-spring) both open-tab-in;
+  }
+}

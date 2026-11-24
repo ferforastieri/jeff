@@ -268,7 +268,7 @@ impl RoomGateway {
             "create_project" => {
                 let name = args["name"].as_str().unwrap_or("").trim();
                 if name.is_empty() {
-                    return Err(bad_request("Informe o nome do projeto."));
+                    return Err(bad_request("Informe o nome do repo."));
                 }
                 let parent = args["parent"]
                     .as_str()
@@ -348,6 +348,8 @@ impl RoomGateway {
                             instructions: args["instructions"].as_str().unwrap_or("").to_string(),
                             lead_id: None,
                             member_ids: members,
+                            category_id: None,
+                            visibility: "private".into(),
                         },
                     )
                     .await?;
@@ -544,7 +546,7 @@ impl RoomGateway {
                     let canonical = std::fs::canonicalize(&path)
                         .map_err(|_| bad_request(format!("Arquivo não encontrado: {path}")))?;
                     if !canonical.starts_with(&root) {
-                        return Err(bad_request("Upload fora do projeto."));
+                        return Err(bad_request("Upload fora do repo."));
                     }
                     allowed.push(canonical.to_string_lossy().to_string());
                 }
@@ -634,7 +636,7 @@ fn definitions(routine: bool, admin: bool) -> Vec<Value> {
     let mut tools = vec![
         text_tool(
             "create_card",
-            "Abre um card no quadro do projeto. Use quando a pessoa pedir trabalho que precisa de acompanhamento.",
+            "Abre um card no quadro do repo. Use quando a pessoa pedir trabalho que precisa de acompanhamento.",
             json!({
                 "title": { "type": "string", "description": "Título curto do card." },
                 "description": { "type": "string" },
@@ -646,7 +648,7 @@ fn definitions(routine: bool, admin: bool) -> Vec<Value> {
         ),
         text_tool(
             "move_card",
-            "Move um card do projeto para outra coluna.",
+            "Move um card do repo para outra coluna.",
             json!({
                 "cardId": { "type": "string" },
                 "column": { "type": "string", "enum": ["todo","doing","review","blocked","done"] }
@@ -655,7 +657,7 @@ fn definitions(routine: bool, admin: bool) -> Vec<Value> {
         ),
         text_tool(
             "list_cards",
-            "Lista os cards do projeto.",
+            "Lista os cards do repo.",
             json!({}),
             vec![],
         ),
@@ -743,7 +745,7 @@ fn definitions(routine: bool, admin: bool) -> Vec<Value> {
     ));
     tools.push(text_tool(
         "list_vault",
-        "Lista os logins e cartões guardados no cofre do projeto. Nunca devolve a senha.",
+        "Lista os logins e cartões guardados no cofre do repo. Nunca devolve a senha.",
         json!({}),
         vec![],
     ));
@@ -830,7 +832,7 @@ fn definitions(routine: bool, admin: bool) -> Vec<Value> {
     ));
     tools.push(text_tool(
         "browser_upload",
-        "Envia arquivos do projeto para um input de arquivo pela referência do snapshot.",
+        "Envia arquivos do repo para um input de arquivo pela referência do snapshot.",
         json!({
             "ref": { "type": "string" },
             "paths": { "type": "array", "items": { "type": "string" } }
@@ -840,13 +842,13 @@ fn definitions(routine: bool, admin: bool) -> Vec<Value> {
     if admin {
         tools.push(text_tool(
             "list_projects",
-            "Lista os projetos do workspace.",
+            "Lista os repos disponíveis.",
             json!({}),
             vec![],
         ));
         tools.push(text_tool(
             "create_project",
-            "Cria uma pasta de projeto dentro de uma raiz permitida e a registra no Jeff.",
+            "Cria uma pasta de repo dentro de uma raiz permitida e a registra no Jeff.",
             json!({
                 "name": { "type": "string" },
                 "parent": { "type": "string", "description": "Raiz onde a pasta nasce; vazio usa a primeira." }
@@ -875,13 +877,13 @@ fn definitions(routine: bool, admin: bool) -> Vec<Value> {
         ));
         tools.push(text_tool(
             "list_rooms",
-            "Lista as salas deste projeto.",
+            "Lista os canais.",
             json!({}),
             vec![],
         ));
         tools.push(text_tool(
             "create_room",
-            "Cria uma sala neste projeto e coloca você e as pessoas da sala atual dentro.",
+            "Cria um canal e coloca você e as pessoas do canal atual dentro.",
             json!({
                 "name": { "type": "string" },
                 "title": { "type": "string" },
@@ -1059,6 +1061,8 @@ mod tests {
                     instructions: String::new(),
                     lead_id: Some(bot.id.clone()),
                     member_ids: vec![bot.id.clone()],
+                    category_id: None,
+                    visibility: "private".into(),
                 },
             )
             .await

@@ -20,7 +20,7 @@ export default function CloseProjectModal({ open, project, busy = false, error =
     <Modal
       isOpen={open}
       onClose={() => { if (!busy) onClose(); }}
-      title="Fechar projeto?"
+      title="Fechar repo?"
       description="A área aberta será fechada. O repositório e os dados continuam salvos."
       placement={mobile ? "bottom" : "center"}
       size="sm"
@@ -38,8 +38,8 @@ export default function CloseProjectModal({ open, project, busy = false, error =
         <div className="flex gap-3 rounded-2xl border border-status-rose-text/20 bg-status-rose-background p-3 text-status-rose-text">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
           <div className="min-w-0 text-caption-1-regular leading-relaxed">
-            <p className="font-medium">Todos os processos deste projeto serão encerrados.</p>
-            <p className="mt-1 text-status-rose-text/80">Isso inclui terminais, servidores, watchers, debug e execuções de IA abertas no projeto.</p>
+            <p className="font-medium">Todos os processos deste repo serão encerrados.</p>
+            <p className="mt-1 text-status-rose-text/80">Isso inclui terminais, servidores, watchers, debug e execuções de IA abertas no repo.</p>
           </div>
         </div>
 
@@ -52,7 +52,7 @@ export default function CloseProjectModal({ open, project, busy = false, error =
 
         <div className="flex justify-end gap-2 pt-1">
           <Button variant="secondary" onClick={onClose} disabled={busy}>Cancelar</Button>
-          <Button variant="danger" onClick={onConfirm} disabled={busy}>{busy ? "Encerrando..." : "Fechar projeto"}</Button>
+          <Button variant="danger" onClick={onConfirm} disabled={busy}>{busy ? "Encerrando..." : "Fechar repo"}</Button>
         </div>
       </div>
     </Modal>

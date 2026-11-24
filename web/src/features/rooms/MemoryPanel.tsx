@@ -1,3 +1,5 @@
+import { Button as KitButton } from "@jeff/ui/kit";
+import { Input as KitInput, Textarea as KitTextarea, NativeSelect as KitSelect } from "@jeff/ui/kit";
 import { useEffect, useState } from "react";
 import { Plus, Search, Trash2, X } from "@jeff/icons";
 import { roomsApi, type Memory, type Principal } from "./api";
@@ -83,7 +85,7 @@ export default function MemoryPanel({ bots }: Props) {
             {bot ? `${bot.name} · ${memories.length} memória${memories.length === 1 ? "" : "s"}` : "escolha um bot"}
           </p>
         </div>
-        <select
+        <KitSelect raw
           className="rounded-lg border border-border-button-default bg-background-primary-default px-2 py-1 text-caption-1-regular"
           value={agentId}
           onChange={(event) => setAgentId(event.target.value)}
@@ -93,10 +95,10 @@ export default function MemoryPanel({ bots }: Props) {
               {item.name}
             </option>
           ))}
-        </select>
-        <button className={primaryButton} onClick={() => setAdding(true)} disabled={!agentId}>
+        </KitSelect>
+        <KitButton variant="raw" className={primaryButton} onClick={() => setAdding(true)} disabled={!agentId}>
           <Plus size={14} /> Lembrar
-        </button>
+        </KitButton>
       </header>
 
       {error ? (
@@ -107,7 +109,7 @@ export default function MemoryPanel({ bots }: Props) {
 
       <div className="flex items-center gap-2 border-b border-separator-border px-4 py-2">
         <Search size={14} className="text-text-tertiary" />
-        <input
+        <KitInput raw
           className="min-w-0 flex-1 bg-transparent text-caption-1-regular text-text-primary outline-none placeholder:text-text-tertiary"
           placeholder="Buscar na memória deste bot"
           value={query}
@@ -116,9 +118,9 @@ export default function MemoryPanel({ bots }: Props) {
             if (event.key === "Enter") void refresh();
           }}
         />
-        <button className={quietButton} onClick={() => void refresh()}>
+        <KitButton variant="raw" className={quietButton} onClick={() => void refresh()}>
           buscar
-        </button>
+        </KitButton>
       </div>
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
@@ -139,7 +141,7 @@ export default function MemoryPanel({ bots }: Props) {
                   {memory.userControlled ? " · escolhida por você" : ""}
                 </p>
               </div>
-              <button
+              <KitButton variant="raw"
                 className={`${quietButton} ${
                   memory.inclusion === "essential" ? "text-accent-500" : ""
                 }`}
@@ -147,10 +149,10 @@ export default function MemoryPanel({ bots }: Props) {
                 onClick={() => void toggle(memory)}
               >
                 {memory.inclusion === "essential" ? "sempre" : "sob busca"}
-              </button>
-              <button className={quietButton} onClick={() => void remove(memory)}>
+              </KitButton>
+              <KitButton variant="raw" className={quietButton} onClick={() => void remove(memory)}>
                 <Trash2 size={12} />
-              </button>
+              </KitButton>
             </article>
           ))
         )}
@@ -161,11 +163,11 @@ export default function MemoryPanel({ bots }: Props) {
           <section className="w-full max-w-md rounded-2xl border border-border-button-white bg-background-primary-default p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-body-1-medium">Lembrar</h3>
-              <button className={quietButton} onClick={() => setAdding(false)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => setAdding(false)}>
                 <X size={14} />
-              </button>
+              </KitButton>
             </div>
-            <textarea
+            <KitTextarea raw
               className={`${field} min-h-28`}
               placeholder="O que este bot deve lembrar sempre?"
               value={text}
@@ -174,7 +176,7 @@ export default function MemoryPanel({ bots }: Props) {
             />
             <div className="mt-2 flex gap-2">
               <label className="flex items-center gap-1 text-caption-1-regular">
-                <input
+                <KitInput raw
                   type="radio"
                   checked={inclusion === "searchable"}
                   onChange={() => setInclusion("searchable")}
@@ -182,7 +184,7 @@ export default function MemoryPanel({ bots }: Props) {
                 sob busca
               </label>
               <label className="flex items-center gap-1 text-caption-1-regular">
-                <input
+                <KitInput raw
                   type="radio"
                   checked={inclusion === "essential"}
                   onChange={() => setInclusion("essential")}
@@ -191,12 +193,12 @@ export default function MemoryPanel({ bots }: Props) {
               </label>
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button className={quietButton} onClick={() => setAdding(false)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => setAdding(false)}>
                 Cancelar
-              </button>
-              <button className={primaryButton} onClick={() => void add()}>
+              </KitButton>
+              <KitButton variant="raw" className={primaryButton} onClick={() => void add()}>
                 Salvar
-              </button>
+              </KitButton>
             </div>
           </section>
         </div>

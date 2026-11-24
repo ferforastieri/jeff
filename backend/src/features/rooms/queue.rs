@@ -467,7 +467,7 @@ fn system_prompt(
     principal: &Principal,
     config: &BotConfig,
     room: &Room,
-    project: &str,
+    _project: &str,
     members: &[Principal],
 ) -> String {
     let mut text = String::new();
@@ -486,10 +486,7 @@ fn system_prompt(
         text.push_str(config.persona.trim());
         text.push('\n');
     }
-    text.push_str(&format!(
-        "\nVocê participa da sala \"{}\" do projeto \"{}\".\n",
-        room.name, project
-    ));
+    text.push_str(&format!("\nVocê participa do canal \"{}\".\n", room.name));
     if !room.title.trim().is_empty() {
         text.push_str(&format!("Assunto da sala: {}\n", room.title.trim()));
     }

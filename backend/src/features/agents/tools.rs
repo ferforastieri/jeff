@@ -399,7 +399,7 @@ impl Tools {
                         "mime": mime,
                         "bytes": bytes.len(),
                         "path": path.display().to_string(),
-                        "note": "Arquivo binário; use o shell do projeto para inspecionar (file, unzip -l, python, etc.)."
+                        "note": "Arquivo binário; use o shell do repo para inspecionar (file, unzip -l, python, etc.)."
                     }));
                 };
                 let offset = args["offset"].as_u64().unwrap_or(0) as usize;

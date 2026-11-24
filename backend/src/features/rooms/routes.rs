@@ -45,6 +45,27 @@ pub(super) async fn create_bot(
     Ok(Json(json!(state.store.create_bot(input).await?)))
 }
 
+pub(super) async fn update_bot(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+    Path(id): Path<String>,
+    Json(input): Json<CreateBotInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    Ok(Json(json!(state.store.update_bot(&id, input).await?)))
+}
+
+pub(super) async fn agent_activity(
+    State(state): State<Arc<AppState>>,
+    Extension(_auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    Ok(Json(
+        json!({ "agents": state.store.active_agent_rooms().await? }),
+    ))
+}
+
 pub(super) async fn list_rooms(
     State(state): State<Arc<AppState>>,
     Path(project): Path<String>,
@@ -58,6 +79,30 @@ pub(super) async fn list_rooms(
         .filter(|room| room.members.iter().any(|member| member.id == me.id))
         .collect();
     Ok(Json(json!({ "rooms": visible })))
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct RoomReposInput {
+    #[serde(default)]
+    pub repos: Vec<String>,
+}
+
+pub(super) async fn set_room_repos(
+    State(state): State<Arc<AppState>>,
+    Path((project, room)): Path<(String, String)>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<RoomReposInput>,
+) -> AppResult<Json<Value>> {
+    state.store.project(&project).await?;
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let room = state
+        .store
+        .set_room_repos(&project, &room, input.repos)
+        .await?;
+    Ok(Json(json!(room)))
 }
 
 pub(super) async fn create_room(
@@ -133,9 +178,25 @@ pub(super) async fn list_messages(
     Query(query): Query<RoomMessagesQuery>,
     Extension(auth): Extension<AuthContext>,
 ) -> AppResult<Json<Value>> {
-    let room = state.store.room(&project, &room_id).await?;
+    list_messages_impl(&state, &project, &room_id, &auth, query).await
+}
+
+async fn list_messages_impl(
+    state: &Arc<AppState>,
+    project: &str,
+    room_id: &str,
+    auth: &AuthContext,
+    query: RoomMessagesQuery,
+) -> AppResult<Json<Value>> {
+    let room = state.store.room(project, room_id).await?;
     let me = state.store.ensure_human_principal(auth.user.id).await?;
-    if !room.members.iter().any(|member| member.id == me.id) {
+    if room.kind == "dm" && !room.members.iter().any(|member| member.id == me.id) {
+        return Err(AppError::Forbidden);
+    }
+    if room.kind != "dm"
+        && !auth.user.is_admin()
+        && !room.members.iter().any(|member| member.id == me.id)
+    {
         return Err(AppError::Forbidden);
     }
     let messages = state
@@ -151,12 +212,22 @@ pub(super) async fn send_message(
     Extension(auth): Extension<AuthContext>,
     Json(input): Json<SendMessageInput>,
 ) -> AppResult<Json<Value>> {
-    let room = state.store.room(&project, &room_id).await?;
+    send_message_impl(&state, &project, &room_id, &auth, input).await
+}
+
+async fn send_message_impl(
+    state: &Arc<AppState>,
+    project: &str,
+    room_id: &str,
+    auth: &AuthContext,
+    input: SendMessageInput,
+) -> AppResult<Json<Value>> {
+    let room = state.store.room(project, room_id).await?;
     let me = state.store.ensure_human_principal(auth.user.id).await?;
-    if !room.members.iter().any(|member| member.id == me.id) {
+    if !can_see_room(&room, &me.id, auth.user.is_admin()) {
         return Err(AppError::Forbidden);
     }
-    let project_row = state.store.project(&project).await?;
+    let project_row = state.store.project(project).await?;
     let text = input.text.trim();
     if text.is_empty() {
         return Err(bad_request("A mensagem está vazia."));
@@ -254,7 +325,7 @@ pub(super) async fn send_message(
                     user_id,
                     title,
                     body.clone(),
-                    project.clone(),
+                    project.to_string(),
                     project_row.name.clone(),
                     room.id.clone(),
                 )
@@ -360,6 +431,346 @@ pub(super) async fn add_member(
         )
         .await;
     Ok(Json(json!(member)))
+}
+
+fn can_see_room(room: &crate::features::rooms::models::Room, me_id: &str, is_admin: bool) -> bool {
+    if room.kind == "dm" {
+        return room.members.iter().any(|member| member.id == me_id);
+    }
+    room.visibility == "public" || is_admin || room.members.iter().any(|member| member.id == me_id)
+}
+
+/// Channels are top-level: the workspace project that stores them never
+/// appears in the API.
+pub(super) async fn list_channels(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    let project = state.store.workspace_project().await?;
+    let me = state.store.ensure_human_principal(auth.user.id).await?;
+    let rooms = state.store.list_rooms(&project.id).await?;
+    let visible: Vec<_> = rooms
+        .into_iter()
+        .filter(|room| can_see_room(room, &me.id, auth.user.is_admin()))
+        .collect();
+    Ok(Json(json!({ "rooms": visible })))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct OpenDmInput {
+    bot_id: String,
+}
+
+/// A member's direct conversation with an agent, created on first click.
+pub(super) async fn open_dm(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<OpenDmInput>,
+) -> AppResult<Json<Value>> {
+    let project = state.store.workspace_project().await?;
+    let me = state.store.ensure_human_principal(auth.user.id).await?;
+    let bot = state.store.principal(&input.bot_id).await?;
+    if bot.kind != "bot" {
+        return Err(AppError::BadRequest("Escolha um agente.".into()));
+    }
+    let rooms = state.store.list_rooms(&project.id).await?;
+    if let Some(room) = rooms.into_iter().find(|room| {
+        room.kind == "dm"
+            && room.members.len() == 2
+            && room.members.iter().any(|member| member.id == me.id)
+            && room.members.iter().any(|member| member.id == bot.id)
+    }) {
+        return Ok(Json(json!(room)));
+    }
+    let room = state
+        .store
+        .create_dm_room(&project.id, &bot.name, &[me.id.clone(), bot.id.clone()])
+        .await?;
+    Ok(Json(json!(room)))
+}
+
+pub(super) async fn create_channel(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<CreateRoomInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let project = state.store.workspace_project().await?;
+    let me = state.store.ensure_human_principal(auth.user.id).await?;
+    let room = state.store.create_room(&project.id, &me, input).await?;
+    let _ = state
+        .store
+        .log_room_event(
+            &project.id,
+            Some(&room.id),
+            None,
+            Some(&me.id),
+            "room.created",
+            &room.name,
+        )
+        .await;
+    Ok(Json(json!(room)))
+}
+
+pub(super) async fn get_channel(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    let project = state.store.workspace_project().await?;
+    let room = state.store.room(&project.id, &room_id).await?;
+    let me = state.store.ensure_human_principal(auth.user.id).await?;
+    if !can_see_room(&room, &me.id, auth.user.is_admin()) {
+        return Err(AppError::Forbidden);
+    }
+    Ok(Json(json!(room)))
+}
+
+pub(super) async fn delete_channel(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let project = state.store.workspace_project().await?;
+    let room = state.store.room(&project.id, &room_id).await?;
+    if room.kind != "room" {
+        return Err(AppError::BadRequest(
+            "Só canais podem ser removidos.".into(),
+        ));
+    }
+    for member in room.members.iter().filter(|member| member.kind == "bot") {
+        state.rooms.cancel(&member.id);
+    }
+    state.store.delete_room(&project.id, &room_id).await?;
+    Ok(Json(json!({ "ok": true })))
+}
+
+pub(super) async fn list_channel_messages(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Query(query): Query<RoomMessagesQuery>,
+    Extension(auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    let project = state.store.workspace_project().await?;
+    list_messages_impl(&state, &project.id, &room_id, &auth, query).await
+}
+
+pub(super) async fn send_channel_message(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<SendMessageInput>,
+) -> AppResult<Json<Value>> {
+    let project = state.store.workspace_project().await?;
+    send_message_impl(&state, &project.id, &room_id, &auth, input).await
+}
+
+pub(super) async fn set_channel_repos(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<RoomReposInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let project = state.store.workspace_project().await?;
+    let room = state.store.room(&project.id, &room_id).await?;
+    if room.kind != "room" {
+        return Err(AppError::BadRequest("Repos valem para canais.".into()));
+    }
+    let room = state
+        .store
+        .set_room_repos(&project.id, &room_id, input.repos)
+        .await?;
+    Ok(Json(json!(room)))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct ChannelAgentsInput {
+    #[serde(default)]
+    agent_ids: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct ChannelAgentInput {
+    agent_id: String,
+}
+
+pub(super) async fn add_channel_agent(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<ChannelAgentInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let project = state.store.workspace_project().await?;
+    let room = state.store.room(&project.id, &room_id).await?;
+    if room.kind != "room" {
+        return Err(AppError::BadRequest("Agentes valem para canais.".into()));
+    }
+    let agent = state.store.principal(&input.agent_id).await?;
+    if agent.kind != "bot" {
+        return Err(AppError::BadRequest("Escolha um agente.".into()));
+    }
+    state.store.add_room_member(&room.id, &agent.id).await?;
+    Ok(Json(json!({ "ok": true })))
+}
+
+pub(super) async fn set_channel_agents(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<ChannelAgentsInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let project = state.store.workspace_project().await?;
+    let room = state.store.room(&project.id, &room_id).await?;
+    if room.kind != "room" {
+        return Err(AppError::BadRequest("Agentes valem para canais.".into()));
+    }
+    let room = state
+        .store
+        .set_room_agents(&project.id, &room_id, &input.agent_ids)
+        .await?;
+    Ok(Json(json!(room)))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct CategoryInput {
+    name: String,
+}
+
+pub(super) async fn list_channel_categories(
+    State(state): State<Arc<AppState>>,
+    Extension(_auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    Ok(Json(json!({
+        "categories": state.store.list_channel_categories().await?,
+    })))
+}
+
+pub(super) async fn create_channel_category(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<CategoryInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    Ok(Json(json!(
+        state.store.create_channel_category(&input.name).await?
+    )))
+}
+
+pub(super) async fn rename_channel_category(
+    State(state): State<Arc<AppState>>,
+    Path(category_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<CategoryInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    Ok(Json(json!(
+        state
+            .store
+            .rename_channel_category(&category_id, &input.name)
+            .await?
+    )))
+}
+
+pub(super) async fn delete_channel_category(
+    State(state): State<Arc<AppState>>,
+    Path(category_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    state.store.delete_channel_category(&category_id).await?;
+    Ok(Json(json!({ "ok": true })))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct ChannelCategoryInput {
+    category_id: Option<String>,
+}
+
+pub(super) async fn set_channel_category(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<ChannelCategoryInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let project = state.store.workspace_project().await?;
+    if let Some(category_id) = &input.category_id {
+        state
+            .store
+            .list_channel_categories()
+            .await?
+            .into_iter()
+            .find(|category| &category.id == category_id)
+            .ok_or(AppError::NotFound)?;
+    }
+    let room = state
+        .store
+        .set_room_category(&project.id, &room_id, input.category_id.as_deref())
+        .await?;
+    Ok(Json(json!(room)))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct ChannelAccessInput {
+    user_id: i64,
+    allowed: bool,
+}
+
+pub(super) async fn set_channel_access(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<ChannelAccessInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let project = state.store.workspace_project().await?;
+    let room = state.store.room(&project.id, &room_id).await?;
+    if room.kind != "room" {
+        return Err(AppError::BadRequest(
+            "Acesso por membro vale para canais.".into(),
+        ));
+    }
+    state.store.user_by_id(input.user_id).await?;
+    let principal = state.store.ensure_human_principal(input.user_id).await?;
+    if input.allowed {
+        state.store.add_room_member(&room.id, &principal.id).await?;
+    } else {
+        state
+            .store
+            .remove_room_member(&room.id, &principal.id)
+            .await?;
+    }
+    Ok(Json(json!({ "ok": true, "allowed": input.allowed })))
 }
 
 #[derive(Debug, Deserialize)]

@@ -2,7 +2,8 @@ import { memo, useEffect, useMemo, useState } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, ChevronDown, CircleAlert, Copy, Image, LoaderCircle, X } from "@jeff/icons";
+import { Check, ChevronDown, CircleAlert, Copy, Image, X } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import { api, getApiBase } from "../../../shared/api";
 import type { AiMessage } from "../../../app/store";
 import { extractAgentDiffs, extractAgentImages, parsedToolRecord, type AgentDiffArtifact, type AgentImageArtifact } from "../artifacts";
@@ -332,7 +333,7 @@ export const ToolRow = memo(function ToolRow({ message, onPermission, onQuestion
       >
         <span className="shrink-0 font-medium text-text-primary">{label}</span>
         {subtitle ? <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-text-tertiary" dir="ltr">{subtitle}</span> : <span className="min-w-0 flex-1" />}
-        {isRunning ? <LoaderCircle className="size-3 shrink-0 animate-spin text-accent-500" /> : status ? <span className="shrink-0 text-[11px] text-status-rose-text">{status}</span> : null}
+        {isRunning ? <PixelSpinner size={14} className="shrink-0 text-accent-500" /> : status ? <span className="shrink-0 text-[11px] text-status-rose-text">{status}</span> : null}
         <ChevronDown className={`size-3 shrink-0 text-text-tertiary transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${open ? "rotate-180" : "-rotate-90 opacity-0 group-hover:opacity-100"}`} />
       </button>
       {open ? (
@@ -360,7 +361,7 @@ export const ThoughtRow = memo(function ThoughtRow({ message, duration }: { mess
         aria-expanded={open}
       >
         <span className="shrink-0 font-medium text-text-primary">Thought</span>
-        {message.status === "running" ? <LoaderCircle className="size-3 shrink-0 animate-spin text-accent-500" /> : message.durationMs ? <span className="text-[11px] text-text-tertiary">{Math.max(1, Math.round(message.durationMs / 1000))}s</span> : duration ? <span className="text-[11px] text-text-tertiary">{duration}</span> : null}
+        {message.status === "running" ? <PixelSpinner size={14} className="shrink-0 text-accent-500" /> : message.durationMs ? <span className="text-[11px] text-text-tertiary">{Math.max(1, Math.round(message.durationMs / 1000))}s</span> : duration ? <span className="text-[11px] text-text-tertiary">{duration}</span> : null}
         <span className="min-w-0 flex-1" />
         <ChevronDown className={`size-3 shrink-0 text-text-tertiary transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${open ? "rotate-180" : "-rotate-90 opacity-0 group-hover:opacity-100"}`} />
       </button>

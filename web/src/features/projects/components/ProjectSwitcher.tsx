@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Bell, FolderGit2, FolderPlus, LoaderCircle, X } from "@jeff/icons";
+import { Bell, FolderGit2, FolderPlus, X } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import { api, ApiError, type Repository } from "../../../shared/api";
 import { useApp } from "../../../app/store";
 import ProjectJeffAvatar from "./ProjectJeffAvatar";
@@ -128,7 +129,7 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
           setProjects(next);
           project = next.find((item) => item.root === repo.path);
         }
-        if (!project) throw new Error("O repositório foi criado, mas não apareceu na lista de projetos.");
+        if (!project) throw new Error("O repositório foi criado, mas não apareceu na lista de repos.");
         const next = await api.projects();
         setProjects(next);
       }
@@ -167,8 +168,8 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
         onChange={(event) => setQuery(event.target.value)}
         onClear={() => setQuery("")}
         clearLabel="Limpar busca"
-        placeholder={onlyOpen ? "Pesquisar projeto" : "Pesquisar repositório"}
-        aria-label={onlyOpen ? "Pesquisar projeto" : "Pesquisar repositório"}
+        placeholder={onlyOpen ? "Pesquisar repo" : "Pesquisar repositório"}
+        aria-label={onlyOpen ? "Pesquisar repo" : "Pesquisar repositório"}
       />
       {onlyOpen ? null : creating ? (
         <form
@@ -235,13 +236,19 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
       )}
       {error ? <p role="alert" className="rounded-lg border border-status-rose-border bg-status-rose-bg px-2 py-1.5 text-caption-2-regular text-status-rose-text">{error}</p> : null}
       <div className="flex items-center justify-between px-1 text-caption-2-regular text-text-tertiary">
-        <span>{heading || (onlyOpen ? "Abertos agora" : "Projetos")}</span>
+        <span>{heading || (onlyOpen ? "Abertos agora" : onlyClosed ? "Outros repos" : "Repos abertos")}</span>
         <span className="flex items-center gap-1.5">{visible.length}{action}</span>
       </div>
       <div className="flex max-h-[min(260px,32vh)] flex-col gap-0.5 overflow-y-auto">
         {visible.length === 0 ? (
           <p className="px-2 py-4 text-center text-caption-2-regular text-text-tertiary">
-            {onlyClosed ? "Todos os projetos já estão abertos." : onlyOpen ? "Nenhum projeto aberto." : "Nenhum projeto encontrado."}
+            {onlyClosed
+              ? "Todos os repos já estão abertos."
+              : onlyOpen
+                ? "Nenhum repo aberto."
+                : projects.length === 0
+                  ? "Nenhum repo aberto ainda."
+                  : "Nenhum repo encontrado."}
           </p>
         ) : null}
         {visible.map((item) => {
@@ -277,7 +284,7 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
                   iconOnly
                   leadingIcon={X}
                   aria-label={`Fechar ${item.name}`}
-                  title="Fechar projeto"
+                  title="Fechar repo"
                   onClick={() => onCloseProject(item.id)}
                 />
               ) : null}
@@ -290,11 +297,11 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
         <>
           <div className="flex items-center justify-between border-t border-separator-border pt-2 px-1 text-caption-2-regular text-text-tertiary">
             <span className="flex items-center gap-1.5"><FolderGit2 size={12} /> Repositórios no servidor</span>
-            <span>{reposLoading ? <LoaderCircle size={11} className="animate-spin" /> : availableRepos.length}</span>
+            <span>{reposLoading ? <PixelSpinner size={14} /> : availableRepos.length}</span>
           </div>
           <div className="flex max-h-[min(220px,28vh)] flex-col gap-0.5 overflow-y-auto">
             {reposLoading ? (
-              <p role="status" className="flex items-center justify-center gap-2 px-2 py-4 text-caption-2-regular text-text-tertiary"><LoaderCircle size={13} className="animate-spin" /> Procurando repositórios…</p>
+              <p role="status" className="flex items-center justify-center gap-2 px-2 py-4 text-caption-2-regular text-text-tertiary"><PixelSpinner size={14} /> Procurando repositórios…</p>
             ) : null}
             {!reposLoading && availableRepos.length === 0 ? (
               <p className="px-2 py-4 text-center text-caption-2-regular text-text-tertiary">
@@ -311,7 +318,7 @@ export default function ProjectSwitcher({ onSelect, onCloseProject, onlyClosed =
                 className="flex min-w-0 items-center gap-2.5 rounded-xl p-2 text-start text-text-primary transition-colors hover:bg-dropdown-item-hover-background focus-visible:bg-dropdown-item-hover-background disabled:opacity-60"
               >
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border-button-default bg-background-secondary-default/60 text-foreground-icon-secondary">
-                  {opening === repo.path ? <LoaderCircle size={14} className="animate-spin" /> : <FolderGit2 size={14} />}
+                  {opening === repo.path ? <PixelSpinner size={14} /> : <FolderGit2 size={14} />}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-body-2-medium text-text-primary">{repo.name}</span>

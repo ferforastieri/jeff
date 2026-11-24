@@ -12,7 +12,7 @@ interface Props {
 
 const MODES: Array<{ id: JeffChatMode; label: string; hint: string }> = [
   { id: "plan", label: "Plano", hint: "Investiga e propõe antes de mexer" },
-  { id: "build", label: "Construção", hint: "Implementa e verifica no projeto" },
+  { id: "build", label: "Construção", hint: "Implementa e verifica no repo" },
   { id: "debug", label: "Debug", hint: "Investiga com terminal e browser visíveis" },
 ];
 

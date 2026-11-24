@@ -1,87 +1,219 @@
-import { useEffect, useState } from "react";
-import { Check, Copy, Plus, X } from "@jeff/icons";
-import { api, type OnboardingStatus, type Project } from "../../shared/api";
+import { useState, type ReactNode } from "react";
+import { Button } from "faang-ui/components/Button";
+import { Field, FormStack, Input } from "faang-ui/components/Field";
+import {
+  Card,
+  Icon,
+  OptionCard,
+  ProviderLogo,
+  type IconName,
+  type PersonRecipe,
+} from "faang-ui";
+import { TimezoneSelect, type TimezoneSelectLabels } from "faang-ui/components/TimezoneSelect";
+import { api, type OnboardingStatus } from "../../shared/api";
+import { useApp } from "../../app/store";
+import { WizardShell } from "./WizardShell";
+import { WorkspaceLogoDialog } from "./WorkspaceLogoDialog";
+import { ProfilePhotoDialog } from "./ProfilePhotoDialog";
+import { ProfileAvatarDialog } from "./ProfileAvatarDialog";
+import { ApiKeyDialog } from "./ApiKeyDialog";
+import { PersonFace } from "./PersonFace";
 
-const field =
-  "w-full rounded-xl border border-border-button-default bg-background-primary-default px-3 py-2.5 text-body-2-regular text-text-primary outline-none placeholder:text-text-tertiary focus:border-accent-500";
-const primaryButton =
-  "inline-flex items-center justify-center gap-1 rounded-xl bg-accent-500 px-4 py-2 text-body-2-medium text-white disabled:opacity-40";
-const ghostButton =
-  "inline-flex items-center justify-center gap-1 rounded-xl px-4 py-2 text-body-2-medium text-text-secondary hover:bg-background-tertiary-default";
+const ACTIVITIES: { value: string; icon: IconName }[] = [
+  { value: "Agência", icon: "crown" },
+  { value: "Loja online", icon: "wallet" },
+  { value: "Clínica ou consultório", icon: "shield" },
+  { value: "Software e apps", icon: "code" },
+  { value: "Atendimento ao cliente", icon: "sound" },
+  { value: "Escritório de serviços", icon: "document" },
+  { value: "Outra coisa", icon: "more" },
+];
 
-const ACTIVITIES = ["dev", "estudo", "pesquisa", "trabalho", "pessoal", "outro"];
+const TIMEZONE_LABELS: TimezoneSelectLabels = {
+  search: "Buscar fuso",
+  searchPlaceholder: "Cidade, país, UTC−3…",
+  groups: {
+    suggested: "Sugeridos",
+    America: "América",
+    Europe: "Europa",
+    Asia: "Ásia",
+    Africa: "África",
+    Oceania: "Oceania",
+    Antarctica: "Antártida",
+    Other: "Outros",
+  },
+  noResults: "Nenhum fuso encontrado.",
+  list: "Fusos horários",
+};
+
+const TIMEZONE_NAMES: Record<string, string> = {
+  "America/Sao_Paulo": "Horário de Brasília",
+  UTC: "UTC",
+};
 
 interface Props {
   status: OnboardingStatus;
   onDone: () => void;
 }
 
-export default function Onboarding({ status, onDone }: Props) {
-  const [step, setStep] = useState(0);
-  const [mode, setMode] = useState<"solo" | "team">(
-    status.mode === "team" ? "team" : "solo",
+function JeffProfilePortrait({ recipe }: { recipe: PersonRecipe }) {
+  return (
+    <span className="jeff-profile-portrait">
+      <PersonFace recipe={recipe} crop="full" />
+    </span>
   );
-  const [activity, setActivity] = useState(status.activity || "dev");
+}
+
+function AiOption({
+  pressed,
+  onClick,
+  logo,
+  title,
+  meta,
+  trailing,
+}: {
+  pressed: boolean;
+  onClick: () => void;
+  logo: ReactNode;
+  title: string;
+  meta: string;
+  trailing: ReactNode;
+}) {
+  return (
+    <OptionCard pressed={pressed} onClick={onClick} className="jeff-ai__option">
+      {logo}
+      <span className="jeff-ai__text">
+        <strong>{title}</strong>
+        <span>{meta}</span>
+      </span>
+      {trailing}
+    </OptionCard>
+  );
+}
+
+export default function Onboarding({ status, onDone }: Props) {
+  const setWorkspaceTimezone = useApp((state) => state.setWorkspaceTimezone);
+  const workspaceTimezone = useApp((state) => state.workspaceTimezone);
+  const [step, setStep] = useState(0);
+  const [workspaceName, setWorkspaceName] = useState(status.teamName || "");
+  const [workspaceLogo, setWorkspaceLogo] = useState<string | null>(
+    status.workspaceLogo || null,
+  );
+  const initialAvatar = status.avatar as {
+    kind?: string;
+    recipe?: PersonRecipe;
+    url?: string;
+  };
+  const [logoOpen, setLogoOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [apiKeyOpen, setApiKeyOpen] = useState(false);
+  const [apiKeyProvider, setApiKeyProvider] = useState<"anthropic" | "openai" | "custom">("anthropic");
+  const [profileKind, setProfileKind] = useState<"initials" | "person" | "photo">(
+    initialAvatar.kind === "person" && initialAvatar.recipe
+      ? "person"
+      : initialAvatar.kind === "photo" && initialAvatar.url
+        ? "photo"
+        : "initials",
+  );
+  const [profileRecipe, setProfileRecipe] = useState<PersonRecipe | null>(
+    initialAvatar.recipe ?? null,
+  );
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(
+    initialAvatar.url ?? null,
+  );
+  const [timeZone, setTimeZone] = useState<string>(
+    status.timezone || workspaceTimezone || "America/Sao_Paulo",
+  );
+  const [displayName, setDisplayName] = useState(
+    status.displayName === "Admin" ? "" : status.displayName || "",
+  );
+  const [activity, setActivity] = useState(
+    ACTIVITIES.some((item) => item.value === status.activity) ? status.activity : "",
+  );
   const [objective, setObjective] = useState(status.objective);
-  const [tools, setTools] = useState(status.tools);
-  const [agentName, setAgentName] = useState("");
-  const [teamName, setTeamName] = useState(status.teamName);
-  const [projectId, setProjectId] = useState(status.projectId);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [creatingProject, setCreatingProject] = useState(false);
-  const [projectName, setProjectName] = useState("");
-  const [projectRoot, setProjectRoot] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ invite: string | null } | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [aiChoice, setAiChoice] = useState<string | null>(null);
 
-  useEffect(() => {
-    void api
-      .projects()
-      .then((items) => {
-        setProjects(items);
-        if (!projectId && items.length > 0) setProjectId(items[0].id);
-      })
-      .catch(() => undefined);
-  }, [projectId]);
+  const logoSrc = `${import.meta.env.BASE_URL}brand/jeff-logo-horizontal.png`;
+  const jeffSrc = (name: string) => `${import.meta.env.BASE_URL}jeffs/${name}.png`;
+  const firstName = displayName.trim().split(/\s+/)[0] || "você";
+  const avatarPayload =
+    profileKind === "photo" && profilePhoto
+      ? { kind: "photo", url: profilePhoto }
+      : profileKind === "person" && profileRecipe
+        ? { kind: "person", recipe: profileRecipe }
+        : {};
 
-  const steps = mode === "team" ? 5 : 4;
-  const last = step === steps - 1;
+  const last = step === 4;
+  const titles = [
+    { title: "Como se chama o seu workspace?", meta: "É onde o time e os agentes conversam." },
+    {
+      title: workspaceName.trim()
+        ? `O que a ${workspaceName.trim()} faz?`
+        : "O que vocês fazem?",
+      meta: "Todos os agentes leem isso. Você muda quando quiser.",
+    },
+    { title: "Sobre você", meta: "Como você quer ser chamado?" },
+    {
+      title: "Conecte uma IA para o Jeff pensar",
+      meta: "Use uma assinatura que você já tem. Nada muda no seu plano.",
+    },
+    {
+      title: "Quem trabalha com você?",
+      meta: "Quem abrir pede para entrar. Eu te mostro cada pedido, e você aprova.",
+    },
+  ];
+  const current = titles[Math.max(0, Math.min(titles.length - 1, step))];
 
-  function next() {
+  async function next() {
     setError("");
-    if (step === 1 && !activity) {
-      setError("Escolha a atividade.");
+    if (step === 0) {
+      if (!workspaceName.trim()) {
+        setError("Dê um nome ao workspace.");
+        return;
+      }
+      setStep(1);
       return;
     }
-    if (step === 2 && !agentName.trim()) {
-      setError("Dê um nome ao agente de configuração.");
+    if (step === 1) {
+      if (!activity) {
+        setError("Escolha o que vocês fazem.");
+        return;
+      }
+      setStep(2);
       return;
     }
-    if (step === 3 && !projectId) {
-      setError("Escolha ou crie um projeto.");
+    if (step === 2) {
+      const name = displayName.trim();
+      if (!name) {
+        setError("Informe seu nome.");
+        return;
+      }
+      if (name !== status.displayName) {
+        setBusy(true);
+        try {
+          await api.setDisplayName(name);
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : "Não foi possível salvar seu nome.");
+          setBusy(false);
+          return;
+        } finally {
+          setBusy(false);
+        }
+      }
+      setStep(3);
+      return;
+    }
+    if (step === 3) {
+      setStep(4);
       return;
     }
     if (last) {
       void finish();
-      return;
-    }
-    setStep((value) => value + 1);
-  }
-
-  async function createProject() {
-    if (!projectName.trim() || !projectRoot.trim()) {
-      setError("Informe nome e pasta do projeto.");
-      return;
-    }
-    try {
-      const created = await api.createProject(projectName.trim(), projectRoot.trim(), "#0063D1");
-      setProjects((current) => [...current, created]);
-      setProjectId(created.id);
-      setCreatingProject(false);
-      setError("");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Não foi possível criar o projeto.");
     }
   }
 
@@ -89,19 +221,17 @@ export default function Onboarding({ status, onDone }: Props) {
     setBusy(true);
     setError("");
     try {
-      const done = await api.completeOnboarding({
-        mode,
+      await api.completeOnboarding({
         activity,
         objective,
-        tools,
-        agentName: agentName.trim(),
-        projectId,
-        teamName: mode === "team" ? teamName.trim() : "",
+        tools: status.tools,
+        agentName: "Jeff",
+        teamName: workspaceName.trim(),
+        timezone: timeZone,
+        avatar: avatarPayload,
+        workspaceLogo: workspaceLogo ?? "",
       });
-      const invite = done.invite
-        ? `${window.location.origin}/app/?invite=${encodeURIComponent(done.invite.token)}`
-        : null;
-      setResult({ invite });
+      onDone();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível concluir.");
     } finally {
@@ -109,250 +239,384 @@ export default function Onboarding({ status, onDone }: Props) {
     }
   }
 
+  async function createInviteLink() {
+    setInviteBusy(true);
+    setError("");
+    try {
+      const invite = await api.createInvite("member", 30);
+      setInviteLink(
+        `${window.location.origin}/app/?invite=${encodeURIComponent(invite.token)}`,
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível criar o link.");
+    } finally {
+      setInviteBusy(false);
+    }
+  }
+
+  function copyInvite() {
+    if (inviteLink) void navigator.clipboard?.writeText(inviteLink);
+  }
+
   if (!status.isAdmin) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-background-full p-4">
-        <section className="w-full max-w-md rounded-3xl border border-border-button-white bg-background-primary-default p-6 text-center">
-          <h1 className="text-title-2-medium">Quase lá</h1>
-          <p className="mt-1 text-body-2-regular text-text-secondary">
-            O admin do time ainda está configurando o workspace. Assim que ele concluir, você entra
-            direto nas salas.
-          </p>
-          <button
-            className={`${primaryButton} mt-4`}
-            onClick={() => window.location.reload()}
-          >
-            verificar de novo
-          </button>
+      <main className="jeff-welcome">
+        <section className="jeff-welcome__main">
+          <Card className="jeff-step__card">
+            <h1 className="jeff-welcome__question">Quase lá</h1>
+            <p className="jeff-welcome__hint">
+              O admin do time ainda está configurando o workspace. Assim que ele concluir, você
+              entra direto nas salas.
+            </p>
+            <Button variant="primary" size="sm" block onClick={() => window.location.reload()}>
+              Verificar de novo
+            </Button>
+          </Card>
         </section>
       </main>
     );
   }
 
-  if (result) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-background-full p-4">
-        <section className="w-full max-w-lg rounded-3xl border border-border-button-white bg-background-primary-default p-6 shadow-2xl">
-          <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-status-lime-text/15 text-status-lime-text">
-            <Check size={20} />
-          </div>
-          <h1 className="text-title-2-medium">Tudo pronto</h1>
-          <p className="mt-1 text-body-2-regular text-text-secondary">
-            O workspace está configurado. Seu agente de configuração espera por você na conversa
-            direta.
-          </p>
-          {result.invite ? (
-            <div className="mt-4 rounded-xl border border-border-button-default p-3">
-              <p className="text-caption-1-regular text-text-secondary">
-                Link de convite do time (expira em 30 dias):
-              </p>
-              <div className="mt-1 flex items-center gap-2">
-                <code className="min-w-0 flex-1 truncate text-caption-2-regular text-text-tertiary">
-                  {result.invite}
-                </code>
-                <button
-                  className={ghostButton}
-                  onClick={() => void navigator.clipboard?.writeText(result.invite ?? "")}
-                >
-                  <Copy size={14} /> copiar
-                </button>
-              </div>
-            </div>
-          ) : null}
-          <button className={`${primaryButton} mt-5 w-full`} onClick={onDone}>
-            Entrar no Jeff
-          </button>
-        </section>
-      </main>
+  const disabled =
+    (step === 0 && !workspaceName.trim()) ||
+    (step === 1 && !activity) ||
+    (step === 2 && !displayName.trim());
+
+  const actions =
+    step === 3 ? undefined : (
+      <Button
+        variant="primary"
+        size="sm"
+        block
+        loading={busy}
+        disabled={disabled}
+        onClick={() => void next()}
+      >
+        {last ? "Entrar no workspace" : "Continuar"}
+      </Button>
     );
-  }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background-full p-4">
-      <section className="w-full max-w-lg rounded-3xl border border-border-button-white bg-background-primary-default p-6 shadow-2xl">
-        <div className="mb-4 flex items-center gap-1.5">
-          {Array.from({ length: steps }).map((_, index) => (
-            <span
-              key={index}
-              className={`h-1 flex-1 rounded-full ${
-                index <= step ? "bg-accent-500" : "bg-background-tertiary-default"
-              }`}
-            />
-          ))}
-        </div>
-
+    <>
+      <WizardShell
+        step={step}
+        firstName={firstName}
+        logo={logoSrc}
+        workspaceName={workspaceName}
+        workspaceLogo={workspaceLogo}
+        profileKind={profileKind}
+        profileRecipe={profileRecipe}
+        profilePhoto={profilePhoto}
+        jeffSrc={jeffSrc}
+        title={current.title}
+        meta={current.meta}
+        notes={[workspaceName.trim(), activity, displayName.trim(), "Depois"]}
+        onBack={step > 0 ? () => setStep(step - 1) : undefined}
+        actions={actions}
+      >
         {step === 0 ? (
-          <>
-            <h1 className="text-title-2-medium">Como você vai usar o Jeff?</h1>
-            <p className="mt-1 text-body-2-regular text-text-secondary">
-              Isso define o workspace inicial. Dá para mudar depois.
-            </p>
-            <div className="mt-4 grid gap-2">
-              {(
-                [
-                  ["solo", "Para mim", "Um workspace seu, com o agente que ajuda a configurar tudo."],
-                  ["team", "Para um time", "Contas de verdade, convite por link e papéis."],
-                ] as const
-              ).map(([value, title, description]) => (
-                <button
-                  key={value}
-                  className={`rounded-2xl border p-4 text-left transition-colors ${
-                    mode === value
-                      ? "border-accent-500 bg-accent-500/10"
-                      : "border-border-button-default hover:bg-background-tertiary-default"
-                  }`}
-                  onClick={() => setMode(value)}
-                >
-                  <span className="block text-body-1-medium">{title}</span>
-                  <span className="mt-0.5 block text-caption-1-regular text-text-tertiary">
-                    {description}
-                  </span>
-                </button>
-              ))}
+          <div className="jeff-workspace-name">
+            <div className="jeff-workspace-name__row">
+              <Button
+                variant="default"
+                size="sm"
+                iconOnly
+                icon="upload"
+                aria-label="Enviar imagem do workspace"
+                className="jeff-workspace-name__upload"
+                onClick={() => setLogoOpen(true)}
+              />
+              <Field
+                className="jeff-workspace-name__field"
+                label={<span className="ac-visually-hidden">Nome do workspace</span>}
+              >
+                <Input
+                  placeholder="Ex.: Acme"
+                  value={workspaceName}
+                  onChange={(event) => setWorkspaceName(event.target.value)}
+                  autoFocus
+                />
+              </Field>
             </div>
-          </>
+            <div className="jeff-workspace-name__tz">
+              <Field label="Fuso horário">
+                <TimezoneSelect
+                  value={timeZone}
+                  onChange={(zone) => {
+                    setTimeZone(zone);
+                    setWorkspaceTimezone(zone);
+                  }}
+                  labels={TIMEZONE_LABELS}
+                  nameOf={(zone) => TIMEZONE_NAMES[zone]}
+                  suggested={[timeZone, "UTC"]}
+                  aria-label="Fuso horário"
+                />
+              </Field>
+            </div>
+            {error ? <p className="jeff-server__error">{error}</p> : null}
+          </div>
         ) : null}
 
         {step === 1 ? (
-          <>
-            <h1 className="text-title-2-medium">O que você faz?</h1>
-            <p className="mt-1 text-body-2-regular text-text-secondary">
-              Isso calibra o agente de configuração.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-1.5">
+          <div className="jeff-wizard__form">
+            <div className="jeff-step__activities">
               {ACTIVITIES.map((item) => (
-                <button
-                  key={item}
-                  className={`rounded-full px-3 py-1.5 text-caption-1-medium ${
-                    activity === item
-                      ? "bg-accent-500 text-white"
-                      : "bg-background-tertiary-default text-text-secondary"
-                  }`}
-                  onClick={() => setActivity(item)}
+                <Button
+                  key={item.value}
+                  size="sm"
+                  icon={item.icon}
+                  variant={activity === item.value ? "primary" : "default"}
+                  onClick={() => setActivity(item.value)}
                 >
-                  {item}
-                </button>
+                  {item.value}
+                </Button>
               ))}
             </div>
-            <div className="mt-4 space-y-2">
-              <textarea
-                className={`${field} min-h-20`}
-                placeholder="Qual é o objetivo principal? Ex.: entregar o app até dezembro."
+            <Field
+              label="Em uma frase"
+              hint={{
+                name: "Sobre esta frase",
+                text: "Um resumo do que o time faz. Os agentes leem isso para entender o contexto do workspace.",
+              }}
+            >
+              <Input
+                placeholder="Ex.: criamos sites e apps para pequenos negócios."
                 value={objective}
                 onChange={(event) => setObjective(event.target.value)}
               />
-              <input
-                className={field}
-                placeholder="Ferramentas que já usa (opcional)"
-                value={tools}
-                onChange={(event) => setTools(event.target.value)}
-              />
-            </div>
-          </>
+            </Field>
+            {error ? <p className="jeff-server__error">{error}</p> : null}
+          </div>
         ) : null}
 
         {step === 2 ? (
-          <>
-            <h1 className="text-title-2-medium">Nome do agente principal</h1>
-            <p className="mt-1 text-body-2-regular text-text-secondary">
-              Ele é fixo e ajuda a configurar o Jeff pela conversa direta.
-            </p>
-            <input
-              className={`${field} mt-4`}
-              placeholder="Ex.: Nico"
-              value={agentName}
-              onChange={(event) => setAgentName(event.target.value)}
-              autoFocus
-            />
-          </>
+          <FormStack>
+            <Field label="Seu nome">
+              <Input
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                autoFocus
+              />
+            </Field>
+            <div className="jeff-profile-choice">
+              <span className="jeff-profile-choice__preview">
+                {profileKind === "photo" && profilePhoto ? (
+                  <img src={profilePhoto} alt="" draggable={false} />
+                ) : profileKind === "person" && profileRecipe ? (
+                  <JeffProfilePortrait recipe={profileRecipe} />
+                ) : (
+                  <span className="jeff-profile-choice__initials">{firstName.charAt(0).toUpperCase()}</span>
+                )}
+              </span>
+              <div className="jeff-profile-choice__copy">
+                <strong>Seu avatar</strong>
+                <p>Crie um avatar ou envie uma foto para o seu perfil.</p>
+                <div className="jeff-profile-choice__actions">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    icon="smile"
+                    onClick={() => setAvatarOpen(true)}
+                  >
+                    Criar avatar
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    icon="image"
+                    onClick={() => setPhotoOpen(true)}
+                  >
+                    Enviar foto
+                  </Button>
+                  {profileKind !== "initials" ? (
+                    <Button
+                      variant="link"
+                      onClick={() => setProfileKind("initials")}
+                    >
+                      Usar iniciais
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            {error ? <p className="jeff-server__error">{error}</p> : null}
+          </FormStack>
         ) : null}
 
         {step === 3 ? (
-          <>
-            <h1 className="text-title-2-medium">Projeto inicial</h1>
-            <p className="mt-1 text-body-2-regular text-text-secondary">
-              Um projeto pode ser um repositório ou apenas uma pasta.
-            </p>
-            <div className="mt-4 space-y-2">
-              {projects.map((project) => (
-                <button
-                  key={project.id}
-                  className={`w-full rounded-xl border p-3 text-left ${
-                    projectId === project.id
-                      ? "border-accent-500 bg-accent-500/10"
-                      : "border-border-button-default"
-                  }`}
-                  onClick={() => setProjectId(project.id)}
-                >
-                  <span className="block text-body-2-medium">{project.name}</span>
-                  <span className="block truncate text-caption-2-regular text-text-tertiary">
-                    {project.root}
+          <div className="jeff-ai">
+            <div className="jeff-ai__list">
+              <AiOption
+                pressed={aiChoice === "claude"}
+                onClick={() => {
+                  setAiChoice("claude");
+                  setApiKeyProvider("anthropic");
+                  setApiKeyOpen(true);
+                }}
+                logo={<ProviderLogo id="anthropic" size="tile" />}
+                title="Claude"
+                meta="Pro, Max, Ultra, Team ou Enterprise"
+                trailing={<Icon name="chevronRight" size={16} className="jeff-ai__chev" />}
+              />
+              <AiOption
+                pressed={aiChoice === "chatgpt"}
+                onClick={() => {
+                  setAiChoice("chatgpt");
+                  setApiKeyProvider("openai");
+                  setApiKeyOpen(true);
+                }}
+                logo={<ProviderLogo id="openai" size="tile" />}
+                title="ChatGPT"
+                meta="Plus, Pro, Business ou Enterprise"
+                trailing={<Icon name="chevronRight" size={16} className="jeff-ai__chev" />}
+              />
+              <AiOption
+                pressed={aiChoice === "other"}
+                onClick={() => {
+                  setAiChoice("other");
+                  setApiKeyProvider("custom");
+                  setApiKeyOpen(true);
+                }}
+                logo={
+                  <span className="jeff-ai__providers" aria-hidden="true">
+                    <ProviderLogo id="gemini" size="chip" />
+                    <ProviderLogo id="xai" size="chip" />
+                    <ProviderLogo id="cursor" size="chip" />
+                    <ProviderLogo id="zai" size="chip" />
                   </span>
-                </button>
-              ))}
-              {creatingProject ? (
-                <div className="space-y-2 rounded-xl border border-border-button-default p-3">
-                  <input
-                    className={field}
-                    placeholder="Nome do projeto"
-                    value={projectName}
-                    onChange={(event) => setProjectName(event.target.value)}
-                  />
-                  <input
-                    className={field}
-                    placeholder="Pasta, ex.: /work/repos/meu-projeto"
-                    value={projectRoot}
-                    onChange={(event) => setProjectRoot(event.target.value)}
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button className={ghostButton} onClick={() => setCreatingProject(false)}>
-                      <X size={14} /> cancelar
-                    </button>
-                    <button className={primaryButton} onClick={() => void createProject()}>
-                      criar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button className={ghostButton} onClick={() => setCreatingProject(true)}>
-                  <Plus size={14} /> criar outro projeto
-                </button>
-              )}
+                }
+                title="Outro plano"
+                meta="Gemini, Grok, Cursor, GLM Coding, Kimi Code, MiniMax e OpenCode"
+                trailing={<Icon name="chevronDown" size={16} className="jeff-ai__chev" />}
+              />
+              <AiOption
+                pressed={aiChoice === "key"}
+                onClick={() => {
+                  setAiChoice("key");
+                  setApiKeyProvider("anthropic");
+                  setApiKeyOpen(true);
+                }}
+                logo={
+                  <span className="jeff-ai__key">
+                    <Icon name="key" size={20} />
+                  </span>
+                }
+                title="Chave de API"
+                meta="Você paga pelo uso, direto ao provedor."
+                trailing={<Icon name="chevronRight" size={16} className="jeff-ai__chev" />}
+              />
+              <AiOption
+                pressed={aiChoice === "free"}
+                onClick={() => setAiChoice("free")}
+                logo={<ProviderLogo id="opencode" size="tile" />}
+                title="Começar grátis"
+                meta="Com os modelos grátis do OpenCode"
+                trailing={<span className="jeff-ai__tag">Sem assinatura</span>}
+              />
             </div>
-          </>
-        ) : null}
-
-        {step === 4 && mode === "team" ? (
-          <>
-            <h1 className="text-title-2-medium">Nome do time</h1>
-            <p className="mt-1 text-body-2-regular text-text-secondary">
-              O link de convite aparece no fim. Você define quem vê cada projeto.
+            {aiChoice ? (
+              <p className="jeff-ai__note">
+                A conexão com{" "}
+                {aiChoice === "claude"
+                  ? "Claude"
+                  : aiChoice === "chatgpt"
+                    ? "ChatGPT"
+                    : aiChoice === "other"
+                      ? "outro plano"
+                      : aiChoice === "key"
+                        ? "sua chave de API"
+                        : "o plano grátis"}{" "}
+                abre em Configurações → IA depois que você entrar.
+              </p>
+            ) : null}
+            <p className="jeff-ai__skip">
+              Sem uma IA, os agentes não respondem.{" "}
+              <Button variant="link" onClick={() => setStep(4)}>
+                Conectar depois
+              </Button>
             </p>
-            <input
-              className={`${field} mt-4`}
-              placeholder="Ex.: Studio"
-              value={teamName}
-              onChange={(event) => setTeamName(event.target.value)}
-              autoFocus
-            />
-          </>
+            {error ? <p className="jeff-server__error">{error}</p> : null}
+          </div>
         ) : null}
 
-        {error ? <p className="mt-3 text-caption-1-regular text-red-500">{error}</p> : null}
-
-        <div className="mt-6 flex items-center justify-between gap-2">
-          <button
-            className={ghostButton}
-            onClick={() => setStep((value) => Math.max(0, value - 1))}
-            disabled={step === 0 || busy}
-          >
-            voltar
-          </button>
-          <button className={primaryButton} onClick={next} disabled={busy}>
-            {last ? (busy ? "criando..." : "concluir") : "continuar"}
-          </button>
-        </div>
-      </section>
-    </main>
+        {step === 4 ? (
+          <div className="jeff-invite">
+            <div className="jeff-invite__head">
+              <span className={inviteLink ? "jeff-invite__state" : "jeff-invite__state is-empty"}>
+                {inviteLink ? "Link ativo" : "Nenhum link ativo."}
+              </span>
+              <div className="jeff-invite__actions">
+                {inviteLink ? (
+                  <Button variant="ghost" size="sm" icon="copy" onClick={copyInvite}>
+                    Copiar
+                  </Button>
+                ) : null}
+                <Button
+                  variant="default"
+                  size="sm"
+                  icon="link"
+                  loading={inviteBusy}
+                  onClick={() => void createInviteLink()}
+                >
+                  {inviteLink ? "Novo link" : "Criar link"}
+                </Button>
+              </div>
+            </div>
+            {inviteLink ? <code className="jeff-invite__link">{inviteLink}</code> : null}
+            <ol className="jeff-invite__steps">
+              <li>
+                <span>1</span>
+                <p>A pessoa abre o link e diz quem é.</p>
+              </li>
+              <li>
+                <span>2</span>
+                <p>O pedido chega para quem convida, aqui e no celular.</p>
+              </li>
+              <li>
+                <span>3</span>
+                <p>Você aprova e escolhe com que cargo a pessoa entra.</p>
+              </li>
+            </ol>
+            {error ? <p className="jeff-server__error">{error}</p> : null}
+          </div>
+        ) : null}
+      </WizardShell>
+      <WorkspaceLogoDialog
+        open={logoOpen}
+        currentLogo={workspaceLogo}
+        defaultLogo={`${import.meta.env.BASE_URL}brand/jeff-mark.png`}
+        onClose={() => setLogoOpen(false)}
+        onSave={(logo) => setWorkspaceLogo(logo)}
+      />
+      <ProfileAvatarDialog
+        open={avatarOpen}
+        current={profileRecipe}
+        onClose={() => setAvatarOpen(false)}
+        onPhoto={() => {
+          setAvatarOpen(false);
+          setPhotoOpen(true);
+        }}
+        onSave={(recipe) => {
+          setProfileKind("person");
+          setProfileRecipe(recipe);
+        }}
+      />
+      <ProfilePhotoDialog
+        open={photoOpen}
+        photo={profilePhoto}
+        initial={firstName.charAt(0).toUpperCase()}
+        onClose={() => setPhotoOpen(false)}
+        onSave={(photo) => {
+          setProfileKind("photo");
+          setProfilePhoto(photo);
+        }}
+      />
+      <ApiKeyDialog
+        open={apiKeyOpen}
+        provider={apiKeyProvider}
+        onClose={() => setApiKeyOpen(false)}
+        onSaved={() => setAiChoice("key")}
+      />
+    </>
   );
 }

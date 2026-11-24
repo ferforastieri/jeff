@@ -115,8 +115,8 @@ export default function WorkspaceSettings() {
 
       <form className="bg-background-secondary-default flex flex-col gap-3 rounded-lg border p-4" onSubmit={(event) => void createProject(event)}>
         <Input label="Caminho da pasta" value={projectPath} onChange={setProjectPath} placeholder="/srv/repos/my-project" />
-        <Input label="Nome do projeto" value={projectName} onChange={setProjectName} placeholder={projectPath ? basename(projectPath) : "Opcional"} />
-        <Button type="submit" className="self-start" disabled={busy || !projectPath.trim()} leadingIcon={Plus}>{busy ? "Abrindo..." : "Abrir como projeto"}</Button>
+        <Input label="Nome do repo" value={projectName} onChange={setProjectName} placeholder={projectPath ? basename(projectPath) : "Opcional"} />
+        <Button type="submit" className="self-start" disabled={busy || !projectPath.trim()} leadingIcon={Plus}>{busy ? "Abrindo..." : "Abrir como repo"}</Button>
       </form>
 
       <section className="flex flex-col gap-2">

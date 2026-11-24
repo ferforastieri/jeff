@@ -31,12 +31,28 @@ fn ignored_dir(name: &str) -> bool {
             | ".vscode"
             | "target"
             | "bin"
+            | "__pycache__"
+            | ".venv"
+            | "venv"
+            | ".pytest_cache"
+            | ".mypy_cache"
+            | ".turbo"
+            | ".parcel-cache"
+            | ".nuxt"
+            | ".svelte-kit"
+            | "coverage"
+            | "Pods"
+            | "DerivedData"
+            | "_build"
+            | "obj"
+            | ".terraform"
     )
 }
 
 #[derive(Clone)]
 pub struct WorkspaceService {
     roots: Arc<RwLock<Vec<PathBuf>>>,
+    repos_cache: Arc<RwLock<Option<(std::time::Instant, Vec<Repository>)>>>,
 }
 
 impl WorkspaceService {
@@ -44,6 +60,7 @@ impl WorkspaceService {
         let resolved = resolve_roots(&roots)?;
         Ok(Self {
             roots: Arc::new(RwLock::new(resolved)),
+            repos_cache: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -62,6 +79,9 @@ impl WorkspaceService {
             .map_err(|_| crate::errors::internal("root lock"))?;
         if !roots.iter().any(|existing| existing == &resolved) {
             roots.push(resolved.clone());
+        }
+        if let Ok(mut cache) = self.repos_cache.write() {
+            *cache = None;
         }
         Ok(resolved)
     }
@@ -381,6 +401,9 @@ impl WorkspaceService {
             return Err(AppError::Conflict);
         }
         fs::create_dir(&path)?;
+        if let Ok(mut cache) = self.repos_cache.write() {
+            *cache = None;
+        }
         if init_git {
             if let Err(error) = git_output(&path, &["init"]).await {
                 // A half-created folder would block the retry with a conflict.
@@ -403,6 +426,39 @@ impl WorkspaceService {
             limit
         };
         let needle = query.trim().to_lowercase();
+        let all = self.all_repos();
+        all.into_iter()
+            .filter(|repo| {
+                if needle.is_empty() {
+                    return true;
+                }
+                format!("{} {} {}", repo.name, repo.relative, repo.path)
+                    .to_lowercase()
+                    .contains(&needle)
+            })
+            .take(limit)
+            .collect()
+    }
+
+    /// The workspace tree changes rarely, but walking it takes seconds. Keep
+    /// the repo list for a minute so opening the picker is instant after the
+    /// first scan.
+    fn all_repos(&self) -> Vec<Repository> {
+        if let Ok(cache) = self.repos_cache.read() {
+            if let Some((at, repos)) = cache.as_ref() {
+                if at.elapsed() < std::time::Duration::from_secs(300) {
+                    return repos.clone();
+                }
+            }
+        }
+        let repos = self.scan_repos();
+        if let Ok(mut cache) = self.repos_cache.write() {
+            *cache = Some((std::time::Instant::now(), repos.clone()));
+        }
+        repos
+    }
+
+    fn scan_repos(&self) -> Vec<Repository> {
         let mut seen = std::collections::HashSet::new();
         let mut repos = Vec::new();
         for root in self.roots() {
@@ -436,18 +492,12 @@ impl WorkspaceService {
                     .file_name()
                     .map(|value| value.to_string_lossy().to_string())
                     .unwrap_or_else(|| relative.clone());
-                let haystack = format!("{} {} {}", name, relative, path.display()).to_lowercase();
-                if needle.is_empty() || haystack.contains(&needle) {
-                    repos.push(Repository {
-                        name,
-                        path: path.to_string_lossy().to_string(),
-                        root: root.to_string_lossy().to_string(),
-                        relative,
-                    });
-                    if repos.len() >= limit {
-                        break;
-                    }
-                }
+                repos.push(Repository {
+                    name,
+                    path: path.to_string_lossy().to_string(),
+                    root: root.to_string_lossy().to_string(),
+                    relative,
+                });
             }
         }
         repos.sort_by(|a, b| a.relative.cmp(&b.relative));

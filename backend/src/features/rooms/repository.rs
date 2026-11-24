@@ -34,6 +34,21 @@ fn author_of(principal: &Principal) -> Author {
 impl Store {
     /// The participant row that represents a person. Created on first use so
     /// every existing install gets one without a migration step.
+    /// Stores the human's chosen profile picture (a photo or a drawn portrait).
+    pub async fn set_principal_avatar(
+        &self,
+        id: &str,
+        avatar: &serde_json::Value,
+    ) -> AppResult<()> {
+        sqlx::query("UPDATE principals SET avatar = $1, updated_at = $2 WHERE id = $3")
+            .bind(serde_json::to_string(avatar)?)
+            .bind(now_ms())
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     pub async fn ensure_human_principal(&self, user_id: i64) -> AppResult<Principal> {
         if let Some(row) = sqlx::query(&format!(
             "SELECT {PRINCIPAL_COLUMNS} FROM principals WHERE user_id = $1"
@@ -137,6 +152,63 @@ impl Store {
         self.principal(&id).await
     }
 
+    /// The bot's name and handle, and the rest of its configuration: the same fields
+    /// it is created with. Its folders and proxy stay when the form leaves them out.
+    pub async fn update_bot(&self, id: &str, input: CreateBotInput) -> AppResult<Principal> {
+        let current = self.principal(id).await?;
+        if current.kind != "bot" {
+            return Err(AppError::NotFound);
+        }
+        let name = input.name.trim();
+        if name.is_empty() {
+            return Err(bad_request("O bot precisa de um nome."));
+        }
+        let wanted = if input.handle.trim().is_empty() {
+            normalize_handle(name)
+        } else {
+            normalize_handle(&input.handle)
+        };
+        let taken: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM principals WHERE handle = $1 AND id <> $2",
+        )
+        .bind(&wanted)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+        if taken > 0 {
+            return Err(AppError::Conflict);
+        }
+        let mut config = current.bot.unwrap_or(BotConfig {
+            engine: String::new(),
+            model: String::new(),
+            effort: String::new(),
+            title: String::new(),
+            persona: String::new(),
+            folders: Vec::new(),
+            proxy: String::new(),
+        });
+        config.engine = input.engine;
+        config.model = input.model;
+        config.effort = input.effort;
+        config.title = input.title;
+        config.persona = input.persona;
+        if !input.proxy.trim().is_empty() {
+            config.proxy = input.proxy;
+        }
+        let now = now_ms();
+        sqlx::query(
+            "UPDATE principals SET name = $1, handle = $2, bot = $3, updated_at = $4 WHERE id = $5",
+        )
+        .bind(name)
+        .bind(&wanted)
+        .bind(serde_json::to_string(&config)?)
+        .bind(now)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        self.principal(id).await
+    }
+
     pub async fn create_room(
         &self,
         project_id: &str,
@@ -151,8 +223,8 @@ impl Store {
         let now = now_ms();
         let mut tx = self.pool.begin().await?;
         sqlx::query(
-            "INSERT INTO rooms(id,project_id,kind,name,title,instructions,lead_id,isolated,archived,created_at,updated_at)
-             VALUES($1, $2, 'room', $3, $4, $5, $6, 0, 0, $7, $8)",
+            "INSERT INTO rooms(id,project_id,kind,name,title,instructions,lead_id,isolated,archived,category_id,visibility,created_at,updated_at)
+             VALUES($1, $2, 'room', $3, $4, $5, $6, 0, 0, $7, $8, $9, $10)",
         )
         .bind(&id)
         .bind(project_id)
@@ -160,6 +232,8 @@ impl Store {
         .bind(input.title.trim())
         .bind(input.instructions.trim())
         .bind(input.lead_id.as_deref())
+        .bind(input.category_id.as_deref())
+        .bind(if input.visibility == "public" { "public" } else { "private" })
         .bind(now)
         .bind(now)
         .execute(&mut *tx)
@@ -217,8 +291,8 @@ impl Store {
         let now = now_ms();
         let mut tx = self.pool.begin().await?;
         sqlx::query(
-            "INSERT INTO rooms(id,project_id,kind,name,title,instructions,lead_id,isolated,archived,created_at,updated_at)
-             VALUES($1,$2,'dm',$3,'','',NULL,0,0,$4,$5)",
+            "INSERT INTO rooms(id,project_id,kind,name,title,instructions,lead_id,isolated,archived,visibility,created_at,updated_at)
+             VALUES($1,$2,'dm',$3,'','',NULL,0,0,'private',$4,$5)",
         )
         .bind(&id)
         .bind(project_id)
@@ -243,7 +317,7 @@ impl Store {
 
     pub async fn list_rooms(&self, project_id: &str) -> AppResult<Vec<Room>> {
         let rows = sqlx::query(
-            "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,created_at,updated_at
+            "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at
              FROM rooms WHERE project_id = $1 AND archived = 0 ORDER BY updated_at DESC",
         )
         .bind(project_id)
@@ -259,6 +333,7 @@ impl Store {
     }
 
     fn room_from_row(&self, row: &sqlx::postgres::PgRow) -> AppResult<Room> {
+        let repos: String = row.try_get("repos").unwrap_or_else(|_| "[]".into());
         Ok(Room {
             id: row.try_get("id")?,
             project_id: row.try_get("project_id")?,
@@ -272,12 +347,65 @@ impl Store {
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
             members: Vec::new(),
+            repos: serde_json::from_str(&repos).unwrap_or_default(),
+            category_id: row.try_get("category_id").unwrap_or_default(),
+            visibility: row
+                .try_get::<String, _>("visibility")
+                .unwrap_or_else(|_| "private".into()),
         })
+    }
+
+    pub async fn active_agent_rooms(&self) -> AppResult<Vec<serde_json::Value>> {
+        let rows = sqlx::query(
+            "SELECT d.recipient_id AS agent_id, p.name AS agent_name, d.room_id, r.name AS room_name, d.status
+             FROM room_deliveries d
+             JOIN principals p ON p.id = d.recipient_id
+             JOIN rooms r ON r.id = d.room_id
+             WHERE d.status = 'running'
+             ORDER BY d.updated_at DESC",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                serde_json::json!({
+                    "agentId": row.try_get::<String, _>("agent_id").unwrap_or_default(),
+                    "agentName": row.try_get::<String, _>("agent_name").unwrap_or_default(),
+                    "roomId": row.try_get::<String, _>("room_id").unwrap_or_default(),
+                    "roomName": row.try_get::<String, _>("room_name").unwrap_or_default(),
+                    "status": row.try_get::<String, _>("status").unwrap_or_default(),
+                })
+            })
+            .collect())
+    }
+
+    pub async fn set_room_repos(
+        &self,
+        project_id: &str,
+        room_id: &str,
+        repos: Vec<String>,
+    ) -> AppResult<Room> {
+        let now = now_ms();
+        let affected = sqlx::query(
+            "UPDATE rooms SET repos = $1, updated_at = $2 WHERE id = $3 AND project_id = $4",
+        )
+        .bind(serde_json::to_string(&repos)?)
+        .bind(now)
+        .bind(room_id)
+        .bind(project_id)
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
+        if affected == 0 {
+            return Err(AppError::NotFound);
+        }
+        self.room(project_id, room_id).await
     }
 
     pub async fn room(&self, project_id: &str, room_id: &str) -> AppResult<Room> {
         let row = sqlx::query(
-            "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,created_at,updated_at
+            "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at
              FROM rooms WHERE id = $1 AND project_id = $2",
         )
         .bind(room_id)
@@ -294,7 +422,7 @@ impl Store {
     /// project check the HTTP route already did.
     pub async fn room_by_id(&self, room_id: &str) -> AppResult<Room> {
         let row = sqlx::query(
-            "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,created_at,updated_at
+            "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at
              FROM rooms WHERE id = $1",
         )
         .bind(room_id)
@@ -368,6 +496,177 @@ impl Store {
         .execute(&self.pool)
         .await?;
         Ok(())
+    }
+
+    pub async fn remove_room_member(&self, room_id: &str, principal_id: &str) -> AppResult<()> {
+        sqlx::query("DELETE FROM room_members WHERE room_id = $1 AND principal_id = $2")
+            .bind(room_id)
+            .bind(principal_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Replaces the agents allocated to a channel. Human visibility lives in
+    /// the same table but is untouched here.
+    pub async fn set_room_agents(
+        &self,
+        project_id: &str,
+        room_id: &str,
+        agent_ids: &[String],
+    ) -> AppResult<Room> {
+        self.room(project_id, room_id).await?;
+        let mut tx = self.pool.begin().await?;
+        sqlx::query(
+            "DELETE FROM room_members
+             WHERE room_id = $1
+               AND principal_id IN (SELECT id FROM principals WHERE kind = 'bot')",
+        )
+        .bind(room_id)
+        .execute(&mut *tx)
+        .await?;
+        let now = now_ms();
+        for agent_id in agent_ids {
+            sqlx::query(
+                "INSERT INTO room_members(room_id,principal_id,joined_at)
+                 SELECT $1, id, $2 FROM principals WHERE id = $3 AND kind = 'bot'
+                 ON CONFLICT DO NOTHING",
+            )
+            .bind(room_id)
+            .bind(now)
+            .bind(agent_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+        tx.commit().await?;
+        self.room(project_id, room_id).await
+    }
+
+    pub async fn list_channel_categories(&self) -> AppResult<Vec<ChannelCategory>> {
+        Ok(sqlx::query_as::<_, ChannelCategory>(
+            "SELECT id,name,position,created_at,updated_at FROM channel_categories ORDER BY position, name",
+        )
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
+    pub async fn create_channel_category(&self, name: &str) -> AppResult<ChannelCategory> {
+        let name = name.trim();
+        if name.is_empty() || name.chars().count() > 40 {
+            return Err(bad_request(
+                "A categoria precisa de um nome de até 40 caracteres.",
+            ));
+        }
+        let taken: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM channel_categories WHERE lower(name) = lower($1)",
+        )
+        .bind(name)
+        .fetch_one(&self.pool)
+        .await?;
+        if taken > 0 {
+            return Err(AppError::Conflict);
+        }
+        let id = crate::crypto::new_id();
+        let now = now_ms();
+        let position: i64 =
+            sqlx::query_scalar("SELECT COALESCE(MAX(position), -1) + 1 FROM channel_categories")
+                .fetch_one(&self.pool)
+                .await?;
+        sqlx::query(
+            "INSERT INTO channel_categories(id,name,position,created_at,updated_at)
+             VALUES($1,$2,$3,$4,$5)",
+        )
+        .bind(&id)
+        .bind(name)
+        .bind(position)
+        .bind(now)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+        Ok(ChannelCategory {
+            id,
+            name: name.to_string(),
+            position,
+            created_at: now,
+            updated_at: now,
+        })
+    }
+
+    pub async fn rename_channel_category(
+        &self,
+        id: &str,
+        name: &str,
+    ) -> AppResult<ChannelCategory> {
+        let name = name.trim();
+        if name.is_empty() || name.chars().count() > 40 {
+            return Err(bad_request(
+                "A categoria precisa de um nome de até 40 caracteres.",
+            ));
+        }
+        let taken: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM channel_categories WHERE lower(name) = lower($1) AND id <> $2",
+        )
+        .bind(name)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+        if taken > 0 {
+            return Err(AppError::Conflict);
+        }
+        let now = now_ms();
+        let affected =
+            sqlx::query("UPDATE channel_categories SET name = $1, updated_at = $2 WHERE id = $3")
+                .bind(name)
+                .bind(now)
+                .bind(id)
+                .execute(&self.pool)
+                .await?
+                .rows_affected();
+        if affected == 0 {
+            return Err(AppError::NotFound);
+        }
+        sqlx::query_as::<_, ChannelCategory>(
+            "SELECT id,name,position,created_at,updated_at FROM channel_categories WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(Into::into)
+    }
+
+    pub async fn delete_channel_category(&self, id: &str) -> AppResult<()> {
+        let affected = sqlx::query("DELETE FROM channel_categories WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?
+            .rows_affected();
+        if affected == 0 {
+            return Err(AppError::NotFound);
+        }
+        Ok(())
+    }
+
+    pub async fn set_room_category(
+        &self,
+        project_id: &str,
+        room_id: &str,
+        category_id: Option<&str>,
+    ) -> AppResult<Room> {
+        let now = now_ms();
+        let affected = sqlx::query(
+            "UPDATE rooms SET category_id = $1, updated_at = $2 WHERE id = $3 AND project_id = $4",
+        )
+        .bind(category_id)
+        .bind(now)
+        .bind(room_id)
+        .bind(project_id)
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
+        if affected == 0 {
+            return Err(AppError::NotFound);
+        }
+        self.room(project_id, room_id).await
     }
 
     pub async fn delete_room(&self, project_id: &str, room_id: &str) -> AppResult<()> {
@@ -1033,6 +1332,8 @@ mod tests {
                     instructions: String::new(),
                     lead_id: Some(ana.id.clone()),
                     member_ids: Vec::new(),
+                    category_id: None,
+                    visibility: "private".into(),
                 },
             )
             .await
@@ -1079,6 +1380,8 @@ mod tests {
                     instructions: String::new(),
                     lead_id: None,
                     member_ids: vec![ana.id.clone()],
+                    category_id: None,
+                    visibility: "private".into(),
                 },
             )
             .await
@@ -1114,6 +1417,8 @@ mod tests {
                     instructions: String::new(),
                     lead_id: Some(ana.id.clone()),
                     member_ids: vec![ana.id.clone(), beto.id.clone()],
+                    category_id: None,
+                    visibility: "private".into(),
                 },
             )
             .await

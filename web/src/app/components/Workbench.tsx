@@ -1,7 +1,7 @@
 import { useProjectStream } from "../../features/projects/hooks/useProjectStream";
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
-import { Bot, ChevronDown, GitBranch, X } from "@jeff/icons";
+import { Bot, ChevronDown, X } from "@jeff/icons";
 import { api, getApiBase, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
 import { useApp, type Sidebar, type Tab } from "../store";
@@ -16,9 +16,7 @@ import Tabs from "./Tabs";
 import Toasts from "../../features/notifications/components/Toasts";
 import CloseProjectModal from "../../features/projects/components/CloseProjectModal";
 import ProjectSwitcher from "../../features/projects/components/ProjectSwitcher";
-import { useRoomsUI } from "../../features/rooms/store";
 import BranchPicker from "../../features/git/components/BranchPicker";
-import BottomBar from "./BottomBar";
 import { handleAiCompletion, type AiCompletionPayload } from "../../features/notifications/completion";
 import { playQuestionSound } from "../../features/conversations/sound";
 import { unlockBotSound } from "../../features/conversations/sound";
@@ -34,10 +32,9 @@ import { agentApi } from "../../features/agents/api";
 import { useAgentActivityBridge } from "../../features/agents/activity";
 import { useJeffDrafts } from "../../features/agents/drafts";
 import { ensureSingleJeff, ensureJeff } from "../../features/agents/default-jeff";
-import { cx } from "@jeff/ui/app/utils/cx";
 import { suggestGitChanges } from "../../features/git/ai";
 import { parseGitStatus } from "../../features/git/status";
-import JeffSettings from "../../features/settings/components/JeffSettings";
+import DevSidebar from "./DevSidebar";
 
 const MobileApp = lazy(() => import("../layouts/mobile/MobileApp"));
 const ExplorerPanel = lazy(() => import("../../features/explorer/components/ExplorerPanel"));
@@ -50,7 +47,6 @@ const WebPanelTab = lazy(() => import("../../features/previews/components/WebPan
 const DiffPanelTab = lazy(() => import("../../features/editor/components/DiffPanelTab"));
 const TerminalPanel = lazy(() => import("../../features/terminal/components/TerminalPanel"));
 const SourceControlPanel = lazy(() => import("../../features/git/components/SourceControlPanel"));
-const RoomsOverlay = lazy(() => import("../../features/rooms/RoomsOverlay"));
 
 type RightPanel = "files" | "scm" | "db" | "web" | "bots";
 const rightPanelFeatures: Record<RightPanel, WorkspaceFeature | null> = {
@@ -127,28 +123,20 @@ export default function Workbench() {
   const loadModels = useAI((state) => state.loadModels);
   const branchPattern = useSettings((state) => state.gitBranchPattern);
   const aiConfig = useAI((state) => state.config);
-  const sidebarWidth = useSettings((state) => state.sidebarWidth);
   const rightPanelWidth = useSettings((state) => state.aiPanelWidth);
   const updateSettings = useSettings((state) => state.update);
   const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
   const confirm = useConfirm();
 
-  // Landing after the first configuration: open the rooms surface once.
-  useEffect(() => {
-    if (localStorage.getItem("jeff_open_rooms") === "1") {
-      localStorage.removeItem("jeff_open_rooms");
-      useRoomsUI.getState().openRooms();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const [closeTarget, setCloseTarget] = useState<Project | null>(null);
+  const [repoPickerOpen, setRepoPickerOpen] = useState(false);
   const [closeBusy, setCloseBusy] = useState(false);
   const [closeError, setCloseError] = useState("");
   const [gitStatus, setGitStatus] = useState("");
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [branchCreateOpen, setBranchCreateOpen] = useState(false);
   const [quickOpenToken, setQuickOpenToken] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanel, setRightPanel] = useState<RightPanel>("files");
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const tabsVisible = workspaceFeatures.tabs;
@@ -994,12 +982,12 @@ export default function Workbench() {
       closeProjectTab(id);
       setCloseTarget(null);
       const count = result.processes.length;
-      notify("info", `Projeto ${target.name} fechado. ${count} processo${count === 1 ? "" : "s"} encerrado${count === 1 ? "" : "s"}.`);
+      notify("info", `Repo ${target.name} fechado. ${count} processo${count === 1 ? "" : "s"} encerrado${count === 1 ? "" : "s"}.`);
       if (result.failed.length > 0) {
         notify("error", `${result.failed.length} processo${result.failed.length === 1 ? "" : "s"} não puderam ser encerrados.`);
       }
     } catch (error) {
-      setCloseError(error instanceof Error ? error.message : "Não foi possível fechar o projeto.");
+      setCloseError(error instanceof Error ? error.message : "Não foi possível fechar o repo.");
     } finally {
       setCloseBusy(false);
     }
@@ -1014,7 +1002,7 @@ export default function Workbench() {
       return (
         <main className="relative flex min-h-dvh items-center justify-center bg-background-full p-4 sm:p-6">
           <section className="w-full max-w-lg rounded-3xl border border-border-button-white bg-background-primary-default p-3 shadow-2xl">
-            <ProjectSwitcher onSelect={switchProject} heading="Abrir projeto" />
+            <ProjectSwitcher onSelect={switchProject} heading="Repos abertos" />
           </section>
           <Toasts />
         </main>
@@ -1047,7 +1035,6 @@ export default function Workbench() {
     <Button
       variant="ghost"
       size="small"
-      leadingIcon={GitBranch}
       className="max-w-[240px] justify-start"
       aria-label={`Branch ${branch || "detached"}`}
       title={`Branch atual: ${branch || "detached"}`}
@@ -1057,16 +1044,6 @@ export default function Workbench() {
       <ChevronDown size={12} className="shrink-0" />
     </Button>
   ) : null;
-
-  const sidebarContent = (
-    <>
-      {project && sidebar === "files" && featureIsEnabled("files") && <ExplorerPanel project={project} onOpenFile={openFile} onStatusChange={setGitStatus} />}
-      {project && sidebar === "db" && featureIsEnabled("databases") && <DatabasesPanel project={project} onOpenTable={openTable} />}
-      {project && sidebar === "scm" && featureIsEnabled("sourceControl") && <SourceControlPanel project={project} view="scm" onOpenDiff={openDiff} onStatusChange={setGitStatus} />}
-      {project && sidebar === "web" && featureIsEnabled("webApps") && <WebSidebar onOpenWeb={openWeb} />}
-      {project && sidebar === "bots" && <BotsSidebar project={project} />}
-    </>
-  );
 
   const rightPanelControl = (
     <IconButton
@@ -1097,38 +1074,47 @@ export default function Workbench() {
     </Suspense>
   ) : null;
 
-  const primarySidebar = (
-    <Suspense fallback={null}>
-      <div className="relative z-40 flex min-h-0 shrink-0 overflow-visible rounded-3xl border border-border-button-white bg-background-secondary-default shadow-sidebar">
-        <aside className={cx("relative flex min-h-0 shrink-0 flex-col overflow-hidden rounded-[22px] bg-background-secondary-default", botsView ? "w-[clamp(220px,22vw,var(--sidebar-width))]" : "w-[var(--sidebar-width)]")}>
-          {sidebarContent}
-        </aside>
-      </div>
-    </Suspense>
-  );
-  const primaryResize = (
-    <ResizeHandle className="sidebar-resize" orientation="vertical" value={sidebarWidth} min={220} max={320} label="Redimensionar barra lateral" onChange={(width) => document.documentElement.style.setProperty("--sidebar-width", `${width}px`)} onCommit={(width) => updateSettings({ sidebarWidth: width })} />
-  );
-
   if (mobile)
     return (
       <Suspense fallback={null}>
         <MobileApp />
-        {project ? <RoomsOverlay project={project} /> : null}
       </Suspense>
     );
 
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden bg-[var(--side)]">
-      <div className="relative flex min-h-0 flex-1 gap-0 p-1">
-        {primarySidebar}
-        {primaryResize}
+    <div className="dev-workbench relative flex h-dvh flex-col overflow-hidden">
+      <div className="dev-workbench__top relative flex min-h-0 flex-1 gap-0">
+        <div className={`dev-sidebar-slot${sidebarCollapsed ? " is-collapsed" : ""}`}>
+          <DevSidebar
+            project={project}
+            projects={projects}
+            openProjectIds={openProjectIds}
+            activeProjectId={activeProjectId}
+            user={user}
+            branch={branch}
+            branchControl={branchControl}
+            quickOpenToken={quickOpenToken}
+            activeTool={sidebar}
+            terminalOpen={terminalOpen}
+            onBack={() => window.location.assign(window.location.pathname)}
+            onOpenFile={openFile}
+            onOpenProject={switchProject}
+            onCloseProject={requestCloseProject}
+            onOpenRepoPicker={() => setRepoPickerOpen(true)}
+            onOpenTool={(tool) => { selectSidebar(tool); openAuxiliary(tool); }}
+            onTerminal={() => setTerminalOpen(!terminalOpen)}
+            onQuickOpen={() => setQuickOpenToken((current) => current + 1)}
+            collapsed={sidebarCollapsed}
+            onCollapse={setSidebarCollapsed}
+          />
+        </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-hidden">
-          <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border-button-white bg-background-primary-default shadow-sidebar">
+        <div className="dev-workbench__workspace dev-workbench__sheet relative flex min-h-0 min-w-0 flex-1 overflow-hidden border border-border-button-white">
+          <div className="dev-workbench__main-column flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <main className="dev-workbench__main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <div className="flex min-h-0 flex-1 flex-col">
-              {tabsVisible ? <Tabs /> : null}
-              <div className="relative flex min-h-0 flex-1 overflow-hidden">
+              {tabsVisible && tabs.length > 0 ? <Tabs /> : null}
+              <div key={activeTab?.id ?? "empty"} className="dev-tab-content relative flex min-h-0 flex-1 overflow-hidden">
                 {!activeTab && project && (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-8 text-center">
                     <BrandMark size="large" />
@@ -1149,7 +1135,7 @@ export default function Workbench() {
                   {tabsVisible && activeTab?.kind === "web" && featureIsEnabled("webApps") && <WebPanelTab tab={activeTab} />}
                   {tabsVisible && activeTab?.kind === "diff" && project && featureIsEnabled("files") && <DiffPanelTab tab={activeTab} project={project} />}
                   {activeTab?.kind === "ai" && project && activeTab.chatId && (
-                    <BotStudioTab key={activeTab.chatId} project={project} conversationId={activeTab.chatId} onOpenFile={(path, line) => openFile(path, line)} />
+                    <BotStudioTab embedded key={activeTab.chatId} project={project} conversationId={activeTab.chatId} onOpenFile={(path, line) => openFile(path, line)} />
                   )}
                 </Suspense>
               </div>
@@ -1158,12 +1144,12 @@ export default function Workbench() {
 
           {project && terminalEnabled && terminalOpen && !agentDebug ? (
             <Suspense fallback={null}>
-              <div className="flex w-full min-w-0 shrink-0 overflow-hidden">
+              <div className="dev-workbench__terminal flex w-full min-w-0 shrink-0 flex-col">
                 <TerminalPanel key={project.id} project={project} onOpenFile={openFile} />
               </div>
             </Suspense>
           ) : null}
-        </div>
+          </div>
 
         {project && rightPanelOpen && rightPanelAvailable ? (
           <>
@@ -1178,27 +1164,35 @@ export default function Workbench() {
               onChange={(width) => document.documentElement.style.setProperty("--ai-panel-width", `${width}px`)}
               onCommit={(width) => updateSettings({ aiPanelWidth: width })}
             />
-            <div
-              className="relative z-40 flex min-h-0 w-[var(--ai-panel-width)] shrink-0 flex-col overflow-hidden rounded-3xl border border-border-button-white bg-background-primary-default shadow-sidebar [&>*]:min-h-0 [&>*]:flex-1"
+            <aside
+              className="dev-workbench__right relative z-40 flex min-h-0 w-[var(--ai-panel-width)] shrink-0 flex-col overflow-hidden border-s border-border-button-default bg-background-primary-default [&>*]:min-h-0 [&>*]:flex-1"
               aria-label="Painel auxiliar"
             >
-              {rightPanelContent}
-            </div>
+              <div key={rightPanel} className="dev-panel-content flex min-h-0 flex-1 flex-col">
+                {rightPanelContent}
+              </div>
+            </aside>
           </>
         ) : null}
+        </div>
       </div>
 
-      <BottomBar
-        onOpenProject={switchProject}
-        onCloseProject={requestCloseProject}
-        onQuickOpen={() => setQuickOpenToken((current) => current + 1)}
-        onOpenAuxiliary={openAuxiliary}
-        project={project}
-        onOpenFile={openFile}
-        quickOpenToken={quickOpenToken}
-        jeffControl={<JeffSettings user={user} projectRoot={project.root} projectId={project.id} hideTrigger />}
-        leading={branchControl}
-      />
+      <Modal
+        isOpen={repoPickerOpen}
+        onClose={() => setRepoPickerOpen(false)}
+        title="Abrir repo"
+        description="Escolha um repositório disponível no servidor."
+        size="md"
+        bodyClassName="p-3"
+      >
+        <ProjectSwitcher
+          onlyClosed
+          onSelect={(id) => {
+            setRepoPickerOpen(false);
+            switchProject(id);
+          }}
+        />
+      </Modal>
 
       <Modal
         isOpen={branchMenuOpen && Boolean(project)}
@@ -1253,11 +1247,6 @@ export default function Workbench() {
         onConfirm={() => void confirmCloseProject()}
       />
       <Toasts />
-      {project ? (
-        <Suspense fallback={null}>
-          <RoomsOverlay project={project} />
-        </Suspense>
-      ) : null}
     </div>
   );
 }

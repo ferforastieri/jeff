@@ -1,3 +1,5 @@
+import { Button as KitButton } from "@jeff/ui/kit";
+import { Input as KitInput, NativeSelect as KitSelect } from "@jeff/ui/kit";
 import { useEffect, useState } from "react";
 import { Plus, Trash2, X } from "@jeff/icons";
 import { api, type Project } from "../../shared/api";
@@ -87,9 +89,9 @@ export default function VaultPanel({ project }: { project: Project }) {
             O bot preenche sem ver a senha. O segredo fica criptografado no servidor.
           </p>
         </div>
-        <button className={primaryButton} onClick={() => setAdding(true)}>
+        <KitButton variant="raw" className={primaryButton} onClick={() => setAdding(true)}>
           <Plus size={14} /> Novo item
-        </button>
+        </KitButton>
       </header>
 
       {error ? (
@@ -115,9 +117,9 @@ export default function VaultPanel({ project }: { project: Project }) {
                   {item.kind === "card" ? "cartão" : item.username || "login"}
                 </span>
               </span>
-              <button className={quietButton} onClick={() => void remove(item.id)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => void remove(item.id)}>
                 <Trash2 size={12} />
-              </button>
+              </KitButton>
             </article>
           ))
         )}
@@ -128,20 +130,20 @@ export default function VaultPanel({ project }: { project: Project }) {
           <section className="w-full max-w-md rounded-2xl border border-border-button-white bg-background-primary-default p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-body-1-medium">Novo item</h3>
-              <button className={quietButton} onClick={() => setAdding(false)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => setAdding(false)}>
                 <X size={14} />
-              </button>
+              </KitButton>
             </div>
             <div className="space-y-2">
-              <select
+              <KitSelect raw
                 className={field}
                 value={kind}
                 onChange={(event) => setKind(event.target.value as "login" | "card")}
               >
                 <option value="login">Login</option>
                 <option value="card">Cartão</option>
-              </select>
-              <input
+              </KitSelect>
+              <KitInput raw
                 className={field}
                 placeholder="Nome (ex.: Banco)"
                 value={name}
@@ -149,7 +151,7 @@ export default function VaultPanel({ project }: { project: Project }) {
                 autoFocus
               />
               {kind === "login" ? (
-                <input
+                <KitInput raw
                   className={field}
                   placeholder="Usuário"
                   value={username}
@@ -157,19 +159,19 @@ export default function VaultPanel({ project }: { project: Project }) {
                 />
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  <input
+                  <KitInput raw
                     className={field}
                     placeholder="Validade MM/AA"
                     value={expiry}
                     onChange={(event) => setExpiry(event.target.value)}
                   />
-                  <input
+                  <KitInput raw
                     className={field}
                     placeholder="CVC"
                     value={cvc}
                     onChange={(event) => setCvc(event.target.value)}
                   />
-                  <input
+                  <KitInput raw
                     className={`${field} col-span-2`}
                     placeholder="Nome impresso"
                     value={holder}
@@ -177,7 +179,7 @@ export default function VaultPanel({ project }: { project: Project }) {
                   />
                 </div>
               )}
-              <input
+              <KitInput raw
                 className={field}
                 type="password"
                 placeholder={kind === "card" ? "Número do cartão" : "Senha"}
@@ -186,12 +188,12 @@ export default function VaultPanel({ project }: { project: Project }) {
               />
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button className={quietButton} onClick={() => setAdding(false)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => setAdding(false)}>
                 Cancelar
-              </button>
-              <button className={primaryButton} onClick={() => void add()}>
+              </KitButton>
+              <KitButton variant="raw" className={primaryButton} onClick={() => void add()}>
                 Salvar
-              </button>
+              </KitButton>
             </div>
           </section>
         </div>

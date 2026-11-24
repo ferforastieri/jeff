@@ -316,12 +316,12 @@ export default function MobileApp() {
       setCloseTarget(null);
       if (wasActive) setScreen("bots");
       const count = result.processes.length;
-      notify("info", `Projeto ${target.name} fechado. ${count} processo${count === 1 ? "" : "s"} encerrado${count === 1 ? "" : "s"}.`);
+      notify("info", `Repo ${target.name} fechado. ${count} processo${count === 1 ? "" : "s"} encerrado${count === 1 ? "" : "s"}.`);
       if (result.failed.length > 0) {
         notify("error", `${result.failed.length} processo${result.failed.length === 1 ? "" : "s"} não puderam ser encerrados.`);
       }
     } catch (error) {
-      setCloseError(error instanceof Error ? error.message : "Não foi possível fechar o projeto.");
+      setCloseError(error instanceof Error ? error.message : "Não foi possível fechar o repo.");
     } finally {
       setCloseBusy(false);
     }
@@ -346,7 +346,7 @@ export default function MobileApp() {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-background-full p-4">
         <section className="w-full max-w-md rounded-3xl border border-border-button-white bg-background-primary-default p-3 shadow-xs">
-          <ProjectSwitcher onSelect={selectProjectFromSheet} heading="Abrir projeto" />
+          <ProjectSwitcher onSelect={selectProjectFromSheet} heading="Repos abertos" />
         </section>
         <Toasts />
       </main>
@@ -430,7 +430,7 @@ export default function MobileApp() {
                   <BrandMark size="large" />
                   <strong className="text-title-3-medium text-text-primary">Nenhuma aba aberta</strong>
                   <p className="max-w-sm text-caption-1-regular text-text-secondary">
-                    Abra um arquivo, banco ou web app para começar. As abas ficam salvas por projeto.
+                    Abra um arquivo, banco ou web app para começar. As abas ficam salvas por repo.
                   </p>
                   <div className="flex w-full max-w-xs flex-col gap-2">
                     <Button variant="secondary" className="w-full justify-center" onClick={() => selectScreen("files")}>
@@ -486,7 +486,7 @@ export default function MobileApp() {
       <Modal
         isOpen={projectsOpen}
         onClose={() => setProjectsOpen(false)}
-        title={projectPicker === "open" ? "Projetos abertos" : "Abrir projeto"}
+        title={projectPicker === "open" ? "Repos abertos" : "Abrir repo"}
         size="sm"
         bodyClassName="p-2.5"
        
@@ -494,15 +494,15 @@ export default function MobileApp() {
         <ProjectSwitcher
           onlyOpen={projectPicker === "open"}
           onlyClosed={projectPicker === "closed"}
-          heading={projectPicker === "open" ? "Projetos abertos" : "Abrir projeto"}
+          heading={projectPicker === "open" ? "Repos abertos" : "Outros repos"}
           action={projectPicker === "open" ? (
             <Button
               variant="secondary"
               size="xs"
               iconOnly
               leadingIcon={Plus}
-              aria-label="Abrir outro projeto"
-              title="Abrir outro projeto"
+              aria-label="Abrir outro repo"
+              title="Abrir outro repo"
               onClick={() => setProjectPicker("closed")}
             />
           ) : (

@@ -51,7 +51,7 @@ describe("BottomBar", () => {
     const open = vi.fn();
     render(<BottomBar onOpenProject={open} onCloseProject={() => undefined} onQuickOpen={() => undefined} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Abrir projeto" }));
+    fireEvent.click(screen.getByRole("button", { name: "Abrir repo" }));
     const dialog = screen.getByRole("dialog");
     expect(screen.getByPlaceholderText("Pesquisar repositório")).toBeInTheDocument();
     expect(within(dialog).getByText("Beta")).toBeInTheDocument();

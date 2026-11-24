@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowDown, Bot, LoaderCircle, Timer } from "@jeff/icons";
+import { ArrowDown, Bot, Timer } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import type { Project } from "../../../shared/api";
 import { ApiError } from "../../../shared/api";
 import { chatDisplayName, chatJeffs, sessionSubject, useChats } from "../store";
@@ -295,8 +296,8 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
           }}
         >
           <div key={chat.id} ref={contentRef} className={cx("jeff-view-in mx-auto flex min-h-full w-full min-w-0 max-w-[860px] flex-col gap-2 overflow-x-hidden [&_img]:max-w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto", mobile ? "px-3 pt-4 pb-3" : compact ? (embedded ? "px-4 pt-10 pb-2" : "px-4 pt-4 pb-2") : "px-7 pt-6 pb-3")}>
-            {native.hasMore && <Button variant="ghost" size="small" disabled={native.loading} onClick={older}>{native.loading ? <><LoaderCircle size={14} className="animate-spin" /> Carregando mensagens antigas…</> : "Carregar mensagens anteriores"}</Button>}
-            {!stored?.hydrated ? <div className="my-auto flex items-center justify-center gap-2 py-8 text-caption-1-regular text-text-tertiary"><LoaderCircle size={16} className="animate-spin" /> Carregando conversas…</div>
+            {native.hasMore && <Button variant="ghost" size="small" disabled={native.loading} onClick={older}>{native.loading ? <><PixelSpinner size={14} /> Carregando mensagens antigas…</> : "Carregar mensagens anteriores"}</Button>}
+            {!stored?.hydrated ? <div className="my-auto flex items-center justify-center gap-2 py-8 text-caption-1-regular text-text-tertiary"><PixelSpinner size={16} /> Carregando conversas…</div>
               : !jeffs.length ? <div className="my-auto flex flex-col items-center gap-3 px-6 py-10 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Bot size={22} /></span><strong className="text-title-3-medium">Esta conversa ficou sem Jeffs.</strong><p className="max-w-sm text-caption-1-regular text-text-secondary">Adicione um Jeff nas configurações da conversa.</p></div>
               : !native.messages.length && !busy ? (debug
                   ? <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{jeffs.slice(0, 4).map((jeff) => <BotAvatar key={jeff.id} bot={jeff} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Conte o que está acontecendo.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Descreva o bug, o que esperava e como reproduzir. O Jeff instrumenta o código, roda os comandos no terminal e mostra tudo em tempo real — você não precisa configurar breakpoints.</p></div>
@@ -333,7 +334,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   </div>;
   if (!debug) return chatView;
   return (
-    <Suspense fallback={<div className="flex h-full items-center justify-center"><LoaderCircle size={18} className="animate-spin text-text-tertiary" /></div>}>
+    <Suspense fallback={<div className="flex h-full items-center justify-center"><PixelSpinner size={16} className="text-text-tertiary" /></div>}>
       <AgentDebugWorkspace project={project} mobile={mobile} onOpenFile={onOpenFile}>
         {chatView}
       </AgentDebugWorkspace>

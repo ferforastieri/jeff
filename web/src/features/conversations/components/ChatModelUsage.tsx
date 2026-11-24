@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "@jeff/icons";
+import { Check, ChevronDown, ExternalLink, RefreshCw } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import { cx } from "@jeff/ui";
 import { engineApi, type UsageLimits, type UsageWindow } from "../../agents/api";
 import ProviderIcon from "../../providers/components/ProviderIcon";
@@ -255,7 +256,7 @@ export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Pro
 
       {loading && !limits ? (
         <p className="mt-3 flex items-center gap-2 rounded-xl bg-background-secondary-default px-3 py-2 text-caption-1-regular text-text-secondary">
-          <LoaderCircle className="size-4 animate-spin" /> Consultando o OpenCode…
+          <PixelSpinner size={16} /> Consultando o OpenCode…
         </p>
       ) : null}
 

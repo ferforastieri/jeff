@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Globe2, LoaderCircle, TerminalSquare } from "@jeff/icons";
+import { Globe2, TerminalSquare } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { api, type Project } from "../../../shared/api";
 import { useSettings } from "../../settings/store";
@@ -65,7 +66,7 @@ export default function AgentDebugWorkspace({ project, children, mobile = false,
           />
         ) : (
           <div className="flex h-full items-center justify-center gap-2 text-caption-1-regular text-text-tertiary">
-            <LoaderCircle size={15} className="animate-spin" /> Preparando o terminal…
+            <PixelSpinner size={16} /> Preparando o terminal…
           </div>
         )}
       </div>

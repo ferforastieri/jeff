@@ -14,10 +14,16 @@ pub(super) async fn get_open_projects(
     let key = format!("open_projects:{}", context.user.id);
     let raw = state.store.setting(&key).await.unwrap_or_default();
     let saved: Vec<String> = serde_json::from_str(&raw).unwrap_or_default();
+    let workspace = state
+        .store
+        .workspace_project()
+        .await
+        .map(|project| project.id)
+        .unwrap_or_default();
     let projects = state.store.list_projects().await?;
     let open: Vec<String> = saved
         .into_iter()
-        .filter(|id| projects.iter().any(|project| project.id == *id))
+        .filter(|id| *id != workspace && projects.iter().any(|project| project.id == *id))
         .collect();
     Ok(Json(json!({ "openProjectIds": open })))
 }
@@ -27,11 +33,20 @@ pub(super) async fn save_open_projects(
     Extension(context): Extension<AuthContext>,
     Json(input): Json<OpenProjectsRequest>,
 ) -> AppResult<Json<Value>> {
+    let workspace = state
+        .store
+        .workspace_project()
+        .await
+        .map(|project| project.id)
+        .unwrap_or_default();
     let projects = state.store.list_projects().await?;
     let mut open: Vec<String> = Vec::new();
     for id in input.open_project_ids {
         let id = id.trim().to_string();
-        if !id.is_empty() && !open.contains(&id) && projects.iter().any(|project| project.id == id)
+        if !id.is_empty()
+            && id != workspace
+            && !open.contains(&id)
+            && projects.iter().any(|project| project.id == id)
         {
             open.push(id);
         }
@@ -56,12 +71,20 @@ pub(super) async fn list_projects(
     State(state): State<Arc<AppState>>,
     Extension(auth): Extension<AuthContext>,
 ) -> AppResult<Json<Vec<Project>>> {
-    Ok(Json(
-        state
-            .store
-            .list_projects_for(auth.user.id, auth.user.is_admin())
-            .await?,
-    ))
+    let workspace = state
+        .store
+        .workspace_project()
+        .await
+        .map(|project| project.id)
+        .unwrap_or_default();
+    let projects = state
+        .store
+        .list_projects_for(auth.user.id, auth.user.is_admin())
+        .await?
+        .into_iter()
+        .filter(|project| project.id != workspace)
+        .collect();
+    Ok(Json(projects))
 }
 
 pub(super) async fn create_project(
@@ -69,7 +92,7 @@ pub(super) async fn create_project(
     Extension(auth): Extension<AuthContext>,
     Json(input): Json<ProjectRequest>,
 ) -> AppResult<Response> {
-    if !auth.user.is_admin() {
+    if !auth.user.is_admin() && !auth.user.dev_access {
         return Err(AppError::Forbidden);
     }
     let root = state
@@ -89,6 +112,10 @@ pub(super) async fn create_project(
             created_at: String::new(),
             updated_at: String::new(),
         })
+        .await?;
+    state
+        .store
+        .add_project_member(&project.id, auth.user.id)
         .await?;
     state.watch_project(&project.id, &root).await?;
     Ok((StatusCode::CREATED, Json(project)).into_response())

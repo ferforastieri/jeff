@@ -1,3 +1,5 @@
+import { Button as KitButton } from "@jeff/ui/kit";
+import { NativeSelect as KitSelect } from "@jeff/ui/kit";
 import { useEffect, useState } from "react";
 import { UserRound } from "@jeff/icons";
 import { api } from "../../shared/api";
@@ -54,7 +56,7 @@ export default function BotBrowserPanel({ project, bots }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex h-10 shrink-0 items-center gap-2 border-b border-separator-border px-3">
-        <select
+        <KitSelect raw
           className="rounded-lg border border-border-button-default bg-background-primary-default px-2 py-1 text-caption-1-regular"
           value={agentId}
           onChange={(event) => setAgentId(event.target.value)}
@@ -64,12 +66,12 @@ export default function BotBrowserPanel({ project, bots }: Props) {
               {item.name}
             </option>
           ))}
-        </select>
+        </KitSelect>
         <p className="min-w-0 flex-1 truncate text-caption-2-regular text-text-tertiary">
           {bot ? `o navegador privado de ${bot.name}` : ""}
           {takeover ? " · controle humano" : ""}
         </p>
-        <button
+        <KitButton variant="raw"
           className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-caption-1-medium ${
             takeover ? "bg-accent-500 text-white" : "text-text-secondary hover:bg-background-tertiary-default"
           }`}
@@ -77,7 +79,7 @@ export default function BotBrowserPanel({ project, bots }: Props) {
           title="Quando você assume, as ferramentas do bot param de agir"
         >
           <UserRound size={14} /> {takeover ? "devolver" : "assumir"}
-        </button>
+        </KitButton>
       </header>
       <div className="min-h-0 flex-1">
         <DebugBrowserPanel projectId={project.id} agentId={agentId} />

@@ -48,7 +48,7 @@ export interface ToolBlockHead {
 /**
  * The tools of one reply: one line while it works, what it does now, the apps' logos and how
  * many steps; a click opens every call, each with its phrase, the tool in grey, its time and a pixel mark
- * (the orbit, one green pixel, an exclamation), and opens again into what it was given and answered. What the
+ * (the face, one green pixel, an exclamation), and opens again into what it was given and answered. What the
  * agent said between calls and the messages it read sit among the lines (`note`). A single call (`one`) is its own
  * line, with nothing to open around it: what was said goes in that line's open view.
  */
@@ -212,7 +212,7 @@ function Line({
   );
 }
 
-/** The pixel marks: the orbit while it works, one green pixel when done, an exclamation if it failed. */
+/** The pixel marks: the Jeff face while it works, one green pixel when done, an exclamation if it failed. */
 function Mark({ state, color }: { state: ToolBlockState; color?: AgentColor }) {
   return (
     <span className="ac-tools__mark">

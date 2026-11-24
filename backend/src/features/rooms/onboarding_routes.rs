@@ -12,7 +12,6 @@ use crate::features::rooms::models::{CreateBotInput, CreateRoomInput};
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct OnboardingInput {
-    mode: String,
     #[serde(default)]
     activity: String,
     #[serde(default)]
@@ -20,9 +19,14 @@ pub(super) struct OnboardingInput {
     #[serde(default)]
     tools: String,
     agent_name: String,
-    project_id: String,
     #[serde(default)]
     team_name: String,
+    #[serde(default)]
+    timezone: String,
+    #[serde(default)]
+    avatar: Value,
+    #[serde(default)]
+    workspace_logo: String,
 }
 
 async fn read(state: &AppState, key: &str) -> String {
@@ -34,18 +38,96 @@ pub(super) async fn onboarding_status(
     Extension(auth): Extension<AuthContext>,
 ) -> AppResult<Json<Value>> {
     let done = read(&state, "onboarding.done").await == "1";
+    let me = state.store.ensure_human_principal(auth.user.id).await?;
+    let workspace_state_raw = read(&state, &format!("workspace.state:{}", auth.user.id)).await;
+    let workspace_state: Value = serde_json::from_str(&workspace_state_raw).unwrap_or(Value::Null);
     Ok(Json(json!({
         "done": done,
-        "mode": read(&state, "onboarding.mode").await,
         "activity": read(&state, "onboarding.activity").await,
         "objective": read(&state, "onboarding.objective").await,
         "tools": read(&state, "onboarding.tools").await,
         "teamName": read(&state, "onboarding.team").await,
+        "timezone": read(&state, "onboarding.timezone").await,
+        "devMode": auth.user.is_admin() || auth.user.dev_access,
+        "devAccess": auth.user.dev_access,
+        "workspaceLogo": read(&state, "workspace.logo").await,
+        "avatar": me.avatar,
+        "workspaceState": workspace_state,
         "agentId": read(&state, "onboarding.agent").await,
-        "projectId": read(&state, "onboarding.project").await,
-        "needsProject": state.store.list_projects_for(auth.user.id, auth.user.is_admin()).await?.is_empty(),
+        "projectId": state.store.workspace_project().await.map(|project| project.id).unwrap_or_default(),
+        "displayName": auth.user.display_name,
+        "email": state.store.user_email(auth.user.id).await?,
         "isAdmin": auth.user.is_admin(),
+        "memberCount": state.store.list_users().await?.len(),
     })))
+}
+
+/// The user's workspace preferences (sidebar order, dashboard, task and drive
+/// views, status): one JSON document in the settings table, so every browser
+/// and the phone open the same workspace.
+pub(super) async fn workspace_preferences(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    let raw = read(&state, &format!("workspace.preferences:{}", auth.user.id)).await;
+    let preferences: Value = serde_json::from_str(&raw).unwrap_or_else(|_| json!({}));
+    Ok(Json(json!({ "preferences": preferences })))
+}
+
+pub(super) async fn set_workspace_preferences(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<Value>,
+) -> AppResult<Json<Value>> {
+    if !input.is_object() {
+        return Err(bad_request("As preferências precisam ser um objeto."));
+    }
+    let raw = input.to_string();
+    if raw.len() > 256 * 1024 {
+        return Err(bad_request("Preferências grandes demais."));
+    }
+    state
+        .store
+        .set_setting(&format!("workspace.preferences:{}", auth.user.id), &raw)
+        .await?;
+    Ok(Json(json!({ "ok": true })))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct WorkspaceStateInput {
+    #[serde(default)]
+    project_id: String,
+    #[serde(default)]
+    room_id: String,
+    #[serde(default)]
+    view: String,
+}
+
+/// The per-user workspace position, so the same project/channel opens on any
+/// device. It is navigation state, not a preference.
+pub(super) async fn set_workspace_state(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<WorkspaceStateInput>,
+) -> AppResult<Json<Value>> {
+    let view = match input.view.as_str() {
+        "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki" => input.view,
+        _ => "home".into(),
+    };
+    let value = json!({
+        "projectId": input.project_id,
+        "roomId": input.room_id,
+        "view": view,
+    });
+    state
+        .store
+        .set_setting(
+            &format!("workspace.state:{}", auth.user.id),
+            &value.to_string(),
+        )
+        .await?;
+    Ok(Json(value))
 }
 
 /// Creates the fixed config agent, its direct conversation and the default
@@ -62,8 +144,13 @@ pub(super) async fn onboarding_complete(
     if !auth.user.is_admin() {
         return Err(AppError::Forbidden);
     }
-    if input.mode != "solo" && input.mode != "team" {
-        return Err(bad_request("mode deve ser solo ou team."));
+    let timezone = if input.timezone.trim().is_empty() {
+        "America/Sao_Paulo"
+    } else {
+        input.timezone.trim()
+    };
+    if timezone.parse::<chrono_tz::Tz>().is_err() {
+        return Err(bad_request("Fuso horário inválido."));
     }
     let agent_name = input.agent_name.trim();
     if agent_name.is_empty() || agent_name.chars().count() > 60 {
@@ -71,8 +158,19 @@ pub(super) async fn onboarding_complete(
             "O agente precisa de um nome de até 60 caracteres.",
         ));
     }
-    let project = state.store.project(&input.project_id).await?;
+    let project = state.store.workspace_project().await?;
     let me = state.store.ensure_human_principal(auth.user.id).await?;
+    if input
+        .avatar
+        .as_object()
+        .map(|avatar| !avatar.is_empty())
+        .unwrap_or(false)
+    {
+        state
+            .store
+            .set_principal_avatar(&me.id, &input.avatar)
+            .await?;
+    }
     let handle = crate::features::rooms::models::normalize_handle(agent_name);
 
     let persona = format!(
@@ -156,40 +254,58 @@ Quando faltar uma decisão que muda o caminho, pergunte.",
                         title: String::new(),
                         instructions: String::new(),
                         lead_id: None,
-                        member_ids: Vec::new(),
+                        member_ids: vec![config_bot.id.clone()],
+                        category_id: None,
+                        visibility: "public".into(),
                     },
                 )
                 .await?
         }
     };
+    state
+        .store
+        .add_room_member(&general.id, &config_bot.id)
+        .await?;
 
     for (key, value) in [
         ("onboarding.done", "1".to_string()),
-        ("onboarding.mode", input.mode.clone()),
         ("onboarding.activity", input.activity.trim().to_string()),
         ("onboarding.objective", input.objective.trim().to_string()),
         ("onboarding.tools", input.tools.trim().to_string()),
         ("onboarding.team", input.team_name.trim().to_string()),
+        ("onboarding.timezone", timezone.to_string()),
         ("onboarding.agent", config_bot.id.clone()),
         ("onboarding.project", project.id.clone()),
     ] {
         state.store.set_setting(key, &value).await?;
     }
+    if !input.workspace_logo.trim().is_empty() {
+        state
+            .store
+            .set_setting("workspace.logo", input.workspace_logo.trim())
+            .await?;
+    }
+    let workspace_state = json!({
+        "projectId": project.id,
+        "roomId": dm.id,
+        "view": "home",
+    });
+    state
+        .store
+        .set_setting(
+            &format!("workspace.state:{}", auth.user.id),
+            &workspace_state.to_string(),
+        )
+        .await?;
     state
         .store
         .set_user_onboarded(auth.user.id, input.activity.trim())
         .await?;
 
-    let invite = if input.mode == "team" {
-        Some(
-            state
-                .store
-                .create_invite(auth.user.id, "member", 30)
-                .await?,
-        )
-    } else {
-        None
-    };
+    let invite = state
+        .store
+        .create_invite(auth.user.id, "member", 30)
+        .await?;
 
     Ok(Json(json!({
         "ok": true,

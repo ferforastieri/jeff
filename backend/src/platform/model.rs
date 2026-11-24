@@ -13,6 +13,8 @@ pub struct User {
     pub display_name: String,
     #[serde(default)]
     pub activity: String,
+    #[serde(default)]
+    pub dev_access: bool,
     pub onboarded_at: Option<String>,
 }
 

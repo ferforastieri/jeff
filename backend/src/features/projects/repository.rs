@@ -61,6 +61,22 @@ impl Store {
             .collect())
     }
 
+    /// The silent project that owns channels and direct conversations. It is
+    /// an internal storage detail: the product exposes channels, never this.
+    pub async fn workspace_project(&self) -> AppResult<Project> {
+        let saved = self.setting("workspace.project").await.unwrap_or_default();
+        if !saved.is_empty() {
+            if let Ok(project) = self.project(&saved).await {
+                return Ok(project);
+            }
+        }
+        let projects = self.list_projects().await?;
+        projects
+            .into_iter()
+            .min_by_key(|project| project.created_at.clone())
+            .ok_or(AppError::NotFound)
+    }
+
     pub async fn project(&self, id: &str) -> AppResult<Project> {
         let mut project = sqlx::query_as::<_, Project>(
             "SELECT id, name, root, color, created_at, updated_at FROM projects WHERE id = $1",

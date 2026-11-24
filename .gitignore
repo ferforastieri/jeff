@@ -46,3 +46,6 @@ jeff-generated/
 
 # Local Android builds
 /Jeff-*.apk
+
+# Agent screenshots and local UI artifacts
+.toph/

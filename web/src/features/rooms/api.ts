@@ -31,6 +31,25 @@ export interface Room {
   createdAt: number;
   updatedAt: number;
   members: Principal[];
+  repos: string[];
+  categoryId: string | null;
+  visibility: "public" | "private";
+}
+
+export interface ChannelCategory {
+  id: string;
+  name: string;
+  position: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AgentActivity {
+  agentId: string;
+  agentName: string;
+  roomId: string;
+  roomName: string;
+  status: string;
 }
 
 export interface RoomMessage {
@@ -51,6 +70,8 @@ export interface CreateRoomBody {
   instructions?: string;
   leadId?: string | null;
   memberIds?: string[];
+  categoryId?: string | null;
+  visibility?: "public" | "private";
 }
 
 export interface CreateBotBody {
@@ -162,14 +183,74 @@ export interface Memory {
 }
 
 const base = (project: string) => `/projects/${encodeURIComponent(project)}/rooms`;
+const channels = "/channels";
 const json = (body: unknown) => ({
   method: "POST",
   body: JSON.stringify(body),
 });
 
+export const channelsApi = {
+  list: () => request<{ rooms: Room[] }>(channels),
+  create: (body: CreateRoomBody) => request<Room>(channels, json(body)),
+  messages: (roomId: string, before?: number) =>
+    request<{ messages: RoomMessage[] }>(
+      `${channels}/${encodeURIComponent(roomId)}/messages${before ? `?before=${before}` : ""}`,
+    ),
+  send: (roomId: string, body: { text: string; recipientIds?: string[] }) =>
+    request<{ message: RoomMessage; deliveries: number }>(
+      `${channels}/${encodeURIComponent(roomId)}/messages`,
+      json(body),
+    ),
+  setRepos: (roomId: string, repos: string[]) =>
+    request<Room>(`${channels}/${encodeURIComponent(roomId)}/repos`, {
+      method: "PUT",
+      body: JSON.stringify({ repos }),
+    }),
+  setAgents: (roomId: string, agentIds: string[]) =>
+    request<Room>(`${channels}/${encodeURIComponent(roomId)}/agents`, {
+      method: "PUT",
+      body: JSON.stringify({ agentIds }),
+    }),
+  addAgent: (roomId: string, agentId: string) =>
+    request<{ ok: boolean }>(`${channels}/${encodeURIComponent(roomId)}/agents`, json({ agentId })),
+  categories: () => request<{ categories: ChannelCategory[] }>("/channel-categories"),
+  createCategory: (name: string) => request<ChannelCategory>("/channel-categories", json({ name })),
+  renameCategory: (id: string, name: string) =>
+    request<ChannelCategory>(`/channel-categories/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+  deleteCategory: (id: string) =>
+    request<{ ok: boolean }>(`/channel-categories/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  remove: (roomId: string) =>
+    request<{ ok: boolean }>(`${channels}/${encodeURIComponent(roomId)}`, {
+      method: "DELETE",
+    }),
+  setCategory: (roomId: string, categoryId: string | null) =>
+    request<Room>(`${channels}/${encodeURIComponent(roomId)}/category`, {
+      method: "PUT",
+      body: JSON.stringify({ categoryId }),
+    }),
+  openDm: (botId: string) =>
+    request<Room>(`${channels}/dm`, json({ botId })),
+  setAccess: (roomId: string, userId: number, allowed: boolean) =>
+    request<{ ok: boolean; allowed: boolean }>(
+      `${channels}/${encodeURIComponent(roomId)}/access`,
+      { method: "PUT", body: JSON.stringify({ userId, allowed }) },
+    ),
+};
+
 export const roomsApi = {
   principals: () => request<{ me: Principal; bots: Principal[] }>("/principals"),
+  activity: () => request<{ agents: AgentActivity[] }>("/agent-activity"),
   createBot: (body: CreateBotBody) => request<Principal>("/principals", json(body)),
+  updateBot: (id: string, body: CreateBotBody) =>
+    request<Principal>(`/principals/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   list: (project: string) => request<{ rooms: Room[] }>(base(project)),
   create: (project: string, body: CreateRoomBody) =>
     request<Room>(base(project), json(body)),
@@ -186,6 +267,11 @@ export const roomsApi = {
     ),
   addMember: (project: string, roomId: string, principalId: string) =>
     request<Principal>(`${base(project)}/${encodeURIComponent(roomId)}/members`, json({ principalId })),
+  setRepos: (project: string, roomId: string, repos: string[]) =>
+    request<Room>(`${base(project)}/${encodeURIComponent(roomId)}/repos`, {
+      method: "PUT",
+      body: JSON.stringify({ repos }),
+    }),
   setQueue: (project: string, roomId: string, paused: boolean) =>
     request<{ ok: boolean; paused: boolean }>(
       `${base(project)}/${encodeURIComponent(roomId)}/queue`,

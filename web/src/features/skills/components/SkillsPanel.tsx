@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { BookOpen, Check, ChevronDown, ChevronRight, History, LoaderCircle, Pencil, Plus, Search, Sparkles, Trash2 } from "@jeff/icons";
+import { BookOpen, Check, ChevronDown, ChevronRight, History, Pencil, Plus, Search, Sparkles, Trash2 } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import { useApp } from "../../../app/store";
 import { useConfirm } from "../../../shared/ui/confirm";
 import { Button } from "@jeff/ui/app";
@@ -255,7 +256,7 @@ export default function SkillsPanel({ projectId }: Props) {
   }
 
   if (!projectId) {
-    return <p className="text-caption-1-regular text-text-secondary">Abra um projeto para gerenciar as skills dos Jeffs.</p>;
+    return <p className="text-caption-1-regular text-text-secondary">Abra um repo para gerenciar as skills dos Jeffs.</p>;
   }
 
   return (
@@ -264,7 +265,7 @@ export default function SkillsPanel({ projectId }: Props) {
         <div className="min-w-0">
           <p className="text-title-3-medium text-text-primary">Receitas</p>
           <p className="mt-0.5 text-caption-1-regular text-text-secondary">
-            Receitas que o Jeff segue para um tipo de tarefa. Elas valem em todos os seus projetos: só o nome e o “quando usar” entram no prompt, e a receita é lida quando precisa. Escreva, escolha uma sugerida ou vincule uma skill do Claude Code, Codex, OpenCode ou do computador.
+            Receitas que o Jeff segue para um tipo de tarefa. Elas valem em todos os seus repos: só o nome e o “quando usar” entram no prompt, e a receita é lida quando precisa. Escreva, escolha uma sugerida ou vincule uma skill do Claude Code, Codex, OpenCode ou do computador.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
@@ -297,7 +298,7 @@ export default function SkillsPanel({ projectId }: Props) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-caption-1-semibold text-text-primary">{skill.name}</span>
                 <span className="block truncate text-caption-2-regular text-text-tertiary">{skill.description}</span>
-                <span className="mt-0.5 block truncate text-caption-2-regular text-text-tertiary">Todos os projetos · {skill.body.length.toLocaleString("pt-BR")} caracteres</span>
+                <span className="mt-0.5 block truncate text-caption-2-regular text-text-tertiary">Todos os repos · {skill.body.length.toLocaleString("pt-BR")} caracteres</span>
               </span>
               <ChevronRight size={15} className="shrink-0 text-text-tertiary" />
             </button>
@@ -334,7 +335,7 @@ export default function SkillsPanel({ projectId }: Props) {
         </section>
       ) : null}
 
-      <Modal isOpen={discover} onClose={closeDiscover} title="Encontrar skills" description="Sugeridas pelo Jeff ou já instaladas no Claude Code, Codex, OpenCode ou no projeto." placement="center" size="lg" bodyClassName="p-4">
+      <Modal isOpen={discover} onClose={closeDiscover} title="Encontrar skills" description="Sugeridas pelo Jeff ou já instaladas no Claude Code, Codex, OpenCode ou no repo." placement="center" size="lg" bodyClassName="p-4">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex gap-1">
@@ -347,7 +348,7 @@ export default function SkillsPanel({ projectId }: Props) {
           </div>
 
           {discoverError ? <p role="alert" className="rounded-xl bg-status-rose-bg px-3 py-2 text-caption-1-regular text-status-rose-text">{discoverError}</p> : null}
-          {discoverLoading ? <p className="flex items-center gap-2 text-caption-1-regular text-text-tertiary"><LoaderCircle className="size-4 animate-spin" /> Buscando skills…</p> : null}
+          {discoverLoading ? <p className="flex items-center gap-2 text-caption-1-regular text-text-tertiary"><PixelSpinner size={16} /> Buscando skills…</p> : null}
 
           {!discoverLoading && discoverTab === "suggested" ? (
             <div className="flex max-h-[55vh] flex-col gap-1.5 overflow-y-auto pe-1">
@@ -380,7 +381,7 @@ export default function SkillsPanel({ projectId }: Props) {
                   <p className="mt-0.5 text-caption-2-regular text-text-secondary">{pickedLocal.description || "Sem descrição no frontmatter."}</p>
                   <p className="mt-1 text-caption-2-regular text-text-tertiary">{pickedLocal.origin} · {pickedLocal.bodyLength.toLocaleString("pt-BR")} caracteres · {pickedLocal.files.length} arquivo{pickedLocal.files.length === 1 ? "" : "s"} de apoio{pickedLocal.scripts ? " · tem scripts" : ""}</p>
                 </div>
-                <p className="text-caption-2-regular text-text-tertiary">A skill fica disponível em todos os seus projetos.</p>
+                <p className="text-caption-2-regular text-text-tertiary">A skill fica disponível em todos os seus repos.</p>
                 <div className="flex justify-end gap-2">
                   <Button variant="ghost" onClick={() => setPickedLocal(null)}>Cancelar</Button>
                   <Button variant="primary" disabled={linking} onClick={() => void linkLocal()}>{linking ? "Vinculando…" : "Vincular skill"}</Button>
@@ -388,7 +389,7 @@ export default function SkillsPanel({ projectId }: Props) {
               </div>
             ) : (
               <div className="flex max-h-[55vh] flex-col gap-1.5 overflow-y-auto pe-1">
-                {shownLocal.length === 0 ? <p className="py-6 text-center text-caption-1-regular text-text-tertiary">Nenhuma skill encontrada no projeto, no Claude Code, no Codex ou no OpenCode.</p> : shownLocal.map((skill) => {
+                {shownLocal.length === 0 ? <p className="py-6 text-center text-caption-1-regular text-text-tertiary">Nenhuma skill encontrada no repo, no Claude Code, no Codex ou no OpenCode.</p> : shownLocal.map((skill) => {
                   const linked = linkedSources.has(skill.source);
                   return (
                     <div key={skill.source} className="flex items-start gap-3 rounded-xl border border-border-button-default px-3 py-2.5">
@@ -431,7 +432,7 @@ export default function SkillsPanel({ projectId }: Props) {
       }>
         {selected ? <div className="flex flex-col gap-4">
           <dl className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-xl border border-border-button-default px-3 py-2"><dt className="text-caption-2-regular text-text-tertiary">Onde vale</dt><dd className="mt-0.5 text-caption-1-medium text-text-primary">Todos os seus projetos</dd></div>
+            <div className="rounded-xl border border-border-button-default px-3 py-2"><dt className="text-caption-2-regular text-text-tertiary">Onde vale</dt><dd className="mt-0.5 text-caption-1-medium text-text-primary">Todos os seus repos</dd></div>
             <div className="rounded-xl border border-border-button-default px-3 py-2"><dt className="text-caption-2-regular text-text-tertiary">Origem</dt><dd className="mt-0.5 text-caption-1-medium text-text-primary">{selected.source ? "Arquivo externo" : "Escrita aqui"}</dd></div>
           </dl>
           <section>
@@ -468,7 +469,7 @@ export default function SkillsPanel({ projectId }: Props) {
               {current ? <div className="mt-2"><Diff before={`${current.description}\n\n${current.body}`} after={`${proposal.description}\n\n${proposal.body}`} /></div> : <div className="mt-2 flex flex-col gap-2">
                 <p className="text-caption-1-regular text-text-secondary"><span className="font-medium text-text-primary">Quando usar:</span> {proposal.description}</p>
                 <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-xl bg-background-secondary-default p-2 font-mono text-[11px] leading-5 text-text-secondary">{proposal.body}</pre>
-                <p className="text-caption-2-regular text-text-tertiary">Vale para todos os seus projetos.</p>
+                <p className="text-caption-2-regular text-text-tertiary">Vale para todos os seus repos.</p>
               </div>}
               <div className="mt-3 flex justify-end gap-2">
                 <Button variant="ghost" size="small" leadingIcon={Trash2} onClick={() => void decide(proposal, false)}>Recusar</Button>
@@ -490,7 +491,7 @@ function SkillForm({ draft, onChange, error }: { draft: SkillDraft; onChange: (d
     </div>
     <Textarea label="Receita" rows={10} value={draft.body} onChange={(value) => onChange({ ...draft, body: value })} placeholder="Os passos, em Markdown: comandos exatos, armadilhas, como conferir." />
     {draft.body.length > RECOMMENDED ? <p className="text-caption-2-regular text-status-yellow-text">Receita longa: {draft.body.length.toLocaleString("pt-BR")} caracteres. O recomendado é até {RECOMMENDED.toLocaleString("pt-BR")}; a receita inteira será mantida.</p> : null}
-    <p className="text-caption-2-regular text-text-tertiary">A skill fica disponível em todos os seus projetos, inclusive nos que você abrir depois.</p>
+    <p className="text-caption-2-regular text-text-tertiary">A skill fica disponível em todos os seus repos, inclusive nos que você abrir depois.</p>
     {error ? <p role="alert" className="rounded-xl bg-status-rose-bg px-3 py-2 text-caption-1-regular text-status-rose-text">{error}</p> : null}
   </div>;
 }

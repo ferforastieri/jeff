@@ -170,7 +170,9 @@ interface AppState {
   terminalIds: Record<string, string>;
   toasts: Toast[];
   notifications: AppNotification[];
+  workspaceTimezone: string;
   setUser: (user: User | null) => void;
+  setWorkspaceTimezone: (timezone: string) => void;
   setAuthReady: (ready: boolean) => void;
   setProjects: (projects: Project[]) => void;
   setActiveProject: (id: string | null) => void;
@@ -213,8 +215,16 @@ export const useApp = create<AppState>((set, get) => ({
   terminalIds: {},
   toasts: [],
   notifications: readNotifications(),
+  workspaceTimezone: (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    } catch {
+      return "UTC";
+    }
+  })(),
 
   setUser: (user) => set({ user }),
+  setWorkspaceTimezone: (workspaceTimezone) => set({ workspaceTimezone }),
   setAuthReady: (authReady) => set({ authReady }),
   setProjects: (projects) =>
     set((state) => {

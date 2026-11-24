@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Database, FileCode2, FileDiff, Globe2, LoaderCircle, X } from "@jeff/icons";
+import { Database, FileCode2, FileDiff, Globe2, X } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import { useApp, type Tab } from "../store";
 import { chatSessionTitle, chatJeffs, useChats } from "../../features/conversations/store";
 import BotAvatar from "../../features/agents/components/BotAvatar";
@@ -40,7 +41,7 @@ function TabRunning({ projectId, chatId }: { projectId: string; chatId: string }
   if (!running) return null;
   return (
     <span className="shrink-0 text-accent-500" role="status" aria-label="Rodando" title="Rodando">
-      <LoaderCircle size={12} className="animate-spin" />
+      <PixelSpinner size={14} />
     </span>
   );
 }
@@ -90,7 +91,7 @@ export default function Tabs() {
     if (tab.kind !== "ai" || !tab.chatId) return;
     const ok = await confirm({
       title: "Apagar conversa?",
-      message: "As mensagens e as sessões desta tarefa serão removidas. Os Jeffs continuam no projeto.",
+      message: "As mensagens e as sessões desta tarefa serão removidas. Os Jeffs continuam no repo.",
       confirmLabel: "Apagar conversa",
       danger: true,
     });

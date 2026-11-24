@@ -1,3 +1,4 @@
+import { Button as KitButton, Input as KitInput } from "@jeff/ui/kit";
 import { useEffect, useRef, useState } from "react";
 import { LogOut, Mic, Play, Settings2, Square } from "@jeff/icons";
 import { api, type Project, type VoiceParticipant } from "../../shared/api";
@@ -276,22 +277,22 @@ export default function VoicePanel({ project, room, meId }: Props) {
         </p>
         {config === "forbidden" ? null : (
           <div className="mt-2 w-full max-w-sm space-y-2 text-left">
-            <input
+            <KitInput raw
               className={field}
               placeholder="App ID"
               value={appId}
               onChange={(event) => setAppId(event.target.value)}
             />
-            <input
+            <KitInput raw
               className={field}
               type="password"
               placeholder="App secret"
               value={secret}
               onChange={(event) => setSecret(event.target.value)}
             />
-            <button className={primaryButton} onClick={() => void saveConfig()}>
+            <KitButton variant="raw" className={primaryButton} onClick={() => void saveConfig()}>
               salvar credencial
-            </button>
+            </KitButton>
           </div>
         )}
         {error ? <p className="text-caption-1-regular text-red-500">{error}</p> : null}
@@ -312,26 +313,26 @@ export default function VoicePanel({ project, room, meId }: Props) {
         </div>
         {joined ? (
           <>
-            <button className={quietButton} onClick={toggleMute}>
+            <KitButton variant="raw" className={quietButton} onClick={toggleMute}>
               <Mic size={14} /> {muted ? "mudo" : "mic"}
-            </button>
+            </KitButton>
             {sharing ? (
-              <button className={quietButton} onClick={stopShare}>
+              <KitButton variant="raw" className={quietButton} onClick={stopShare}>
                 <Square size={14} /> parar tela
-              </button>
+              </KitButton>
             ) : (
-              <button className={quietButton} onClick={() => void share()}>
+              <KitButton variant="raw" className={quietButton} onClick={() => void share()}>
                 <Play size={14} /> compartilhar
-              </button>
+              </KitButton>
             )}
-            <button className={quietButton} onClick={() => void leave()}>
+            <KitButton variant="raw" className={quietButton} onClick={() => void leave()}>
               <LogOut size={14} /> sair
-            </button>
+            </KitButton>
           </>
         ) : (
-          <button className={primaryButton} onClick={() => void join()} disabled={connecting}>
+          <KitButton variant="raw" className={primaryButton} onClick={() => void join()} disabled={connecting}>
             {connecting ? "entrando…" : "entrar na voz"}
-          </button>
+          </KitButton>
         )}
       </header>
 

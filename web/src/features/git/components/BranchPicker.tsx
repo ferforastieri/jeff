@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { CircleAlert, GitBranch, LoaderCircle, Plus, Trash2, Upload } from "@jeff/icons";
+import { CircleAlert, GitBranch, Plus, Trash2, Upload } from "@jeff/icons";
 import { Accordion, AccordionItem } from "@jeff/ui/app";
 import { RadioDot } from "@jeff/ui/app";
 import { SearchField } from "@jeff/ui/app";
 import { Button } from "@jeff/ui/app";
-import { cx } from "@jeff/ui";
+import { cx, PixelSpinner } from "@jeff/ui";
 import LoadingState from "../../../shared/ui/LoadingState";
 
 interface Props {
@@ -27,6 +27,11 @@ interface Props {
 }
 
 /** Shared branch list used by the desktop footer modal and the mobile branch sheet. */
+/** The pixel Jeff as a Button's leading icon while a branch pushes. */
+function SpinnerIcon({ className }: { className?: string; "aria-hidden"?: boolean | "true" | "false" }) {
+  return <PixelSpinner size={16} className={className} />;
+}
+
 export default function BranchPicker({
   current,
   branches,
@@ -60,7 +65,7 @@ export default function BranchPicker({
           <Button
             variant="secondary"
             size="xs"
-            leadingIcon={busy === "push" ? LoaderCircle : Upload}
+            leadingIcon={busy === "push" ? SpinnerIcon : Upload}
             disabled={Boolean(busy)}
             onClick={onPush}
             title="Enviar a branch atual para o remoto"

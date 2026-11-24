@@ -31,17 +31,11 @@ const OPTIONS: Array<{ value: SoundChoice; label: string; title: string }> = [
 ];
 
 /** The sound style for this device: the old Jeff kit's three voices or silence. */
-export default function NotificationSettings() {
+export default function NotificationSettings({ bare = false }: { bare?: boolean } = {}) {
   const sounds = useSyncExternalStore(onSoundChoiceChange, soundChoice, soundChoice);
   const question = useSyncExternalStore(onQuestionSoundChange, questionSound, questionSound);
 
-  return (
-    <Card>
-      <CardHeader
-        icon="sound"
-        title="Som das notificações"
-        subtitle="Toca quando um Jeff termina uma resposta ou pede a sua resposta. A escolha vale para este dispositivo."
-      />
+  const rows = (
       <div className="settings-rows">
         <div className="settings-row ac-actrow settings-row--lead">
           <span className="settings-row__icon" aria-hidden="true"><Icon name="sound" size={16} /></span>
@@ -78,6 +72,17 @@ export default function NotificationSettings() {
           </span>
         </div>
       </div>
+  );
+
+  if (bare) return rows;
+  return (
+    <Card>
+      <CardHeader
+        icon="sound"
+        title="Som das notificações"
+        subtitle="Toca quando um Jeff termina uma resposta ou pede a sua resposta. A escolha vale para este dispositivo."
+      />
+      {rows}
     </Card>
   );
 }

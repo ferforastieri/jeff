@@ -369,7 +369,7 @@ impl Runtime {
         let config = self.inner.ai.resolve(&agent.model).await?;
         let skills = self.inner.skills.available().await?;
         let prompt = format!(
-            "O servidor foi reiniciado durante esta execução. Verifique o estado atual do projeto e continue a tarefa de onde parou. Não repita ações já concluídas.\n\nA mensagem original do usuário foi:\n{}\n\nSe o histórico da sessão já contém essa mensagem, não a trate como um novo pedido; apenas continue o trabalho.",
+            "O servidor foi reiniciado durante esta execução. Verifique o estado atual do repo e continue a tarefa de onde parou. Não repita ações já concluídas.\n\nA mensagem original do usuário foi:\n{}\n\nSe o histórico da sessão já contém essa mensagem, não a trate como um novo pedido; apenas continue o trabalho.",
             item.prompt.trim()
         );
         let run = Run {

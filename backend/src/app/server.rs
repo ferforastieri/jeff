@@ -77,7 +77,7 @@ use axum::http::{HeaderMap, Method, Request, StatusCode, Uri};
 use axum::middleware::{self, Next};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Redirect, Response};
-use axum::routing::{any, delete, get, patch, post};
+use axum::routing::{any, delete, get, patch, post, put};
 use axum::{Json, Router};
 use base64::Engine as _;
 use futures_util::StreamExt;
@@ -476,10 +476,24 @@ impl AppState {
         if state.store.list_projects().await?.is_empty() {
             let _ = state.ensure_default_project().await;
         }
+        if state.store.setting("workspace.project").await.is_err() {
+            if let Ok(project) = state.store.workspace_project().await {
+                let _ = state
+                    .store
+                    .set_setting("workspace.project", &project.id)
+                    .await;
+            }
+        }
         let projects = state.store.list_projects().await?;
         state
             .watcher
             .watch_existing(&projects, &state.config.workspace_roots);
+
+        // The repo picker should not pay for the first tree walk.
+        let warm_workspace = state.workspace.clone();
+        tokio::task::spawn_blocking(move || {
+            let _ = warm_workspace.find_repos("", 500);
+        });
 
         let migration_state = state.clone();
         tokio::spawn(async move {
@@ -815,6 +829,9 @@ impl AppState {
             updated_at: String::new(),
         };
         let created = self.store.create_project(project).await?;
+        self.store
+            .set_setting("workspace.project", &created.id)
+            .await?;
         self.watch_project(&created.id, FsPath::new(&created.root))
             .await?;
         Ok(())
@@ -970,6 +987,8 @@ async fn shutdown_signal() {
 fn router(state: Arc<AppState>) -> Router {
     let protected = Router::new()
         .route("/api/auth/me", get(me))
+        .route("/api/auth/profile", patch(update_profile))
+        .route("/api/auth/password", post(set_password))
         .route("/api/auth/logout", post(logout))
         .route("/api/pairing", post(create_pairing))
         .route("/api/update", get(update_status).post(start_update))
@@ -981,8 +1000,38 @@ fn router(state: Arc<AppState>) -> Router {
         .route("/api/notifications/read", post(mark_notifications_read))
         .route("/api/notifications/stream", get(notification_stream))
         .route("/api/events/ws", get(events_ws))
+        .route("/api/agent-activity", get(agent_activity))
+        .route("/api/channels", get(list_channels).post(create_channel))
+        .route(
+            "/api/channel-categories",
+            get(list_channel_categories).post(create_channel_category),
+        )
+        .route(
+            "/api/channel-categories/{category_id}",
+            patch(rename_channel_category).delete(delete_channel_category),
+        )
+        .route(
+            "/api/channels/{room_id}/category",
+            put(set_channel_category),
+        )
+        .route("/api/channels/dm", post(open_dm))
+        .route(
+            "/api/channels/{room_id}",
+            get(get_channel).delete(delete_channel),
+        )
+        .route(
+            "/api/channels/{room_id}/messages",
+            get(list_channel_messages).post(send_channel_message),
+        )
+        .route("/api/channels/{room_id}/repos", put(set_channel_repos))
+        .route(
+            "/api/channels/{room_id}/agents",
+            put(set_channel_agents).post(add_channel_agent),
+        )
+        .route("/api/channels/{room_id}/access", put(set_channel_access))
         .route("/api/projects", get(list_projects).post(create_project))
         .route("/api/principals", get(list_principals).post(create_bot))
+        .route("/api/principals/{agent_id}", patch(update_bot))
         .route(
             "/api/projects/{project_id}/rooms",
             get(list_rooms).post(create_room),
@@ -1003,6 +1052,10 @@ fn router(state: Arc<AppState>) -> Router {
         .route(
             "/api/projects/{project_id}/rooms/{room_id}/messages",
             get(list_messages).post(send_message),
+        )
+        .route(
+            "/api/projects/{project_id}/rooms/{room_id}/repos",
+            put(set_room_repos),
         )
         .route(
             "/api/projects/{project_id}/rooms/{room_id}/queue",
@@ -1055,6 +1108,7 @@ fn router(state: Arc<AppState>) -> Router {
         .route("/api/invites", get(list_invites).post(create_invite))
         .route("/api/invites/{invite_id}", delete(revoke_invite))
         .route("/api/team", get(list_users))
+        .route("/api/team/principals", get(list_team_principals))
         .route("/api/team/{user_id}", patch(set_role).delete(remove_user))
         .route(
             "/api/projects/{project_id}/members",
@@ -1067,6 +1121,11 @@ fn router(state: Arc<AppState>) -> Router {
         .route(
             "/api/onboarding",
             get(onboarding_status).post(onboarding_complete),
+        )
+        .route("/api/workspace/state", put(set_workspace_state))
+        .route(
+            "/api/workspace/preferences",
+            get(workspace_preferences).put(set_workspace_preferences),
         )
         .route(
             "/api/voice/config",
@@ -1384,6 +1443,9 @@ fn router(state: Arc<AppState>) -> Router {
         .route("/api/health", get(health))
         .route("/api/version", get(version))
         .route("/api/auth/login", post(login))
+        .route("/api/auth/login-email", post(login_email))
+        .route("/api/auth/email-status", post(email_status))
+        .route("/api/auth/register", post(register))
         .route("/api/auth/pair", post(pair))
         .route(
             "/api/auth/invite/{token}",

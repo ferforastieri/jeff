@@ -208,7 +208,7 @@ export function toolStep(message: NativeMessage): ToolStepView {
     return { label: "Pesquisou", detail: query ? short(query) : undefined, output: message.status === "running" ? undefined : listSummary(result) };
   }
   if (/list_files|list/.test(name)) {
-    return { label: "Listou", detail: "arquivos do projeto", output: message.status === "running" ? undefined : listSummary(result) };
+    return { label: "Listou", detail: "arquivos do repo", output: message.status === "running" ? undefined : listSummary(result) };
   }
   if (/fetch_url|fetch|http|url/.test(name)) {
     return { label: "Consultou", detail: stringArg(args, ["url", "href"]) || undefined };
@@ -237,7 +237,7 @@ export function toolStep(message: NativeMessage): ToolStepView {
     return { label: "Consultou", detail: "o e-mail" };
   }
   if (/remember/.test(name)) {
-    return { label: "Salvou", detail: "uma memória do projeto" };
+    return { label: "Salvou", detail: "uma memória do repo" };
   }
   if (message.activity) {
     return { label: message.activity };

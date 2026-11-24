@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowUp, FilePlus2, ImagePlus, LoaderCircle, Mic, Stop, X } from "@jeff/icons";
+import { ArrowUp, FilePlus2, ImagePlus, Mic, Stop, X } from "@jeff/icons";
+import { PixelSpinner } from "@jeff/ui";
 import { Button } from "@jeff/ui/app";
 import { IconButton } from "@jeff/ui/app";
 import { Textarea } from "@jeff/ui/app";
@@ -23,6 +24,16 @@ interface Props {
   modeControls?: ReactNode;
   history?: string[];
   members?: ChatJeff[];
+}
+
+/** The composer's busy audio control: the pixel Jeff as a Button's leading icon. */
+function SpinnerIcon({
+  className,
+}: {
+  className?: string;
+  "aria-hidden"?: boolean | "true" | "false";
+}) {
+  return <PixelSpinner size={14} className={className} />;
 }
 
 export function AgentComposer({ value, onChange, onSend, onStop, busy, placeholder, allowAttachments = true, leadingControls, modeControls, history = [], members = [] }: Props) {
@@ -276,7 +287,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
             <span className="agent-composer-spacer min-w-0 flex-1" />
             {modeControls ? <div className="flex shrink-0 items-center gap-0.5">{modeControls}</div> : null}
             {audio.processing ? (
-              <Button type="button" variant="secondary" size="small" iconOnly leadingIcon={LoaderCircle} disabled aria-label="Processando áudio" title="Processando áudio" className="shrink-0 rounded-full [&_svg]:animate-spin" />
+              <Button type="button" variant="secondary" size="small" iconOnly leadingIcon={SpinnerIcon} disabled aria-label="Processando áudio" title="Processando áudio" className="shrink-0 rounded-full" />
             ) : audio.recording ? (
               <Button type="button" variant="danger" size="small" iconOnly leadingIcon={Stop} onClick={() => audio.stop()} aria-label="Parar gravação" title="Parar gravação e transcrever" className="shrink-0 rounded-full" />
             ) : busy && onStop ? (

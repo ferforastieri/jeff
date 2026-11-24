@@ -22,7 +22,7 @@ const MARK = `${import.meta.env.BASE_URL}brand/jeff-mark-eyeless.png?v=5`;
 
 /**
  * The always-there mobile tab bar, in the native tab bar's shape: labels under
- * the glyphs, the current tab in ink and Projetos wearing the project it is on.
+ * the glyphs, the current tab in ink and Repos wearing the project it is on.
  */
 export default function MobileBottomNav({ screen, onSelect }: Props) {
   return (

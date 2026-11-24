@@ -5,6 +5,7 @@ export interface User {
   role?: string;
   displayName?: string;
   activity?: string;
+  devAccess?: boolean;
   onboardedAt?: string | null;
 }
 
@@ -38,17 +39,30 @@ export interface RoomEventItem {
   createdAt: number;
 }
 
+export interface WorkspacePosition {
+  projectId?: string;
+  roomId?: string;
+  view?: "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki";
+}
+
 export interface OnboardingStatus {
   done: boolean;
-  mode: string;
   activity: string;
   objective: string;
   tools: string;
   teamName: string;
   agentId: string;
   projectId: string;
-  needsProject: boolean;
+  displayName: string;
+  email: string | null;
+  timezone: string;
+  devMode: boolean;
+  devAccess: boolean;
+  workspaceLogo: string;
+  avatar: Record<string, unknown>;
+  workspaceState: WorkspacePosition | null;
   isAdmin: boolean;
+  memberCount: number;
 }
 
 export interface Invite {
@@ -576,6 +590,46 @@ export const api = {
   },
 
 
+  async loginWithEmail(email: string): Promise<LoginResponse> {
+    return request<LoginResponse>("/auth/login-email", {
+      method: "POST",
+      ...json({ email, kind: "web" }),
+    });
+  },
+
+  async emailStatus(email: string): Promise<{ exists: boolean }> {
+    return request<{ exists: boolean }>("/auth/email-status", {
+      method: "POST",
+      ...json({ email }),
+    });
+  },
+
+  async registerWithEmail(
+    email: string,
+    name: string,
+    password: string,
+  ): Promise<LoginResponse> {
+    return request<LoginResponse>("/auth/register", {
+      method: "POST",
+      ...json({ email, name, password, kind: "web" }),
+    });
+  },
+
+  async setPassword(password: string): Promise<void> {
+    await request("/auth/password", {
+      method: "POST",
+      ...json({ password }),
+    });
+  },
+
+  async setDisplayName(displayName: string): Promise<User> {
+    const response = await request<{ user: User }>("/auth/profile", {
+      method: "PATCH",
+      ...json({ displayName }),
+    });
+    return response.user;
+  },
+
   async login(username: string, password: string): Promise<LoginResponse> {
     return request<LoginResponse>("/auth/login", {
       method: "POST",
@@ -615,14 +669,26 @@ export const api = {
     return request<OnboardingStatus>("/onboarding");
   },
 
+  async saveWorkspaceState(input: {
+    projectId?: string;
+    roomId: string;
+    view: string;
+  }): Promise<WorkspacePosition> {
+    return request("/workspace/state", {
+      method: "PUT",
+      ...json(input),
+    });
+  },
+
   async completeOnboarding(input: {
-    mode: "solo" | "team";
     activity: string;
     objective: string;
     tools: string;
     agentName: string;
-    projectId: string;
     teamName?: string;
+    timezone: string;
+    avatar?: Record<string, unknown>;
+    workspaceLogo?: string;
   }): Promise<{
     ok: boolean;
     projectId: string;
@@ -637,6 +703,7 @@ export const api = {
   async roomSearch(
     projectId: string,
     query: string,
+    signal?: AbortSignal,
   ): Promise<{
     messages: Array<{ id: string; roomId: string; roomName: string; text: string; createdAt: number; author: string }>;
     cards: Array<{ id: string; title: string; description: string; column: string; roomId: string | null }>;
@@ -644,6 +711,7 @@ export const api = {
   }> {
     return request(
       `/projects/${encodeURIComponent(projectId)}/room-search?q=${encodeURIComponent(query)}`,
+      { signal },
     );
   },
 
@@ -760,6 +828,21 @@ export const api = {
     return request("/team");
   },
 
+  async teamPrincipals(): Promise<{ principals: import("../features/rooms/api").Principal[] }> {
+    return request("/team/principals");
+  },
+
+  async preferences(): Promise<{ preferences: Record<string, unknown> }> {
+    return request("/workspace/preferences");
+  },
+
+  async savePreferences(preferences: Record<string, unknown>): Promise<{ ok: boolean }> {
+    return request("/workspace/preferences", {
+      method: "PUT",
+      body: JSON.stringify(preferences),
+    });
+  },
+
   async invites(): Promise<{ invites: Invite[] }> {
     return request("/invites");
   },
@@ -774,6 +857,10 @@ export const api = {
 
   async setRole(userId: number, role: string): Promise<{ ok: boolean }> {
     return request(`/team/${userId}`, { method: "PATCH", ...json({ role }) });
+  },
+
+  async setDevAccess(userId: number, devAccess: boolean): Promise<{ ok: boolean }> {
+    return request(`/team/${userId}`, { method: "PATCH", ...json({ devAccess }) });
   },
 
   async removeUser(userId: number): Promise<{ ok: boolean }> {

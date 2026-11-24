@@ -25,14 +25,15 @@ impl Store {
     ) -> AppResult<User> {
         let created = now();
         let id: i64 = sqlx::query_scalar(
-            "INSERT INTO users (username, password_hash, created_at, role, display_name)
-             VALUES ($1, $2, $3, $4, $5) RETURNING id",
+            "INSERT INTO users (username, password_hash, created_at, role, display_name, dev_access)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
         )
         .bind(username)
         .bind(password_hash)
         .bind(&created)
         .bind(role)
         .bind(display_name)
+        .bind(role == "admin")
         .fetch_one(&self.pool)
         .await?;
         Ok(User {
@@ -43,13 +44,14 @@ impl Store {
             role: role.to_string(),
             display_name: display_name.to_string(),
             activity: String::new(),
+            dev_access: role == "admin",
             onboarded_at: None,
         })
     }
 
     pub async fn user_by_username(&self, username: &str) -> AppResult<User> {
         sqlx::query_as::<_, User>(
-            "SELECT id, username, password_hash, created_at, role, display_name, activity, onboarded_at
+            "SELECT id, username, password_hash, created_at, role, display_name, activity, dev_access, onboarded_at
              FROM users WHERE username = $1",
         )
         .bind(username)
@@ -58,9 +60,95 @@ impl Store {
         .map_err(map_not_found)
     }
 
+    pub async fn user_by_email(&self, email: &str) -> AppResult<User> {
+        sqlx::query_as::<_, User>(
+            "SELECT id, username, password_hash, created_at, role, display_name, activity, dev_access, onboarded_at
+             FROM users WHERE email = $1",
+        )
+        .bind(email)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_not_found)
+    }
+
+    pub async fn user_email(&self, id: i64) -> AppResult<Option<String>> {
+        Ok(sqlx::query_scalar("SELECT email FROM users WHERE id = $1")
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await?)
+    }
+
+    pub async fn set_user_email(&self, id: i64, email: &str) -> AppResult<()> {
+        sqlx::query("UPDATE users SET email = $1 WHERE id = $2")
+            .bind(email)
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|error| {
+                if crate::platform::store::is_unique(&error) {
+                    AppError::Conflict
+                } else {
+                    AppError::Database(error)
+                }
+            })?;
+        Ok(())
+    }
+
+    pub async fn set_user_password(&self, id: i64, password_hash: &str) -> AppResult<()> {
+        sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
+            .bind(password_hash)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn set_user_display_name(&self, id: i64, name: &str) -> AppResult<()> {
+        sqlx::query("UPDATE users SET display_name = $1 WHERE id = $2")
+            .bind(name)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn create_email_user(
+        &self,
+        email: &str,
+        role: &str,
+        display_name: &str,
+        password_hash: &str,
+    ) -> AppResult<User> {
+        let created = now();
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO users (username, email, password_hash, created_at, role, display_name, dev_access)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+        )
+        .bind(email)
+        .bind(email)
+        .bind(password_hash)
+        .bind(&created)
+        .bind(role)
+        .bind(display_name)
+        .bind(role == "admin")
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(User {
+            id,
+            username: email.to_string(),
+            password_hash: password_hash.to_string(),
+            created_at: created,
+            role: role.to_string(),
+            display_name: display_name.to_string(),
+            activity: String::new(),
+            dev_access: role == "admin",
+            onboarded_at: None,
+        })
+    }
+
     pub async fn user_by_id(&self, id: i64) -> AppResult<User> {
         sqlx::query_as::<_, User>(
-            "SELECT id, username, password_hash, created_at, role, display_name, activity, onboarded_at
+            "SELECT id, username, password_hash, created_at, role, display_name, activity, dev_access, onboarded_at
              FROM users WHERE id = $1",
         )
         .bind(id)
@@ -71,7 +159,7 @@ impl Store {
 
     pub async fn list_users(&self) -> AppResult<Vec<User>> {
         Ok(sqlx::query_as::<_, User>(
-            "SELECT id, username, password_hash, created_at, role, display_name, activity, onboarded_at
+            "SELECT id, username, password_hash, created_at, role, display_name, activity, dev_access, onboarded_at
              FROM users ORDER BY created_at",
         )
         .fetch_all(&self.pool)
@@ -84,6 +172,19 @@ impl Store {
         }
         let affected = sqlx::query("UPDATE users SET role = $1 WHERE id = $2")
             .bind(role)
+            .bind(id)
+            .execute(&self.pool)
+            .await?
+            .rows_affected();
+        if affected == 0 {
+            return Err(AppError::NotFound);
+        }
+        Ok(())
+    }
+
+    pub async fn set_user_dev_access(&self, id: i64, allowed: bool) -> AppResult<()> {
+        let affected = sqlx::query("UPDATE users SET dev_access = $1 WHERE id = $2")
+            .bind(allowed)
             .bind(id)
             .execute(&self.pool)
             .await?
@@ -249,7 +350,7 @@ impl Store {
     pub async fn project_members(&self, project_id: &str) -> AppResult<Vec<User>> {
         Ok(sqlx::query_as::<_, User>(
             "SELECT u.id, u.username, u.password_hash, u.created_at, u.role, u.display_name,
-                    u.activity, u.onboarded_at
+                    u.activity, u.dev_access, u.onboarded_at
              FROM project_members m JOIN users u ON u.id = m.user_id
              WHERE m.project_id = $1 ORDER BY u.username",
         )
@@ -315,7 +416,8 @@ impl Store {
             "SELECT s.id, s.user_id, s.kind, s.created_at, s.expires_at, s.last_seen_at,
                     u.id AS user_id_value, u.username, u.password_hash, u.created_at AS user_created_at,
                     u.role AS user_role, u.display_name AS user_display_name,
-                    u.activity AS user_activity, u.onboarded_at AS user_onboarded_at
+                    u.activity AS user_activity, u.dev_access AS user_dev_access,
+                    u.onboarded_at AS user_onboarded_at
              FROM sessions s JOIN users u ON u.id = s.user_id
              WHERE s.token_hash = $1",
         )
@@ -346,6 +448,7 @@ impl Store {
             role: row.try_get("user_role")?,
             display_name: row.try_get("user_display_name")?,
             activity: row.try_get("user_activity")?,
+            dev_access: row.try_get("user_dev_access")?,
             onboarded_at: row.try_get("user_onboarded_at")?,
         };
         Ok((session, user))
@@ -358,6 +461,15 @@ impl Store {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    pub async fn session_ids_for_user(&self, user_id: i64) -> AppResult<Vec<String>> {
+        Ok(
+            sqlx::query_scalar("SELECT id FROM sessions WHERE user_id = $1")
+                .bind(user_id)
+                .fetch_all(&self.pool)
+                .await?,
+        )
     }
 
     pub async fn delete_session(&self, session_id: &str) -> AppResult<()> {

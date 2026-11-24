@@ -3,7 +3,6 @@ import {
   Check,
   CircleAlert,
   KeyRound,
-  LoaderCircle,
   PlugZap,
   Plus,
   RefreshCw,
@@ -13,7 +12,7 @@ import {
 } from "@jeff/icons";
 import { agentApi, type McpServer } from "../../agents/api";
 import { useApp } from "../../../app/store";
-import { cx } from "@jeff/ui";
+import { cx, PixelSpinner } from "@jeff/ui";
 import { Button, Input, Select, SelectItem } from "@jeff/ui/app";
 import ProviderIcon from "../../providers/components/ProviderIcon";
 
@@ -125,6 +124,11 @@ function ConnectorLogo({ id, className }: { id: string; className?: string }) {
 }
 
 /** Global connectors: the harness receives every server configured here. */
+/** The pixel Jeff as a Button's leading icon while a connector saves. */
+function SpinnerIcon({ className }: { className?: string; "aria-hidden"?: boolean | "true" | "false" }) {
+  return <PixelSpinner size={16} className={className} />;
+}
+
 export default function ConnectorsSettings() {
   const notify = useApp((state) => state.notify);
   const [servers, setServers] = useState<McpServer[]>([]);
@@ -285,7 +289,7 @@ export default function ConnectorsSettings() {
         <div className="min-w-0">
           <h4 className="text-body-medium text-text-primary">Serviços</h4>
           <p className="mt-0.5 max-w-2xl text-caption-1-regular text-text-secondary">
-            Conecte serviços uma vez. Todos os conectores ficam disponíveis para o Jeff em qualquer projeto e são passados ao harness como ferramentas MCP.
+            Conecte serviços uma vez. Todos os conectores ficam disponíveis para o Jeff em qualquer repo e são passados ao harness como ferramentas MCP.
           </p>
         </div>
         <Button variant="ghost" size="small" leadingIcon={RefreshCw} onClick={() => void load()} disabled={loading}>
@@ -390,7 +394,7 @@ export default function ConnectorsSettings() {
               variant="primary"
               size="small"
               disabled={busy || (form.transport === "http" && !form.url.trim())}
-              leadingIcon={busy ? LoaderCircle : Plus}
+              leadingIcon={busy ? SpinnerIcon : Plus}
               onClick={() => void save()}
             >
               {busy ? "Salvando…" : editing ? "Salvar" : "Salvar e testar"}
@@ -411,12 +415,12 @@ export default function ConnectorsSettings() {
           <span className="text-caption-2-regular text-text-tertiary">{servers.length} de 16</span>
         </div>
         {loading ? (
-          <p className="flex items-center gap-2 text-caption-1-regular text-text-tertiary"><LoaderCircle className="size-4 animate-spin" /> Carregando conectores…</p>
+          <p className="flex items-center gap-2 text-caption-1-regular text-text-tertiary"><PixelSpinner size={16} /> Carregando conectores…</p>
         ) : servers.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border-button-default px-4 py-6 text-center">
             <PlugZap className="mx-auto size-5 text-text-tertiary" />
             <p className="mt-2 text-caption-1-medium text-text-primary">Nenhum conector ainda.</p>
-            <p className="mt-0.5 text-caption-2-regular text-text-tertiary">Escolha um serviço acima. O Jeff usa os conectores em todos os projetos.</p>
+            <p className="mt-0.5 text-caption-2-regular text-text-tertiary">Escolha um serviço acima. O Jeff usa os conectores em todos os repos.</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-border-button-default bg-background-primary-default">

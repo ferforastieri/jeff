@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, CircleAlert, Copy, Download, ExternalLink, LoaderCircle, RefreshCw } from "@jeff/icons";
+import { Check, CircleAlert, Copy, Download, ExternalLink, RefreshCw } from "@jeff/icons";
 import { engineApi, type EngineInfo, type EngineTest } from "../../agents/api";
 import { useApp } from "../../../app/store";
 import { useSettings } from "../store";
 import HarnessIcon from "../../agents/components/HarnessIcon";
 import { Button } from "@jeff/ui/app";
-import { cx } from "@jeff/ui";
+import { cx, PixelSpinner } from "@jeff/ui";
 
 type Busy = { id: string; action: "test" | "install" | "update" } | null;
 
@@ -14,6 +14,11 @@ interface Props {
 }
 
 /** One place for the agent harnesses: install, log in and test the CLI. */
+/** The pixel Jeff as a Button's leading icon while a harness works. */
+function SpinnerIcon({ className }: { className?: string; "aria-hidden"?: boolean | "true" | "false" }) {
+  return <PixelSpinner size={16} className={className} />;
+}
+
 export default function HarnessSettings(_props: Props) {
   const notify = useApp((state) => state.notify);
   const [engines, setEngines] = useState<EngineInfo[]>([]);
@@ -162,7 +167,7 @@ export default function HarnessSettings(_props: Props) {
       ) : null}
       {loading ? (
         <p role="status" className="flex items-center gap-2 text-caption-1-regular text-text-secondary">
-          <LoaderCircle className="size-4 animate-spin" /> Procurando harnesses…
+          <PixelSpinner size={16} /> Procurando harnesses…
         </p>
       ) : null}
 
@@ -198,7 +203,7 @@ export default function HarnessSettings(_props: Props) {
                     {engine.installed ? (
                       <>
                         <Button variant="primary" size="small" disabled={working} onClick={() => login(engine)}>Entrar</Button>
-                        <Button variant="secondary" size="small" disabled={working} leadingIcon={working && busy?.action === "test" ? LoaderCircle : Check} onClick={() => void test(engine)}>
+                        <Button variant="secondary" size="small" disabled={working} leadingIcon={working && busy?.action === "test" ? SpinnerIcon : Check} onClick={() => void test(engine)}>
                           {working && busy?.action === "test" ? "Testando…" : "Testar"}
                         </Button>
                         <Button
@@ -206,7 +211,7 @@ export default function HarnessSettings(_props: Props) {
                           size="small"
                           iconOnly
                           disabled={working}
-                          leadingIcon={working && busy?.action === "update" ? LoaderCircle : RefreshCw}
+                          leadingIcon={working && busy?.action === "update" ? SpinnerIcon : RefreshCw}
                           aria-label={`Atualizar ${engine.label}`}
                           title={`Atualizar ${engine.label}`}
                           onClick={() => void update(engine)}
@@ -222,7 +227,7 @@ export default function HarnessSettings(_props: Props) {
                         />
                       </>
                     ) : (
-                      <Button variant="primary" size="small" disabled={working} leadingIcon={working && busy?.action === "install" ? LoaderCircle : Download} onClick={() => void install(engine)}>
+                      <Button variant="primary" size="small" disabled={working} leadingIcon={working && busy?.action === "install" ? SpinnerIcon : Download} onClick={() => void install(engine)}>
                         {working && busy?.action === "install" ? "Instalando…" : "Instalar"}
                       </Button>
                     )}

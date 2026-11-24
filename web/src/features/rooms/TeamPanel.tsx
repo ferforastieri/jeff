@@ -1,7 +1,10 @@
+import { Button as KitButton } from "@jeff/ui/kit";
+import { Input as KitInput, NativeSelect as KitSelect } from "@jeff/ui/kit";
 import { useEffect, useState } from "react";
 import { Copy, Plus, Trash2 } from "@jeff/icons";
 import { useApp } from "../../app/store";
 import { api, type Invite, type Project, type User } from "../../shared/api";
+import { formatDate } from "../../shared/time";
 
 const quietButton =
   "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-caption-1-medium text-text-secondary hover:bg-background-tertiary-default hover:text-text-primary";
@@ -129,9 +132,9 @@ export default function TeamPanel({ project }: Props) {
             {users.length} pessoa{users.length === 1 ? "" : "s"} · quem vê {project.name}
           </p>
         </div>
-        <button className={primaryButton} onClick={() => void createInvite()} disabled={busy}>
+        <KitButton variant="raw" className={primaryButton} onClick={() => void createInvite()} disabled={busy}>
           <Plus size={14} /> Convite
-        </button>
+        </KitButton>
       </header>
 
       {error ? (
@@ -150,9 +153,9 @@ export default function TeamPanel({ project }: Props) {
               <code className="min-w-0 flex-1 truncate text-caption-2-regular text-text-tertiary">
                 {link}
               </code>
-              <button className={quietButton} onClick={() => void navigator.clipboard?.writeText(link)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => void navigator.clipboard?.writeText(link)}>
                 <Copy size={14} /> copiar
-              </button>
+              </KitButton>
             </div>
           </div>
         ) : null}
@@ -174,7 +177,7 @@ export default function TeamPanel({ project }: Props) {
                     @{user.username} · {user.activity || "sem atividade"}
                   </span>
                 </span>
-                <select
+                <KitSelect raw
                   className="rounded-lg border border-border-button-default bg-background-primary-default px-2 py-1 text-caption-1-regular"
                   value={user.role ?? "member"}
                   onChange={(event) => void setRole(user, event.target.value)}
@@ -182,11 +185,11 @@ export default function TeamPanel({ project }: Props) {
                 >
                   <option value="admin">admin</option>
                   <option value="member">membro</option>
-                </select>
+                </KitSelect>
                 {me?.id !== user.id ? (
-                  <button className={quietButton} onClick={() => void removeUser(user)}>
+                  <KitButton variant="raw" className={quietButton} onClick={() => void removeUser(user)}>
                     <Trash2 size={12} />
-                  </button>
+                  </KitButton>
                 ) : null}
               </div>
             ))}
@@ -198,7 +201,7 @@ export default function TeamPanel({ project }: Props) {
             Quem vê {project.name}
           </h3>
           <p className="mb-2 text-caption-2-regular text-text-tertiary">
-            Admin vê todos os projetos. Marque os membros que podem abrir este.
+            Admin vê todos os canais. Marque os membros que podem abrir este.
           </p>
           <div className="space-y-1">
             {users
@@ -208,7 +211,7 @@ export default function TeamPanel({ project }: Props) {
                   key={user.id}
                   className="flex items-center gap-2 rounded-xl border border-separator-border bg-background-secondary-default px-3 py-2 text-caption-1-regular"
                 >
-                  <input
+                  <KitInput raw
                     type="checkbox"
                     checked={members.includes(user.id)}
                     onChange={() => void toggleMember(user)}
@@ -245,13 +248,13 @@ export default function TeamPanel({ project }: Props) {
                     {item.installed ? "instalado" : "ausente"}
                   </span>
                   {item.installed ? null : (
-                    <button
+                    <KitButton variant="raw"
                       className={quietButton}
                       onClick={() => void install(item.id)}
                       disabled={Boolean(installing)}
                     >
                       {installing === item.id ? "instalando…" : "instalar"}
-                    </button>
+                    </KitButton>
                   )}
                 </div>
               ))}
@@ -274,11 +277,11 @@ export default function TeamPanel({ project }: Props) {
                   className="flex items-center gap-2 rounded-xl border border-separator-border px-3 py-2 text-caption-2-regular text-text-secondary"
                 >
                   <span className="min-w-0 flex-1 truncate">
-                    {invite.role} · expira em {new Date(invite.expiresAt).toLocaleDateString("pt-BR")}
+                    {invite.role} · expira em {formatDate(invite.expiresAt)}
                   </span>
-                  <button className={quietButton} onClick={() => void revoke(invite)}>
+                  <KitButton variant="raw" className={quietButton} onClick={() => void revoke(invite)}>
                     revogar
-                  </button>
+                  </KitButton>
                 </div>
               ))}
             </div>

@@ -1,4 +1,4 @@
-.PHONY: dev web web-landing build run test fmt mobile docker
+.PHONY: dev dev-live dev-backend web web-landing build run test fmt mobile docker
 
 web:
 	npm install
@@ -20,6 +20,12 @@ dev:
 	@echo "API:     cd backend && cargo run --bin jeff"
 	@echo "App:     npm run dev:web"
 	@echo "Landing: npm run dev:landing"
+
+dev-live:
+	npm run dev:live
+
+dev-backend:
+	bash scripts/dev-backend-watch.sh
 
 test:
 	cargo test --manifest-path backend/Cargo.toml

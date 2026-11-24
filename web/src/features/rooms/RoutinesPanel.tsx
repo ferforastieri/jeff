@@ -1,3 +1,5 @@
+import { Button as KitButton } from "@jeff/ui/kit";
+import { Input as KitInput, Textarea as KitTextarea, NativeSelect as KitSelect } from "@jeff/ui/kit";
 import { useEffect, useState } from "react";
 import { Plus, RefreshCw, Trash2, X } from "@jeff/icons";
 import type { Project } from "../../shared/api";
@@ -9,6 +11,8 @@ import {
   type RoutineRun,
   type Schedule,
 } from "./api";
+import { formatDateTime } from "../../shared/time";
+import { useApp } from "../../app/store";
 
 const field =
   "w-full rounded-lg border border-border-button-default bg-background-primary-default px-3 py-2 text-body-2-regular text-text-primary outline-none placeholder:text-text-tertiary focus:border-accent-500";
@@ -46,12 +50,7 @@ function describe(schedule: Schedule): string {
 
 function when(value: number | null): string {
   if (!value) return "sem próxima execução";
-  return new Date(value).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTime(value);
 }
 
 interface Props {
@@ -77,9 +76,8 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
   const [unit, setUnit] = useState<"minutes" | "hours" | "days">("minutes");
   const [date, setDate] = useState("");
   const [expression, setExpression] = useState("0 9 * * 1-5");
-  const [timezone, setTimezone] = useState(
-    Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-  );
+  const workspaceTimezone = useApp((state) => state.workspaceTimezone);
+  const [timezone, setTimezone] = useState(workspaceTimezone);
   const [active, setActive] = useState(true);
 
   async function refresh() {
@@ -207,14 +205,14 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
             {routines.length} rotina{routines.length === 1 ? "" : "s"} em {room.name}
           </p>
         </div>
-        <button
+        <KitButton variant="raw"
           className={primaryButton}
           onClick={() => setCreating(true)}
           disabled={bots.length === 0}
           title={bots.length === 0 ? "Adicione um bot à sala primeiro" : "Nova rotina"}
         >
           <Plus size={14} /> Nova rotina
-        </button>
+        </KitButton>
       </header>
 
       {error ? (
@@ -246,26 +244,26 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
                   </span>
                   <span className="min-w-0 flex-1" />
                   <label className="flex items-center gap-1 text-caption-2-regular text-text-secondary">
-                    <input
+                    <KitInput raw
                       type="checkbox"
                       checked={routine.active}
                       onChange={() => void toggle(routine)}
                     />
                     ativa
                   </label>
-                  <button className={quietButton} onClick={() => void test(routine)}>
+                  <KitButton variant="raw" className={quietButton} onClick={() => void test(routine)}>
                     <RefreshCw size={12} /> testar
-                  </button>
-                  <button className={quietButton} onClick={() => void history(routine)}>
+                  </KitButton>
+                  <KitButton variant="raw" className={quietButton} onClick={() => void history(routine)}>
                     histórico
-                  </button>
-                  <button
+                  </KitButton>
+                  <KitButton variant="raw"
                     className={quietButton}
                     onClick={() => void remove(routine)}
                     title="Apagar rotina"
                   >
                     <Trash2 size={12} />
-                  </button>
+                  </KitButton>
                 </div>
                 <p className="mt-1 text-caption-2-regular text-text-tertiary">
                   próxima: {when(routine.trigger.nextRunAt)} · {routine.timezone}
@@ -312,33 +310,33 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
           <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border-button-white bg-background-primary-default p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-body-1-medium">Nova rotina</h3>
-              <button className={quietButton} onClick={() => setCreating(false)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => setCreating(false)}>
                 <X size={14} />
-              </button>
+              </KitButton>
             </div>
             <div className="space-y-2">
-              <select className={field} value={agentId} onChange={(event) => setAgentId(event.target.value)}>
+              <KitSelect raw className={field} value={agentId} onChange={(event) => setAgentId(event.target.value)}>
                 {bots.map((bot) => (
                   <option key={bot.id} value={bot.id}>
                     {bot.name}
                   </option>
                 ))}
-              </select>
-              <input
+              </KitSelect>
+              <KitInput raw
                 className={field}
                 placeholder="Nome da rotina"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 autoFocus
               />
-              <textarea
+              <KitTextarea raw
                 className={`${field} min-h-24`}
                 placeholder="O que o bot deve fazer quando rodar"
                 value={instruction}
                 onChange={(event) => setInstruction(event.target.value)}
               />
               <div className="grid grid-cols-2 gap-2">
-                <select className={field} value={kind} onChange={(event) => setKind(event.target.value)}>
+                <KitSelect raw className={field} value={kind} onChange={(event) => setKind(event.target.value)}>
                   <option value="hourly">A cada hora</option>
                   <option value="daily">Todo dia</option>
                   <option value="weekdays">Dias úteis</option>
@@ -347,9 +345,9 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
                   <option value="interval">Intervalo</option>
                   <option value="once">Uma vez</option>
                   <option value="custom">Cron</option>
-                </select>
+                </KitSelect>
                 {kind === "hourly" ? (
-                  <input
+                  <KitInput raw
                     type="number"
                     min={0}
                     max={59}
@@ -359,7 +357,7 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
                     placeholder="Minuto"
                   />
                 ) : kind === "weekly" ? (
-                  <select
+                  <KitSelect raw
                     className={field}
                     value={weekday}
                     onChange={(event) => setWeekday(Number(event.target.value))}
@@ -369,9 +367,9 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
                         {label}
                       </option>
                     ))}
-                  </select>
+                  </KitSelect>
                 ) : kind === "monthly" ? (
-                  <input
+                  <KitInput raw
                     type="number"
                     min={1}
                     max={31}
@@ -382,14 +380,14 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
                   />
                 ) : kind === "interval" ? (
                   <div className="flex gap-1">
-                    <input
+                    <KitInput raw
                       type="number"
                       min={1}
                       className={field}
                       value={amount}
                       onChange={(event) => setAmount(Number(event.target.value))}
                     />
-                    <select
+                    <KitSelect raw
                       className={field}
                       value={unit}
                       onChange={(event) =>
@@ -399,24 +397,24 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
                       <option value="minutes">min</option>
                       <option value="hours">horas</option>
                       <option value="days">dias</option>
-                    </select>
+                    </KitSelect>
                   </div>
                 ) : kind === "once" ? (
-                  <input
+                  <KitInput raw
                     type="date"
                     className={field}
                     value={date}
                     onChange={(event) => setDate(event.target.value)}
                   />
                 ) : kind === "custom" ? (
-                  <input
+                  <KitInput raw
                     className={field}
                     value={expression}
                     onChange={(event) => setExpression(event.target.value)}
                     placeholder="0 9 * * 1-5"
                   />
                 ) : (
-                  <input
+                  <KitInput raw
                     type="time"
                     className={field}
                     value={time}
@@ -425,21 +423,21 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
                 )}
               </div>
               {kind === "weekly" || kind === "monthly" || kind === "once" ? (
-                <input
+                <KitInput raw
                   type="time"
                   className={field}
                   value={time}
                   onChange={(event) => setTime(event.target.value)}
                 />
               ) : null}
-              <input
+              <KitInput raw
                 className={field}
                 value={timezone}
                 onChange={(event) => setTimezone(event.target.value)}
                 placeholder="Fuso IANA, ex.: America/Sao_Paulo"
               />
               <label className="flex items-center gap-2 text-caption-1-regular text-text-secondary">
-                <input
+                <KitInput raw
                   type="checkbox"
                   checked={active}
                   onChange={(event) => setActive(event.target.checked)}
@@ -448,12 +446,12 @@ export default function RoutinesPanel({ project, room, bots }: Props) {
               </label>
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button className={quietButton} onClick={() => setCreating(false)}>
+              <KitButton variant="raw" className={quietButton} onClick={() => setCreating(false)}>
                 Cancelar
-              </button>
-              <button className={primaryButton} onClick={() => void create()}>
+              </KitButton>
+              <KitButton variant="raw" className={primaryButton} onClick={() => void create()}>
                 Criar rotina
-              </button>
+              </KitButton>
             </div>
           </section>
         </div>

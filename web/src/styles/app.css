@@ -18089,6 +18089,14 @@ html:not([data-pointer]) .ac-msg__note:focus-visible {
   display: flex;
 }
 
+/* A control at the header's end, aligned with the name (the workspace's invite). */
+.ac-mo__action {
+  flex: none;
+  align-items: center;
+  margin-left: auto;
+  display: flex;
+}
+
 .ac-mo__group {
   --menu-pad: var(--space-2);
   max-height: none;

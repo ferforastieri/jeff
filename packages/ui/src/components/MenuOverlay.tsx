@@ -22,6 +22,7 @@ export function MenuOverlay({
   mark,
   title,
   meta,
+  action,
   closeLabel,
   backdrop,
   children,
@@ -35,6 +36,8 @@ export function MenuOverlay({
   title: ReactNode;
   /** One quiet line under the title. */
   meta?: ReactNode;
+  /** A control at the header's end (the workspace's invite, for one). */
+  action?: ReactNode;
   closeLabel: string;
   /** Behind the content (a pixel horizon), absolutely placed. */
   backdrop?: ReactNode;
@@ -127,6 +130,7 @@ export function MenuOverlay({
                 <RDialog.Title className="ac-mo__title">{title}</RDialog.Title>
                 {meta && <span className="ac-mo__meta">{meta}</span>}
               </span>
+              {action ? <span className="ac-mo__action">{action}</span> : null}
             </header>
             {children}
           </div>

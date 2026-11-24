@@ -16,9 +16,8 @@ const WorkspaceSettings = lazy(() => import("./WorkspaceSettings"));
 const SkillsPanel = lazy(() => import("../../skills/components/SkillsPanel"));
 const HarnessSettings = lazy(() => import("./HarnessSettings"));
 const ConnectorsSettings = lazy(() => import("./ConnectorsSettings"));
-const NotificationSettings = lazy(() => import("./NotificationSettings"));
 
-type Section = "general" | "notifications" | "skills" | "connectors" | "harness" | "workspace";
+export type Section = "general" | "skills" | "connectors" | "harness" | "workspace";
 
 interface Props {
   user: User | null;
@@ -37,7 +36,6 @@ interface SectionItem {
 /** The list of Settings sections, the Jeffs settings' own left column. */
 const sections: SectionItem[] = [
   { id: "general", label: "Geral", icon: "person" },
-  { id: "notifications", label: "Notificações", icon: "bell" },
   { id: "skills", label: "Skills", icon: "routines" },
   { id: "connectors", label: "Conectores", icon: "link" },
   { id: "harness", label: "Harness", icon: "plug" },
@@ -46,41 +44,49 @@ const sections: SectionItem[] = [
 
 const copy: Record<Section, { title: string; meta: string }> = {
   general: { title: "Geral", meta: "Sua conta, o servidor e o que o Jeff usa." },
-  notifications: { title: "Notificações", meta: "Som e avisos neste dispositivo." },
   skills: { title: "Skills", meta: "Receitas globais que o Jeff lê sob demanda." },
-  connectors: { title: "Conectores", meta: "Serviços que o Jeff usa em todos os projetos, por API token ou MCP." },
+  connectors: { title: "Conectores", meta: "Serviços que o Jeff usa em todos os repos, por API token ou MCP." },
   harness: { title: "Harness", meta: "O CLI conduz o loop do agente; o Jeff entrega contexto, ferramentas, permissões e aprovações." },
   workspace: { title: "Workspace", meta: "Pastas acessíveis pelo Jeff." },
 };
 
-export default function JeffSettings({ user, projectRoot, projectId, hideTrigger = false }: Props) {
+/**
+ * The settings content, without the modal: the workspace shows it as a page of
+ * its own (the sidebar opens a section), and the modal of the other layouts
+ * wraps this same view.
+ */
+export function SettingsView({
+  user,
+  projectRoot,
+  projectId,
+  section,
+  onSection,
+  onClose,
+  onBack,
+  embedded = false,
+  compact = false,
+}: {
+  user: User | null;
+  projectRoot?: string;
+  projectId?: string;
+  section: Section;
+  onSection: (section: Section) => void;
+  onClose?: () => void;
+  /** The lead of the page header: back to the list that opened this screen. */
+  onBack?: () => void;
+  /** Without the section nav: the caller already lists every section. */
+  embedded?: boolean;
+  /** Without the page header: the caller shows the section's name (the workspace's menu). */
+  compact?: boolean;
+}) {
   const setUser = useApp((state) => state.setUser);
   const notify = useApp((state) => state.notify);
-  const [open, setOpen] = useState(false);
-  const [section, setSection] = useState<Section>("general");
   const [busy, setBusy] = useState(false);
   const [serverBusy, setServerBusy] = useState(false);
   const [serverDraft, setServerDraft] = useState(() => getApiBase() || window.location.origin);
   const [version, setVersion] = useState("");
   const [buildId, setBuildId] = useState("");
   useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ section?: Section }>).detail;
-      if (detail?.section && sections.some((item) => item.id === detail.section)) {
-        setSection(detail.section);
-      }
-      setOpen(true);
-    };
-    const close = () => setOpen(false);
-    window.addEventListener("jeff:open-settings", handler);
-    window.addEventListener("jeff:close-settings", close);
-    return () => {
-      window.removeEventListener("jeff:open-settings", handler);
-      window.removeEventListener("jeff:close-settings", close);
-    };
-  }, []);
-  useEffect(() => {
-    if (!open) return;
     setServerDraft(getApiBase() || window.location.origin);
     let cancelled = false;
     void api.version().then((info) => {
@@ -89,7 +95,7 @@ export default function JeffSettings({ user, projectRoot, projectId, hideTrigger
       setBuildId(info.buildId);
     }).catch(() => undefined);
     return () => { cancelled = true; };
-  }, [open]);
+  }, []);
 
   async function changeServer(event: FormEvent) {
     event.preventDefault();
@@ -110,7 +116,7 @@ export default function JeffSettings({ user, projectRoot, projectId, hideTrigger
     setBusy(true);
     try {
       await api.logout();
-      setOpen(false);
+      onClose?.();
       setUser(null);
     } catch (error) {
       notify("error", error instanceof Error ? error.message : "Não foi possível sair.");
@@ -122,6 +128,141 @@ export default function JeffSettings({ user, projectRoot, projectId, hideTrigger
   const current = copy[section];
   const initial = (user?.username ?? "T").trim().charAt(0);
   const sectionIcon = sections.find((item) => item.id === section)?.icon ?? "person";
+
+  return (
+    <>
+      {embedded ? null : (
+        <nav className="settings__nav" aria-label="Seções de configurações">
+          <div className="settings__head">
+            <h1 className="settings__title">Configurações</h1>
+            <span className="settings__org ac-iconline">
+              <span className="settings__mark" aria-hidden="true">{initial}</span>
+              <span>{user?.username ?? "Conta"}</span>
+            </span>
+          </div>
+          <div className="settings__groups">
+            <div className="settings__group">
+              <ul>
+                {sections.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSection(item.id)}
+                      aria-current={section === item.id ? "page" : undefined}
+                      className="settings__link"
+                    >
+                      <Icon name={item.icon} size={18} />
+                      {item.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </nav>
+      )}
+
+      <div className="settings__body">
+        {compact ? null : (
+          <PageHeader
+            level={2}
+            title={current.title}
+            meta={current.meta}
+            lead={
+              onBack ? (
+                <Button
+                  variant="default"
+                  size="sm"
+                  iconOnly
+                  icon="chevronLeft"
+                  aria-label="Voltar às opções"
+                  title="Voltar às opções"
+                  onClick={onBack}
+                />
+              ) : (
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-border-button-default bg-background-secondary-default text-text-secondary">
+                  <Icon name={sectionIcon} size={16} />
+                </span>
+              )
+            }
+          />
+        )}
+
+        <Suspense fallback={<p className="ac-setnote" role="status">Carregando configurações…</p>}>
+          {section === "general" ? (
+            <>
+              <Card>
+                <div className="settings-rows">
+                  <div className="settings-row ac-actrow settings-row--lead">
+                    <span className="settings-row__icon" aria-hidden="true"><Icon name="person" size={16} /></span>
+                    <span className="settings-row__text ac-actrow__text">
+                      <span className="settings-row__label">{user?.username ?? "Conta"}</span>
+                      <span className="settings-row__status">{getApiBase() || window.location.origin}</span>
+                    </span>
+                  </div>
+                </div>
+              </Card>
+              <Card>
+                <CardHeader title="Servidor" subtitle="Para onde este dispositivo se conecta." />
+                <form className="ac-form" onSubmit={(event) => void changeServer(event)}>
+                  <Field label="URL do servidor" hint={{ name: "URL do servidor", text: "O endereço do Jeff para onde este dispositivo se conecta." }}>
+                    <Input value={serverDraft} onChange={(event) => setServerDraft(event.target.value)} placeholder="https://seu-servidor" />
+                  </Field>
+                  <div className="ac-acts">
+                    <Button type="submit" disabled={serverBusy || !serverDraft.trim()}>{serverBusy ? "Verificando..." : "Aplicar e reconectar"}</Button>
+                  </div>
+                </form>
+              </Card>
+              <Card>
+                <CardHeader title="Sobre" subtitle="Informações desta instalação." />
+                <div className="settings-rows">
+                  <ValueRow icon="info" label="Versão" value={version ? `v${version}` : "—"} />
+                  <ValueRow icon="code" label="Build" value={buildId || "—"} />
+                  <ValueRow icon="person" label="Usuário" value={user?.username ?? "—"} />
+                </div>
+              </Card>
+              <Card>
+                <CardHeader
+                  title="Sair da conta"
+                  subtitle="Encerra a sessão neste dispositivo."
+                  action={<Button variant="danger" size="sm" icon="power" disabled={busy} onClick={() => void logout()}>{busy ? "Saindo..." : "Sair"}</Button>}
+                />
+              </Card>
+            </>
+          ) : section === "skills" ? (
+            <Card padded><SkillsPanel projectId={projectId} /></Card>
+          ) : section === "connectors" ? (
+            <Card padded><ConnectorsSettings /></Card>
+          ) : section === "harness" ? (
+            <Card padded><HarnessSettings projectRoot={projectRoot} /></Card>
+          ) : (
+            <Card padded><WorkspaceSettings /></Card>
+          )}
+        </Suspense>
+      </div>
+    </>
+  );
+}
+
+export default function JeffSettings({ user, projectRoot, projectId, hideTrigger = false }: Props) {
+  const [open, setOpen] = useState(false);
+  const [section, setSection] = useState<Section>("general");
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: Section }>).detail;
+      if (detail?.section && sections.some((item) => item.id === detail.section)) {
+        setSection(detail.section);
+      }
+      setOpen(true);
+    };
+    const close = () => setOpen(false);
+    window.addEventListener("jeff:open-settings", handler);
+    window.addEventListener("jeff:close-settings", close);
+    return () => {
+      window.removeEventListener("jeff:open-settings", handler);
+      window.removeEventListener("jeff:close-settings", close);
+    };
+  }, []);
 
   return (
     <>
@@ -152,101 +293,14 @@ export default function JeffSettings({ user, projectRoot, projectId, hideTrigger
         className="jeff-settings-dialog"
       >
         <div className="settings settings--dialog">
-          <nav className="settings__nav" aria-label="Seções de configurações">
-            <div className="settings__head">
-              <h1 className="settings__title">Configurações</h1>
-              <span className="settings__org ac-iconline">
-                <span className="settings__mark" aria-hidden="true">{initial}</span>
-                <span>{user?.username ?? "Conta"}</span>
-              </span>
-            </div>
-            <div className="settings__groups">
-              <div className="settings__group">
-                <ul>
-                  {sections.map((item) => (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSection(item.id)}
-                        aria-current={section === item.id ? "page" : undefined}
-                        className="settings__link"
-                      >
-                        <Icon name={item.icon} size={18} />
-                        {item.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </nav>
-
-          <div className="settings__body">
-            <PageHeader
-              level={2}
-              title={current.title}
-              meta={current.meta}
-              lead={(
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-border-button-default bg-background-secondary-default text-text-secondary">
-                  <Icon name={sectionIcon} size={16} />
-                </span>
-              )}
-            />
-
-            <Suspense fallback={<p className="ac-setnote" role="status">Carregando configurações…</p>}>
-              {section === "general" ? (
-                <>
-                  <Card>
-                    <div className="settings-rows">
-                      <div className="settings-row ac-actrow settings-row--lead">
-                        <span className="settings-row__icon" aria-hidden="true"><Icon name="person" size={16} /></span>
-                        <span className="settings-row__text ac-actrow__text">
-                          <span className="settings-row__label">{user?.username ?? "Conta"}</span>
-                          <span className="settings-row__status">{getApiBase() || window.location.origin}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                  <Card>
-                    <CardHeader title="Servidor" subtitle="Para onde este dispositivo se conecta." />
-                    <form className="ac-form" onSubmit={(event) => void changeServer(event)}>
-                      <Field label="URL do servidor" hint={{ name: "URL do servidor", text: "O endereço do Jeff para onde este dispositivo se conecta." }}>
-                        <Input value={serverDraft} onChange={(event) => setServerDraft(event.target.value)} placeholder="https://seu-servidor" />
-                      </Field>
-                      <div className="ac-acts">
-                        <Button type="submit" disabled={serverBusy || !serverDraft.trim()}>{serverBusy ? "Verificando..." : "Aplicar e reconectar"}</Button>
-                      </div>
-                    </form>
-                  </Card>
-                  <Card>
-                    <CardHeader title="Sobre" subtitle="Informações desta instalação." />
-                    <div className="settings-rows">
-                      <ValueRow icon="info" label="Versão" value={version ? `v${version}` : "—"} />
-                      <ValueRow icon="code" label="Build" value={buildId || "—"} />
-                      <ValueRow icon="person" label="Usuário" value={user?.username ?? "—"} />
-                    </div>
-                  </Card>
-                  <Card>
-                    <CardHeader
-                      title="Sair da conta"
-                      subtitle="Encerra a sessão neste dispositivo."
-                      action={<Button variant="danger" size="sm" icon="power" disabled={busy} onClick={() => void logout()}>{busy ? "Saindo..." : "Sair"}</Button>}
-                    />
-                  </Card>
-                </>
-              ) : section === "notifications" ? (
-                <NotificationSettings />
-              ) : section === "skills" ? (
-                <Card padded><SkillsPanel projectId={projectId} /></Card>
-              ) : section === "connectors" ? (
-                <Card padded><ConnectorsSettings /></Card>
-              ) : section === "harness" ? (
-                <Card padded><HarnessSettings projectRoot={projectRoot} /></Card>
-              ) : (
-                <Card padded><WorkspaceSettings /></Card>
-              )}
-            </Suspense>
-          </div>
+          <SettingsView
+            user={user}
+            projectRoot={projectRoot}
+            projectId={projectId}
+            section={section}
+            onSection={setSection}
+            onClose={() => setOpen(false)}
+          />
         </div>
       </Modal>
     </>
@@ -264,4 +318,3 @@ function ValueRow({ icon, label, value }: { icon: IconName; label: string; value
     </div>
   );
 }
-
