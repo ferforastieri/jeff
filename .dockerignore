@@ -2,6 +2,10 @@
 .github
 data
 bin
+inspiracao
+docs
+.toph
+.jeff
 node_modules
 **/node_modules
 **/dist
