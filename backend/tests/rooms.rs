@@ -34,15 +34,15 @@ async fn room_message_reaches_the_queue_and_reports_a_failure() {
         .unwrap();
     let csrf = login["csrfToken"].as_str().unwrap().to_string();
 
-    let projects: Vec<Value> = client
-        .get(format!("{base}/api/projects"))
+    let status: Value = client
+        .get(format!("{base}/api/onboarding"))
         .send()
         .await
         .unwrap()
         .json()
         .await
         .unwrap();
-    let project = projects[0]["id"].as_str().unwrap().to_string();
+    let project = status["projectId"].as_str().unwrap().to_string();
 
     let principals: Value = client
         .get(format!("{base}/api/principals"))

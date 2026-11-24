@@ -42,15 +42,15 @@ async fn terminal_websocket_streams_commands_and_output() {
         .await
         .unwrap();
     let csrf = login["csrfToken"].as_str().unwrap().to_string();
-    let projects: Vec<serde_json::Value> = client
-        .get(format!("{origin}/api/projects"))
+    let status: serde_json::Value = client
+        .get(format!("{origin}/api/onboarding"))
         .send()
         .await
         .unwrap()
         .json()
         .await
         .unwrap();
-    let project_id = projects[0]["id"].as_str().unwrap();
+    let project_id = status["projectId"].as_str().unwrap();
     let terminal: serde_json::Value = client
         .post(format!("{origin}/api/projects/{project_id}/terminals"))
         .header("X-Jeff-CSRF", csrf)

@@ -37,15 +37,15 @@ async fn external_file_changes_are_streamed_over_websocket() {
         .await
         .unwrap();
     let csrf = login["csrfToken"].as_str().unwrap().to_string();
-    let projects: Vec<serde_json::Value> = client
-        .get(format!("{origin}/api/projects"))
+    let status: serde_json::Value = client
+        .get(format!("{origin}/api/onboarding"))
         .send()
         .await
         .unwrap()
         .json()
         .await
         .unwrap();
-    let project_id = projects[0]["id"].as_str().unwrap().to_string();
+    let project_id = status["projectId"].as_str().unwrap().to_string();
 
     let ws_url = format!("ws://{}/api/events/ws", server.addr);
     let mut request = ws_url.into_client_request().unwrap();

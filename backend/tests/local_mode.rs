@@ -111,7 +111,23 @@ async fn local_mode_workspace_terminal_and_pairing() {
         Some("admin")
     );
 
-    // The configured workspace becomes the default project without extra setup.
+    // The configured workspace becomes the silent workspace project without
+    // extra setup; it is not a dev repo, so the projects list stays empty.
+    let status: Value = json_response(
+        client
+            .get(format!("{base}/api/onboarding"))
+            .header(reqwest::header::COOKIE, &cookie)
+            .send()
+            .await
+            .expect("onboarding"),
+    )
+    .await;
+    let project_id = status
+        .get("projectId")
+        .and_then(Value::as_str)
+        .filter(|id| !id.is_empty())
+        .expect("workspace project id")
+        .to_string();
     let projects: Value = json_response(
         client
             .get(format!("{base}/api/projects"))
@@ -121,19 +137,7 @@ async fn local_mode_workspace_terminal_and_pairing() {
             .expect("projects"),
     )
     .await;
-    let project = projects
-        .as_array()
-        .and_then(|items| items.first())
-        .expect("default project");
-    let project_id = project
-        .get("id")
-        .and_then(Value::as_str)
-        .expect("project id")
-        .to_string();
-    assert_eq!(
-        project.get("root").and_then(Value::as_str),
-        Some(workspace_root.to_string_lossy().as_ref())
-    );
+    assert!(projects.as_array().is_some_and(|items| items.is_empty()));
 
     // A real PTY accepts input and streams output back.
     let terminal: Value = json_response(
