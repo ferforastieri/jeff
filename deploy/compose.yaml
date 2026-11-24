@@ -34,6 +34,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - jeff-data:/data
+      - jeff-home:/home/jeff
       - ${JEFF_WORKSPACES_HOST:-/srv/workspaces}:/workspaces
     security_opt:
       - no-new-privileges:true
@@ -78,5 +79,7 @@ services:
 volumes:
   jeff-data:
     name: jeff-data
+  jeff-home:
+    name: jeff-home
   jeff-pgdata:
   jeff-redis:
