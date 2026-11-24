@@ -37,6 +37,9 @@ services:
       - ${JEFF_WORKSPACES_HOST:-/srv/workspaces}:/workspaces
     security_opt:
       - no-new-privileges:true
+    # Match the group that owns the mounted workspace so the container can write.
+    group_add:
+      - "${JEFF_WORKSPACE_GID:-1000}"
 
   postgres:
     image: postgres:16-alpine

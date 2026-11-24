@@ -208,9 +208,11 @@ health checks. Point `JEFF_DATABASE_URL` at an external database if you prefer
 not to run Postgres in the stack. Mount the repositories you want to expose
 under `/workspaces` and keep `JEFF_DATA_DIR` on a persistent volume. The
 container runs as UID 1000; make sure the mounted workspace is writable by that
-user, or adjust the Compose `user:` setting. By default the port is published on
-all interfaces (`JEFF_BIND_ADDRESS=0.0.0.0`) so a reverse proxy on another host
-can reach Jeff; set `JEFF_BIND_ADDRESS=127.0.0.1` to keep it loopback-only.
+user, or adjust the Compose `user:` setting. Set `JEFF_WORKSPACE_GID` to the
+numeric group that owns the mounted workspace when it differs from the
+container user (1000). By default the port is published on all interfaces
+(`JEFF_BIND_ADDRESS=0.0.0.0`) so a reverse proxy on another host can reach
+Jeff; set `JEFF_BIND_ADDRESS=127.0.0.1` to keep it loopback-only.
 
 Docker is best for a sealed appliance. The `install.sh` path is still the
 recommended one when Jeff must run host toolchains, shells and agents directly
