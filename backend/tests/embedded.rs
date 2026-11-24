@@ -45,6 +45,8 @@ async fn embedded_server_serves_authenticated_api() {
         .unwrap();
     let csrf = login["csrfToken"].as_str().unwrap().to_string();
 
+    // The workspace project is internal: the product exposes channels, so the
+    // projects list is empty and the id comes from the onboarding status.
     let projects: Vec<Value> = client
         .get(format!("{base}/api/projects"))
         .send()
@@ -53,8 +55,16 @@ async fn embedded_server_serves_authenticated_api() {
         .json()
         .await
         .unwrap();
-    assert_eq!(projects.len(), 1);
-    let project_id = projects[0]["id"].as_str().unwrap();
+    assert!(projects.is_empty());
+    let status: Value = client
+        .get(format!("{base}/api/onboarding"))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = status["projectId"].as_str().unwrap();
     let entries: Vec<Value> = client
         .get(format!("{base}/api/projects/{project_id}/tree?path="))
         .send()
