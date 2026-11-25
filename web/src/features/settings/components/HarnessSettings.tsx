@@ -5,7 +5,7 @@ import { useApp } from "../../../app/store";
 import { useSettings } from "../store";
 import HarnessIcon from "../../agents/components/HarnessIcon";
 import { Button } from "@jeff/ui/app";
-import { cx, PixelSpinner } from "@jeff/ui";
+import { cx } from "@jeff/ui";
 import "./HoppingToph.css";
 
 type Busy = { id: string; action: "test" | "install" | "update" } | null;
@@ -16,11 +16,7 @@ interface Props {
 
 /** One place for the agent harnesses: install, log in and test the CLI. */
 /** The pixel Jeff as a Button's leading icon while a harness works. */
-function SpinnerIcon({ className }: { className?: string; "aria-hidden"?: boolean | "true" | "false" }) {
-  return <PixelSpinner size={16} className={className} />;
-}
-
-/** The Toph mascot hopping while an installer runs. */
+/** The Toph mascot hopping while a harness action runs. */
 function HoppingToph({ className, "aria-hidden": ariaHidden }: { className?: string; "aria-hidden"?: boolean | "true" | "false" }) {
   return (
     <img
@@ -119,12 +115,11 @@ export default function HarnessSettings(_props: Props) {
   function login(engine: EngineInfo) {
     // The harness login is interactive (it prints a URL and waits for a code):
     // run it in the app's own terminal, with the settings dialog out of the way.
+    notify("info", "Abrindo o terminal para o login…");
     window.dispatchEvent(new Event("jeff:close-settings"));
     const settings = useSettings.getState();
     if (!settings.workspaceFeatures.terminal) settings.update({ workspaceFeatures: { terminal: true } });
-    if (!useApp.getState().terminalOpen) {
-      window.dispatchEvent(new CustomEvent("jeff:open-terminal", { detail: { force: true } }));
-    }
+    window.dispatchEvent(new CustomEvent("jeff:open-terminal", { detail: { force: true } }));
     // The terminal mounts asynchronously. Wait for xterm before sending the
     // command, otherwise the click looks like it did nothing on mobile.
     // Antigravity runs on the server, so advertise an SSH-like environment to
@@ -180,7 +175,7 @@ export default function HarnessSettings(_props: Props) {
       ) : null}
       {loading ? (
         <p role="status" className="flex items-center gap-2 text-caption-1-regular text-text-secondary">
-          <PixelSpinner size={16} /> Procurando harnesses…
+          <HoppingToph /> Procurando harnesses…
         </p>
       ) : null}
 
@@ -215,8 +210,8 @@ export default function HarnessSettings(_props: Props) {
                   <div className="flex shrink-0 flex-wrap items-center gap-1 max-[640px]:w-full">
                     {engine.installed ? (
                       <>
-                        <Button variant="primary" size="small" disabled={working} onClick={() => login(engine)}>Entrar</Button>
-                        <Button variant="secondary" size="small" disabled={working} leadingIcon={working && busy?.action === "test" ? SpinnerIcon : Check} onClick={() => void test(engine)}>
+                        <Button variant="primary" size="small" onClick={() => login(engine)}>Entrar</Button>
+                        <Button variant="secondary" size="small" disabled={working} leadingIcon={working && busy?.action === "test" ? HoppingToph : Check} onClick={() => void test(engine)}>
                           {working && busy?.action === "test" ? "Testando…" : "Testar"}
                         </Button>
                         <Button
@@ -224,7 +219,7 @@ export default function HarnessSettings(_props: Props) {
                           size="small"
                           iconOnly
                           disabled={working}
-                          leadingIcon={working && busy?.action === "update" ? SpinnerIcon : RefreshCw}
+                          leadingIcon={working && busy?.action === "update" ? HoppingToph : RefreshCw}
                           aria-label={`Atualizar ${engine.label}`}
                           title={`Atualizar ${engine.label}`}
                           onClick={() => void update(engine)}

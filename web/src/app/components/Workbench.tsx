@@ -250,8 +250,12 @@ export default function Workbench() {
     const openTerminal = (event: Event) => {
       const force = (event as CustomEvent<{ force?: boolean }>).detail?.force === true;
       if (!terminalEnabled && !force) return;
-      if (force && !terminalEnabled) updateSettings({ workspaceFeatures: { terminal: true } });
-      setTerminalOpen(!useApp.getState().terminalOpen);
+      if (force) {
+        if (!terminalEnabled) updateSettings({ workspaceFeatures: { terminal: true } });
+        setTerminalOpen(true);
+      } else {
+        setTerminalOpen(!useApp.getState().terminalOpen);
+      }
     };
     window.addEventListener("jeff:open-terminal", openTerminal);
     return () => window.removeEventListener("jeff:open-terminal", openTerminal);

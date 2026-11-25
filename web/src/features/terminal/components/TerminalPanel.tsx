@@ -255,10 +255,12 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
         const target = selectedSession ?? activeSession;
         if (target) {
           setRunRequest({ text, sessionId: target.id, nonce: Date.now() });
+          setFocusNonce((value) => value + 1);
         } else {
           void createSession(shell).then((created) => {
             setActiveId(created.id);
             setRunRequest({ text, sessionId: created.id, nonce: Date.now() });
+            setFocusNonce((value) => value + 1);
           }).catch((error) => setError(error instanceof Error ? error.message : "Não foi possível abrir o terminal."));
         }
       }
