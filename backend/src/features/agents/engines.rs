@@ -49,6 +49,15 @@ pub const ENGINES: &[Engine] = &[
         supported: true,
     },
     Engine {
+        id: "gemini",
+        label: "Gemini CLI",
+        binary: "gemini",
+        login: "gemini",
+        install: "npm install --prefix \"$HOME/.local\" @google/gemini-cli@latest && mkdir -p \"$HOME/.local/bin\" && ln -sf \"$HOME/.local/node_modules/.bin/gemini\" \"$HOME/.local/bin/gemini\"",
+        site: "https://github.com/google-gemini/gemini-cli",
+        supported: true,
+    },
+    Engine {
         id: "cursor",
         label: "Cursor CLI",
         binary: "cursor-agent",
@@ -75,9 +84,9 @@ pub const ENGINES: &[Engine] = &[
         site: "https://pi.dev",
         supported: false,
     },
-    // Gemini CLI for personal accounts was replaced by Antigravity CLI in
-    // June 2026. The official installer drops `agy` in ~/.local/bin, which the
-    // binary lookup below already checks even when the daemon PATH is stale.
+    // Antigravity stays alongside Gemini CLI; the official installer drops
+    // `agy` in ~/.local/bin, which the binary lookup checks even when the
+    // daemon PATH is stale.
     Engine {
         id: "antigravity",
         label: "Antigravity CLI",
@@ -293,6 +302,14 @@ pub async fn models_for(id: &str) -> Value {
     let Some(path) = find_binary(engine.binary) else {
         return json!({ "models": [] });
     };
+    if engine.id == "gemini" {
+        return json!({ "models": [
+            {"id": "gemini-2.5-pro", "label": "Gemini 2.5 Pro", "provider": "gemini", "variants": []},
+            {"id": "gemini-2.5-flash", "label": "Gemini 2.5 Flash", "provider": "gemini", "variants": []},
+            {"id": "gemini-2.5-flash-lite", "label": "Gemini 2.5 Flash Lite", "provider": "gemini", "variants": []},
+            {"id": "gemini-3-pro-preview", "label": "Gemini 3 Pro Preview", "provider": "gemini", "variants": []},
+        ]});
+    }
     // Codex has no machine-readable model catalogue yet; use the model saved
     // in its config plus a small list of the current ChatGPT/API slugs.
     if engine.id == "codex" {
@@ -586,6 +603,13 @@ pub async fn update(id: &str) -> AppResult<Value> {
             let mut command = Command::new("sh");
             command.arg("-lc").arg(
                 "npm install --prefix \"$HOME/.local\" @openai/codex@latest && mkdir -p \"$HOME/.local/bin\" && ln -sf \"$HOME/.local/node_modules/.bin/codex\" \"$HOME/.local/bin/codex\"",
+            );
+            command
+        }
+        "gemini" => {
+            let mut command = Command::new("sh");
+            command.arg("-lc").arg(
+                "npm install --prefix \"$HOME/.local\" @google/gemini-cli@latest && mkdir -p \"$HOME/.local/bin\" && ln -sf \"$HOME/.local/node_modules/.bin/gemini\" \"$HOME/.local/bin/gemini\"",
             );
             command
         }

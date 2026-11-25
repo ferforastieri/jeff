@@ -1096,6 +1096,102 @@ pub async fn run_antigravity(
     ))
 }
 
+/// Runs one Gemini CLI turn in headless JSON mode. The CLI keeps its own
+/// Google login in the persistent home; Jeff feeds the full context and stores
+/// the final response.
+pub async fn run_gemini(
+    model: &str,
+    system: &str,
+    prompt: &str,
+    cwd: &Path,
+    cancel: &CancellationToken,
+) -> AppResult<(String, CliUsage, Option<String>)> {
+    let Some(binary) = super::engines::find_binary("gemini") else {
+        return Err(bad_request("O Gemini CLI não está instalado."));
+    };
+    let mut args = vec![
+        "--output-format".to_string(),
+        "json".to_string(),
+        "--approval-mode".to_string(),
+        "yolo".to_string(),
+        "--skip-trust".to_string(),
+    ];
+    if let Some(slug) = provider_model(model, &["gemini"]) {
+        args.push("-m".to_string());
+        args.push(slug);
+    }
+    let full_prompt = if system.trim().is_empty() {
+        prompt.to_string()
+    } else {
+        format!("{system}\n\n{prompt}")
+    };
+    args.push("-p".to_string());
+    args.push(full_prompt);
+    let (stdout, stderr) = run_capture::<String>(&binary, &args, &[], cwd, "", cancel).await?;
+    let value: Value = serde_json::from_str(stdout.trim()).map_err(|error| {
+        bad_request(format!(
+            "O Gemini CLI devolveu uma resposta inválida: {error}. {}",
+            tail(&stderr)
+        ))
+    })?;
+    if let Some(error) = value.get("error").filter(|value| !value.is_null()) {
+        let message = error
+            .get("message")
+            .and_then(Value::as_str)
+            .or_else(|| error.as_str())
+            .unwrap_or("erro sem detalhes");
+        return Err(bad_request(format!("O Gemini CLI falhou: {message}")));
+    }
+    let text = value["response"].as_str().unwrap_or("").to_string();
+    if text.trim().is_empty() {
+        return Err(bad_request(format!(
+            "O Gemini CLI saiu sem resposta. {}",
+            tail(&stderr)
+        )));
+    }
+    let mut input = 0i64;
+    let mut output = 0i64;
+    let mut cached = 0i64;
+    let models = value["stats"]["models"].as_object();
+    if let Some(models) = models {
+        for model in models.values() {
+            let tokens = &model["tokens"];
+            input += tokens["prompt"]
+                .as_i64()
+                .or_else(|| tokens["input"].as_i64())
+                .unwrap_or(0);
+            output += tokens["candidates"]
+                .as_i64()
+                .or_else(|| tokens["output"].as_i64())
+                .unwrap_or(0);
+            cached += tokens["cached"].as_i64().unwrap_or(0);
+        }
+    } else {
+        let tokens = &value["stats"]["tokens"];
+        input = tokens["prompt"]
+            .as_i64()
+            .or_else(|| tokens["input"].as_i64())
+            .unwrap_or(0);
+        output = tokens["candidates"]
+            .as_i64()
+            .or_else(|| tokens["output"].as_i64())
+            .unwrap_or(0);
+        cached = tokens["cached"].as_i64().unwrap_or(0);
+    }
+    Ok((
+        text,
+        CliUsage {
+            input,
+            output,
+            cached,
+        },
+        value["sessionId"]
+            .as_str()
+            .or_else(|| value["session_id"].as_str())
+            .map(str::to_owned),
+    ))
+}
+
 /// Runs one OpenCode turn with its native harness. Native tools, project
 /// config, skills and plugins stay available; Jeff injects identity and stores
 /// the transcript.

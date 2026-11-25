@@ -18,7 +18,7 @@ pub struct AgentSpec {
     pub personality: String,
     #[serde(default)]
     pub model: String,
-    /// Execution harness: opencode, claude, codex, cursor, grok, pi, antigravity.
+    /// Execution harness: opencode, claude, codex, gemini, cursor, grok, pi, antigravity.
     #[serde(default = "default_engine")]
     pub engine: String,
     #[serde(default)]

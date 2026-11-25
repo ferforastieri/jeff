@@ -1703,8 +1703,11 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                         )
                         .await
                     }
+                    "gemini" => {
+                        cli::run_gemini(&model, &system, &prompt, &ctx.root, cancel).await
+                    }
                     other => Err(bad_request(format!(
-                        "O harness {other} ainda não está ligado ao runtime. Use OpenCode, Claude Code, Codex ou Antigravity."
+                        "O harness {other} ainda não está ligado ao runtime. Use OpenCode, Claude Code, Codex, Gemini CLI ou Antigravity."
                     ))),
                 }
             };

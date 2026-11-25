@@ -18,6 +18,12 @@ pub(crate) const FIRST_CHECK_DELAY: Duration = Duration::from_secs(2 * 60);
 pub(crate) const CHECK_INTERVAL: Duration = Duration::from_secs(60 * 60);
 
 fn latest_url(id: &str) -> Option<String> {
+    if id == "antigravity" {
+        return Some(
+            "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/latest"
+                .to_string(),
+        );
+    }
     let opencode = match std::env::consts::ARCH {
         "aarch64" => "@opencode/cli-linux-arm64",
         _ => "@opencode/cli-linux-x64",
@@ -26,6 +32,7 @@ fn latest_url(id: &str) -> Option<String> {
         "opencode" => opencode,
         "codex" => "@openai/codex",
         "claude" => "@anthropic-ai/claude-code",
+        "gemini" => "@google/gemini-cli",
         _ => return None,
     };
     Some(format!("https://registry.npmjs.org/{package}/latest"))
@@ -53,6 +60,8 @@ async fn latest_version(client: &reqwest::Client, id: &str) -> Option<String> {
     let url = latest_url(id)?;
     let response = client
         .get(url)
+        .header("User-Agent", "jeff-harness-update-check")
+        .header("Accept", "application/json")
         .timeout(Duration::from_secs(15))
         .send()
         .await
@@ -64,7 +73,8 @@ async fn latest_version(client: &reqwest::Client, id: &str) -> Option<String> {
     value
         .get("version")
         .and_then(Value::as_str)
-        .map(str::to_owned)
+        .or_else(|| value.get("tag_name").and_then(Value::as_str))
+        .map(|version| version.trim_start_matches('v').to_string())
 }
 
 /// Checks every installed harness. A version is announced once: the setting
