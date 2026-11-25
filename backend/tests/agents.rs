@@ -123,9 +123,9 @@ fn reasoning_effort_becomes_the_opencode_model_variant() {
     );
 }
 
-#[test]
-fn every_engine_is_listed_with_its_install_command() {
-    let list = engines::list();
+#[tokio::test]
+async fn every_engine_is_listed_with_its_install_command() {
+    let list = engines::list().await;
     assert!(list.len() >= 7);
     for engine in &list {
         for key in [
@@ -133,6 +133,7 @@ fn every_engine_is_listed_with_its_install_command() {
             "label",
             "binary",
             "installed",
+            "loggedIn",
             "install",
             "site",
             "supported",
