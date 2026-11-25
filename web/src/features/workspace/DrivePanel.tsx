@@ -216,6 +216,7 @@ export default function DrivePanel({ project }: Props) {
       await api.deletePath(project.id, entry.path);
       if (preview?.entry.path === entry.path) setPreview(null);
       await refresh();
+      window.dispatchEvent(new Event("jeff:git-changed"));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível excluir.");
     } finally {
