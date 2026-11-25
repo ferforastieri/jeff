@@ -161,6 +161,12 @@ export interface GitHistoryEntry {
 
 
 
+export interface GitConnection {
+  provider: string;
+  username: string;
+  connected: boolean;
+}
+
 export interface AIConfig {
   label: string;
   connectionLabel: string;
@@ -1366,6 +1372,21 @@ export const api = {
 
   async aiConfig(): Promise<AIConfig> {
     return request<AIConfig>("/ai/config");
+  },
+
+  async gitConnections(): Promise<{ connections: GitConnection[] }> {
+    return request<{ connections: GitConnection[] }>("/git/connections");
+  },
+
+  async saveGitConnection(provider: string, input: { username: string; token: string }): Promise<GitConnection> {
+    return request<GitConnection>(`/git/connections/${encodeURIComponent(provider)}`, {
+      method: "PUT",
+      ...json(input),
+    });
+  },
+
+  async deleteGitConnection(provider: string): Promise<void> {
+    await request(`/git/connections/${encodeURIComponent(provider)}`, { method: "DELETE" });
   },
 
   async aiModels(engine?: string): Promise<{ models: AIModel[] }> {

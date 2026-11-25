@@ -55,6 +55,9 @@ use onboarding_routes::*;
 #[path = "../features/voice/routes.rs"]
 mod voice_routes;
 use voice_routes::*;
+#[path = "../features/git/routes.rs"]
+mod git_routes;
+use git_routes::*;
 #[path = "../features/environment/routes.rs"]
 mod environment_routes;
 use environment_routes::*;
@@ -182,6 +185,7 @@ pub struct AppState {
     pub database: DatabaseService,
     pub email: EmailService,
     pub ai: AiService,
+    pub git: crate::features::git::service::GitService,
     pub agents: AgentRuntime,
     pub rooms: Arc<crate::features::rooms::queue::RoomQueue>,
     pub routines: crate::features::rooms::routine_scheduler::RoutineScheduler,
@@ -380,6 +384,8 @@ impl AppState {
         let database = DatabaseService::new(store.clone(), &config.master_key_file)?;
         let email = EmailService::new(store.clone(), &config.data_dir, &config.master_key_file)?;
         let ai = AiService::new(store.clone(), &config.master_key_file)?;
+        let git =
+            crate::features::git::service::GitService::new(store.clone(), &config.master_key_file)?;
         let voice = Arc::new(crate::features::voice::service::VoiceService::new(
             store.clone(),
             &config.master_key_file,
@@ -440,6 +446,7 @@ impl AppState {
             database,
             email,
             ai,
+            git,
             agents,
             rooms,
             routines,
@@ -1300,6 +1307,11 @@ fn router(state: Arc<AppState>) -> Router {
                 .delete(remove_workspace_root),
         )
         .route("/api/ai/config", get(get_ai_config).put(save_ai_config))
+        .route("/api/git/connections", get(list_git_connections))
+        .route(
+            "/api/git/connections/{provider}",
+            put(save_git_connection).delete(remove_git_connection),
+        )
         .route("/api/ai/models", get(ai_models))
         .route("/api/ai/harness/models", get(harness_models))
         .route("/api/ai/test", post(test_ai))
@@ -1457,6 +1469,7 @@ fn router(state: Arc<AppState>) -> Router {
 
     Router::new()
         .route("/api/health", get(health))
+        .route("/api/git/credential", get(git_credential))
         .route("/api/version", get(version))
         .route("/api/auth/login", post(login))
         .route("/api/auth/login-email", post(login_email))

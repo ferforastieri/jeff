@@ -16,8 +16,9 @@ const WorkspaceSettings = lazy(() => import("./WorkspaceSettings"));
 const SkillsPanel = lazy(() => import("../../skills/components/SkillsPanel"));
 const HarnessSettings = lazy(() => import("./HarnessSettings"));
 const ConnectorsSettings = lazy(() => import("./ConnectorsSettings"));
+const GitSettings = lazy(() => import("./GitSettings"));
 
-export type Section = "general" | "skills" | "connectors" | "harness" | "workspace";
+export type Section = "general" | "skills" | "connectors" | "git" | "harness" | "workspace";
 
 interface Props {
   user: User | null;
@@ -38,6 +39,7 @@ const sections: SectionItem[] = [
   { id: "general", label: "Geral", icon: "person" },
   { id: "skills", label: "Skills", icon: "routines" },
   { id: "connectors", label: "MCPs", icon: "link" },
+  { id: "git", label: "Git", icon: "gitPull" },
   { id: "harness", label: "Harness", icon: "plug" },
   { id: "workspace", label: "Workspace", icon: "drive" },
 ];
@@ -46,6 +48,7 @@ const copy: Record<Section, { title: string; meta: string }> = {
   general: { title: "Geral", meta: "Sua conta, o servidor e o que o Jeff usa." },
   skills: { title: "Skills", meta: "Receitas globais que o Jeff lê sob demanda." },
   connectors: { title: "MCPs", meta: "Ferramentas MCP que o Jeff usa em todos os repos." },
+  git: { title: "Git", meta: "Sua conta do GitHub ou Bitbucket para pull, push e branches." },
   harness: { title: "Harness", meta: "O CLI conduz o loop do agente; o Jeff entrega contexto, ferramentas, permissões e aprovações." },
   workspace: { title: "Workspace", meta: "Pastas acessíveis pelo Jeff." },
 };
@@ -233,6 +236,8 @@ export function SettingsView({
             <Card padded><SkillsPanel projectId={projectId} /></Card>
           ) : section === "connectors" ? (
             <Card padded><ConnectorsSettings /></Card>
+          ) : section === "git" ? (
+            <Card padded><GitSettings /></Card>
           ) : section === "harness" ? (
             <Card padded><HarnessSettings projectRoot={projectRoot} projectId={projectId} /></Card>
           ) : (

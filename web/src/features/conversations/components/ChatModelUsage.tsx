@@ -25,6 +25,8 @@ interface Props {
   chat: JeffChat;
   jeffs: ChatJeff[];
   chatName: string;
+  /** Outside a stored chat (an agent in a room), save the pick here instead. */
+  onChange?: (patch: { model?: string; effort?: string; engine?: string }) => void;
 }
 
 const CIRCUMFERENCE = 2 * Math.PI * 13;
@@ -67,7 +69,7 @@ function tone(left: number | null): string {
  * chosen model's own mark inside a ring that shows what is left of the plan.
  * The desktop keeps both side by side; the phone uses two compact tabs.
  */
-export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Props) {
+export default function ChatModelUsage({ projectId, chat, jeffs, chatName, onChange }: Props) {
   const models = useAI((state) => state.models);
   const config = useAI((state) => state.config);
   const loadModels = useAI((state) => state.loadModels);
@@ -100,9 +102,9 @@ export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Pro
 
   // Older conversations stored only the model; keep the engine in sync with it.
   useEffect(() => {
-    if (!member || !found?.engine || override.engine === found.engine) return;
+    if (onChange || !member || !found?.engine || override.engine === found.engine) return;
     updateChatJeff(projectId, chat.id, member.id, { engine: found.engine });
-  }, [member, found?.engine, override.engine, projectId, chat.id, updateChatJeff]);
+  }, [member, found?.engine, override.engine, projectId, chat.id, updateChatJeff, onChange]);
 
   const load = useCallback(async (manual = false) => {
     if (engine !== "opencode") {
@@ -164,11 +166,13 @@ export default function ChatModelUsage({ projectId, chat, jeffs, chatName }: Pro
 
   function choose(item: AIModel) {
     const nextVariants = item.variants ?? [];
-    updateChatJeff(projectId, chat.id, member!.id, {
+    const patch = {
       model: item.id,
       engine: item.engine ?? "opencode",
       ...(nextVariants.includes(effort) ? {} : { effort: "" }),
-    });
+    };
+    if (onChange) onChange(patch);
+    else updateChatJeff(projectId, chat.id, member!.id, patch);
     // A new task starts on the last model picked here instead of the harness default.
     rememberModel(item.id);
     setOpen(false);

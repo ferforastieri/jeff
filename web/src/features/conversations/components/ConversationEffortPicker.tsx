@@ -10,10 +10,12 @@ interface Props {
   projectId: string;
   chat: JeffChat;
   jeffs: ChatJeff[];
+  /** Outside a stored chat (an agent in a room), save the pick here instead. */
+  onChange?: (effort: string) => void;
 }
 
 /** The conversation's reasoning effort, always beside the model's ring. */
-export default function ConversationEffortPicker({ projectId, chat, jeffs }: Props) {
+export default function ConversationEffortPicker({ projectId, chat, jeffs, onChange }: Props) {
   const models = useAI((state) => state.models);
   const config = useAI((state) => state.config);
   const updateChatJeff = useChats((state) => state.updateChatJeff);
@@ -54,7 +56,8 @@ export default function ConversationEffortPicker({ projectId, chat, jeffs }: Pro
                 key={variant}
                 type="button"
                 onClick={() => {
-                  updateChatJeff(projectId, chat.id, member.id, { effort: variant });
+                  if (onChange) onChange(variant);
+                  else updateChatJeff(projectId, chat.id, member.id, { effort: variant });
                   close();
                 }}
                 className={cx(

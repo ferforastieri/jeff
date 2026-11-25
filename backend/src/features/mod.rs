@@ -5,6 +5,7 @@ pub mod conversations;
 pub mod database_connections;
 pub mod debug;
 pub mod environment;
+pub mod git;
 pub mod integrations;
 pub mod notifications;
 pub mod previews;

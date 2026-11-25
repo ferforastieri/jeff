@@ -55,6 +55,7 @@ impl TerminalManager {
         project_id: &str,
         cwd: &Path,
         shell: Option<&str>,
+        git_token: Option<&str>,
     ) -> AppResult<Arc<TerminalSession>> {
         let shell = shell
             .map(str::trim)
@@ -82,6 +83,13 @@ impl TerminalManager {
         command.cwd(cwd);
         command.env("TERM", "xterm-256color");
         command.env("COLORTERM", "truecolor");
+        if let Some(token) = git_token {
+            command.env("JEFF_GIT_TOKEN", token);
+            command.env(
+                "JEFF_GIT_CREDENTIAL_URL",
+                "http://127.0.0.1:8787/api/git/credential",
+            );
+        }
         // Bash only lists ambiguous completions on the second Tab by default.
         // A tiny inputrc makes the first Tab show the options, which is what
         // people expect from a terminal in an IDE.
@@ -150,7 +158,7 @@ impl TerminalManager {
         {
             return Ok(session);
         }
-        let session = self.create(project_id, cwd, None)?;
+        let session = self.create(project_id, cwd, None, None)?;
         self.debug
             .lock()
             .map_err(|_| crate::errors::internal("debug terminal lock"))?

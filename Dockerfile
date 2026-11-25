@@ -41,6 +41,10 @@ RUN apt-get update \
     && useradd --create-home --uid 1000 --shell /bin/bash jeff \
     && mkdir -p /data /workspaces \
     && chown -R jeff:jeff /data /workspaces
+COPY deploy/git-credential-helper.sh /usr/local/bin/jeff-git-credential
+RUN chmod +x /usr/local/bin/jeff-git-credential \
+    && git config --system credential.helper /usr/local/bin/jeff-git-credential \
+    && git config --system --add safe.directory '*'
 COPY --from=web /usr/local/bin/node /usr/local/bin/node
 COPY --from=web /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \

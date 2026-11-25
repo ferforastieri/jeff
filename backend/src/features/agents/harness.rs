@@ -7,10 +7,35 @@ use std::time::Duration;
 
 const DEFAULT_URL: &str = "http://127.0.0.1:3005";
 
+/// The CLI rewrites its service file on every start, including the real port.
+/// Read it instead of assuming a port: the old hardcoded 3005 made the model
+/// list fall back to `opencode models`, which has no effort variants.
+fn service() -> Option<Value> {
+    let home = std::env::var("HOME").ok()?;
+    let home = PathBuf::from(home);
+    for relative in [
+        ".local/state/opencode/service.json",
+        ".config/opencode/service.json",
+    ] {
+        let Ok(text) = std::fs::read_to_string(home.join(relative)) else {
+            continue;
+        };
+        if let Ok(value) = serde_json::from_str::<Value>(&text) {
+            return Some(value);
+        }
+    }
+    None
+}
+
 fn base_url() -> String {
     std::env::var("JEFF_OPENCODE_URL")
         .ok()
         .filter(|value| !value.trim().is_empty())
+        .or_else(|| {
+            service()
+                .and_then(|value| value.get("url")?.as_str().map(str::to_owned))
+                .filter(|url| !url.trim().is_empty())
+        })
         .unwrap_or_else(|| DEFAULT_URL.to_string())
 }
 
@@ -23,11 +48,7 @@ fn password() -> Option<String> {
             return Some(value.to_string());
         }
     }
-    let home = std::env::var("HOME").ok()?;
-    let text =
-        std::fs::read_to_string(PathBuf::from(home).join(".config/opencode/service.json")).ok()?;
-    let value: Value = serde_json::from_str(&text).ok()?;
-    value.get("password")?.as_str().map(str::to_owned)
+    service().and_then(|value| value.get("password")?.as_str().map(str::to_owned))
 }
 
 async fn get(path: &str) -> Option<Value> {

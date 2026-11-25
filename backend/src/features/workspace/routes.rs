@@ -330,10 +330,15 @@ pub(super) async fn git_commit(
 
 pub(super) async fn git_push(
     State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
     Path(project_id): Path<String>,
 ) -> AppResult<Json<Value>> {
     let project = state.store.project(&project_id).await?;
-    let output = state.workspace.git_push(FsPath::new(&project.root)).await?;
+    let git_token = state.git.issue_terminal_token(auth.user.id);
+    let output = state
+        .workspace
+        .git_push(FsPath::new(&project.root), Some(&git_token))
+        .await?;
     state.publish_git(&project_id, None);
     Ok(Json(json!({ "output": output })))
 }

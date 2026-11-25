@@ -75,6 +75,7 @@ interface NavItem {
 /** The configuration destinations of the workspace menu, in the order of the print. */
 const SETTINGS_ITEMS: { section: Section; label: string; icon: IconName }[] = [
   { section: "connectors", label: "MCPs", icon: "link" },
+  { section: "git", label: "Git", icon: "gitPull" },
   { section: "skills", label: "Skills", icon: "routines" },
   { section: "harness", label: "Harness", icon: "plug" },
   { section: "workspace", label: "Configurações do workspace", icon: "drive" },
@@ -1774,6 +1775,7 @@ export default function Workspace({ status }: Props) {
                 sendLabel="Enviar"
                 attachLabel="Anexar"
                 emoji={EMOJI_LABELS}
+                inlinePills
                 pills={agent ? (
                   <AgentComposerControls
                     agent={agent}

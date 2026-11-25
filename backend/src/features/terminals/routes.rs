@@ -8,14 +8,17 @@ pub(super) struct CreateTerminalInput {
 
 pub(super) async fn create_terminal(
     State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
     Path(project_id): Path<String>,
     Json(input): Json<CreateTerminalInput>,
 ) -> AppResult<Response> {
     let project = state.store.project(&project_id).await?;
+    let git_token = state.git.issue_terminal_token(auth.user.id);
     let session = state.terminals.create(
         &project_id,
         FsPath::new(&project.root),
         input.shell.as_deref(),
+        Some(&git_token),
     )?;
     Ok((
         StatusCode::CREATED,

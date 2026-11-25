@@ -609,7 +609,7 @@ impl WorkspaceService {
 
     /// Pushes the current branch. A branch without an upstream is published
     /// with `-u origin`, so the first push from the branch picker just works.
-    pub async fn git_push(&self, root: &Path) -> AppResult<String> {
+    pub async fn git_push(&self, root: &Path, git_token: Option<&str>) -> AppResult<String> {
         let branch = git_output(root, &["rev-parse", "--abbrev-ref", "HEAD"])
             .await?
             .trim()
@@ -639,7 +639,23 @@ impl WorkspaceService {
         } else {
             vec!["push", "-u", "origin", branch.as_str()]
         };
-        git_output(root, &args).await
+        match git_token.filter(|token| !token.is_empty()) {
+            Some(token) => {
+                git_output_env(
+                    root,
+                    &args,
+                    &[
+                        ("JEFF_GIT_TOKEN", token),
+                        (
+                            "JEFF_GIT_CREDENTIAL_URL",
+                            "http://127.0.0.1:8787/api/git/credential",
+                        ),
+                    ],
+                )
+                .await
+            }
+            None => git_output(root, &args).await,
+        }
     }
 
     pub async fn git_diff(&self, root: &Path, path: &str, staged: bool) -> AppResult<String> {
@@ -1061,8 +1077,15 @@ fn validate_branch_name(name: &str) -> AppResult<()> {
 }
 
 async fn git_output(root: &Path, args: &[&str]) -> AppResult<String> {
+    git_output_env(root, args, &[]).await
+}
+
+async fn git_output_env(root: &Path, args: &[&str], envs: &[(&str, &str)]) -> AppResult<String> {
     let mut command = Command::new("git");
     command.arg("-C").arg(root).args(args);
+    for (key, value) in envs {
+        command.env(key, value);
+    }
     #[cfg(windows)]
     command.creation_flags(0x08000000);
     let output = command.output().await?;
@@ -1189,7 +1212,7 @@ mod tests {
             .await
             .unwrap();
         let service = WorkspaceService::new(vec![work.path().to_path_buf()]).unwrap();
-        service.git_push(work.path()).await.unwrap();
+        service.git_push(work.path(), None).await.unwrap();
         assert!(remote.path().join("refs/heads/main").exists());
     }
 
