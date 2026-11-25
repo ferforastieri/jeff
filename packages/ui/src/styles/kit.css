@@ -1198,9 +1198,8 @@ body:has(.jeff-workspace-home) .ac-avatar {
 .jeff-wizard__main {
   display: flex;
   min-width: 0;
-  max-height: calc(100dvh - 48px);
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   padding: 36px 12px 24px;
 }
 
@@ -1724,11 +1723,7 @@ body:has(.jeff-workspace-home) .ac-avatar {
 
 .jeff-wizard__content {
   width: min(100%, 520px);
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow-y: auto;
   margin-top: 26px;
-  padding-right: 4px;
 }
 
 .jeff-wizard__actions {
@@ -1736,7 +1731,6 @@ body:has(.jeff-workspace-home) .ac-avatar {
   align-items: center;
   gap: 8px;
   width: min(100%, 520px);
-  flex: none;
   margin-top: 18px;
 }
 
@@ -1757,6 +1751,14 @@ body:has(.jeff-workspace-home) .ac-avatar {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* The harness list can be long; keep it scrollable so the model picker and
+   the step action stay in their normal place after the content. */
+.jeff-ai__harness {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .jeff-ai__list {
@@ -2190,15 +2192,9 @@ body:has(.jeff-workspace-home) .ac-avatar {
   }
 
   .jeff-wizard__main {
-    max-height: none;
     order: 1;
     overflow: visible;
     padding: 18px 4px;
-  }
-
-  .jeff-wizard__content {
-    overflow: visible;
-    padding-right: 0;
   }
 
   .jeff-wizard__steps {

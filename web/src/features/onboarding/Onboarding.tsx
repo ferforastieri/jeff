@@ -429,7 +429,19 @@ export default function Onboarding({ status, onDone }: Props) {
 
         {step === 3 ? (
           <div className="jeff-ai">
-            {aiModels.length > 0 ? (
+            <div className="jeff-ai__harness">
+              <HarnessSettings
+                projectRoot={status.workspaceRoot}
+                projectId={status.projectId}
+                onConnected={() => void loadAIModels()}
+              />
+            </div>
+
+            {aiModelsLoading ? (
+              <p role="status" className="jeff-ai__note flex items-center justify-center gap-2">
+                Carregando os modelos conectados…
+              </p>
+            ) : aiModels.length > 0 ? (
               <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-4">
                 <strong className="text-body-medium text-text-primary">Modelo do Jeff</strong>
                 <p className="mt-1 text-caption-1-regular text-text-secondary">
@@ -447,23 +459,12 @@ export default function Onboarding({ status, onDone }: Props) {
                   />
                 </div>
               </div>
-            ) : null}
-
-            <HarnessSettings
-              projectRoot={status.workspaceRoot}
-              projectId={status.projectId}
-              onConnected={() => void loadAIModels()}
-            />
-
-            {aiModelsLoading ? (
-              <p role="status" className="jeff-ai__note flex items-center justify-center gap-2">
-                Carregando os modelos conectados…
-              </p>
-            ) : aiModels.length === 0 ? (
+            ) : (
               <p className="jeff-ai__note">
-                Conecte um harness para liberar a escolha do modelo.
+                Conecte um harness acima para liberar a escolha do modelo.
               </p>
-            ) : null}
+            )}
+
             {aiModelsError ? <p className="jeff-server__error">{aiModelsError}</p> : null}
             {error ? <p className="jeff-server__error">{error}</p> : null}
           </div>
