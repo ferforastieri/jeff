@@ -11,7 +11,7 @@ vi.mock("./WorkspaceSettings", () => ({
 vi.mock("./HarnessSettings", () => ({
   default: () => <div data-testid="engine-settings">Motores</div>,
 }));
-vi.mock("./ConnectorsSettings", () => ({
+vi.mock("./ConnectorsStore", () => ({
   default: () => <div data-testid="connectors-settings">Conectores</div>,
 }));
 
@@ -46,7 +46,7 @@ describe("JeffSettings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Harness" }));
     expect(await screen.findByTestId("engine-settings")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Conexões" }));
+    fireEvent.click(screen.getByRole("button", { name: "Conectores e MCP" }));
     expect(await screen.findByTestId("connectors-settings")).toBeInTheDocument();
 
     expect(screen.queryByRole("button", { name: "Layout e ferramentas" })).not.toBeInTheDocument();

@@ -1378,6 +1378,10 @@ export const api = {
     return request<{ connections: GitConnection[] }>("/git/connections");
   },
 
+  async startAtlassianOAuth(): Promise<{ url: string }> {
+    return request<{ url: string }>("/mcp/atlassian/start");
+  },
+
   async saveGitConnection(provider: string, input: { username: string; token: string }): Promise<GitConnection> {
     return request<GitConnection>(`/git/connections/${encodeURIComponent(provider)}`, {
       method: "PUT",

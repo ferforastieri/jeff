@@ -15,7 +15,7 @@ import { useApp } from "../../../app/store";
 const WorkspaceSettings = lazy(() => import("./WorkspaceSettings"));
 const SkillsPanel = lazy(() => import("../../skills/components/SkillsPanel"));
 const HarnessSettings = lazy(() => import("./HarnessSettings"));
-const ConnectorsSettings = lazy(() => import("./ConnectorsSettings"));
+const ConnectorsStore = lazy(() => import("./ConnectorsStore"));
 
 export type Section = "general" | "skills" | "connectors" | "harness" | "workspace";
 
@@ -37,7 +37,7 @@ interface SectionItem {
 const sections: SectionItem[] = [
   { id: "general", label: "Geral", icon: "person" },
   { id: "skills", label: "Skills", icon: "routines" },
-  { id: "connectors", label: "Conexões", icon: "link" },
+  { id: "connectors", label: "Conectores e MCP", icon: "link" },
   { id: "harness", label: "Harness", icon: "plug" },
   { id: "workspace", label: "Workspace", icon: "drive" },
 ];
@@ -45,7 +45,7 @@ const sections: SectionItem[] = [
 const copy: Record<Section, { title: string; meta: string }> = {
   general: { title: "Geral", meta: "Sua conta, o servidor e o que o Jeff usa." },
   skills: { title: "Skills", meta: "Receitas globais que o Jeff lê sob demanda." },
-  connectors: { title: "Conexões", meta: "MCPs e contas Git de cada pessoa." },
+  connectors: { title: "Conectores e MCP", meta: "Contas Git, conectores OAuth e servidores MCP de cada pessoa." },
   harness: { title: "Harness", meta: "O CLI conduz o loop do agente; o Jeff entrega contexto, ferramentas, permissões e aprovações." },
   workspace: { title: "Workspace", meta: "Pastas acessíveis pelo Jeff." },
 };
@@ -232,7 +232,7 @@ export function SettingsView({
           ) : section === "skills" ? (
             <Card padded><SkillsPanel projectId={projectId} /></Card>
           ) : section === "connectors" ? (
-            <Card padded><ConnectorsSettings /></Card>
+            <Card padded><ConnectorsStore /></Card>
           ) : section === "harness" ? (
             <Card padded><HarnessSettings projectRoot={projectRoot} projectId={projectId} /></Card>
           ) : (

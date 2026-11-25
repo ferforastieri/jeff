@@ -7,7 +7,7 @@ import { useApp } from "../../app/store";
 import type { Section } from "../settings/components/JeffSettings";
 
 export const WORKSPACE_MENU_ITEMS: { section: Section; label: string; icon: IconName }[] = [
-  { section: "connectors", label: "Conexões", icon: "link" },
+  { section: "connectors", label: "Conectores e MCP", icon: "link" },
   { section: "skills", label: "Skills", icon: "routines" },
   { section: "harness", label: "Harness", icon: "plug" },
   { section: "workspace", label: "Configurações do workspace", icon: "drive" },

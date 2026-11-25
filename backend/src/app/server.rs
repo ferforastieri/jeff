@@ -28,6 +28,9 @@ use browser_routes::*;
 #[path = "../features/providers/routes.rs"]
 mod providers_routes;
 use providers_routes::*;
+#[path = "../features/integrations/atlassian_routes.rs"]
+mod atlassian_routes;
+use atlassian_routes::*;
 #[path = "../features/integrations/email/routes.rs"]
 mod integrations_email_routes;
 use integrations_email_routes::*;
@@ -192,6 +195,7 @@ pub struct AppState {
     pub voice: Arc<crate::features::voice::service::VoiceService>,
     pub vault: Arc<crate::features::browser::vault::VaultService>,
     pub mcp: McpService,
+    pub atlassian: crate::features::integrations::atlassian::AtlassianOAuth,
     pub push: PushService,
     pub events: EventHub,
     pub watcher: Arc<ProjectWatcher>,
@@ -391,6 +395,7 @@ impl AppState {
             &config.master_key_file,
         )?);
         let mcp = McpService::new(store.clone(), &config.master_key_file)?;
+        let atlassian = crate::features::integrations::atlassian::AtlassianOAuth::new();
         let push = PushService::new(
             store.clone(),
             config.firebase_file.as_deref(),
@@ -453,6 +458,7 @@ impl AppState {
             voice,
             vault,
             mcp,
+            atlassian,
             push,
             events,
             watcher,
@@ -1308,6 +1314,7 @@ fn router(state: Arc<AppState>) -> Router {
         )
         .route("/api/ai/config", get(get_ai_config).put(save_ai_config))
         .route("/api/git/connections", get(list_git_connections))
+        .route("/api/mcp/atlassian/start", get(atlassian_start))
         .route(
             "/api/git/connections/{provider}",
             put(save_git_connection).delete(remove_git_connection),
@@ -1470,6 +1477,7 @@ fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/health", get(health))
         .route("/api/git/credential", get(git_credential))
+        .route("/api/mcp/atlassian/callback", get(atlassian_callback))
         .route("/api/version", get(version))
         .route("/api/auth/login", post(login))
         .route("/api/auth/login-email", post(login_email))

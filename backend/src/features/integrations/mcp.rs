@@ -284,6 +284,32 @@ impl Service {
         self.pool.lock().await.clear();
         Ok(saved)
     }
+    /// A one-click OAuth connector upserts its server by display name.
+    pub async fn upsert_oauth(&self, name: &str, url: &str, token: &str) -> AppResult<Server> {
+        let existing = self
+            .servers()
+            .await?
+            .into_iter()
+            .find(|server| server.name == name);
+        let mut server = existing.unwrap_or(Server {
+            id: String::new(),
+            name: name.to_string(),
+            transport: "http".into(),
+            url: url.to_string(),
+            command: Vec::new(),
+            env: HashMap::new(),
+            token: String::new(),
+            timeout_seconds: 180,
+            auto_approve: false,
+        });
+        server.name = name.to_string();
+        server.transport = "http".into();
+        server.url = url.to_string();
+        server.token = token.to_string();
+        server.timeout_seconds = server.timeout_seconds.max(180);
+        self.save(server).await
+    }
+
     pub async fn delete(&self, id: &str) -> AppResult<()> {
         let mut all = self.servers().await?;
         all.retain(|s| s.id != id);
