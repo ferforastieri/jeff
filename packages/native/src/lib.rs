@@ -218,21 +218,55 @@ fn open_server(
     })
 }
 
+const LOCAL_EMAIL: &str = "local@jeff.local";
+
 #[cfg(not(target_os = "android"))]
 async fn login_cookie_headers(base: &Url, password: &str) -> Result<(String, String), String> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(15))
         .build()
         .map_err(|err| err.to_string())?;
-    let response = client
+    // Old local databases still have the `admin` username. A fresh one has no
+    // account until this embedded client registers its own local admin.
+    let legacy = client
         .post(endpoint(base, "api/auth/login")?)
         .json(&serde_json::json!({"username":"admin","password":password,"kind":"web"}))
         .send()
         .await
         .map_err(|_| "Não foi possível autenticar no backend local.".to_string())?;
-    if !response.status().is_success() {
-        return Err("O backend local recusou a autenticação inicial.".into());
-    }
+    let response = if legacy.status().is_success() {
+        legacy
+    } else {
+        let login = client
+            .post(endpoint(base, "api/auth/login-email")?)
+            .json(&serde_json::json!({
+                "email": LOCAL_EMAIL,
+                "password": password,
+                "kind": "web"
+            }))
+            .send()
+            .await
+            .map_err(|_| "Não foi possível autenticar no backend local.".to_string())?;
+        if login.status().is_success() {
+            login
+        } else {
+            let register = client
+                .post(endpoint(base, "api/auth/register")?)
+                .json(&serde_json::json!({
+                    "email": LOCAL_EMAIL,
+                    "name": "Jeff",
+                    "password": password,
+                    "kind": "web"
+                }))
+                .send()
+                .await
+                .map_err(|_| "Não foi possível autenticar no backend local.".to_string())?;
+            if !register.status().is_success() {
+                return Err("O backend local recusou a autenticação inicial.".into());
+            }
+            register
+        }
+    };
     let mut session = String::new();
     let mut csrf = String::new();
     for value in response.headers().get_all("set-cookie") {
@@ -298,8 +332,12 @@ async fn ensure_local_workspace(
         }
     }
 
+    let mut projects_url = endpoint(base, "api/projects")?;
+    projects_url
+        .query_pairs_mut()
+        .append_pair("includeWorkspace", "1");
     let projects_response = client
-        .get(endpoint(base, "api/projects")?)
+        .get(projects_url)
         .header(reqwest::header::COOKIE, &cookie)
         .send()
         .await
@@ -507,12 +545,8 @@ async fn start_local_server(
     } else {
         "127.0.0.1:0"
     };
-    let config = jeff_server::config::Config::local(
-        data_dir,
-        workspace_root.clone(),
-        password.clone(),
-        listen.into(),
-    );
+    let config =
+        jeff_server::config::Config::local(data_dir, workspace_root.clone(), listen.into());
     let server = jeff_server::start_embedded(config)
         .await
         .map_err(|err| format!("Não foi possível iniciar o backend local: {err}"))?;
@@ -1107,7 +1141,6 @@ mod local_mode_tests {
         let config = jeff_server::config::Config::local(
             data.path().to_path_buf(),
             workspace_root.clone(),
-            password.clone(),
             "127.0.0.1:0".into(),
         );
         let server = jeff_server::start_embedded(config).await.expect("server");
@@ -1165,11 +1198,15 @@ mod local_mode_tests {
         assert_eq!(
             me.pointer("/user/username")
                 .and_then(serde_json::Value::as_str),
-            Some("admin")
+            Some(LOCAL_EMAIL)
         );
 
+        let mut projects_url = endpoint(&base, "api/projects").unwrap();
+        projects_url
+            .query_pairs_mut()
+            .append_pair("includeWorkspace", "1");
         let projects = client
-            .get(endpoint(&base, "api/projects").unwrap())
+            .get(projects_url)
             .header(
                 reqwest::header::COOKIE,
                 format!("jeff_session={session}; jeff_csrf={csrf}"),
