@@ -131,6 +131,12 @@
   }
 }
 
+/* The update toast's call to action: one small button under the words. */
+.ac-toast__actions {
+  display: flex;
+  padding-top: 2px;
+}
+
 /* The phone's tab bar: four even columns (the utility of the old build had no plain grid-cols-4). */
 .mobile-tabbar {
   display: grid;

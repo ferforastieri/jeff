@@ -1,12 +1,31 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError, type UpdateInstaller, type UpdateStatus } from "../../../shared/api";
 import { Icon } from "@jeff/ui";
-import { ProgressBar } from "@jeff/ui/app";
+import { Button, ProgressBar } from "@jeff/ui/app";
 import { isMobileViewport } from "../../../shared/ui/useIsMobile";
 import { useApp } from "../../../app/store";
 import { isDesktopClient } from "../../settings/store";
 
 type Phase = "idle" | "updating" | "error";
+
+const DISMISSED_KEY = "jeff_update_dismissed";
+
+/** A dismissed release stays dismissed on this device until a newer one ships. */
+function readDismissedVersion(): string {
+  try {
+    return localStorage.getItem(DISMISSED_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function persistDismissedVersion(version: string): void {
+  try {
+    localStorage.setItem(DISMISSED_KEY, version);
+  } catch {
+    // Private mode or a full quota: the toast still works for this session.
+  }
+}
 
 interface TauriInternals {
   invoke?: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
@@ -167,7 +186,7 @@ export default function UpdateToast() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [detail, setDetail] = useState("");
   const [error, setError] = useState("");
-  const dismissed = useRef<string | null>(null);
+  const [dismissed, setDismissed] = useState(readDismissedVersion);
 
   useEffect(() => {
     let cancelled = false;
@@ -333,7 +352,17 @@ export default function UpdateToast() {
     setError("A atualização não terminou a tempo. Recarregue a página para ver a versão atual; se continuar na antiga, reinicie o serviço.");
   }
 
-  const visible = status?.supported && status.available && dismissed.current !== status.latestVersion;
+  function dismiss() {
+    if (status?.latestVersion) {
+      setDismissed(status.latestVersion);
+      persistDismissedVersion(status.latestVersion);
+    }
+    setPhase("idle");
+    setDetail("");
+    setStatus(null);
+  }
+
+  const visible = status?.supported && status.available && dismissed !== status.latestVersion;
   const updating = phase === "updating";
   const failed = phase === "error";
   // An update is a call to action: the toast stays until it is closed or the
@@ -365,17 +394,29 @@ export default function UpdateToast() {
           ) : failed && error ? (
             <small className="ac-toast__detail">{error}</small>
           ) : null}
+          {!updating ? (
+            <span className="ac-toast__actions">
+              <Button
+                variant={failed ? "secondary" : "primary"}
+                size="small"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void update();
+                }}
+              >
+                {failed ? "Tentar de novo" : "Atualizar agora"}
+              </Button>
+            </span>
+          ) : null}
         </span>
         <button
           type="button"
           className="ac-btn ac-btn--ghost ac-btn--sm ac-btn--icon ac-toast__close"
-          aria-label="Fechar"
+          aria-label="Atualizar depois"
+          title="Atualizar depois"
           onClick={(event) => {
             event.stopPropagation();
-            if (status) dismissed.current = status.latestVersion;
-            setPhase("idle");
-            setDetail("");
-            setStatus(null);
+            dismiss();
           }}
         >
           <Icon name="close" size={16} />
