@@ -591,6 +591,14 @@ export default function Workspace({ status }: Props) {
     void loadAIModels();
   }, [loadAIModels]);
 
+  // Coming back from the AI connection page (or opening an agent) must show
+  // models connected in the meantime.
+  useEffect(() => {
+    if (view === "home" || view === "chat" || agentOpen || agentEdit) {
+      void loadAIModels();
+    }
+  }, [view, agentOpen, agentEdit, loadAIModels]);
+
   useEffect(() => {
     if (localStorage.getItem("jeff_open_ai_settings") !== "1") return;
     localStorage.removeItem("jeff_open_ai_settings");
