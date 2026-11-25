@@ -91,6 +91,20 @@ html[data-menu-overlay] .jeff-workspace-home {
   pointer-events: none;
 }
 
+.ws-workspace-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.ws-workspace-head > .ws-workspace {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
 .ws-workspace {
   display: flex;
   width: 100%;
@@ -1723,6 +1737,7 @@ html:not([data-pointer]) .setup-row__link:focus-visible {
 }
 
 .ws-rail-channel {
+  position: relative;
   display: grid;
   width: 32px;
   height: 32px;
@@ -1734,6 +1749,24 @@ html:not([data-pointer]) .setup-row__link:focus-visible {
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.ws-rail-channel .ws-rail-unread {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  min-width: 15px;
+  height: 15px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--agent, #5aa8ff);
+  color: var(--on-agent, #00203f);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 3px;
+  pointer-events: none;
 }
 
 .ws-rail-channel.is-active {

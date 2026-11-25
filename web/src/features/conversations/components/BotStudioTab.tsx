@@ -41,7 +41,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   const [sending, setSending] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
   const [queued, setQueued] = useState<Array<{ text: string; attachments: AgentAttachment[] }>>([]);
-  const draftKey = `${project.id}:${chat?.id ?? ""}:native`;
+  const draftKey = `${project.id}:dev:${chat?.id ?? "new"}`;
   const text = useJeffDrafts((s) => s.drafts[draftKey] ?? "");
   const setDraft = useJeffDrafts((s) => s.setDraft);
   const clearDraft = useJeffDrafts((s) => s.clearDraft);

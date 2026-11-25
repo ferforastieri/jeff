@@ -27,7 +27,7 @@ import {
   type PersonRecipe,
 } from "faang-ui";
 import { api, type OnboardingStatus, type Project, type Repository, type User } from "../../shared/api";
-import { useApp } from "../../app/store";
+import { useApp, type AppNotification } from "../../app/store";
 import { SettingsView, type Section } from "../settings/components/JeffSettings";
 import {
   channelsApi,
@@ -56,6 +56,8 @@ import { MEMBER_STATUS_LABEL, type MemberStatus } from "../../shared/ui/presence
 import { usePrefs } from "../../shared/prefs";
 import { animateReorder } from "../../shared/ui/animateReorder";
 import NotificationBell from "../notifications/components/NotificationBell";
+import { useNotificationStream } from "../notifications/stream";
+import { useJeffDrafts } from "../agents/drafts";
 import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 
 type View = "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings";
@@ -162,7 +164,6 @@ export default function Workspace({ status }: Props) {
   const [me, setMe] = useState<Principal | null>(null);
   const [bots, setBots] = useState<Principal[]>([]);
   const [messages, setMessages] = useState<RoomMessage[]>([]);
-  const [draft, setDraft] = useState("");
   const [chatQuery, setChatQuery] = useState("");
   const [linkOnly, setLinkOnly] = useState(false);
   const [view, setView] = useState<View>(
@@ -249,6 +250,8 @@ export default function Workspace({ status }: Props) {
   const workspaceLogo = status.workspaceLogo || WORKSPACE_FACE;
   const user = useApp((state) => state.user);
 
+  useNotificationStream({ onOpened: openInboxItem });
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -316,6 +319,10 @@ export default function Workspace({ status }: Props) {
     }),
     [selectedRoom?.projectId, status.projectId, status.teamName],
   );
+  const draftKey = `${status.projectId}:slack:${selectedRoomId || "home"}`;
+  const draft = useJeffDrafts((state) => state.drafts[draftKey] ?? "");
+  const setDraft = useJeffDrafts((state) => state.setDraft);
+  const clearDraft = useJeffDrafts((state) => state.clearDraft);
   const repoOptions = useMemo(() => {
     const map = new Map<string, Repository>();
     for (const repo of availableRepos) map.set(repo.path, repo);
@@ -710,13 +717,13 @@ export default function Workspace({ status }: Props) {
   async function send(text: string) {
     const value = text.trim();
     if (!value || !selectedRoomId) return;
-    setDraft("");
+    clearDraft(draftKey);
     try {
       await channelsApi.send(selectedRoomId, { text: value });
       const result = await channelsApi.messages(selectedRoomId);
       setMessages(result.messages);
     } catch (cause) {
-      setDraft(value);
+      setDraft(draftKey, value);
       setError(cause instanceof Error ? cause.message : "Não foi possível enviar.");
     }
   }
@@ -1023,6 +1030,37 @@ export default function Workspace({ status }: Props) {
     window.location.assign(`${window.location.pathname}?${params.toString()}`);
   }
 
+  /**
+   * Where a bell item lands: a room stays in the Slack shell; an agent
+   * completion opens the dev surface on that exact conversation.
+   */
+  function openInboxItem(item: {
+    projectId?: string;
+    chatId?: string;
+    botId?: string;
+    roomId?: string;
+  }) {
+    const room = item.roomId
+      ? allRooms.find((candidate) => candidate.id === item.roomId)
+      : null;
+    if (room) {
+      selectRoom(room);
+      setMenuOpen(false);
+      return;
+    }
+    if (item.projectId && (item.chatId || item.botId)) {
+      localStorage.setItem(
+        "jeff_open_dev_chat",
+        JSON.stringify({
+          projectId: item.projectId,
+          chatId: item.chatId,
+          botId: item.botId,
+        }),
+      );
+      openDev();
+    }
+  }
+
   const roomTitle =
     selectedRoom?.kind === "dm"
       ? personName(selectedRoom, me) || agent?.name || "Conversa"
@@ -1061,32 +1099,46 @@ export default function Workspace({ status }: Props) {
           onStatusChange={(value) => updatePrefs({ userStatus: value })}
           devMode={devMode}
           onDev={openDev}
+          onOpenNotification={openInboxItem}
         />
       ) : (
       <aside className={`ws-sidebar${menuOpen ? " is-open" : ""}`}>
         <div className="ws-ambient" aria-hidden="true" />
         <SidebarJeffs subtle />
-        <button
-          ref={workspaceMenuTrigger}
-          type="button"
-          className="ws-workspace"
-          aria-haspopup="dialog"
-          aria-expanded={workspaceMenuOpen}
-          aria-label={`Menu do workspace ${status.teamName || "Seu workspace"}`}
-          onClick={() => setWorkspaceMenuOpen(true)}
-        >
-          <span className="ws-workspace-mark">
-            <img src={workspaceLogo} alt="" draggable={false} />
-          </span>
-          <span className="ws-workspace-title">
-            <strong>{status.teamName || "Seu workspace"}</strong>
-            <small>
-              Seu servidor · {status.memberCount} {status.memberCount === 1 ? "membro" : "membros"} ·{" "}
-              {bots.length} {bots.length === 1 ? "agente" : "agentes"}
-            </small>
-          </span>
-          <Icon name="chevronDown" size={16} />
-        </button>
+        <div className="ws-workspace-head">
+          <button
+            ref={workspaceMenuTrigger}
+            type="button"
+            className="ws-workspace"
+            aria-haspopup="dialog"
+            aria-expanded={workspaceMenuOpen}
+            aria-label={`Menu do workspace ${status.teamName || "Seu workspace"}`}
+            onClick={() => setWorkspaceMenuOpen(true)}
+          >
+            <span className="ws-workspace-mark">
+              <img src={workspaceLogo} alt="" draggable={false} />
+            </span>
+            <span className="ws-workspace-title">
+              <strong>{status.teamName || "Seu workspace"}</strong>
+              <small>
+                Seu servidor · {status.memberCount} {status.memberCount === 1 ? "membro" : "membros"} ·{" "}
+                {bots.length} {bots.length === 1 ? "agente" : "agentes"}
+              </small>
+            </span>
+            <Icon name="chevronDown" size={16} />
+          </button>
+          {devMode ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              iconOnly
+              icon="code"
+              aria-label="Abrir modo dev"
+              title="Abrir modo dev"
+              onClick={openDev}
+            />
+          ) : null}
+        </div>
 
         <div className="ws-search">
           <div className="ws-search-row">
@@ -1577,29 +1629,8 @@ export default function Workspace({ status }: Props) {
             />
           </Menu>
           <div className="ws-user-actions">
-            {devMode ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                iconOnly
-                icon="code"
-                aria-label="Abrir modo dev"
-                title="Abrir modo dev"
-                onClick={openDev}
-              />
-            ) : null}
             <ThemeToggle className="ws-theme-toggle" />
-            <NotificationBell
-              onOpenNotification={(notification) => {
-                const room = notification.roomId
-                  ? allRooms.find((item) => item.id === notification.roomId)
-                  : null;
-                if (room) {
-                  selectRoom(room);
-                  setMenuOpen(false);
-                }
-              }}
-            />
+            <NotificationBell onOpenNotification={openInboxItem} />
           </div>
         </footer>
       </aside>
@@ -1773,7 +1804,7 @@ export default function Workspace({ status }: Props) {
             <footer className="ws-composer">
               <Composer
                 value={draft}
-                onChange={setDraft}
+                onChange={(value) => setDraft(draftKey, value)}
                 onSend={(text) => void send(text)}
                 label={`Mensagem para ${roomTitle}`}
                 placeholder={`Mensagem para ${roomTitle} · nada muda sem você`}
@@ -2492,6 +2523,7 @@ function WorkspaceRail({
   onStatusChange,
   devMode,
   onDev,
+  onOpenNotification,
 }: {
   workspaceLogo: string;
   onExpand: () => void;
@@ -2509,6 +2541,7 @@ function WorkspaceRail({
   onStatusChange: (status: MemberStatus) => void;
   devMode: boolean;
   onDev: () => void;
+  onOpenNotification: (notification: AppNotification) => void;
 }) {
   return (
     <aside className="ws-rail">
@@ -2516,6 +2549,17 @@ function WorkspaceRail({
       <button type="button" className="ws-rail-logo" onClick={onExpand} aria-label="Expandir barra">
         <img src={workspaceLogo} alt="" draggable={false} />
       </button>
+      {devMode ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          iconOnly
+          icon="code"
+          aria-label="Abrir modo dev"
+          title="Abrir modo dev"
+          onClick={onDev}
+        />
+      ) : null}
       <Button
         variant="ghost"
         size="sm"
@@ -2607,26 +2651,8 @@ function WorkspaceRail({
         />
       </Menu>
       <div className="ws-rail-actions">
-        {devMode ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            iconOnly
-            icon="code"
-            aria-label="Abrir modo dev"
-            title="Abrir modo dev"
-            onClick={onDev}
-          />
-        ) : null}
         <ThemeToggle className="ws-theme-toggle" />
-        <NotificationBell
-          onOpenNotification={(notification) => {
-            const room = notification.roomId
-              ? channels.find((item) => item.id === notification.roomId)
-              : null;
-            if (room) onSelectRoom(room);
-          }}
-        />
+        <NotificationBell onOpenNotification={onOpenNotification} />
       </div>
     </aside>
   );

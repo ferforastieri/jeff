@@ -2,7 +2,7 @@ import { useProjectStream } from "../../features/projects/hooks/useProjectStream
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { Bot, ChevronDown, X } from "@jeff/icons";
-import { api, getApiBase, type OnboardingStatus, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
+import { api, type OnboardingStatus, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
 import { useApp, type Sidebar, type Tab } from "../store";
 import { chatDisplayName, latestChatForJeff, useChats, type ProjectChats, type JeffChat } from "../../features/conversations/store";
@@ -17,8 +17,7 @@ import Toasts from "../../features/notifications/components/Toasts";
 import CloseProjectModal from "../../features/projects/components/CloseProjectModal";
 import ProjectSwitcher from "../../features/projects/components/ProjectSwitcher";
 import BranchPicker from "../../features/git/components/BranchPicker";
-import { handleAiCompletion, type AiCompletionPayload } from "../../features/notifications/completion";
-import { playQuestionSound } from "../../features/conversations/sound";
+import { useNotificationStream } from "../../features/notifications/stream";
 import { unlockBotSound } from "../../features/conversations/sound";
 import { IconButton } from "@jeff/ui/app";
 import BrandMark from "@jeff/brand";
@@ -411,67 +410,7 @@ export default function Workbench() {
     return () => window.removeEventListener(PROJECT_EVENT, onProjectEvent);
   }, [activeProjectId, filesEnabled, sourceControlEnabled]);
 
-  useEffect(() => {
-    type PushPayload = AiCompletionPayload & { opened?: string };
-    const handler = (payload: PushPayload) => {
-      if (payload.opened === "true" && payload.projectId) {
-        window.setTimeout(() => window.dispatchEvent(new CustomEvent("jeff:open-bot", { detail: payload })), 0);
-        return;
-      }
-      handleAiCompletion(payload);
-    };
-    (window as unknown as { __jeffPush?: (payload: PushPayload) => void }).__jeffPush = handler;
-
-    if (typeof EventSource === "undefined") {
-      return () => {
-        delete (window as unknown as { __jeffPush?: (payload: PushPayload) => void }).__jeffPush;
-      };
-    }
-    const stream = new EventSource(`${getApiBase()}/api/notifications/stream`, {
-      withCredentials: true,
-    });
-    type RoomPayload = {
-      title?: string;
-      body?: string;
-      projectId?: string;
-      projectName?: string;
-      roomId?: string;
-      notificationId?: string;
-    };
-    const onAI = (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data) as PushPayload;
-        handler(payload);
-      } catch {
-        // Ignore malformed notification events.
-      }
-    };
-    const onRoom = (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data) as RoomPayload;
-        useApp.getState().addNotification({
-          kind: "system",
-          title: payload.title ?? "Sala",
-          body: payload.body ?? "",
-          projectId: payload.projectId,
-          projectName: payload.projectName,
-          roomId: payload.roomId,
-          notificationId: payload.notificationId,
-        });
-        playQuestionSound();
-      } catch {
-        // Ignore malformed notification events.
-      }
-    };
-    stream.addEventListener("ai.done", onAI as EventListener);
-    stream.addEventListener("room", onRoom as EventListener);
-    return () => {
-      stream.removeEventListener("ai.done", onAI as EventListener);
-      stream.removeEventListener("room", onRoom as EventListener);
-      stream.close();
-      delete (window as unknown as { __jeffPush?: (payload: { title?: string; body?: string }) => void }).__jeffPush;
-    };
-  }, []);
+  useNotificationStream();
 
   useEffect(() => {
     const onOpenBot = (event: Event) => {
@@ -521,6 +460,28 @@ export default function Workbench() {
     };
     window.addEventListener("jeff:open-chat", onOpenChat);
     return () => window.removeEventListener("jeff:open-chat", onOpenChat);
+  }, []);
+
+  // A completion opened from the Slack bell lands on the exact dev conversation.
+  useEffect(() => {
+    const raw = localStorage.getItem("jeff_open_dev_chat");
+    if (!raw) return;
+    localStorage.removeItem("jeff_open_dev_chat");
+    try {
+      const detail = JSON.parse(raw) as { projectId?: string; chatId?: string; botId?: string };
+      if (!detail?.projectId) return;
+      if (detail.chatId) {
+        window.dispatchEvent(
+          new CustomEvent("jeff:open-chat", {
+            detail: { projectId: detail.projectId, chatId: detail.chatId },
+          }),
+        );
+      } else if (detail.botId) {
+        window.dispatchEvent(new CustomEvent("jeff:open-bot", { detail }));
+      }
+    } catch {
+      // A corrupted handoff must not keep the dev surface from opening.
+    }
   }, []);
 
   useEffect(() => {

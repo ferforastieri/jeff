@@ -95,7 +95,8 @@ pub(super) async fn notification_stream(
                 event = receiver.recv() => {
                     match event {
                         Ok(event) => {
-                            yield Ok(Event::default().event("ai.done").json_data(event).unwrap_or_else(|_| Event::default().data("{}")));
+                            let event_name = event.event_type.clone();
+                            yield Ok(Event::default().event(event_name).json_data(event).unwrap_or_else(|_| Event::default().data("{}")));
                         }
                         Err(broadcast::error::RecvError::Lagged(_)) => continue,
                         Err(broadcast::error::RecvError::Closed) => break,

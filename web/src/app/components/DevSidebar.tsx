@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Avatar,
   Button,
@@ -9,7 +9,7 @@ import {
 } from "faang-ui";
 import { cx } from "@jeff/ui";
 import type { OnboardingStatus, Project, User } from "../../shared/api";
-import type { Sidebar } from "../store";
+import { useApp, type Sidebar } from "../store";
 import { featureEnabled, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import ProjectMonogram from "../../features/projects/components/ProjectMonogram";
 import ProjectRunningDot from "../../features/projects/components/ProjectRunningDot";
@@ -17,6 +17,7 @@ import QuickOpen from "../../features/explorer/components/QuickOpen";
 import SidebarJeffs from "../../shared/ui/SidebarJeffs";
 import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import NotificationBell from "../../features/notifications/components/NotificationBell";
+import NotificationBadge from "../../features/notifications/components/NotificationBadge";
 import { usePrefs } from "../../shared/prefs";
 import WorkspaceMenu from "../../features/workspace/WorkspaceMenu";
 import BotAvatar from "../../features/agents/components/BotAvatar";
@@ -36,15 +37,6 @@ const TOOLS: Tool[] = [
   { id: "db", feature: "databases", label: "Databases", icon: "database" },
   { id: "web", feature: "webApps", label: "Web apps", icon: "globe" },
 ];
-
-const EMPTY_PROJECT: Project = {
-  id: "",
-  name: "Dev",
-  root: "",
-  color: "#0063D1",
-  createdAt: "",
-  updatedAt: "",
-};
 
 export interface DevSidebarProps {
   project: Project | null;
@@ -124,11 +116,22 @@ export default function DevSidebar({
   const openProjects = openProjectIds
     .map((id) => projects.find((item) => item.id === id))
     .filter((item): item is Project => Boolean(item));
+  const notifications = useApp((state) => state.notifications);
+  const markProjectNotificationsRead = useApp((state) => state.markProjectNotificationsRead);
+  const unreadByProject = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const notification of notifications) {
+      if (notification.read || !notification.projectId) continue;
+      counts[notification.projectId] = (counts[notification.projectId] ?? 0) + 1;
+    }
+    return counts;
+  }, [notifications]);
+  const workspaceLogo =
+    workspace?.workspaceLogo || `${import.meta.env.BASE_URL}brand/jeff-mark.png`;
   const userName = user?.displayName || user?.username || "você";
   const visibleTools = toolOrder
     .map((id) => TOOLS.find((tool) => tool.id === id))
     .filter((tool): tool is Tool => tool !== undefined && featureEnabled(features, tool.feature));
-  const markProject = project ?? projects[0] ?? EMPTY_PROJECT;
 
   const placeTool = (target: Sidebar, where: "before" | "after" = "before", container?: HTMLElement | null) => {
     if (!draggedTool || draggedTool === target) return;
@@ -169,8 +172,17 @@ export default function DevSidebar({
           aria-label="Expandir barra"
           title="Expandir barra"
         >
-          <ProjectMonogram project={markProject} size={30} />
+          <img src={workspaceLogo} alt="" draggable={false} />
         </button>
+        <Button
+          variant="ghost"
+          size="sm"
+          iconOnly
+          icon="message"
+          aria-label="Ir para o Slack"
+          title="Ir para o Slack"
+          onClick={onBack}
+        />
         <Button
           variant="ghost"
           size="sm"
@@ -232,17 +244,29 @@ export default function DevSidebar({
         </nav>
         <div className="ws-rail-separator" />
         <div className="ws-rail-channels" aria-label="Repos">
-          {openProjects.slice(0, 4).map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={cx("ws-rail-channel", item.id === activeProjectId && "is-active")}
-              title={`${item.name}\n${item.root}`}
-              onClick={() => onOpenProject(item.id)}
-            >
-              <ProjectMonogram project={item} size={22} />
-            </button>
-          ))}
+          {openProjects.slice(0, 4).map((item) => {
+            const unread = unreadByProject[item.id] ?? 0;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={cx("ws-rail-channel", item.id === activeProjectId && "is-active")}
+                title={`${item.name}\n${item.root}`}
+                aria-label={`${item.name}${unread > 0 ? `, ${unread} notificações não lidas` : ""}`}
+                onClick={() => {
+                  if (unread > 0) markProjectNotificationsRead(item.id);
+                  onOpenProject(item.id);
+                }}
+              >
+                <ProjectMonogram project={item} size={22} />
+                {unread > 0 ? (
+                  <span className="ws-rail-unread" aria-hidden="true">
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
           <Button
             variant="ghost"
             size="sm"
@@ -258,15 +282,6 @@ export default function DevSidebar({
           <Avatar kind="person" name={userName} size="sm" />
         </span>
         <div className="ws-rail-actions">
-          <Button
-            variant="ghost"
-            size="sm"
-            iconOnly
-            icon="message"
-            aria-label="Ir para o Slack"
-            title="Ir para o Slack"
-            onClick={onBack}
-          />
           <ThemeToggle className="ws-theme-toggle" />
           <NotificationBell />
         </div>
@@ -277,30 +292,41 @@ export default function DevSidebar({
   return (
     <aside className="ws-sidebar dev-sidebar dev-workbench__side">
       <SidebarJeffs />
-      <button
-        ref={workspaceMenuTrigger}
-        type="button"
-        className="ws-workspace"
-        aria-haspopup="dialog"
-        aria-expanded={workspaceMenuOpen}
-        aria-label={`Menu do workspace ${workspace?.teamName || "Seu workspace"}`}
-        onClick={() => setWorkspaceMenuOpen(true)}
-      >
-        <span className="ws-workspace-mark">
-          <img src={`${import.meta.env.BASE_URL}brand/jeff-mark.png`} alt="" draggable={false} />
-        </span>
-        <span className="ws-workspace-title">
-          <strong>{workspace?.teamName || "Seu workspace"}</strong>
-          <small>modo dev{branch ? ` · ${branch}` : ""}</small>
-        </span>
-        <Icon name="chevronDown" size={16} />
-      </button>
+      <div className="ws-workspace-head">
+        <button
+          ref={workspaceMenuTrigger}
+          type="button"
+          className="ws-workspace"
+          aria-haspopup="dialog"
+          aria-expanded={workspaceMenuOpen}
+          aria-label={`Menu do workspace ${workspace?.teamName || "Seu workspace"}`}
+          onClick={() => setWorkspaceMenuOpen(true)}
+        >
+          <span className="ws-workspace-mark">
+            <img src={workspaceLogo} alt="" draggable={false} />
+          </span>
+          <span className="ws-workspace-title">
+            <strong>{workspace?.teamName || "Seu workspace"}</strong>
+            <small>modo dev{branch ? ` · ${branch}` : ""}</small>
+          </span>
+          <Icon name="chevronDown" size={16} />
+        </button>
+        <Button
+          variant="ghost"
+          size="sm"
+          iconOnly
+          icon="message"
+          aria-label="Ir para o Slack"
+          title="Ir para o Slack"
+          onClick={onBack}
+        />
+      </div>
       <WorkspaceMenu
         open={workspaceMenuOpen}
         onOpenChange={setWorkspaceMenuOpen}
         anchor={workspaceMenuTrigger}
         teamName={workspace?.teamName || "Seu workspace"}
-        workspaceLogo={workspace?.workspaceLogo || `${import.meta.env.BASE_URL}brand/jeff-mark.png`}
+        workspaceLogo={workspaceLogo}
         memberCount={workspace?.memberCount ?? 1}
         botFaces={workspaceBots.map((bot) => ({
           id: bot.id,
@@ -451,6 +477,7 @@ export default function DevSidebar({
               ) : null}
               {openProjects.map((item) => {
                 const active = item.id === activeProjectId;
+                const unread = unreadByProject[item.id] ?? 0;
                 return (
                   <div className="ws-channel-wrap" key={item.id}>
                     <ListRow
@@ -462,7 +489,20 @@ export default function DevSidebar({
                         </span>
                       }
                       title={item.name}
-                      onClick={() => onOpenProject(item.id)}
+                      trailing={
+                        unread > 0 ? (
+                          <NotificationBadge
+                            count={unread}
+                            size={14}
+                            className="ws-repo-unread"
+                          />
+                        ) : undefined
+                      }
+                      aria-label={`${item.name}${unread > 0 ? `, ${unread} notificações não lidas` : ""}`}
+                      onClick={() => {
+                        if (unread > 0) markProjectNotificationsRead(item.id);
+                        onOpenProject(item.id);
+                      }}
                     />
                     <Button
                       variant="ghost"
@@ -507,15 +547,6 @@ export default function DevSidebar({
           </small>
         </span>
         <div className="ws-user-actions">
-          <Button
-            variant="ghost"
-            size="sm"
-            iconOnly
-            icon="message"
-            aria-label="Ir para o Slack"
-            title="Ir para o Slack"
-            onClick={onBack}
-          />
           <ThemeToggle className="ws-theme-toggle" />
           <NotificationBell />
         </div>
