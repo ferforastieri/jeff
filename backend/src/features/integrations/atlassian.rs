@@ -100,12 +100,13 @@ impl AtlassianOAuth {
             );
         }
         let url = format!(
-            "{AUTHORIZE}?response_type=code&client_id={}&redirect_uri={}&scope={}&state={}&code_challenge={}&code_challenge_method=S256",
+            "{AUTHORIZE}?response_type=code&client_id={}&redirect_uri={}&scope={}&state={}&code_challenge={}&code_challenge_method=S256&resource={}",
             urlencoding(&client_id),
             urlencoding(&redirect_uri),
             urlencoding(SCOPES),
             urlencoding(&state),
             challenge,
+            urlencoding(MCP_URL),
         );
         Ok(url)
     }
@@ -129,6 +130,7 @@ impl AtlassianOAuth {
                 ("redirect_uri", pending.redirect_uri.as_str()),
                 ("client_id", pending.client_id.as_str()),
                 ("code_verifier", pending.verifier.as_str()),
+                ("resource", MCP_URL),
             ])
             .send()
             .await
