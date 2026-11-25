@@ -50,7 +50,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 subtle = "2"
-sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio-rustls", "any", "derive", "postgres", "mysql", "chrono", "uuid", "json"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio-rustls", "any", "derive", "postgres", "mysql", "sqlite", "chrono", "uuid", "json"] }
 thiserror = "2"
 tiberius = { version = "0.13", default-features = false, features = ["tds80", "rustls", "tokio", "chrono"] }
 tokio = { version = "1", features = ["full"] }

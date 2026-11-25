@@ -2,7 +2,7 @@ use super::*;
 use crate::features::agents::models::RunInput;
 
 pub(super) async fn engine_list() -> Json<Value> {
-    Json(json!(crate::features::agents::engines::list()))
+    Json(json!(crate::features::agents::engines::list().await))
 }
 
 pub(super) async fn test_engine(Path(id): Path<String>) -> AppResult<Json<Value>> {

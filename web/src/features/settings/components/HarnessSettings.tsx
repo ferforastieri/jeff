@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Check, CircleAlert, Copy, Download, ExternalLink, RefreshCw } from "@jeff/icons";
 import type { Project } from "../../../shared/api";
 import { engineApi, type EngineInfo, type EngineTest } from "../../agents/api";
@@ -41,6 +41,8 @@ export default function HarnessSettings({ projectRoot, projectId }: Props) {
   const [installs, setInstalls] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
+  const loginBuffer = useRef("");
+  const loginDone = useRef(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -56,6 +58,51 @@ export default function HarnessSettings({ projectRoot, projectId }: Props) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const finishLogin = useCallback((label: string) => {
+    if (loginDone.current) return;
+    loginDone.current = true;
+    setLogin(null);
+    notify("success", `${label} conectado.`);
+    void refresh();
+  }, [notify, refresh]);
+
+  const handleLoginOutput = useCallback((chunk: string) => {
+    if (!loginView) return;
+    loginBuffer.current = `${loginBuffer.current}${chunk}`.slice(-4000);
+    if (loginBuffer.current.includes("__JEFF_LOGIN_OK__")) {
+      finishLogin(loginView.engine.label);
+    }
+  }, [finishLogin, loginView]);
+
+  // The CLIs write their credential asynchronously (and Gemini keeps its TUI
+  // open after the browser flow), so the marker is only a fast path. Polling
+  // the engine list also catches logins that finish without printing it.
+  useEffect(() => {
+    if (!loginView) return;
+    let stopped = false;
+    let checking = false;
+    const check = async () => {
+      if (checking || stopped) return;
+      checking = true;
+      try {
+        const list = await engineApi.list();
+        if (stopped) return;
+        setEngines(list);
+        const current = list.find((item) => item.id === loginView.engine.id);
+        if (current?.loggedIn) finishLogin(current.label);
+      } catch {
+        // Keep the terminal open; the next tick tries again.
+      } finally {
+        checking = false;
+      }
+    };
+    const timer = window.setInterval(() => void check(), 2000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [finishLogin, loginView]);
 
   async function test(engine: EngineInfo) {
     setBusy({ id: engine.id, action: "test" });
@@ -123,9 +170,14 @@ export default function HarnessSettings({ projectRoot, projectId }: Props) {
     // Antigravity runs on the server, so advertise an SSH-like environment to
     // force its manual URL/code OAuth flow instead of opening a browser there.
     const path = 'PATH="$HOME/.opencode/bin:$HOME/.local/bin:$HOME/.claude/local:$PATH"';
-    const command = engine.id === "antigravity"
+    const login = engine.id === "antigravity"
       ? `AGY_CLI_DISABLE_AUTO_UPDATE=true SSH_CONNECTION='jeff 0 127.0.0.1 0' SSH_CLIENT='127.0.0.1 0 0' ${path} agy`
       : `${path} ${engine.login}`;
+    // The marker only appears when the CLI exits cleanly; the panel still
+    // auto-closes for interactive logins via the engine polling below.
+    const command = `${login} && printf '\\n__JEFF_LOGIN_OK__\\n'`;
+    loginBuffer.current = "";
+    loginDone.current = false;
     setLogin({ engine, command, nonce: Date.now() });
   }
 
@@ -205,7 +257,13 @@ export default function HarnessSettings({ projectRoot, projectId }: Props) {
                   <div className="flex shrink-0 flex-wrap items-center gap-1 max-[640px]:w-full">
                     {engine.installed ? (
                       <>
-                        <Button variant="primary" size="small" onClick={() => login(engine)}>Entrar</Button>
+                        {engine.loggedIn ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-status-lime-bg px-2 py-1 text-[10px] font-semibold text-status-lime-text">
+                            <Check size={10} /> conectado
+                          </span>
+                        ) : (
+                          <Button variant="primary" size="small" onClick={() => login(engine)}>Entrar</Button>
+                        )}
                         <Button variant="secondary" size="small" disabled={working} leadingIcon={working && busy?.action === "test" ? HoppingToph : Check} onClick={() => void test(engine)}>
                           {working && busy?.action === "test" ? "Testando…" : "Testar"}
                         </Button>
@@ -295,8 +353,10 @@ export default function HarnessSettings({ projectRoot, projectId }: Props) {
               <LoginTerminal
                 project={loginProject}
                 sheet
+                ephemeral
                 onClose={() => setLogin(null)}
                 onOpenFile={() => undefined}
+                onOutput={handleLoginOutput}
                 initialCommand={{ text: loginView.command, nonce: loginView.nonce }}
                 commandTarget="login"
               />

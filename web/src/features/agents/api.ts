@@ -33,6 +33,7 @@ export interface EngineInfo {
   binary: string;
   installed: boolean;
   path?: string;
+  loggedIn: boolean;
   login: string;
   install: string;
   site: string;

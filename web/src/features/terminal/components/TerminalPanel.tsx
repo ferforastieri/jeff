@@ -40,6 +40,9 @@ interface Props {
   onClose?: () => void;
   initialCommand?: { text: string; nonce: number } | null;
   commandTarget?: string;
+  /** A private terminal (login, onboarding) that is closed with its panel. */
+  ephemeral?: boolean;
+  onOutput?: (chunk: string) => void;
 }
 
 const terminalTabs = [
@@ -59,7 +62,7 @@ function stripAnsi(value: string): string {
     .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "");
 }
 
-export default function TerminalPanel({ project, onOpenFile, sheet = false, onClose, initialCommand, commandTarget }: Props) {
+export default function TerminalPanel({ project, onOpenFile, sheet = false, onClose, initialCommand, commandTarget, ephemeral = false, onOutput }: Props) {
   const [tab, setTab] = useState<TerminalTab>("terminal");
   const [focusNonce, setFocusNonce] = useState(0);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -86,6 +89,7 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
   const initialized = useRef(false);
   const initialDone = useRef<number | null>(null);
   const outputRef = useRef("");
+  const ownedSessions = useRef<string[]>([]);
 
   const appendOutput = useCallback((chunk: string) => {
     if (!chunk) return;
@@ -93,13 +97,30 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
     setOutput(outputRef.current);
   }, []);
 
+  const handleOutput = useCallback((chunk: string) => {
+    appendOutput(chunk);
+    onOutput?.(chunk);
+  }, [appendOutput, onOutput]);
+
   const createSession = useCallback(async (shellName: string, activate = true, parentId?: string) => {
     const created = await api.createTerminal(project.id, shellName);
+    ownedSessions.current.push(created.id);
     const session = { id: created.id, shell: created.shell || shellName, title: created.shell || shellName, parentId };
     setSessions((current) => [...current, session]);
     if (activate) setActiveId(created.id);
     return session;
   }, [project.id]);
+
+  // Login and other one-off terminals belong to the panel. Closing the panel
+  // kills their server sessions too, so no orphan shell is left behind.
+  useEffect(() => {
+    if (!ephemeral) return;
+    return () => {
+      const ids = ownedSessions.current;
+      ownedSessions.current = [];
+      for (const id of ids) void api.closeTerminal(id).catch(() => undefined);
+    };
+  }, [ephemeral]);
 
   useEffect(() => {
     if (!sessionMenu) return;
@@ -133,6 +154,10 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
     let cancelled = false;
     void (async () => {
       try {
+        if (ephemeral) {
+          await createSession("bash");
+          return;
+        }
         const existing = await api.terminalSessions(project.id);
         if (cancelled) return;
         const restored = existing.terminals.map((item) => ({
@@ -151,7 +176,7 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
       }
     })();
     return () => { cancelled = true; };
-  }, [createSession, project.id]);
+  }, [createSession, ephemeral, project.id]);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -208,13 +233,14 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
 
   async function killSession(id = activeId) {
     if (!id) return;
+    ownedSessions.current = ownedSessions.current.filter((sessionId) => sessionId !== id);
     await api.closeTerminal(id).catch(() => undefined);
     const remaining = sessions.filter((session) => session.id !== id);
     setSessions(remaining);
     if (remaining.length === 0) {
       setActiveId("");
       setSplit(false);
-      void createSession(shell).catch((err) => setError(err instanceof Error ? err.message : "Não foi possível abrir o terminal."));
+      if (!ephemeral) void createSession(shell).catch((err) => setError(err instanceof Error ? err.message : "Não foi possível abrir o terminal."));
     } else {
       setActiveId((current) => current === id ? remaining[0].id : current);
       if (remaining.length < 2) setSplit(false);
@@ -222,11 +248,12 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
   }
 
   async function killAll() {
+    ownedSessions.current = [];
     await Promise.all(sessions.map((session) => api.closeTerminal(session.id).catch(() => undefined)));
     setSessions([]);
     setActiveId("");
     setSplit(false);
-    void createSession(shell).catch((err) => setError(err instanceof Error ? err.message : "Não foi possível abrir o terminal."));
+    if (!ephemeral) void createSession(shell).catch((err) => setError(err instanceof Error ? err.message : "Não foi possível abrir o terminal."));
   }
 
   const selectedSession = sessions.find((session) => session.id === activeId) ?? sessions[0];
@@ -361,16 +388,16 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
             {split && paneSessions.length >= 2 ? (
               <Group orientation="horizontal" className="min-h-0 flex-1">
                 <Panel defaultSize="50" minSize="20">
-                  <TerminalView key={`${paneSessions[0].id}:${reconnectNonce}`} session={paneSessions[0]} theme={theme} clearNonce={clearNonce} focusNonce={focusNonce} mobile={sheet} runRequest={runRequest?.sessionId === paneSessions[0].id ? runRequest : null} onOutput={appendOutput} onOpenFile={onOpenFile} />
+                  <TerminalView key={`${paneSessions[0].id}:${reconnectNonce}`} session={paneSessions[0]} theme={theme} clearNonce={clearNonce} focusNonce={focusNonce} mobile={sheet} runRequest={runRequest?.sessionId === paneSessions[0].id ? runRequest : null} onOutput={handleOutput} onOpenFile={onOpenFile} />
                 </Panel>
                 <Separator className="relative w-px bg-separator-border after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2 focus-visible:ring-2 focus-visible:ring-border-focus-ring" />
                 <Panel defaultSize="50" minSize="20">
-                  <TerminalView key={`${paneSessions[1].id}:${reconnectNonce}`} session={paneSessions[1]} theme={theme} clearNonce={clearNonce} focusNonce={focusNonce} mobile={sheet} runRequest={runRequest?.sessionId === paneSessions[1].id ? runRequest : null} onOutput={appendOutput} onOpenFile={onOpenFile} />
+                  <TerminalView key={`${paneSessions[1].id}:${reconnectNonce}`} session={paneSessions[1]} theme={theme} clearNonce={clearNonce} focusNonce={focusNonce} mobile={sheet} runRequest={runRequest?.sessionId === paneSessions[1].id ? runRequest : null} onOutput={handleOutput} onOpenFile={onOpenFile} />
                 </Panel>
               </Group>
             ) : (
               <div className="min-h-0 flex-1">
-                {paneSessions[0] ? <TerminalView key={`${paneSessions[0].id}:${reconnectNonce}`} session={paneSessions[0]} theme={theme} clearNonce={clearNonce} focusNonce={focusNonce} mobile={sheet} runRequest={runRequest?.sessionId === paneSessions[0].id ? runRequest : null} onOutput={appendOutput} onOpenFile={onOpenFile} /> : <div className="flex h-full items-center justify-center text-caption-1-regular text-text-secondary">Nenhum terminal aberto.</div>}
+                {paneSessions[0] ? <TerminalView key={`${paneSessions[0].id}:${reconnectNonce}`} session={paneSessions[0]} theme={theme} clearNonce={clearNonce} focusNonce={focusNonce} mobile={sheet} runRequest={runRequest?.sessionId === paneSessions[0].id ? runRequest : null} onOutput={handleOutput} onOpenFile={onOpenFile} /> : <div className="flex h-full items-center justify-center text-caption-1-regular text-text-secondary">Nenhum terminal aberto.</div>}
               </div>
             )}
             {sessions.length > 1 && (

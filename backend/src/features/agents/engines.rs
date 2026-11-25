@@ -152,24 +152,106 @@ pub fn find_binary(binary: &str) -> Option<PathBuf> {
     candidates.into_iter().find(|path| executable(path))
 }
 
-pub fn list() -> Vec<Value> {
-    ENGINES
-        .iter()
-        .map(|engine| {
-            let path = find_binary(engine.binary);
-            json!({
-                "id": engine.id,
-                "label": engine.label,
-                "binary": engine.binary,
-                "installed": path.is_some(),
-                "path": path.map(|path| path.display().to_string()),
-                "login": engine.login,
-                "install": engine.install,
-                "site": engine.site,
-                "supported": engine.supported,
-            })
-        })
-        .collect()
+fn home_dir() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("USERPROFILE").map(PathBuf::from))
+}
+
+fn file_has_content(path: &Path) -> bool {
+    path.metadata()
+        .map(|metadata| metadata.is_file() && metadata.len() > 2)
+        .unwrap_or(false)
+}
+
+/// OpenCode V2 keeps the OAuth credential in its own SQLite store. Reading it
+/// directly is faster and survives restarts better than shelling out to the
+/// CLI, and the query is read-only so it never interferes with a login.
+async fn opencode_has_credential(path: &Path) -> bool {
+    use sqlx::sqlite::{SqliteConnectOptions, SqliteConnection};
+    use sqlx::Connection;
+
+    let options = SqliteConnectOptions::new()
+        .filename(path)
+        .read_only(true)
+        .busy_timeout(Duration::from_millis(500));
+    let Ok(mut connection) = SqliteConnection::connect_with(&options).await else {
+        return false;
+    };
+    let found = sqlx::query(
+        "SELECT 1 FROM credential WHERE integration_id = 'opencode' AND COALESCE(active, 1) = 1 LIMIT 1",
+    )
+    .fetch_optional(&mut connection)
+    .await
+    .map(|row| row.is_some())
+    .unwrap_or(false);
+    let _ = connection.close().await;
+    found
+}
+
+async fn is_logged_in(engine: &Engine) -> bool {
+    let Some(home) = home_dir() else {
+        return false;
+    };
+    let has_any = |paths: &[PathBuf]| paths.iter().any(|path| file_has_content(path));
+    match engine.id {
+        "opencode" => {
+            for path in [
+                home.join(".local/share/opencode/opencode.db"),
+                home.join(".opencode/opencode.db"),
+            ] {
+                if path.exists() && opencode_has_credential(&path).await {
+                    return true;
+                }
+            }
+            has_any(&[
+                home.join(".local/share/opencode/auth.json"),
+                home.join(".config/opencode/auth.json"),
+                home.join(".opencode/auth.json"),
+            ])
+        }
+        "codex" => has_any(&[home.join(".codex/auth.json")]),
+        "claude" => has_any(&[
+            home.join(".claude/.credentials.json"),
+            home.join(".claude/credentials.json"),
+        ]),
+        "gemini" => has_any(&[
+            home.join(".gemini/oauth_creds.json"),
+            home.join(".gemini/google_accounts.json"),
+        ]),
+        "antigravity" => has_any(&[
+            home.join(".gemini/oauth_creds.json"),
+            home.join(".config/antigravity/auth.json"),
+            home.join(".antigravity/auth.json"),
+        ]),
+        "cursor" => has_any(&[
+            home.join(".cursor-agent/auth.json"),
+            home.join(".config/cursor-agent/auth.json"),
+        ]),
+        "grok" => has_any(&[home.join(".grok/auth.json")]),
+        _ => false,
+    }
+}
+
+pub async fn list() -> Vec<Value> {
+    let mut engines = Vec::with_capacity(ENGINES.len());
+    for engine in ENGINES {
+        let path = find_binary(engine.binary);
+        let logged_in = path.is_some() && is_logged_in(engine).await;
+        engines.push(json!({
+            "id": engine.id,
+            "label": engine.label,
+            "binary": engine.binary,
+            "installed": path.is_some(),
+            "path": path.map(|path| path.display().to_string()),
+            "loggedIn": logged_in,
+            "login": engine.login,
+            "install": engine.install,
+            "site": engine.site,
+            "supported": engine.supported,
+        }));
+    }
+    engines
 }
 
 pub(crate) async fn version(path: &Path) -> Option<String> {
