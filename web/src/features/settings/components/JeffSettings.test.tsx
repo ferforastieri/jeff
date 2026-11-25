@@ -46,7 +46,7 @@ describe("JeffSettings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Harness" }));
     expect(await screen.findByTestId("engine-settings")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Conectores" }));
+    fireEvent.click(screen.getByRole("button", { name: "MCPs" }));
     expect(await screen.findByTestId("connectors-settings")).toBeInTheDocument();
 
     expect(screen.queryByRole("button", { name: "Layout e ferramentas" })).not.toBeInTheDocument();

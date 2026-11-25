@@ -74,8 +74,7 @@ interface NavItem {
 
 /** The configuration destinations of the workspace menu, in the order of the print. */
 const SETTINGS_ITEMS: { section: Section; label: string; icon: IconName }[] = [
-  { section: "ai", label: "IA", icon: "agent" },
-  { section: "connectors", label: "Conectores", icon: "link" },
+  { section: "connectors", label: "MCPs", icon: "link" },
   { section: "skills", label: "Skills", icon: "routines" },
   { section: "harness", label: "Harness", icon: "plug" },
   { section: "workspace", label: "Configurações do workspace", icon: "drive" },
@@ -600,11 +599,11 @@ export default function Workspace({ status }: Props) {
   }, [view, agentOpen, agentEdit, loadAIModels]);
 
   useEffect(() => {
-    if (localStorage.getItem("jeff_open_ai_settings") !== "1") return;
-    localStorage.removeItem("jeff_open_ai_settings");
-    setSettingsSection("ai");
+    if (localStorage.getItem("jeff_open_harness_settings") !== "1") return;
+    localStorage.removeItem("jeff_open_harness_settings");
+    setSettingsSection("harness");
     changeView("settings");
-    // Run once after onboarding hands the user to the connection page.
+    // Run once after onboarding hands the user to the harness page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1734,7 +1733,7 @@ export default function Workspace({ status }: Props) {
                   teamName={status.teamName}
                   aiReady={aiModels.length > 0}
                   aiModelCount={aiModels.length}
-                  onConnect={() => openSettingsScreen("ai")}
+                  onConnect={() => openSettingsScreen("harness")}
                   onInvite={() => setInviteOpen(true)}
                   onSettings={() => openSettingsScreen("connectors")}
                 />
@@ -2265,7 +2264,7 @@ export default function Workspace({ status }: Props) {
                         disabled={aiModelsLoading}
                         onClick={() => {
                           setAgentOpen(false);
-                          openSettingsScreen("ai");
+                          openSettingsScreen("harness");
                         }}
                       >
                         {aiModelsLoading ? "Carregando…" : "Conectar IA"}
@@ -2428,7 +2427,7 @@ export default function Workspace({ status }: Props) {
         models={aiModels}
         onConnect={() => {
           setAgentEdit(null);
-          openSettingsScreen("ai");
+          openSettingsScreen("harness");
         }}
         onClose={() => setAgentEdit(null)}
         onSaved={(updated) => {

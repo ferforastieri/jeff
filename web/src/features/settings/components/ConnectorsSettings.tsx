@@ -287,9 +287,9 @@ export default function ConnectorsSettings() {
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h4 className="text-body-medium text-text-primary">Serviços</h4>
+          <h4 className="text-body-medium text-text-primary">Servidores MCP</h4>
           <p className="mt-0.5 max-w-2xl text-caption-1-regular text-text-secondary">
-            Conecte serviços uma vez. Todos os conectores ficam disponíveis para o Jeff em qualquer repo e são passados ao harness como ferramentas MCP.
+            Conecte ferramentas MCP uma vez. Elas ficam disponíveis para o Jeff em qualquer repo.
           </p>
         </div>
         <Button variant="ghost" size="small" leadingIcon={RefreshCw} onClick={() => void load()} disabled={loading}>

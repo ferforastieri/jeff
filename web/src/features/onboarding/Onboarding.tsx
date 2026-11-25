@@ -214,7 +214,7 @@ export default function Onboarding({ status, onDone }: Props) {
         avatar: avatarPayload,
         workspaceLogo: workspaceLogo ?? "",
       });
-      if (openConnections) localStorage.setItem("jeff_open_ai_settings", "1");
+      if (openConnections) localStorage.setItem("jeff_open_harness_settings", "1");
       onDone();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível concluir.");
@@ -454,7 +454,7 @@ export default function Onboarding({ status, onDone }: Props) {
                   </div>
                 </div>
                 <p className="jeff-ai__note">
-                  Estes modelos vêm das IAs já conectadas ao Jeff. Troque quando quiser em Configurações → IA.
+                  Estes modelos vêm dos harnesses já conectados. Troque quando quiser em Configurações → Harness.
                 </p>
               </>
             ) : (
@@ -462,11 +462,11 @@ export default function Onboarding({ status, onDone }: Props) {
                 <Icon name="agent" size={20} className="mx-auto text-text-tertiary" />
                 <strong className="mt-2 block text-body-medium text-text-primary">Nenhuma IA conectada ainda.</strong>
                 <p className="mx-auto mt-1 max-w-md text-caption-1-regular text-text-secondary">
-                  Conecte sua assinatura ou uma chave de API na página de conexões. O Jeff lista os modelos automaticamente.
+                  Conecte um CLI na página Harness. O Jeff lista os modelos automaticamente.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                   <Button variant="default" size="sm" onClick={() => void finish(true)}>
-                    Concluir e abrir conexões
+                    Concluir e abrir Harness
                   </Button>
                   <Button variant="link" onClick={() => setStep(4)}>
                     Conectar depois
