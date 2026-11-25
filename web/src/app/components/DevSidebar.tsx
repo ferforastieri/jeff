@@ -491,6 +491,7 @@ export default function DevSidebar({
           <strong>{userName}</strong>
           <small>
             <span className="ws-online-dot" aria-hidden="true" />
+            Online
           </small>
         </span>
         <div className="ws-user-actions">

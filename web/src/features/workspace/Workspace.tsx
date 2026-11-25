@@ -1553,6 +1553,7 @@ export default function Workspace({ status }: Props) {
                   <strong>{userName}</strong>
                   <small data-status={userStatus}>
                     <span className="ws-online-dot" aria-hidden="true" />
+                    {MEMBER_STATUS_LABEL[userStatus]}
                   </small>
                 </span>
               </button>
