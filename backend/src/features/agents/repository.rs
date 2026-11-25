@@ -121,7 +121,7 @@ impl Repository {
             "SELECT m.role,m.content_text,m.display FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id \
              WHERE s.user_id=$1 AND s.project_id=$2 AND s.chat_id=$3 AND s.archived=0 \
                AND m.role IN ('user','assistant') AND m.content_text<>'' \
-               AND COALESCE((json_extract(m.display,'$.hidden'))::bigint,0)=0 \
+               AND COALESCE(m.display::jsonb->>'hidden','false') <> 'true' \
                AND ($4 IS NULL OR m.created_at<$5) \
              ORDER BY m.seq DESC LIMIT $6",
         )
@@ -529,7 +529,7 @@ impl Repository {
             "SELECT m.id,m.session_id,s.chat_id,s.agent_id,m.role,substr(m.content_text,1,400) AS text,m.created_at \
              FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id \
              WHERE s.user_id=$1 AND s.project_id=$2 AND m.role IN ('user','assistant') AND m.content_text<>'' \
-               AND COALESCE((json_extract(m.display,'$.hidden'))::bigint,0)=0 \
+               AND COALESCE(m.display::jsonb->>'hidden','false') <> 'true' \
                AND instr(lower(m.content_text), lower($3))>0 \
              ORDER BY m.seq DESC LIMIT $4",
         )
@@ -584,7 +584,7 @@ impl Repository {
         chat: &str,
         before: Option<i64>,
     ) -> AppResult<Value> {
-        let rows=sqlx::query("SELECT m.seq,m.display FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id WHERE s.user_id=$1 AND s.project_id=$2 AND s.chat_id=$3 AND s.archived=0 AND COALESCE((json_extract(m.display,'$.hidden'))::bigint,0)=0 AND ($4 IS NULL OR m.seq<$5) ORDER BY m.seq DESC LIMIT 161")
+        let rows=sqlx::query("SELECT m.seq,m.display FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id WHERE s.user_id=$1 AND s.project_id=$2 AND s.chat_id=$3 AND s.archived=0 AND COALESCE(m.display::jsonb->>'hidden','false') <> 'true' AND ($4 IS NULL OR m.seq<$5) ORDER BY m.seq DESC LIMIT 161")
             .bind(user).bind(project).bind(chat).bind(before).bind(before).fetch_all(self.0.pool()).await?;
         let more = rows.len() > 160;
         let mut items = Vec::new();

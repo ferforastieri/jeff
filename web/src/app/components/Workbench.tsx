@@ -2,7 +2,7 @@ import { useProjectStream } from "../../features/projects/hooks/useProjectStream
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { Bot, ChevronDown, X } from "@jeff/icons";
-import { api, getApiBase, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
+import { api, getApiBase, type OnboardingStatus, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
 import { useApp, type Sidebar, type Tab } from "../store";
 import { chatDisplayName, latestChatForJeff, useChats, type ProjectChats, type JeffChat } from "../../features/conversations/store";
@@ -35,6 +35,7 @@ import { ensureSingleJeff, ensureJeff } from "../../features/agents/default-jeff
 import { suggestGitChanges } from "../../features/git/ai";
 import { parseGitStatus } from "../../features/git/status";
 import DevSidebar from "./DevSidebar";
+import { roomsApi, type Principal } from "../../features/rooms/api";
 
 const MobileApp = lazy(() => import("../layouts/mobile/MobileApp"));
 const ExplorerPanel = lazy(() => import("../../features/explorer/components/ExplorerPanel"));
@@ -148,6 +149,8 @@ export default function Workbench() {
   const loadedProject = useRef<string | null>(null);
   const [projectEpoch, setProjectEpoch] = useState(0);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [workspace, setWorkspace] = useState<OnboardingStatus | null>(null);
+  const [workspaceBots, setWorkspaceBots] = useState<Principal[]>([]);
   const forceJeffsOnLoad = useRef(false);
   const mobile = useIsMobile();
 
@@ -544,6 +547,13 @@ export default function Workbench() {
     setTabs(kept, nextActive);
   }, [activeProjectId, chatsHydrated, tabs, activeTabId, setTabs]);
 
+
+  useEffect(() => {
+    let cancelled = false;
+    void api.onboarding().then((status) => { if (!cancelled) setWorkspace(status); }).catch(() => undefined);
+    void roomsApi.principals().then((result) => { if (!cancelled) setWorkspaceBots(result.bots); }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1112,6 +1122,16 @@ export default function Workbench() {
             onQuickOpen={() => setQuickOpenToken((current) => current + 1)}
             collapsed={sidebarCollapsed}
             onCollapse={setSidebarCollapsed}
+            workspace={workspace}
+            workspaceBots={workspaceBots.map(({ id, name, avatar }) => ({ id, name, avatar }))}
+            onWorkspaceInvite={() => {
+              localStorage.setItem("jeff_open_invite", "1");
+              window.location.assign(window.location.pathname);
+            }}
+            onWorkspaceSettings={(section) => {
+              localStorage.setItem("jeff_open_settings_section", section);
+              window.location.assign(window.location.pathname);
+            }}
           />
         </div>
 

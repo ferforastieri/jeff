@@ -1,6 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type RefObject } from "react";
-import { MenuOverlay, MenuOverlayGroup, MenuOverlayItem } from "@jeff/ui";
-import { JeffSky } from "@jeff/ui/kit";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Avatar,
   Button,
@@ -28,7 +26,7 @@ import {
   type IconName,
   type PersonRecipe,
 } from "faang-ui";
-import { api, getApiBase, probeServer, setApiBase, type OnboardingStatus, type Project, type Repository, type User } from "../../shared/api";
+import { api, type OnboardingStatus, type Project, type Repository, type User } from "../../shared/api";
 import { useApp } from "../../app/store";
 import { SettingsView, type Section } from "../settings/components/JeffSettings";
 import {
@@ -44,6 +42,7 @@ import { PersonFace } from "../onboarding/PersonFace";
 import { modelSelectOptions, useAI } from "../providers/store";
 import Board from "../rooms/Board";
 import AgentComposerControls from "./AgentComposerControls";
+import WorkspaceMenu, { WorkspaceMenuSky } from "./WorkspaceMenu";
 import HomeDashboard from "./HomeDashboard";
 import { EditAgentDialog, EditPersonDialog, InviteUserDialog } from "./TeamDialogs";
 import WorkspaceSearch from "./WorkspaceSearch";
@@ -71,14 +70,6 @@ interface NavItem {
   icon: IconName;
   view: View;
 }
-
-/** The configuration destinations of the workspace menu, in the order of the print. */
-const SETTINGS_ITEMS: { section: Section; label: string; icon: IconName }[] = [
-  { section: "connectors", label: "MCPs", icon: "link" },
-  { section: "skills", label: "Skills", icon: "routines" },
-  { section: "harness", label: "Harness", icon: "plug" },
-  { section: "workspace", label: "Configurações do workspace", icon: "drive" },
-];
 
 const NAV_ITEMS: NavItem[] = [
   { id: "home", label: "Início", icon: "home", view: "home" },
@@ -609,6 +600,21 @@ export default function Workspace({ status }: Props) {
     setSettingsSection("harness");
     changeView("settings");
     // Run once after onboarding hands the user to the harness page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const section = localStorage.getItem("jeff_open_settings_section");
+    if (section && ["general", "skills", "connectors", "harness", "workspace"].includes(section)) {
+      localStorage.removeItem("jeff_open_settings_section");
+      setSettingsSection(section as Section);
+      changeView("settings");
+    }
+    if (localStorage.getItem("jeff_open_invite") === "1") {
+      localStorage.removeItem("jeff_open_invite");
+      setInviteOpen(true);
+    }
+    // The dev workspace menu hands these actions back to the Slack shell.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -2411,7 +2417,7 @@ export default function Workspace({ status }: Props) {
         teamName={status.teamName || "Seu workspace"}
         workspaceLogo={workspaceLogo}
         memberCount={status.memberCount}
-        bots={bots}
+        botFaces={bots.map((bot) => ({ id: bot.id, face: faceOf(bot, 20) }))}
         userName={userName}
         user={user}
         isAdmin={status.isAdmin}
@@ -2454,201 +2460,11 @@ export default function Workspace({ status }: Props) {
   );
 }
 
-interface WorkspaceMenuProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  anchor: RefObject<HTMLButtonElement | null>;
-  teamName: string;
-  workspaceLogo: string;
-  memberCount: number;
-  bots: Principal[];
-  userName: string;
-  user: User | null;
-  isAdmin: boolean;
-  onInvite: () => void;
-  onSettings: (section: Section) => void;
-}
-
-/**
- * The workspace menu of the inspiration: the header card grows into a full
- * screen overlay, the app behind blurs, and the rows lead to the settings
- * screens. The workspace's own identity is the header, never an option.
- */
-function WorkspaceMenu({
-  open,
-  onOpenChange,
-  anchor,
-  teamName,
-  workspaceLogo,
-  memberCount,
-  bots,
-  userName,
-  user,
-  isAdmin,
-  onInvite,
-  onSettings,
-}: WorkspaceMenuProps) {
-  const membersWord = memberCount === 1 ? "membro" : "membros";
-  const agentsWord = bots.length === 1 ? "agente" : "agentes";
-  const summary = `${memberCount} ${membersWord} · ${bots.length} ${agentsWord}`;
-
-  return (
-    <MenuOverlay
-      open={open}
-      onOpenChange={onOpenChange}
-      anchor={anchor}
-      closeLabel="Fechar menu"
-      mark={<img className="ws-menu-mark" src={workspaceLogo} alt="" draggable={false} />}
-      title={teamName}
-      meta={
-        <>
-          <span>{summary}</span>
-          {bots.length > 0 ? (
-            <span className="ws-menu-crew">
-              {bots.slice(0, 4).map((bot) => (
-                <span className="ws-menu-face" key={bot.id}>
-                  {faceOf(bot, 20)}
-                </span>
-              ))}
-            </span>
-          ) : null}
-        </>
-      }
-      backdrop={<WorkspaceMenuSky />}
-      action={
-        isAdmin ? (
-          <Button variant="primary" icon="personAdd" onClick={onInvite}>
-            Convidar pessoas
-          </Button>
-        ) : null
-      }
-    >
-      <MenuOverlayGroup label={`Menu do workspace ${teamName}`}>
-        {SETTINGS_ITEMS.map((item) => (
-          <MenuOverlayItem
-            key={item.section}
-            icon={item.icon}
-            onSelect={() => onSettings(item.section)}
-          >
-            {item.label}
-          </MenuOverlayItem>
-        ))}
-      </MenuOverlayGroup>
-
-      <WorkspaceAccount user={user} name={userName} onClose={() => onOpenChange(false)} />
-    </MenuOverlay>
-  );
-}
-
-/** The account's whole General screen, compact and under the menu's options: no scrolling. */
-function WorkspaceAccount({
-  user,
-  name,
-  onClose,
-}: {
-  user: User | null;
-  name: string;
-  onClose: () => void;
-}) {
-  const setUser = useApp((state) => state.setUser);
-  const notify = useApp((state) => state.notify);
-  const [busy, setBusy] = useState(false);
-  const [serverBusy, setServerBusy] = useState(false);
-  const [serverDraft, setServerDraft] = useState(() => getApiBase() || window.location.origin);
-  const [version, setVersion] = useState("");
-  const [buildId, setBuildId] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    void api
-      .version()
-      .then((info) => {
-        if (cancelled) return;
-        setVersion(info.version);
-        setBuildId(info.buildId);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function changeServer(event: FormEvent) {
-    event.preventDefault();
-    setServerBusy(true);
-    try {
-      const base = await probeServer(serverDraft);
-      localStorage.setItem("jeff_server_url", base);
-      setApiBase(base);
-      window.location.reload();
-    } catch (error) {
-      notify("error", error instanceof Error ? error.message : "Não foi possível conectar ao servidor.");
-    } finally {
-      setServerBusy(false);
-    }
-  }
-
-  async function logout() {
-    setBusy(true);
-    try {
-      await api.logout();
-      onClose();
-      setUser(null);
-    } catch (error) {
-      notify("error", error instanceof Error ? error.message : "Não foi possível sair.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section className="ac-menu ac-mo__group ws-menu-account" aria-label="Sua conta">
-      <span className="ac-menu__heading">Sua conta</span>
-      <div className="ws-account-row">
-        <span className="ws-account-row__label">Usuário</span>
-        <span className="ws-account-row__value">{user?.username || name}</span>
-      </div>
-      <form className="ws-account-server" onSubmit={(event) => void changeServer(event)}>
-        <span className="ws-account-row__label">Servidor</span>
-        <span className="ws-account-server__row">
-          <Input
-            value={serverDraft}
-            onChange={(event) => setServerDraft(event.target.value)}
-            aria-label="URL do servidor"
-            placeholder="https://seu-servidor"
-          />
-          <Button type="submit" size="sm" disabled={serverBusy || !serverDraft.trim()}>
-            {serverBusy ? "Verificando…" : "Aplicar"}
-          </Button>
-        </span>
-      </form>
-      <div className="ws-account-row">
-        <span className="ws-account-row__label">Versão</span>
-        <span className="ws-account-row__value">{version ? `v${version}` : "—"}</span>
-      </div>
-      <div className="ws-account-row">
-        <span className="ws-account-row__label">Build</span>
-        <span className="ws-account-row__value">{buildId || "—"}</span>
-      </div>
-      <div className="ws-account-row ws-account-row--end">
-        <span className="ws-account-row__label">Sair da conta</span>
-        <Button variant="danger" size="sm" icon="power" disabled={busy} onClick={() => void logout()}>
-          {busy ? "Saindo…" : "Sair"}
-        </Button>
-      </div>
-    </section>
-  );
-}
-
 /**
  * The quiet sky of the cards that hold a Jeff (the new agent's cover): the same
  * Jeffs of the welcome and onboarding pages, drifting in the lower band with
  * their eyes following the pointer.
  */
-function WorkspaceMenuSky() {
-  return <JeffSky srcFor={(name) => `${import.meta.env.BASE_URL}jeffs/${name}.png`} />;
-}
-
 function channelInitials(name: string) {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return "#";

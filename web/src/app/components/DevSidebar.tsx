@@ -1,16 +1,14 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Avatar,
   Button,
   Icon,
   Kbd,
   ListRow,
-  Menu,
-  MenuItem,
   type IconName,
 } from "faang-ui";
 import { cx } from "@jeff/ui";
-import type { Project, User } from "../../shared/api";
+import type { OnboardingStatus, Project, User } from "../../shared/api";
 import type { Sidebar } from "../store";
 import { featureEnabled, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import ProjectMonogram from "../../features/projects/components/ProjectMonogram";
@@ -20,6 +18,8 @@ import SidebarJeffs from "../../shared/ui/SidebarJeffs";
 import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import NotificationBell from "../../features/notifications/components/NotificationBell";
 import { usePrefs } from "../../shared/prefs";
+import WorkspaceMenu from "../../features/workspace/WorkspaceMenu";
+import BotAvatar from "../../features/agents/components/BotAvatar";
 import { animateReorder } from "../../shared/ui/animateReorder";
 
 interface Tool {
@@ -67,6 +67,10 @@ export interface DevSidebarProps {
   onQuickOpen: () => void;
   collapsed: boolean;
   onCollapse: (collapsed: boolean) => void;
+  workspace: OnboardingStatus | null;
+  workspaceBots: Array<{ id: string; name: string; avatar: Record<string, unknown> }>;
+  onWorkspaceInvite: () => void;
+  onWorkspaceSettings: (section: string) => void;
 }
 
 
@@ -98,7 +102,13 @@ export default function DevSidebar({
   onQuickOpen,
   collapsed,
   onCollapse,
+  workspace,
+  workspaceBots,
+  onWorkspaceInvite,
+  onWorkspaceSettings,
 }: DevSidebarProps) {
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const workspaceMenuTrigger = useRef<HTMLButtonElement>(null);
   const features = useSettings((state) => state.workspaceFeatures);
   const [openRepos, setOpenRepos] = useState(true);
   const prefs = usePrefs((state) => state.prefs);
@@ -267,39 +277,41 @@ export default function DevSidebar({
   return (
     <aside className="ws-sidebar dev-sidebar dev-workbench__side">
       <SidebarJeffs />
-      <Menu
-        align="start"
-        label="Menu do projeto"
-        trigger={
-          <button
-            type="button"
-            className="ws-workspace"
-            aria-haspopup="menu"
-            aria-label={`Menu do projeto ${project?.name || "Dev"}`}
-          >
-            <span className="ws-workspace-mark dev-workspace-mark">
-              <ProjectMonogram project={markProject} size={26} />
-            </span>
-            <span className="ws-workspace-title">
-              <strong>{project?.name || "Dev"}</strong>
-              <small>modo dev{branch ? ` · ${branch}` : ""}</small>
-            </span>
-            <Icon name="chevronDown" size={16} />
-          </button>
-        }
+      <button
+        ref={workspaceMenuTrigger}
+        type="button"
+        className="ws-workspace"
+        aria-haspopup="dialog"
+        aria-expanded={workspaceMenuOpen}
+        aria-label={`Menu do workspace ${workspace?.teamName || "Seu workspace"}`}
+        onClick={() => setWorkspaceMenuOpen(true)}
       >
-        <MenuItem icon="message" onSelect={onBack}>
-          Voltar ao Slack
-        </MenuItem>
-        <MenuItem icon="repo" onSelect={onOpenRepoPicker}>
-          Abrir repo…
-        </MenuItem>
-        {project ? (
-          <MenuItem icon="close" onSelect={() => onCloseProject(project.id)}>
-            Fechar {project.name}
-          </MenuItem>
-        ) : null}
-      </Menu>
+        <span className="ws-workspace-mark">
+          <img src={`${import.meta.env.BASE_URL}brand/jeff-mark.png`} alt="" draggable={false} />
+        </span>
+        <span className="ws-workspace-title">
+          <strong>{workspace?.teamName || "Seu workspace"}</strong>
+          <small>modo dev{branch ? ` · ${branch}` : ""}</small>
+        </span>
+        <Icon name="chevronDown" size={16} />
+      </button>
+      <WorkspaceMenu
+        open={workspaceMenuOpen}
+        onOpenChange={setWorkspaceMenuOpen}
+        anchor={workspaceMenuTrigger}
+        teamName={workspace?.teamName || "Seu workspace"}
+        workspaceLogo={workspace?.workspaceLogo || `${import.meta.env.BASE_URL}brand/jeff-mark.png`}
+        memberCount={workspace?.memberCount ?? 1}
+        botFaces={workspaceBots.map((bot) => ({
+          id: bot.id,
+          face: <BotAvatar bot={{ name: bot.name, color: "#0063D1", avatar: bot.avatar as never }} size={20} />,
+        }))}
+        userName={user?.displayName || user?.username || "você"}
+        user={user}
+        isAdmin={workspace?.isAdmin ?? false}
+        onInvite={onWorkspaceInvite}
+        onSettings={(section) => onWorkspaceSettings(section)}
+      />
 
       <div className="ws-search">
         <div className="ws-search-row">
