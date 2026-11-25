@@ -15,6 +15,7 @@ import { useApp } from "../../../app/store";
 import { cx, PixelSpinner } from "@jeff/ui";
 import { Button, Input, Select, SelectItem } from "@jeff/ui/app";
 import ProviderIcon from "../../providers/components/ProviderIcon";
+import GitSettings from "./GitSettings";
 
 interface EnvField {
   key: string;
@@ -284,10 +285,11 @@ export default function ConnectorsSettings() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-8">
+      <GitSettings />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h4 className="text-body-medium text-text-primary">Servidores MCP</h4>
+          <h3 className="flex items-center gap-2 text-body-medium text-text-primary"><Server size={16} /> Servidores MCP</h3>
           <p className="mt-0.5 max-w-2xl text-caption-1-regular text-text-secondary">
             Conecte ferramentas MCP uma vez. Elas ficam disponíveis para o Jeff em qualquer repo.
           </p>

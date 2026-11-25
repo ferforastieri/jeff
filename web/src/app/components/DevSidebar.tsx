@@ -288,6 +288,9 @@ export default function DevSidebar({
           </button>
         }
       >
+        <MenuItem icon="message" onSelect={onBack}>
+          Voltar ao Slack
+        </MenuItem>
         <MenuItem icon="repo" onSelect={onOpenRepoPicker}>
           Abrir repo…
         </MenuItem>
@@ -314,18 +317,6 @@ export default function DevSidebar({
               </span>
             }
           />
-          {featureEnabled(features, "terminal") ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              iconOnly
-              icon="code"
-              className={terminalOpen ? "is-active" : ""}
-              aria-label={terminalOpen ? "Fechar terminal" : "Abrir terminal"}
-              title={terminalOpen ? "Fechar terminal" : "Abrir terminal"}
-              onClick={onTerminal}
-            />
-          ) : null}
           <Button
             variant="ghost"
             size="sm"
@@ -500,7 +491,6 @@ export default function DevSidebar({
           <strong>{userName}</strong>
           <small>
             <span className="ws-online-dot" aria-hidden="true" />
-            Online
           </small>
         </span>
         <div className="ws-user-actions">

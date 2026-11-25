@@ -188,6 +188,22 @@ impl AiService {
     }
 
     pub async fn resolve(&self, requested: &str) -> AppResult<AiConfig> {
+        // Harness models keep their provider in the id (opencode-go/model).
+        // Only a `connection::model` reference asks for a native API connection.
+        if !requested.contains("::") {
+            if let Some((provider, _)) = requested.split_once('/') {
+                let claimed = self
+                    .connections()
+                    .await?
+                    .iter()
+                    .any(|connection| connection.id == provider);
+                if !claimed {
+                    let mut config = self.load().await?;
+                    config.model = requested.to_string();
+                    return Ok(config);
+                }
+            }
+        }
         let (id, model) = requested.split_once("::").unwrap_or(("default", requested));
         let mut config = if id == "default" {
             self.load().await?
@@ -243,7 +259,11 @@ fn migrate_model_reference(
     };
     match bindings.get(prefix).map(Vec::as_slice) {
         Some([connection]) => Ok(format!("{connection}::{}", &model[prefix.len()..])),
-        _ => Err(bad_request(format!("Reconfigure o modelo {model} deste Jeff: selecione explicitamente a conexão correspondente. Nenhuma outra conexão foi utilizada."))),
+        // No native connection claims this prefix: it is an OpenCode harness
+        // model (opencode-go/..., openai/...). The runtime uses the provider
+        // part directly and must not reinterpret it as a missing connection.
+        None => Ok(model.into()),
+        Some(_) => Err(bad_request(format!("Reconfigure o modelo {model} deste Jeff: há mais de uma conexão compatível. Selecione explicitamente a conexão correspondente."))),
     }
 }
 
@@ -268,9 +288,20 @@ mod reference_tests {
             migrate_model_reference("router::openai/gpt-6-astra", &bindings).unwrap(),
             "router::openai/gpt-6-astra"
         );
-        assert!(
+        // With no native connection, a provider/model id is a harness model
+        // and must stay untouched instead of asking for a nonexistent connection.
+        assert_eq!(
             migrate_model_reference("openai/gpt-6-astra", &std::collections::HashMap::new())
-                .is_err()
+                .unwrap(),
+            "openai/gpt-6-astra"
+        );
+        assert_eq!(
+            migrate_model_reference(
+                "opencode-go/deepseek-v4.1-flash",
+                &std::collections::HashMap::new()
+            )
+            .unwrap(),
+            "opencode-go/deepseek-v4.1-flash"
         );
     }
 
