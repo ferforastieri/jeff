@@ -70,9 +70,14 @@ export default function HarnessSettings({ projectRoot, projectId }: Props) {
   const handleLoginOutput = useCallback((chunk: string) => {
     if (!loginView) return;
     loginBuffer.current = `${loginBuffer.current}${chunk}`.slice(-4000);
-    if (loginBuffer.current.includes("__JEFF_LOGIN_OK__")) {
-      finishLogin(loginView.engine.label);
-    }
+    if (!loginBuffer.current.includes("__JEFF_LOGIN_OK__")) return;
+    // The CLI exited cleanly, but only close after the backend sees the
+    // credential, so the button never reappears after the overlay goes away.
+    void engineApi.list().then((list) => {
+      setEngines(list);
+      const current = list.find((item) => item.id === loginView.engine.id);
+      if (current?.loggedIn) finishLogin(current.label);
+    }).catch(() => undefined);
   }, [finishLogin, loginView]);
 
   // The CLIs write their credential asynchronously (and Gemini keeps its TUI
