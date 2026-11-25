@@ -341,13 +341,18 @@ export default function Workspace({ status }: Props) {
   const agent = useMemo(() => {
     if (!selectedRoom) return bots[0] ?? null;
     if (selectedRoom.kind === "dm") {
-      const bot = selectedRoom.members.find((member) => member.kind === "bot");
+      const member = selectedRoom.members.find((item) => item.kind === "bot");
+      const bot = member ? bots.find((item) => item.id === member.id) ?? member : undefined;
       if (bot) return bot;
     }
     const byLead = selectedRoom.leadId
       ? bots.find((item) => item.id === selectedRoom.leadId)
       : undefined;
-    return byLead ?? selectedRoom.members.find((member) => member.kind === "bot") ?? bots[0] ?? null;
+    const member = selectedRoom.members.find((item) => item.kind === "bot");
+    return byLead
+      ?? (member ? bots.find((item) => item.id === member.id) ?? member : undefined)
+      ?? bots[0]
+      ?? null;
   }, [selectedRoom, bots]);
 
   const userName =
