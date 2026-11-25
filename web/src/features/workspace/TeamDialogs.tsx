@@ -13,9 +13,10 @@ import {
   Switch,
   Textarea,
 } from "faang-ui";
-import { api, type User } from "../../shared/api";
+import { api, type AIModel, type User } from "../../shared/api";
 import { channelsApi, roomsApi, type Principal, type Room } from "../rooms/api";
 import { formatDate } from "../../shared/time";
+import ProviderModelPicker from "../providers/components/ProviderModelPicker";
 
 /** The invite that makes a person's account, with the cargo and how long it works. */
 export function InviteUserDialog({
@@ -316,11 +317,15 @@ export function EditPersonDialog({
 export function EditAgentDialog({
   agent,
   channels,
+  models,
+  onConnect,
   onClose,
   onSaved,
 }: {
   agent: Principal | null;
   channels: Room[];
+  models: AIModel[];
+  onConnect: () => void;
   onClose: () => void;
   onSaved: (bot: Principal) => void;
 }) {
@@ -444,7 +449,23 @@ export function EditAgentDialog({
           </Field>
         </div>
         <Field label="Modelo">
-          <Input value={model} onChange={(event) => setModel(event.target.value)} placeholder="Opcional" />
+          {models.length > 0 ? (
+            <ProviderModelPicker
+              models={models}
+              model={model}
+              onChange={(value) => {
+                setModel(value);
+                const found = models.find((item) => item.id === value);
+                if (found?.engine) setEngine(found.engine);
+              }}
+              placeholder="Escolha um modelo"
+              className="w-full"
+            />
+          ) : (
+            <Button type="button" variant="default" size="sm" onClick={onConnect}>
+              Conectar IA
+            </Button>
+          )}
         </Field>
         <Field label="Canais">
           <div className="ws-member-picker">

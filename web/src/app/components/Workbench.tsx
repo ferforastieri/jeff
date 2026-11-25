@@ -548,7 +548,7 @@ export default function Workbench() {
   useEffect(() => {
     let cancelled = false;
     api
-      .projects()
+      .projects({ includeWorkspace: true })
       .then((items) => {
         if (!cancelled) setProjects(items);
       })

@@ -51,6 +51,9 @@ pub(super) async fn harness_models() -> Json<Value> {
     }
     add(opencode, "opencode", &mut models, &mut seen);
     for engine in ["gemini", "antigravity", "codex", "claude"] {
+        if !crate::features::agents::engines::is_connected(engine).await {
+            continue;
+        }
         let listed = crate::features::agents::engines::models_for(engine).await;
         let items = listed["models"].as_array().cloned().unwrap_or_default();
         add(items, engine, &mut models, &mut seen);

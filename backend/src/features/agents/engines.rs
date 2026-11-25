@@ -189,6 +189,15 @@ async fn opencode_has_credential(path: &Path) -> bool {
     found
 }
 
+/// Whether a harness has a stored credential. Used by the model list so a
+/// picker never offers models from a CLI the user has not connected.
+pub async fn is_connected(id: &str) -> bool {
+    match engine(id) {
+        Ok(engine) => is_logged_in(engine).await,
+        Err(_) => false,
+    }
+}
+
 async fn is_logged_in(engine: &Engine) -> bool {
     let Some(home) = home_dir() else {
         return false;

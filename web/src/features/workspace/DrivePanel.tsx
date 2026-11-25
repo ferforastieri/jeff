@@ -19,6 +19,7 @@ import { api, type FileEntry, type Project } from "../../shared/api";
 import { formatDate } from "../../shared/time";
 import Markdown from "../../shared/Markdown";
 import { usePrefs } from "../../shared/prefs";
+import { useConfirm } from "../../shared/ui/confirm";
 
 type FileKind = "image" | "document" | "code" | "other";
 
@@ -91,6 +92,7 @@ export default function DrivePanel({ project }: Props) {
   const [kinds, setKinds] = useState<string[]>([]);
   const prefs = usePrefs((state) => state.prefs);
   const updatePrefs = usePrefs((state) => state.update);
+  const confirm = useConfirm();
   const view = prefs.driveView === "list" ? "list" : "grid";
   const setView = (next: "grid" | "list") => updatePrefs({ driveView: next });
   const [loading, setLoading] = useState(true);
@@ -192,6 +194,30 @@ export default function DrivePanel({ project }: Props) {
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível criar a pasta.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeEntry(entry: FileEntry) {
+    if (!entry.path) return;
+    const ok = await confirm({
+      title: entry.dir ? "Excluir pasta?" : "Excluir arquivo?",
+      message: entry.dir
+        ? `Excluir ${entry.path} e todo o seu conteúdo? Essa ação não pode ser desfeita.`
+        : `Excluir ${entry.path}? Essa ação não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.deletePath(project.id, entry.path);
+      if (preview?.entry.path === entry.path) setPreview(null);
+      await refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível excluir.");
     } finally {
       setBusy(false);
     }
@@ -393,6 +419,22 @@ export default function DrivePanel({ project }: Props) {
               className="ws-file-card ws-file-card--folder"
               onClick={() => openFolder(entry.name)}
             >
+              <span
+                role="button"
+                tabIndex={0}
+                className="ws-file-card__delete"
+                aria-label={`Excluir ${entry.name}`}
+                title="Excluir pasta"
+                onClick={(event) => { event.stopPropagation(); void removeEntry(entry); }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void removeEntry(entry);
+                }}
+              >
+                <Icon name="trash" size={14} />
+              </span>
               <span className="ws-file-card__cover" data-kind="folder">
                 <Icon name="drive" size={20} />
               </span>
@@ -415,6 +457,22 @@ export default function DrivePanel({ project }: Props) {
                 className="ws-file-card"
                 onClick={() => void openFile(entry)}
               >
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="ws-file-card__delete"
+                  aria-label={`Excluir ${entry.name}`}
+                  title="Excluir arquivo"
+                  onClick={(event) => { event.stopPropagation(); void removeEntry(entry); }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void removeEntry(entry);
+                  }}
+                >
+                  <Icon name="trash" size={14} />
+                </span>
                 <span className="ws-file-card__cover" data-kind={kind}>
                   <Icon name={def.icon} size={20} />
                   <span className="ws-file-card__ext">{extension(entry.name) || "arquivo"}</span>
@@ -441,6 +499,7 @@ export default function DrivePanel({ project }: Props) {
             <span>Tipo</span>
             <span>Tamanho</span>
             <span>Modificado</span>
+            <span />
           </div>
           {[...shownFolders, ...shownFiles].map((entry) => {
             const kind = kindOf(entry.name);
@@ -462,6 +521,24 @@ export default function DrivePanel({ project }: Props) {
                 <span>{entry.dir ? "Pasta" : def.label}</span>
                 <span className="tabular">{entry.dir ? "—" : sizeText(entry.size)}</span>
                 <span>{formatDate(entry.modTime)}</span>
+                <span className="ws-drive-row__actions">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="ws-drive-row__delete"
+                    aria-label={`Excluir ${entry.name}`}
+                    title={entry.dir ? "Excluir pasta" : "Excluir arquivo"}
+                    onClick={(event) => { event.stopPropagation(); void removeEntry(entry); }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      void removeEntry(entry);
+                    }}
+                  >
+                    <Icon name="trash" size={14} />
+                  </span>
+                </span>
               </button>
             );
           })}
@@ -540,6 +617,11 @@ export default function DrivePanel({ project }: Props) {
             ) : undefined
           }
         >
+          {preview ? (
+            <Button variant="ghost" size="sm" icon="trash" onClick={() => void removeEntry(preview.entry)}>
+              Excluir
+            </Button>
+          ) : null}
           <Button variant="default" onClick={() => setPreview(null)}>
             Fechar
           </Button>

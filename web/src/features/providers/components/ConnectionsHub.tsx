@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, CircleAlert, ExternalLink, KeyRound, PlugZap, Save, Server, Trash2, Wrench } from "@jeff/icons";
+import { Check, CircleAlert, ExternalLink, KeyRound, PlugZap, Save, Server, Sparkles, Trash2, Wrench } from "@jeff/icons";
 import { api, type AIConfig } from "../../../shared/api";
-import { useAI } from "../store";
+import { modelGroup, providerLabel, useAI } from "../store";
 import { useApp } from "../../../app/store";
 import { agentApi, type Connection, type McpServer } from "../../agents/api";
 import ProviderIcon from "./ProviderIcon";
@@ -121,6 +121,7 @@ function McpLogo({ id, size = 22 }: { id: string; size?: number }) {
 
 export default function ConnectionsHub({ projectRoot: _projectRoot }: { projectRoot?: string }) {
   const notify = useApp((state) => state.notify);
+  const models = useAI((state) => state.models);
   const loadingModels = useAI((state) => state.loadingModels);
   const modelError = useAI((state) => state.error);
   const loadModels = useAI((state) => state.loadModels);
@@ -151,6 +152,14 @@ export default function ConnectionsHub({ projectRoot: _projectRoot }: { projectR
 
   const mainLabel = main?.connectionLabel || main?.label || "Principal";
   const selectedProvider = modelPreset ?? MODEL_PRESETS[MODEL_PRESETS.length - 1];
+  const modelGroups = useMemo(() => {
+    const grouped = new Map<string, number>();
+    for (const model of models) {
+      const key = modelGroup(model);
+      grouped.set(key, (grouped.get(key) ?? 0) + 1);
+    }
+    return [...grouped.entries()].sort(([a], [b]) => providerLabel(a).localeCompare(providerLabel(b)));
+  }, [models]);
 
   function chooseModel(preset: ModelPreset) {
     setModelPreset(preset);
@@ -343,9 +352,37 @@ export default function ConnectionsHub({ projectRoot: _projectRoot }: { projectR
       {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/5 p-3 text-caption-1-regular text-red-500">{error}</p>}
 
       <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h3 className="flex items-center gap-2 text-body-medium text-text-primary"><Sparkles size={16} /> Modelos conectados</h3>
+            <p className="mt-1 text-caption-1-regular text-text-secondary">Modelos que o Jeff já encontrou nas conexões e nos harnesses deste servidor.</p>
+          </div>
+          <Button type="button" variant="ghost" size="xs" disabled={loadingModels} onClick={() => void loadModels()}>
+            {loadingModels ? "Atualizando…" : "Atualizar"}
+          </Button>
+        </div>
+        {modelGroups.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {modelGroups.map(([provider, count]) => (
+              <span key={provider} className="inline-flex items-center gap-1.5 rounded-full border border-border-button-default bg-background-secondary-default/60 px-2 py-1 text-caption-2-regular text-text-secondary">
+                <ProviderIcon provider={provider} className="size-3.5" />
+                {providerLabel(provider)}
+                <span className="rounded-full bg-background-tertiary-default px-1.5 text-[10px] font-semibold text-text-tertiary">{count}</span>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-xl border border-dashed border-border-button-default px-3 py-3 text-caption-1-regular text-text-secondary">
+            Nenhum modelo conectado ainda. Entre em <strong>Harness</strong> para conectar um CLI ou adicione uma conexão de API abaixo.
+          </p>
+        )}
+        {modelError && <p role="alert" className="text-caption-2-regular text-text-error-primary">{modelError}</p>}
+      </section>
+
+      <section className="flex flex-col gap-3">
         <div>
-          <h3 className="flex items-center gap-2 text-body-medium text-text-primary"><KeyRound size={16} /> Modelos de IA</h3>
-          <p className="mt-1 text-caption-1-regular text-text-secondary">Clique no provedor para conectar com sua API key. A conexão fica disponível para qualquer Jeff.</p>
+          <h3 className="flex items-center gap-2 text-body-medium text-text-primary"><KeyRound size={16} /> Conexões de API</h3>
+          <p className="mt-1 text-caption-1-regular text-text-secondary">Clique no provedor para adicionar uma chave de API. Ela fica disponível para qualquer Jeff.</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {visibleModelPresets.map((preset) => (

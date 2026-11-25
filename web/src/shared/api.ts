@@ -654,8 +654,8 @@ export const api = {
     await request("/auth/logout", { method: "POST", body: JSON.stringify({}) });
   },
 
-  async projects(): Promise<Project[]> {
-    return request<Project[]>("/projects");
+  async projects(options?: { includeWorkspace?: boolean }): Promise<Project[]> {
+    return request<Project[]>(`/projects${options?.includeWorkspace ? "?includeWorkspace=1" : ""}`);
   },
 
   async createProject(name: string, root: string, color: string): Promise<Project> {

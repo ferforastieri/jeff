@@ -4381,6 +4381,42 @@ html:not([data-pointer]) .setup-row__link:focus-visible {
   text-transform: uppercase;
 }
 
+.ws-file-card__delete {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  z-index: 2;
+  display: inline-flex;
+  width: 27px;
+  height: 27px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--glass-solid, var(--raised));
+  box-shadow: 0 0 0 1px var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.ws-file-card:hover .ws-file-card__delete,
+.ws-file-card:focus-within .ws-file-card__delete,
+.ws-file-card__delete:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ws-file-card__delete {
+    opacity: 1;
+  }
+}
+
+.ws-file-card__delete:hover {
+  background: color-mix(in srgb, var(--danger) 12%, var(--raised));
+  color: var(--danger);
+}
+
 .ws-file-card__kind {
   position: absolute;
   top: 15px;
@@ -4440,10 +4476,32 @@ html:not([data-pointer]) .setup-row__link:focus-visible {
 .ws-drive-table__head,
 .ws-drive-row {
   display: grid;
-  grid-template-columns: minmax(0, 2.4fr) 110px 90px 110px;
+  grid-template-columns: minmax(0, 2.4fr) 110px 90px 110px 34px;
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
+}
+
+.ws-drive-row__actions {
+  display: flex;
+  justify-content: center;
+}
+
+.ws-drive-row__delete {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ws-drive-row__delete:hover {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
 }
 
 .ws-drive-table__head {
@@ -4818,10 +4876,11 @@ html:not([data-pointer]) .setup-row__link:focus-visible {
   }
 
   .ws-drive-row {
-    grid-template-columns: minmax(0, 1fr) 80px;
+    grid-template-columns: minmax(0, 1fr) 34px;
   }
 
   .ws-drive-row > :nth-child(2),
+  .ws-drive-row > :nth-child(3),
   .ws-drive-row > :nth-child(4) {
     display: none;
   }

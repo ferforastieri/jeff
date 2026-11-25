@@ -16,8 +16,9 @@ const WorkspaceSettings = lazy(() => import("./WorkspaceSettings"));
 const SkillsPanel = lazy(() => import("../../skills/components/SkillsPanel"));
 const HarnessSettings = lazy(() => import("./HarnessSettings"));
 const ConnectorsSettings = lazy(() => import("./ConnectorsSettings"));
+const ConnectionsHub = lazy(() => import("../../providers/components/ConnectionsHub"));
 
-export type Section = "general" | "skills" | "connectors" | "harness" | "workspace";
+export type Section = "general" | "ai" | "skills" | "connectors" | "harness" | "workspace";
 
 interface Props {
   user: User | null;
@@ -36,6 +37,7 @@ interface SectionItem {
 /** The list of Settings sections, the Jeffs settings' own left column. */
 const sections: SectionItem[] = [
   { id: "general", label: "Geral", icon: "person" },
+  { id: "ai", label: "IA", icon: "agent" },
   { id: "skills", label: "Skills", icon: "routines" },
   { id: "connectors", label: "Conectores", icon: "link" },
   { id: "harness", label: "Harness", icon: "plug" },
@@ -44,6 +46,7 @@ const sections: SectionItem[] = [
 
 const copy: Record<Section, { title: string; meta: string }> = {
   general: { title: "Geral", meta: "Sua conta, o servidor e o que o Jeff usa." },
+  ai: { title: "IA", meta: "Modelos conectados e as chaves que o Jeff usa em todos os projetos." },
   skills: { title: "Skills", meta: "Receitas globais que o Jeff lê sob demanda." },
   connectors: { title: "Conectores", meta: "Serviços que o Jeff usa em todos os repos, por API token ou MCP." },
   harness: { title: "Harness", meta: "O CLI conduz o loop do agente; o Jeff entrega contexto, ferramentas, permissões e aprovações." },
@@ -229,6 +232,8 @@ export function SettingsView({
                 />
               </Card>
             </>
+          ) : section === "ai" ? (
+            <Card padded><ConnectionsHub projectRoot={projectRoot} /></Card>
           ) : section === "skills" ? (
             <Card padded><SkillsPanel projectId={projectId} /></Card>
           ) : section === "connectors" ? (

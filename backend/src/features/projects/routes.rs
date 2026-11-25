@@ -70,20 +70,33 @@ pub(super) struct ProjectRequest {
 pub(super) async fn list_projects(
     State(state): State<Arc<AppState>>,
     Extension(auth): Extension<AuthContext>,
+    Query(query): Query<HashMap<String, String>>,
 ) -> AppResult<Json<Vec<Project>>> {
-    let workspace = state
-        .store
-        .workspace_project()
-        .await
-        .map(|project| project.id)
+    // The Slack shell hides the workspace project from the picker; the dev
+    // workbench asks for it because that project *is* the repo being edited.
+    let include_workspace = matches!(
+        query.get("includeWorkspace").map(String::as_str),
+        Some("1" | "true")
+    );
+    let workspace = state.store.workspace_project().await.ok();
+    let workspace_id = workspace
+        .as_ref()
+        .map(|project| project.id.clone())
         .unwrap_or_default();
-    let projects = state
+    let mut projects = state
         .store
         .list_projects_for(auth.user.id, auth.user.is_admin())
-        .await?
-        .into_iter()
-        .filter(|project| project.id != workspace)
-        .collect();
+        .await?;
+    if include_workspace {
+        // The shared workspace project is not in project_members; it belongs
+        // to the whole workspace, so dev mode always opens it first.
+        if let Some(project) = workspace {
+            projects.retain(|item| item.id != project.id);
+            projects.insert(0, project);
+        }
+    } else {
+        projects.retain(|project| project.id != workspace_id);
+    }
     Ok(Json(projects))
 }
 

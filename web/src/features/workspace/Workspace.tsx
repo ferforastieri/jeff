@@ -41,7 +41,8 @@ import {
 } from "../rooms/api";
 import { formatTime } from "../../shared/time";
 import { PersonFace } from "../onboarding/PersonFace";
-import { ApiKeyDialog } from "../onboarding/ApiKeyDialog";
+import ProviderModelPicker from "../providers/components/ProviderModelPicker";
+import { useAI } from "../providers/store";
 import Board from "../rooms/Board";
 import HomeDashboard from "./HomeDashboard";
 import { EditAgentDialog, EditPersonDialog, InviteUserDialog } from "./TeamDialogs";
@@ -73,6 +74,7 @@ interface NavItem {
 
 /** The configuration destinations of the workspace menu, in the order of the print. */
 const SETTINGS_ITEMS: { section: Section; label: string; icon: IconName }[] = [
+  { section: "ai", label: "IA", icon: "agent" },
   { section: "connectors", label: "Conectores", icon: "link" },
   { section: "skills", label: "Skills", icon: "routines" },
   { section: "harness", label: "Harness", icon: "plug" },
@@ -160,6 +162,9 @@ interface Props {
 }
 
 export default function Workspace({ status }: Props) {
+  const aiModels = useAI((state) => state.models);
+  const aiModelsLoading = useAI((state) => state.loadingModels);
+  const loadAIModels = useAI((state) => state.loadModels);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState(
     status.workspaceState?.roomId || "",
@@ -177,7 +182,6 @@ export default function Workspace({ status }: Props) {
   const [settingsSection, setSettingsSection] = useState<Section>("general");
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const workspaceMenuTrigger = useRef<HTMLButtonElement>(null);
-  const [apiKeyOpen, setApiKeyOpen] = useState(false);
   const [channelOpen, setChannelOpen] = useState(false);
   const [agentOpen, setAgentOpen] = useState(false);
   const [reposOpen, setReposOpen] = useState(false);
@@ -582,6 +586,19 @@ export default function Workspace({ status }: Props) {
   });
 
   useEffect(() => setDevMode(status.devMode), [status.devMode]);
+
+  useEffect(() => {
+    void loadAIModels();
+  }, [loadAIModels]);
+
+  useEffect(() => {
+    if (localStorage.getItem("jeff_open_ai_settings") !== "1") return;
+    localStorage.removeItem("jeff_open_ai_settings");
+    setSettingsSection("ai");
+    changeView("settings");
+    // Run once after onboarding hands the user to the connection page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!selectedRoomId) {
@@ -1707,7 +1724,9 @@ export default function Workspace({ status }: Props) {
                 <WelcomeCard
                   agentName={agent?.name || "Jeff"}
                   teamName={status.teamName}
-                  onConnect={() => setApiKeyOpen(true)}
+                  aiReady={aiModels.length > 0}
+                  aiModelCount={aiModels.length}
+                  onConnect={() => openSettingsScreen("ai")}
                   onInvite={() => setInviteOpen(true)}
                   onSettings={() => openSettingsScreen("connectors")}
                 />
@@ -2218,11 +2237,32 @@ export default function Workspace({ status }: Props) {
                   </label>
                   <label className="ws-agent-mini">
                     <span>Modelo</span>
-                    <Input
-                      value={agentModel}
-                      onChange={(event) => setAgentModel(event.target.value)}
-                      placeholder="Opcional"
-                    />
+                    {aiModels.length > 0 ? (
+                      <ProviderModelPicker
+                        models={aiModels}
+                        model={agentModel}
+                        onChange={(value) => {
+                          setAgentModel(value);
+                          const found = aiModels.find((model) => model.id === value);
+                          if (found?.engine) setAgentEngine(found.engine);
+                        }}
+                        placeholder="Escolha um modelo"
+                        className="w-full"
+                      />
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        disabled={aiModelsLoading}
+                        onClick={() => {
+                          setAgentOpen(false);
+                          openSettingsScreen("ai");
+                        }}
+                      >
+                        {aiModelsLoading ? "Carregando…" : "Conectar IA"}
+                      </Button>
+                    )}
                   </label>
                 </div>
               </section>
@@ -2377,6 +2417,11 @@ export default function Workspace({ status }: Props) {
       <EditAgentDialog
         agent={agentEdit}
         channels={channels}
+        models={aiModels}
+        onConnect={() => {
+          setAgentEdit(null);
+          openSettingsScreen("ai");
+        }}
         onClose={() => setAgentEdit(null)}
         onSaved={(updated) => {
           setBots((current) => current.map((bot) => (bot.id === updated.id ? updated : bot)));
@@ -2384,12 +2429,6 @@ export default function Workspace({ status }: Props) {
         }}
       />
 
-      <ApiKeyDialog
-        open={apiKeyOpen}
-        provider="anthropic"
-        onClose={() => setApiKeyOpen(false)}
-        onSaved={() => undefined}
-      />
       {loading ? <span className="ws-loading">Carregando workspace…</span> : null}
     </main>
   );
@@ -2760,12 +2799,16 @@ function WorkspaceRail({
 function WelcomeCard({
   agentName,
   teamName,
+  aiReady,
+  aiModelCount,
   onConnect,
   onInvite,
   onSettings,
 }: {
   agentName: string;
   teamName: string;
+  aiReady: boolean;
+  aiModelCount: number;
   onConnect: () => void;
   onInvite: () => void;
   onSettings: () => void;
@@ -2807,14 +2850,14 @@ function WelcomeCard({
             <Icon name="bolt" size={20} />
           </span>
           <span className="ac-mediarow__head">
-            <b className="setup-row__title">Conecte uma IA.</b>
+            <b className="setup-row__title">{aiReady ? "IA conectada." : "Conecte uma IA."}</b>
           </span>
           <span className="ac-mediarow__body setup-row__text">
-            <span>Serve a que você já paga.</span>
+            <span>{aiReady ? `${aiModelCount} modelos disponíveis.` : "Veja os modelos que você já conectou."}</span>
           </span>
           <span className="ac-mediarow__end ac-mediarow__end--wrap setup-row__act">
             <Button size="sm" onClick={onConnect}>
-              Conectar
+              {aiReady ? "Ver modelos" : "Conectar"}
             </Button>
           </span>
         </li>

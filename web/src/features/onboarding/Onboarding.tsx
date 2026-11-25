@@ -1,14 +1,15 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "faang-ui/components/Button";
 import { Field, FormStack, Input } from "faang-ui/components/Field";
 import {
   Card,
   Icon,
-  OptionCard,
-  ProviderLogo,
   type IconName,
   type PersonRecipe,
 } from "faang-ui";
+import { PixelSpinner } from "@jeff/ui";
+import ProviderModelPicker from "../providers/components/ProviderModelPicker";
+import { defaultModel, rememberModel, useAI } from "../providers/store";
 import { TimezoneSelect, type TimezoneSelectLabels } from "faang-ui/components/TimezoneSelect";
 import { api, type OnboardingStatus } from "../../shared/api";
 import { useApp } from "../../app/store";
@@ -16,7 +17,6 @@ import { WizardShell } from "./WizardShell";
 import { WorkspaceLogoDialog } from "./WorkspaceLogoDialog";
 import { ProfilePhotoDialog } from "./ProfilePhotoDialog";
 import { ProfileAvatarDialog } from "./ProfileAvatarDialog";
-import { ApiKeyDialog } from "./ApiKeyDialog";
 import { PersonFace } from "./PersonFace";
 
 const ACTIVITIES: { value: string; icon: IconName }[] = [
@@ -64,33 +64,6 @@ function JeffProfilePortrait({ recipe }: { recipe: PersonRecipe }) {
   );
 }
 
-function AiOption({
-  pressed,
-  onClick,
-  logo,
-  title,
-  meta,
-  trailing,
-}: {
-  pressed: boolean;
-  onClick: () => void;
-  logo: ReactNode;
-  title: string;
-  meta: string;
-  trailing: ReactNode;
-}) {
-  return (
-    <OptionCard pressed={pressed} onClick={onClick} className="jeff-ai__option">
-      {logo}
-      <span className="jeff-ai__text">
-        <strong>{title}</strong>
-        <span>{meta}</span>
-      </span>
-      {trailing}
-    </OptionCard>
-  );
-}
-
 export default function Onboarding({ status, onDone }: Props) {
   const setWorkspaceTimezone = useApp((state) => state.setWorkspaceTimezone);
   const workspaceTimezone = useApp((state) => state.workspaceTimezone);
@@ -104,11 +77,14 @@ export default function Onboarding({ status, onDone }: Props) {
     recipe?: PersonRecipe;
     url?: string;
   };
+  const aiModels = useAI((state) => state.models);
+  const aiModelsLoading = useAI((state) => state.loadingModels);
+  const aiModelsError = useAI((state) => state.error);
+  const loadAIModels = useAI((state) => state.loadModels);
   const [logoOpen, setLogoOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
-  const [apiKeyOpen, setApiKeyOpen] = useState(false);
-  const [apiKeyProvider, setApiKeyProvider] = useState<"anthropic" | "openai" | "custom">("anthropic");
+  const [aiModel, setAiModel] = useState("");
   const [profileKind, setProfileKind] = useState<"initials" | "person" | "photo">(
     initialAvatar.kind === "person" && initialAvatar.recipe
       ? "person"
@@ -136,7 +112,14 @@ export default function Onboarding({ status, onDone }: Props) {
   const [busy, setBusy] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteBusy, setInviteBusy] = useState(false);
-  const [aiChoice, setAiChoice] = useState<string | null>(null);
+
+  useEffect(() => {
+    void loadAIModels();
+  }, [loadAIModels]);
+
+  useEffect(() => {
+    if (!aiModel && aiModels.length > 0) setAiModel(defaultModel(aiModels, null));
+  }, [aiModel, aiModels]);
 
   const logoSrc = `${import.meta.env.BASE_URL}brand/jeff-logo-horizontal.png`;
   const jeffSrc = (name: string) => `${import.meta.env.BASE_URL}jeffs/${name}.png`;
@@ -159,8 +142,8 @@ export default function Onboarding({ status, onDone }: Props) {
     },
     { title: "Sobre você", meta: "Como você quer ser chamado?" },
     {
-      title: "Conecte uma IA para o Jeff pensar",
-      meta: "Use uma assinatura que você já tem. Nada muda no seu plano.",
+      title: "Escolha a IA do Jeff",
+      meta: "Listamos os modelos que você já conectou. Nada muda no seu plano.",
     },
     {
       title: "Quem trabalha com você?",
@@ -217,7 +200,7 @@ export default function Onboarding({ status, onDone }: Props) {
     }
   }
 
-  async function finish() {
+  async function finish(openConnections = false) {
     setBusy(true);
     setError("");
     try {
@@ -231,6 +214,7 @@ export default function Onboarding({ status, onDone }: Props) {
         avatar: avatarPayload,
         workspaceLogo: workspaceLogo ?? "",
       });
+      if (openConnections) localStorage.setItem("jeff_open_ai_settings", "1");
       onDone();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível concluir.");
@@ -445,96 +429,52 @@ export default function Onboarding({ status, onDone }: Props) {
 
         {step === 3 ? (
           <div className="jeff-ai">
-            <div className="jeff-ai__list">
-              <AiOption
-                pressed={aiChoice === "claude"}
-                onClick={() => {
-                  setAiChoice("claude");
-                  setApiKeyProvider("anthropic");
-                  setApiKeyOpen(true);
-                }}
-                logo={<ProviderLogo id="anthropic" size="tile" />}
-                title="Claude"
-                meta="Pro, Max, Ultra, Team ou Enterprise"
-                trailing={<Icon name="chevronRight" size={16} className="jeff-ai__chev" />}
-              />
-              <AiOption
-                pressed={aiChoice === "chatgpt"}
-                onClick={() => {
-                  setAiChoice("chatgpt");
-                  setApiKeyProvider("openai");
-                  setApiKeyOpen(true);
-                }}
-                logo={<ProviderLogo id="openai" size="tile" />}
-                title="ChatGPT"
-                meta="Plus, Pro, Business ou Enterprise"
-                trailing={<Icon name="chevronRight" size={16} className="jeff-ai__chev" />}
-              />
-              <AiOption
-                pressed={aiChoice === "other"}
-                onClick={() => {
-                  setAiChoice("other");
-                  setApiKeyProvider("custom");
-                  setApiKeyOpen(true);
-                }}
-                logo={
-                  <span className="jeff-ai__providers" aria-hidden="true">
-                    <ProviderLogo id="gemini" size="chip" />
-                    <ProviderLogo id="xai" size="chip" />
-                    <ProviderLogo id="cursor" size="chip" />
-                    <ProviderLogo id="zai" size="chip" />
-                  </span>
-                }
-                title="Outro plano"
-                meta="Gemini, Grok, Cursor, GLM Coding, Kimi Code, MiniMax e OpenCode"
-                trailing={<Icon name="chevronDown" size={16} className="jeff-ai__chev" />}
-              />
-              <AiOption
-                pressed={aiChoice === "key"}
-                onClick={() => {
-                  setAiChoice("key");
-                  setApiKeyProvider("anthropic");
-                  setApiKeyOpen(true);
-                }}
-                logo={
-                  <span className="jeff-ai__key">
-                    <Icon name="key" size={20} />
-                  </span>
-                }
-                title="Chave de API"
-                meta="Você paga pelo uso, direto ao provedor."
-                trailing={<Icon name="chevronRight" size={16} className="jeff-ai__chev" />}
-              />
-              <AiOption
-                pressed={aiChoice === "free"}
-                onClick={() => setAiChoice("free")}
-                logo={<ProviderLogo id="opencode" size="tile" />}
-                title="Começar grátis"
-                meta="Com os modelos grátis do OpenCode"
-                trailing={<span className="jeff-ai__tag">Sem assinatura</span>}
-              />
-            </div>
-            {aiChoice ? (
-              <p className="jeff-ai__note">
-                A conexão com{" "}
-                {aiChoice === "claude"
-                  ? "Claude"
-                  : aiChoice === "chatgpt"
-                    ? "ChatGPT"
-                    : aiChoice === "other"
-                      ? "outro plano"
-                      : aiChoice === "key"
-                        ? "sua chave de API"
-                        : "o plano grátis"}{" "}
-                abre em Configurações → IA depois que você entrar.
+            {aiModelsLoading ? (
+              <p role="status" className="jeff-ai__note flex items-center justify-center gap-2">
+                <PixelSpinner size={16} /> Procurando os modelos conectados…
               </p>
-            ) : null}
-            <p className="jeff-ai__skip">
-              Sem uma IA, os agentes não respondem.{" "}
-              <Button variant="link" onClick={() => setStep(4)}>
-                Conectar depois
-              </Button>
-            </p>
+            ) : aiModels.length > 0 ? (
+              <>
+                <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-4">
+                  <strong className="text-body-medium text-text-primary">Modelos conectados</strong>
+                  <p className="mt-1 text-caption-1-regular text-text-secondary">
+                    Escolha o modelo que o Jeff usa para pensar. A conexão já está pronta.
+                  </p>
+                  <div className="mt-3">
+                    <ProviderModelPicker
+                      models={aiModels}
+                      model={aiModel}
+                      onChange={(value) => {
+                        setAiModel(value);
+                        rememberModel(value);
+                      }}
+                      placeholder="Escolha um modelo"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                <p className="jeff-ai__note">
+                  Estes modelos vêm das IAs já conectadas ao Jeff. Troque quando quiser em Configurações → IA.
+                </p>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border-button-default p-5 text-center">
+                <Icon name="agent" size={20} className="mx-auto text-text-tertiary" />
+                <strong className="mt-2 block text-body-medium text-text-primary">Nenhuma IA conectada ainda.</strong>
+                <p className="mx-auto mt-1 max-w-md text-caption-1-regular text-text-secondary">
+                  Conecte sua assinatura ou uma chave de API na página de conexões. O Jeff lista os modelos automaticamente.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  <Button variant="default" size="sm" onClick={() => void finish(true)}>
+                    Concluir e abrir conexões
+                  </Button>
+                  <Button variant="link" onClick={() => setStep(4)}>
+                    Conectar depois
+                  </Button>
+                </div>
+                {aiModelsError ? <p className="jeff-server__error mt-2">{aiModelsError}</p> : null}
+              </div>
+            )}
             {error ? <p className="jeff-server__error">{error}</p> : null}
           </div>
         ) : null}
@@ -610,12 +550,6 @@ export default function Onboarding({ status, onDone }: Props) {
           setProfileKind("photo");
           setProfilePhoto(photo);
         }}
-      />
-      <ApiKeyDialog
-        open={apiKeyOpen}
-        provider={apiKeyProvider}
-        onClose={() => setApiKeyOpen(false)}
-        onSaved={() => setAiChoice("key")}
       />
     </>
   );

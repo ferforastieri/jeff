@@ -13709,3 +13709,32 @@ html:not([data-pointer]) .ac-foldrow__head:focus-visible {
   opacity: 1;
   filter: brightness(1.08);
 }
+
+/* The working indicator in every Jeff surface: Toph hopping instead of the
+   pixel face. The app assets are served from /brand; the web app also mirrors
+   this rule in styles/pixel-spinner.css. */
+.ac-spin {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url("/brand/jeff-mark.png") center / contain no-repeat !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  transform-origin: 50% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ac-spin {
+    animation: toph-hop 0.9s ease-in-out infinite !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ac-spin {
+    animation: none !important;
+  }
+}
+@keyframes toph-hop {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-5px) rotate(-4deg); }
+  45% { transform: translateY(0) rotate(0deg); }
+  65% { transform: translateY(-3px) rotate(3deg); }
+  82% { transform: translateY(0) rotate(0deg); }
+}
