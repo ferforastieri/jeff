@@ -98,7 +98,7 @@ export function ServerSwitchModal({
           <ul className="jeff-server__features">
             <li>
               <Server size={14} />
-              <span>Você cuida do servidor e do Postgres</span>
+              <span>Você cuida do servidor e dos backups</span>
             </li>
             <li>
               <RefreshCw size={14} />

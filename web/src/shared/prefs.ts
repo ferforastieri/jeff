@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { api } from "./api";
 
-/** What follows the person across browsers and the phone (stored in Postgres). */
+/** What follows the person across browsers and the phone (stored in SQLite). */
 export interface WorkspacePreferences {
   navOrder?: string[];
   devToolOrder?: string[];

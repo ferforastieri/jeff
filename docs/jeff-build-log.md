@@ -337,3 +337,15 @@ configurado em Configurações → IA; sem provedor, a decisão cai no próprio 
 - Testes rodando contra um Postgres real com schema isolado por teste.
 - Driver SQLite da aba **Bancos de dados** e a feature `sqlx/sqlite` também removidos.
 - Redis opcional: cache de sessão por 60s e fanout de notificações entre instâncias.
+
+
+## Fase 11 — SQLite ✅
+
+- `Store` em `SqlitePool` + SeaORM; migrations em `backend/schema/sqlite.sql`.
+- WAL, `synchronous=NORMAL`, `busy_timeout=5s`, `foreign_keys=ON` e cache de 16 MB por conexão.
+- Busca com FTS5 (`agent_history_fts`, `room_message_fts`); JSON com JSON1.
+- Redis removido do app: sessão sem cache e notificações por `broadcast` local, já que o
+  `InstanceLock` garante uma instância por diretório de dados.
+- `install.sh` não instala mais Postgres nem Redis; o banco fica em `JEFF_DATA_DIR/jeff.db`.
+- O modo local do desktop sobe com o mesmo SQLite, sem serviço externo.
+- Sem migração de dados: instalação nova começa com o banco vazio.
