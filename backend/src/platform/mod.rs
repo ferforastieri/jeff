@@ -5,5 +5,4 @@ pub mod events;
 pub mod instance_lock;
 pub mod model;
 pub mod processes;
-pub mod redis;
 pub mod store;

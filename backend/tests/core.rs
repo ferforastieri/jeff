@@ -247,31 +247,6 @@ async fn chat_history_is_paginated_by_scope() {
 }
 
 #[tokio::test]
-async fn session_cache_serves_repeated_auth_and_invalidates_on_logout() {
-    let Ok(url) = std::env::var("JEFF_REDIS_URL") else {
-        // Redis is optional; the rest of the suite covers the disabled path.
-        return;
-    };
-    let dir = tempfile::tempdir().unwrap();
-    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
-    let redis = jeff_server::platform::redis::RedisBus::connect(Some(&url)).await;
-    assert!(redis.enabled(), "JEFF_REDIS_URL should connect");
-    let auth = AuthManager::with_redis(store.clone(), false, redis);
-    auth.bootstrap("secret").await.unwrap();
-    let login = auth.login("admin", "secret", "web").await.unwrap();
-    auth.authenticate(&login.token).await.unwrap();
-
-    // The second lookup must come from Redis: the row is gone.
-    store.delete_session(&login.session.id).await.unwrap();
-    let (session, _) = auth.authenticate(&login.token).await.unwrap();
-    assert_eq!(session.id, login.session.id);
-
-    // Logout drops the cached token even though the row is already gone.
-    auth.logout(&login.session.id).await.unwrap();
-    assert!(auth.authenticate(&login.token).await.is_err());
-}
-
-#[tokio::test]
 async fn email_login_claims_the_admin_and_then_reuses_it() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();

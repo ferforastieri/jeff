@@ -4,8 +4,8 @@ use crate::platform::store::Store;
 use chrono::Utc;
 use serde_json::json;
 use serde_json::Value;
-use sqlx::Postgres;
 use sqlx::Row;
+use sqlx::Sqlite;
 use sqlx::Transaction;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -322,7 +322,7 @@ fn stored_workspace_message(mut message: Value) -> AppResult<Option<StoredWorksp
 }
 
 async fn upsert_workspace_messages(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut Transaction<'_, Sqlite>,
     user_id: i64,
     project_id: &str,
     messages: Vec<StoredWorkspaceMessage>,

@@ -109,18 +109,16 @@ pub fn attachments_note(attachments: &[Attachment], files: &[PathBuf]) -> String
 /// Jeff-only tools selected for one Jeff (the email connector), exposed as a
 /// native stdio MCP server. The harness sees normal MCP tools and executes them
 /// itself; there is no Jeff gateway.
-pub fn native_server(accounts: &[String]) -> Option<Server> {
+pub fn native_server(accounts: &[String], data_dir: &std::path::Path) -> Option<Server> {
     if accounts.is_empty() {
         return None;
     }
     let executable = std::env::current_exe().ok()?;
     let mut env = HashMap::new();
     env.insert("JEFF_EMAIL_ACCOUNTS".into(), accounts.join(","));
-    // The helper opens the same Postgres database. The URL is a secret, so it
-    // is passed explicitly instead of being inherited by the harness.
-    if let Ok(url) = std::env::var("JEFF_DATABASE_URL") {
-        env.insert("JEFF_DATABASE_URL".into(), url);
-    }
+    // The helper opens the same SQLite file. The data directory is not a
+    // secret; pass it so the child does not depend on its working directory.
+    env.insert("JEFF_DATA_DIR".into(), data_dir.display().to_string());
     Some(Server {
         id: "jeff-tools".into(),
         name: "jeff_tools".into(),
@@ -491,8 +489,6 @@ fn server_secret(key: &str) -> bool {
     matches!(
         key,
         "JEFF_ADMIN_PASSWORD"
-            | "JEFF_DATABASE_URL"
-            | "JEFF_REDIS_URL"
             | "JEFF_FIREBASE_CREDENTIALS_FILE"
             | "JEFF_FIREBASE_PROJECT_ID"
             | "JEFF_GITHUB_TOKEN"

@@ -42,7 +42,7 @@ impl VaultService {
         })
     }
 
-    fn item(row: &sqlx::postgres::PgRow) -> AppResult<VaultItem> {
+    fn item(row: &sqlx::sqlite::SqliteRow) -> AppResult<VaultItem> {
         let meta: String = row.try_get("meta")?;
         Ok(VaultItem {
             id: row.try_get("id")?,

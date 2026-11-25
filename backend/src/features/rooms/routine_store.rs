@@ -5,7 +5,7 @@ use crate::features::rooms::models::*;
 use crate::features::rooms::schedule::Schedule;
 use crate::platform::store::Store;
 
-fn routine_from_row(row: &sqlx::postgres::PgRow) -> AppResult<Routine> {
+fn routine_from_row(row: &sqlx::sqlite::SqliteRow) -> AppResult<Routine> {
     let raw: String = row.try_get("trigger_schedule")?;
     let schedule: Schedule = serde_json::from_str(&raw)
         .map_err(|error| bad_request(format!("Agendamento inválido: {error}")))?;
@@ -30,7 +30,7 @@ fn routine_from_row(row: &sqlx::postgres::PgRow) -> AppResult<Routine> {
     })
 }
 
-fn run_from_row(row: &sqlx::postgres::PgRow) -> AppResult<RoutineRun> {
+fn run_from_row(row: &sqlx::sqlite::SqliteRow) -> AppResult<RoutineRun> {
     Ok(RoutineRun {
         id: row.try_get("id")?,
         routine_id: row.try_get("routine_id")?,

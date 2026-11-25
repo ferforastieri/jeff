@@ -121,7 +121,7 @@ impl Repository {
             "SELECT m.role,m.content_text,m.display FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id \
              WHERE s.user_id=$1 AND s.project_id=$2 AND s.chat_id=$3 AND s.archived=0 \
                AND m.role IN ('user','assistant') AND m.content_text<>'' \
-               AND COALESCE(m.display::jsonb->>'hidden','false') <> 'true' \
+               AND COALESCE(json_extract(m.display,'$.hidden'),'false') <> 'true' \
                AND ($4 IS NULL OR m.created_at<$5) \
              ORDER BY m.seq DESC LIMIT $6",
         )
@@ -148,7 +148,7 @@ impl Repository {
             "INSERT INTO agent_events(id,session_id,run_id,kind,payload,created_at)
              SELECT 'legacy:'||m.id, m.session_id, m.run_id,
                     CASE m.role WHEN 'user' THEN 'user_task' WHEN 'tool' THEN 'tool' ELSE 'assistant' END,
-                    json_build_object('body', m.body::json, 'display', m.display::json),
+                    json_object('body', json(m.body), 'display', json(m.display)),
                     m.created_at
              FROM agent_messages m
              WHERE m.id NOT LIKE 'import-%'
@@ -197,7 +197,7 @@ impl Repository {
                 .fetch_one(&mut *tx)
                 .await?;
         if sessions == 1 && messages == 0 {
-            sqlx::query("INSERT INTO agent_messages(id,session_id,role,body,display,content_text,estimated_tokens,created_at) SELECT $1 || message_id,$2,role,json_build_object('role',role,'content',json_extract(payload,'$.content')),jsonb_set(jsonb_set(jsonb_set(payload::jsonb, ARRAY['id'], to_jsonb($3 || message_id)), ARRAY['sessionId'], to_jsonb($4)), ARRAY['status'], '\"complete\"'::jsonb)::text,json_extract(payload,'$.content'),length(json_extract(payload,'$.content'))/3+32,created_at FROM bot_messages WHERE user_id=$5 AND project_id=$6 AND channel=$7 AND mode='chat' AND (role='user' OR (role='assistant' AND bot_id=$8)) AND coalesce((json_extract(payload,'$.pending'))::bigint,0)=0 ORDER BY created_at,message_id")
+            sqlx::query("INSERT INTO agent_messages(id,session_id,role,body,display,content_text,estimated_tokens,created_at) SELECT $1 || message_id,$2,role,json_object('role',role,'content',json_extract(payload,'$.content')),json_set(json_set(json_set(payload, '$.id', $3 || message_id), '$.sessionId', $4), '$.status', 'complete'),json_extract(payload,'$.content'),length(json_extract(payload,'$.content'))/3+32,created_at FROM bot_messages WHERE user_id=$5 AND project_id=$6 AND channel=$7 AND mode='chat' AND (role='user' OR (role='assistant' AND bot_id=$8)) AND coalesce(CAST(json_extract(payload,'$.pending') AS INTEGER),0)=0 ORDER BY created_at,message_id")
                 .bind(format!("import-{}-",ctx.run.session_id)).bind(&ctx.run.session_id).bind(format!("import-{}-",ctx.run.session_id)).bind(&ctx.run.session_id)
                 .bind(ctx.user_id).bind(&ctx.project_id).bind(&ctx.run.chat_id).bind(&ctx.agent.id).execute(&mut *tx).await?;
             let seq: Option<i64> =
@@ -529,7 +529,7 @@ impl Repository {
             "SELECT m.id,m.session_id,s.chat_id,s.agent_id,m.role,substr(m.content_text,1,400) AS text,m.created_at \
              FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id \
              WHERE s.user_id=$1 AND s.project_id=$2 AND m.role IN ('user','assistant') AND m.content_text<>'' \
-               AND COALESCE(m.display::jsonb->>'hidden','false') <> 'true' \
+               AND COALESCE(json_extract(m.display,'$.hidden'),'false') <> 'true' \
                AND instr(lower(m.content_text), lower($3))>0 \
              ORDER BY m.seq DESC LIMIT $4",
         )
@@ -584,7 +584,7 @@ impl Repository {
         chat: &str,
         before: Option<i64>,
     ) -> AppResult<Value> {
-        let rows=sqlx::query("SELECT m.seq,m.display FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id WHERE s.user_id=$1 AND s.project_id=$2 AND s.chat_id=$3 AND s.archived=0 AND COALESCE(m.display::jsonb->>'hidden','false') <> 'true' AND ($4 IS NULL OR m.seq<$5) ORDER BY m.seq DESC LIMIT 161")
+        let rows=sqlx::query("SELECT m.seq,m.display FROM agent_messages m JOIN agent_sessions s ON s.id=m.session_id WHERE s.user_id=$1 AND s.project_id=$2 AND s.chat_id=$3 AND s.archived=0 AND COALESCE(json_extract(m.display,'$.hidden'),'false') <> 'true' AND ($4 IS NULL OR m.seq<$5) ORDER BY m.seq DESC LIMIT 161")
             .bind(user).bind(project).bind(chat).bind(before).bind(before).fetch_all(self.0.pool()).await?;
         let more = rows.len() > 160;
         let mut items = Vec::new();
@@ -622,7 +622,7 @@ impl Repository {
     }
 
     pub async fn usage(&self, user: i64, project: &str, chat: Option<&str>) -> AppResult<Value> {
-        let rows = sqlx::query("SELECT r.agent_id,coalesce(sum(c.input_tokens),0)::bigint AS input,coalesce(sum(c.output_tokens),0)::bigint AS output,coalesce(sum(c.cached_tokens),0)::bigint AS cached,count(*) AS calls FROM agent_model_calls c JOIN agent_runs r ON r.id=c.run_id WHERE r.user_id=$1 AND r.project_id=$2 AND ($3 IS NULL OR r.chat_id=$4) AND c.finish<>'pending' GROUP BY r.agent_id")
+        let rows = sqlx::query("SELECT r.agent_id,CAST(coalesce(sum(c.input_tokens),0) AS INTEGER) AS input,CAST(coalesce(sum(c.output_tokens),0) AS INTEGER) AS output,CAST(coalesce(sum(c.cached_tokens),0) AS INTEGER) AS cached,count(*) AS calls FROM agent_model_calls c JOIN agent_runs r ON r.id=c.run_id WHERE r.user_id=$1 AND r.project_id=$2 AND ($3 IS NULL OR r.chat_id=$4) AND c.finish<>'pending' GROUP BY r.agent_id")
             .bind(user).bind(project).bind(chat).bind(chat).fetch_all(self.0.pool()).await?;
         let by_agent = rows.iter().map(|r| json!({"agentId":r.get::<String,_>("agent_id"),"inputTokens":r.get::<i64,_>("input"),"outputTokens":r.get::<i64,_>("output"),"cachedTokens":r.get::<i64,_>("cached"),"calls":r.get::<i64,_>("calls")})).collect::<Vec<_>>();
         let last: Option<(i64,String)> = sqlx::query_as("SELECT c.estimated_input,r.agent_id FROM agent_model_calls c JOIN agent_runs r ON r.id=c.run_id WHERE r.user_id=$1 AND r.project_id=$2 AND ($3 IS NULL OR r.chat_id=$4) AND c.kind='turn' ORDER BY c.created_at DESC LIMIT 1")

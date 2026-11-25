@@ -87,6 +87,7 @@ struct Inner {
     ai: AiService,
     events: broadcast::Sender<AgentEvent>,
     workspace_events: EventHub,
+    data_dir: std::path::PathBuf,
     runs: Mutex<HashMap<String, CancellationToken>>,
     approvals: Mutex<HashMap<String, oneshot::Sender<Value>>>,
     drafts: Mutex<HashMap<String, Value>>,
@@ -210,7 +211,12 @@ fn parse_handles(text: &str) -> Vec<String> {
 }
 
 impl Runtime {
-    pub async fn new(store: Store, tools: Tools, workspace_events: EventHub) -> AppResult<Self> {
+    pub async fn new(
+        store: Store,
+        tools: Tools,
+        workspace_events: EventHub,
+        data_dir: std::path::PathBuf,
+    ) -> AppResult<Self> {
         let skills = super::skill_service::Service::new(store.clone());
         let repo = Repository(store);
         let recovered = repo.recover().await?;
@@ -224,6 +230,7 @@ impl Runtime {
                 skills,
                 events,
                 workspace_events,
+                data_dir,
                 runs: Mutex::new(HashMap::new()),
                 approvals: Mutex::new(HashMap::new()),
                 drafts: Mutex::new(HashMap::new()),
@@ -1521,7 +1528,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 .selected_servers(&ctx.agent.mcp_servers)
                 .await
                 .unwrap_or_default();
-            if let Some(native) = cli::native_server(&email_accounts) {
+            if let Some(native) = cli::native_server(&email_accounts, &self.inner.data_dir) {
                 mcp_servers.push(native);
             }
             // A per-run MCP endpoint exposes ask_user: the CLI keeps its native

@@ -415,7 +415,7 @@ impl Tools {
                     .map(|s| format!("\"{}\"", s.replace('"', "\"\"")))
                     .collect::<Vec<_>>()
                     .join(" OR ");
-                let rows=sqlx::query("SELECT m.id,m.session_id,substr(m.content_text,1,1200) AS text FROM agent_history_fts f JOIN agent_messages m ON m.seq=f.rowid JOIN agent_sessions s ON s.id=m.session_id WHERE f.search @@ websearch_to_tsquery('simple', $1) AND s.user_id=$2 AND s.project_id=$3 ORDER BY ts_rank(f.search, websearch_to_tsquery('simple', $1)) DESC LIMIT 5")
+                let rows=sqlx::query("SELECT m.id,m.session_id,substr(m.content_text,1,1200) AS text FROM agent_history_fts f JOIN agent_messages m ON m.seq=f.rowid JOIN agent_sessions s ON s.id=m.session_id WHERE agent_history_fts MATCH ? AND s.user_id=? AND s.project_id=? ORDER BY bm25(agent_history_fts) LIMIT 5")
                     .bind(query).bind(ctx.user_id).bind(&ctx.project_id).fetch_all(self.store.pool()).await?;
                 Ok(json!(rows.iter().map(|r|json!({"id":r.get::<String,_>("id"),"sessionId":r.get::<String,_>("session_id"),"text":r.get::<String,_>("text")})).collect::<Vec<_>>()))
             }

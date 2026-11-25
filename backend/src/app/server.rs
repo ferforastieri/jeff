@@ -86,7 +86,6 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::{any, delete, get, patch, post, put};
 use axum::{Json, Router};
 use base64::Engine as _;
-use futures_util::StreamExt;
 use ipnet::IpNet;
 use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
@@ -115,7 +114,6 @@ use crate::features::agents::{
 use crate::features::integrations::mcp::Service as McpService;
 use crate::model::{DbProfile, Project, Session, User, WebTarget};
 use crate::platform::instance_lock::InstanceLock;
-use crate::platform::redis::RedisBus;
 use crate::push::{PushMessage, PushService};
 use crate::store::{Store, WorkspaceMessageCursor};
 use crate::terminal::TerminalManager;
@@ -125,7 +123,6 @@ use crate::workspace::WorkspaceService;
 const SESSION_COOKIE: &str = "jeff_session";
 const CSRF_COOKIE: &str = "jeff_csrf";
 const CSRF_HEADER: &str = "x-jeff-csrf";
-const NOTIFICATIONS_CHANNEL: &str = "jeff:notifications";
 
 /// One-time codes that let a phone join a local server without typing the
 /// generated admin password. Codes live in memory only: they expire after ten
@@ -200,7 +197,6 @@ pub struct AppState {
     pub events: EventHub,
     pub watcher: Arc<ProjectWatcher>,
     pub notifications: broadcast::Sender<NotificationEvent>,
-    pub redis: RedisBus,
     pub update: UpdateManager,
     pub http: reqwest::Client,
     pub preview_http: reqwest::Client,
@@ -239,14 +235,8 @@ pub struct NotificationEvent {
     pub room_id: Option<String>,
 }
 
-/// Redis carries notifications between instances. The origin lets the
-/// publisher ignore its own message: it already delivered it locally.
-#[derive(Serialize, Deserialize)]
-struct NotificationEnvelope {
-    origin: String,
-    event: NotificationEvent,
-}
-
+/// The notification stream carries one event at a time; a preview of the
+/// answer is enough for the toast and the bell.
 fn notification_preview(text: &str) -> String {
     let mut clean = String::new();
     let mut in_code = false;
@@ -345,14 +335,8 @@ impl AppState {
         DRIVERS.call_once(sqlx::any::install_default_drivers);
 
         config.ensure_dirs()?;
-        let database_url = config
-            .database_url
-            .as_deref()
-            .filter(|url| !url.trim().is_empty())
-            .ok_or_else(|| AppError::ServiceUnavailable("JEFF_DATABASE_URL is required".into()))?;
-        let store = Store::connect(database_url).await?;
-        let redis = RedisBus::connect(config.redis_url.as_deref()).await;
-        let auth = AuthManager::with_redis(store.clone(), config.secure_cookies, redis.clone());
+        let store = Store::connect(&config.database_file).await?;
+        let auth = AuthManager::new(store.clone(), config.secure_cookies);
         if let Some(password) = auth.bootstrap(&config.admin_password).await? {
             eprintln!(
                 "\n  Jeff initial admin password: {password}\n  Set JEFF_ADMIN_PASSWORD before the next start if you want a fixed password.\n"
@@ -419,6 +403,7 @@ impl AppState {
                     .map_err(|e| AppError::Internal(e.into()))?,
             },
             events.clone(),
+            config.data_dir.clone(),
         )
         .await?;
         let watcher = Arc::new(ProjectWatcher::new(events.clone()));
@@ -463,10 +448,8 @@ impl AppState {
             events,
             watcher,
             notifications,
-            redis,
         });
 
-        state.spawn_notification_subscriber();
         state.rooms.recover().await;
         state.routines.spawn();
         let harness_state = Arc::downgrade(&state);
@@ -548,63 +531,9 @@ impl AppState {
         Ok(state)
     }
 
-    /// Local broadcast plus Redis fanout, so another instance can serve the
-    /// event without repeating the work.
+    /// Local broadcast: the single process serves every SSE client here.
     pub fn broadcast_notification(&self, event: NotificationEvent) {
-        let _ = self.notifications.send(event.clone());
-        if !self.redis.enabled() {
-            return;
-        }
-        let redis = self.redis.clone();
-        let origin = self.redis.instance_id().to_string();
-        tokio::spawn(async move {
-            redis
-                .publish_json(
-                    NOTIFICATIONS_CHANNEL,
-                    &NotificationEnvelope { origin, event },
-                )
-                .await;
-        });
-    }
-
-    fn spawn_notification_subscriber(&self) {
-        let Some(client) = self.redis.client() else {
-            return;
-        };
-        let notifications = self.notifications.clone();
-        let origin = self.redis.instance_id().to_string();
-        tokio::spawn(async move {
-            loop {
-                let pubsub = async {
-                    let mut pubsub = client.get_async_pubsub().await?;
-                    pubsub.subscribe(NOTIFICATIONS_CHANNEL).await?;
-                    Ok::<_, redis::RedisError>(pubsub)
-                }
-                .await;
-                match pubsub {
-                    Ok(mut pubsub) => {
-                        let mut messages = pubsub.on_message();
-                        while let Some(message) = messages.next().await {
-                            let Ok(payload) = message.get_payload::<String>() else {
-                                continue;
-                            };
-                            let Ok(envelope) =
-                                serde_json::from_str::<NotificationEnvelope>(&payload)
-                            else {
-                                continue;
-                            };
-                            if envelope.origin != origin {
-                                let _ = notifications.send(envelope.event);
-                            }
-                        }
-                    }
-                    Err(error) => {
-                        tracing::warn!(%error, "redis notification subscription failed");
-                    }
-                }
-                tokio::time::sleep(Duration::from_secs(5)).await;
-            }
-        });
+        let _ = self.notifications.send(event);
     }
 
     pub fn emit_ai_response(&self) {
@@ -1872,70 +1801,6 @@ mod lifecycle_tests {
         })
         .await
         .expect("maintenance retained the entire application after shutdown");
-    }
-
-    #[tokio::test]
-    async fn notifications_fan_out_between_instances_without_duplicating() {
-        if std::env::var("JEFF_REDIS_URL").is_err() {
-            return;
-        }
-        let dir = tempfile::tempdir().unwrap();
-        let workspace = dir.path().join("workspace");
-        std::fs::create_dir_all(&workspace).unwrap();
-        let build = |name: &str| {
-            let data = dir.path().join(name);
-            Config::local(
-                data,
-                workspace.clone(),
-                "secret".into(),
-                "127.0.0.1:0".into(),
-            )
-        };
-        let first = AppState::build(build("first")).await.unwrap();
-        let second = AppState::build(build("second")).await.unwrap();
-        let mut local = first.notifications.subscribe();
-        let mut remote = second.notifications.subscribe();
-        // Give the subscriber connection time to join the channel.
-        tokio::time::sleep(Duration::from_millis(500)).await;
-
-        first.broadcast_notification(NotificationEvent {
-            event_type: "test".into(),
-            title: "fanout".into(),
-            body: "cross instance".into(),
-            created_at: 1,
-            notification_id: None,
-            project_id: None,
-            project_name: None,
-            chat_id: None,
-            bot_id: None,
-            bot_name: None,
-            bot_role: None,
-            session_id: None,
-            tab_id: None,
-            room_id: None,
-        });
-
-        let local_event = tokio::time::timeout(Duration::from_secs(2), local.recv())
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(local_event.title, "fanout");
-        let remote_event = tokio::time::timeout(Duration::from_secs(2), remote.recv())
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(remote_event.title, "fanout");
-        // The origin must not receive its own published event a second time.
-        assert!(
-            tokio::time::timeout(Duration::from_millis(200), local.recv())
-                .await
-                .is_err()
-        );
-
-        first.agents.shutdown();
-        first.watcher.stop_all();
-        second.agents.shutdown();
-        second.watcher.stop_all();
     }
 
     #[test]

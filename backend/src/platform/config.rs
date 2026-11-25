@@ -23,10 +23,8 @@ pub struct Config {
     pub update_path_unit: PathBuf,
     pub update_request: PathBuf,
     pub update_state: PathBuf,
-    /// PostgreSQL URL. The SeaORM schema is opened and migrated at startup.
-    pub database_url: Option<String>,
-    /// Optional Redis URL for the session cache and cross-instance fanout.
-    pub redis_url: Option<String>,
+    /// SQLite file. The SeaORM schema is opened and migrated at startup.
+    pub database_file: PathBuf,
 }
 
 impl Config {
@@ -81,8 +79,7 @@ impl Config {
             )),
             update_request: data_dir.join("update.request"),
             update_state: data_dir.join("update-state.json"),
-            database_url: non_empty_env("JEFF_DATABASE_URL"),
-            redis_url: non_empty_env("JEFF_REDIS_URL"),
+            database_file: data_dir.join("jeff.db"),
             data_dir,
         })
     }
@@ -119,8 +116,7 @@ impl Config {
             update_path_unit: PathBuf::new(),
             update_request: data_dir.join("update.request"),
             update_state: data_dir.join("update-state.json"),
-            database_url: non_empty_env("JEFF_DATABASE_URL"),
-            redis_url: non_empty_env("JEFF_REDIS_URL"),
+            database_file: data_dir.join("jeff.db"),
         }
     }
 

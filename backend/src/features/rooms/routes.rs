@@ -892,8 +892,8 @@ pub(super) async fn room_search(
          JOIN room_messages m ON m.seq = f.rowid
          JOIN rooms r ON r.id = m.room_id
          JOIN principals p ON p.id = m.author_id
-         WHERE f.search @@ websearch_to_tsquery('simple', $1) AND r.project_id = $2
-         ORDER BY ts_rank(f.search, websearch_to_tsquery('simple', $1)) DESC LIMIT $3",
+         WHERE room_message_fts MATCH ? AND r.project_id = ?
+         ORDER BY bm25(room_message_fts) LIMIT ?",
     )
     .bind(&fts)
     .bind(&project)

@@ -13,7 +13,7 @@ pub fn normalize_text(value: &str) -> String {
         .to_lowercase()
 }
 
-fn memory_from_row(row: &sqlx::postgres::PgRow) -> AppResult<Memory> {
+fn memory_from_row(row: &sqlx::sqlite::SqliteRow) -> AppResult<Memory> {
     Ok(Memory {
         id: row.try_get("id")?,
         agent_id: row.try_get("agent_id")?,
@@ -56,7 +56,11 @@ fn validate_inclusion(value: &str) -> AppResult<()> {
     Ok(())
 }
 
-async fn upsert_selection(pool: &sqlx::PgPool, memory_id: &str, inclusion: &str) -> AppResult<()> {
+async fn upsert_selection(
+    pool: &sqlx::SqlitePool,
+    memory_id: &str,
+    inclusion: &str,
+) -> AppResult<()> {
     sqlx::query(
         "INSERT INTO bot_memory_selections(memory_id,inclusion,user_controlled,revision)
          VALUES($1,$2,1,1)

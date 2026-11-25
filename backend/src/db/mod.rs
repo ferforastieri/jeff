@@ -1,72 +1,45 @@
-//! PostgreSQL access for the new runtime. Phase 1 only opens the connection and
-//! applies the schema.
+//! SQLite access for the runtime. The schema and its migrations belong to
+//! `crate::db`; the pool is shared with the SeaORM connection.
 
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::path::Path;
+use std::time::Duration;
 
-use sea_orm::{Database as SeaDatabase, DatabaseConnection};
+use sea_orm::{DatabaseConnection, SqlxSqliteConnector};
 use sea_orm_migration::MigratorTrait;
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 
 use crate::errors::{AppError, AppResult};
 
 mod migration;
-
-static TEST_SCHEMA: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone)]
 pub struct Database {
     connection: DatabaseConnection,
 }
 
-/// Tests get one schema per Store so they can run in parallel without
-/// truncating each other. Production uses the URL as-is.
-fn test_url(url: &str) -> Option<String> {
-    if std::env::var("JEFF_TEST_SCHEMA").as_deref() != Ok("1") {
-        return None;
-    }
-    let schema = format!(
-        "test_{}_{}",
-        std::process::id(),
-        TEST_SCHEMA.fetch_add(1, Ordering::SeqCst)
-    );
-    let separator = if url.contains('?') { '&' } else { '?' };
-    Some(format!("{url}{separator}options=-csearch_path%3D{schema}"))
-}
-
-async fn ensure_schema(url: &str, schema_url: &str) -> AppResult<()> {
-    let schema = schema_url
-        .split("search_path%3D")
-        .nth(1)
-        .unwrap_or_default()
-        .to_string();
-    if schema.is_empty() {
-        return Ok(());
-    }
-    let admin = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(1)
-        .connect(url)
-        .await
-        .map_err(|error| AppError::Internal(anyhow::anyhow!("postgres: {error}")))?;
-    sqlx::query(&format!("CREATE SCHEMA IF NOT EXISTS \"{schema}\""))
-        .execute(&admin)
-        .await
-        .map_err(|error| AppError::Internal(anyhow::anyhow!("postgres schema: {error}")))?;
-    admin.close().await;
-    Ok(())
-}
-
 impl Database {
-    pub async fn connect(url: &str) -> AppResult<Self> {
-        let target = test_url(url);
-        if let Some(schema_url) = &target {
-            ensure_schema(url, schema_url).await?;
-        }
-        let url = target.as_deref().unwrap_or(url);
-        let connection = SeaDatabase::connect(url)
+    pub async fn connect(path: &Path) -> AppResult<Self> {
+        // SQLite is the single store for both the server and desktop local
+        // mode. WAL keeps readers from blocking behind the writer.
+        let options = SqliteConnectOptions::new()
+            .filename(path)
+            .create_if_missing(true)
+            .journal_mode(SqliteJournalMode::Wal)
+            .synchronous(SqliteSynchronous::Normal)
+            .busy_timeout(Duration::from_secs(5))
+            .foreign_keys(true)
+            .pragma("temp_store", "MEMORY")
+            .pragma("cache_size", "-16000")
+            .pragma("mmap_size", "134217728");
+        let pool = SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect_with(options)
             .await
-            .map_err(|error| AppError::Internal(anyhow::anyhow!("postgres: {error}")))?;
+            .map_err(|error| AppError::Internal(anyhow::anyhow!("sqlite: {error}")))?;
+        let connection = SqlxSqliteConnector::from_sqlx_sqlite_pool(pool);
         migration::Migrator::up(&connection, None)
             .await
-            .map_err(|error| AppError::Internal(anyhow::anyhow!("postgres migration: {error}")))?;
+            .map_err(|error| AppError::Internal(anyhow::anyhow!("sqlite migration: {error}")))?;
         Ok(Self { connection })
     }
 
@@ -74,8 +47,8 @@ impl Database {
         &self.connection
     }
 
-    pub fn pool(&self) -> &sqlx::PgPool {
-        self.connection.get_postgres_connection_pool()
+    pub fn pool(&self) -> &sqlx::SqlitePool {
+        self.connection.get_sqlite_connection_pool()
     }
 }
 
@@ -84,14 +57,11 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn applies_the_postgres_schema() {
-        let Ok(url) = std::env::var("TEST_DATABASE_URL") else {
-            return;
-        };
-        if url.trim().is_empty() {
-            return;
-        }
-        let db = Database::connect(&url).await.unwrap();
+    async fn applies_the_sqlite_schema() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Database::connect(&dir.path().join("jeff.db"))
+            .await
+            .unwrap();
         let count: i64 = sqlx::query_scalar("SELECT count(*) FROM users")
             .fetch_one(db.pool())
             .await

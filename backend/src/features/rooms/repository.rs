@@ -5,7 +5,7 @@ use crate::errors::{bad_request, AppError, AppResult};
 use crate::features::rooms::models::*;
 use crate::platform::store::Store;
 
-fn principal_from_row(row: &sqlx::postgres::PgRow) -> AppResult<Principal> {
+fn principal_from_row(row: &sqlx::sqlite::SqliteRow) -> AppResult<Principal> {
     let avatar: String = row.try_get("avatar")?;
     let bot: Option<String> = row.try_get("bot")?;
     Ok(Principal {
@@ -326,7 +326,7 @@ impl Store {
         Ok(rooms)
     }
 
-    fn room_from_row(&self, row: &sqlx::postgres::PgRow) -> AppResult<Room> {
+    fn room_from_row(&self, row: &sqlx::sqlite::SqliteRow) -> AppResult<Room> {
         let repos: String = row.try_get("repos").unwrap_or_else(|_| "[]".into());
         Ok(Room {
             id: row.try_get("id")?,
@@ -1000,7 +1000,7 @@ impl Store {
         .await?;
         Ok(recipients)
     }
-    fn card_from_row(&self, row: &sqlx::postgres::PgRow) -> AppResult<Card> {
+    fn card_from_row(&self, row: &sqlx::sqlite::SqliteRow) -> AppResult<Card> {
         let owner_id: Option<String> = row.try_get("owner_id")?;
         let owner = match &owner_id {
             Some(_) => row

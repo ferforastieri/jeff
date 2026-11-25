@@ -9,9 +9,7 @@ use chrono::{Duration as ChronoDuration, Utc};
 use crate::crypto::{random_secret, token_hash};
 use crate::errors::{AppError, AppResult};
 use crate::model::{Session, User};
-use crate::platform::redis::RedisBus;
 use crate::store::Store;
-use serde::{Deserialize, Serialize};
 
 const ARGON_MEMORY: u32 = 64 * 1024;
 const ARGON_ITERATIONS: u32 = 3;
@@ -24,18 +22,6 @@ pub struct AuthManager {
     secure_cookies: bool,
     session_ttl: ChronoDuration,
     dummy_hash: Arc<String>,
-    redis: RedisBus,
-}
-
-/// Cached for a minute: enough to take the session join and the `last_seen`
-/// write off the hot path of every authenticated request. Logout invalidates
-/// the entry immediately through the reverse key.
-const SESSION_CACHE_TTL: u64 = 60;
-
-#[derive(Serialize, Deserialize)]
-struct CachedAuth {
-    session: Session,
-    user: User,
 }
 
 pub struct LoginResult {
@@ -47,10 +33,6 @@ pub struct LoginResult {
 
 impl AuthManager {
     pub fn new(store: Store, secure_cookies: bool) -> Self {
-        Self::with_redis(store, secure_cookies, RedisBus::disabled())
-    }
-
-    pub fn with_redis(store: Store, secure_cookies: bool, redis: RedisBus) -> Self {
         let dummy_hash =
             hash_password("jeff-invalid-password-placeholder").unwrap_or_else(|_| String::new());
         Self {
@@ -58,7 +40,6 @@ impl AuthManager {
             secure_cookies,
             session_ttl: ChronoDuration::days(30),
             dummy_hash: Arc::new(dummy_hash),
-            redis,
         }
     }
 
@@ -131,22 +112,8 @@ impl AuthManager {
             return Err(AppError::Unauthorized);
         }
         let hash = token_hash(raw);
-        let cache_key = session_cache_key(&hash);
-        if let Some(cached) = self.redis.get_json::<CachedAuth>(&cache_key).await {
-            return Ok((cached.session, cached.user));
-        }
         let (session, user) = self.store.session_by_token_hash(&hash).await?;
         let _ = self.store.touch_session(&session.id).await;
-        let cached = CachedAuth {
-            session: session.clone(),
-            user: user.clone(),
-        };
-        self.redis
-            .set_json(&cache_key, &cached, SESSION_CACHE_TTL)
-            .await;
-        self.redis
-            .set_json(&session_reverse_key(&session.id), &hash, SESSION_CACHE_TTL)
-            .await;
         Ok((session, user))
     }
 
@@ -249,23 +216,14 @@ impl AuthManager {
         self.create_session(user, kind).await
     }
 
-    /// Drops the cached user for one session without ending the session.
-    /// Profile changes (name, role) call this so the next request re-reads the row.
-    pub async fn invalidate_session_cache(&self, session_id: &str) {
-        let reverse_key = session_reverse_key(session_id);
-        if let Some(hash) = self.redis.get_json::<String>(&reverse_key).await {
-            self.redis.del(&session_cache_key(&hash)).await;
-        }
-        self.redis.del(&reverse_key).await;
+    /// Kept for callers that change profile data; there is no session cache
+    /// anymore, so the next request already re-reads the row.
+    pub async fn invalidate_session_cache(&self, _session_id: &str) {
+        // No session cache: the next request reads the row again.
     }
 
     pub async fn logout(&self, session_id: &str) -> AppResult<()> {
         self.store.delete_session(session_id).await?;
-        let reverse_key = session_reverse_key(session_id);
-        if let Some(hash) = self.redis.get_json::<String>(&reverse_key).await {
-            self.redis.del(&session_cache_key(&hash)).await;
-        }
-        self.redis.del(&reverse_key).await;
         Ok(())
     }
 
@@ -308,12 +266,4 @@ pub fn verify_password(encoded: &str, password: &str) -> bool {
     Argon2::default()
         .verify_password(password.as_bytes(), &parsed)
         .is_ok()
-}
-
-fn session_cache_key(hash: &str) -> String {
-    format!("jeff:auth:token:{hash}")
-}
-
-fn session_reverse_key(session_id: &str) -> String {
-    format!("jeff:auth:session:{session_id}")
 }

@@ -9,7 +9,7 @@ entrypoint in `mobile/`.
 - **Server:** asks only for a Jeff server URL, validates `/api/health`, then opens the normal Jeff web app in a native window.
 - **Local (desktop only):** asks for a workspace folder, starts the embedded Rust Jeff backend, authenticates the embedded WebView through a one-time pairing code, and opens the local workbench. Closing the workspace window stops the backend and its terminal sessions. Local mode listens only on loopback unless **Acessar pelo celular nesta rede** is enabled; then it also listens on the LAN and shows a QR code that pairs the Android app in one scan.
 
-The local backend stores the generated local admin password, master key and runtime data under the app data directory. It uses the same PostgreSQL database as a server (`JEFF_DATABASE_URL`), which must be set before starting local mode; it does not use or expose a remote server. The workspace folder is passed as `JEFF_WORKSPACES`, so its projects are the local working set.
+The local backend stores the generated local admin password, master key and runtime data under the app data directory. It uses a SQLite database file under the app data directory; there is no database service to start and it does not use or expose a remote server. The workspace folder is passed as `JEFF_WORKSPACES`, so its projects are the local working set.
 
 On Windows the backend uses ConPTY for terminals; on Linux it uses a Unix PTY. The remote server page runs inside the system WebView (WebView2 on Windows, WebKitGTK on Linux) and receives no Tauri IPC capability.
 

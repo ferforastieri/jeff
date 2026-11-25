@@ -24,7 +24,7 @@ The installed server does not serve the landing page or documentation. The landi
 - Search matches both file names and file content automatically with debounce, without pressing Enter.
 - Ctrl+P opens and focuses the same unified search; conversations display streamed answers, tool activity, delegated agents and Markdown.
 - Edit SQL table rows with primary-key safety.
-- Connect to PostgreSQL, MySQL/MariaDB, SQL Server, Oracle, ClickHouse, Cassandra, MongoDB, Redis, Elasticsearch and Neo4j, inspect schemas, run queries and inspect results.
+- Connect to user data sources (PostgreSQL, MySQL/MariaDB, SQL Server, Oracle, ClickHouse, Cassandra, MongoDB, Redis, Elasticsearch and Neo4j), inspect schemas, run queries and inspect results. The app itself stores everything in SQLite.
 - Run one Jeff per project with Jeff's native Rust harness, connecting directly to OpenAI, Anthropic, Ollama or compatible model APIs.
 - Configure the AI URL, API key and model in Settings → AI; API keys are encrypted at rest.
 - Manage direct model connections and encrypted API keys from Settings → AI. The **Conexões de IA** tab adds named provider connections. Native MCP supports local stdio commands and remote Streamable HTTP endpoints with optional bearer tokens. Tool execution, delegation, cancellation, history and compaction belong to Jeff's backend.
@@ -76,7 +76,7 @@ Browser (React)                     Tauri (desktop + Android)
         ├── native agent runtime and direct model providers
         └── web target registry
                           │
-        repositories · PostgreSQL (app data) · user databases · model APIs
+        repositories · SQLite (app data) · user databases · model APIs
 ```
 
 The Rust server is the only component that touches repositories, database credentials and shells. Clients are thin: they render tabs and stream data. The browser build is embedded in the Rust binary; desktop and Android clients use the same API. Desktop local mode embeds the Rust server in the Tauri process itself, so no separate server process is started.
@@ -97,8 +97,6 @@ The Rust server is the only component that touches repositories, database creden
 
 - Rust stable (1.90+ recommended)
 - Node.js 22+
-- PostgreSQL 15+
-- Redis 7+ (session cache and cross-instance notifications)
 - Linux or macOS
 
 ### Development
@@ -148,16 +146,10 @@ This is the only supported server installation. The desktop app is a client;
 its self-hosted local mode embeds the same backend but is installed with the
 desktop package. Android is a remote-only client.
 
-On Debian/Ubuntu and LXC it also installs PostgreSQL and Redis, creates a
-`jeff` role and database, writes a generated `JEFF_DATABASE_URL` and points
-`JEFF_REDIS_URL` at the local Redis. To use external services, export the URLs
-before running:
-
-```sh
-export JEFF_DATABASE_URL=postgres://user:pass@db-host:5432/jeff
-export JEFF_REDIS_URL=redis://redis-host:6379
-curl -fsSL .../install.sh | sudo -E sh
-```
+The app data lives in a SQLite file under `JEFF_DATA_DIR` (`/var/lib/jeff/jeff.db`
+by default). There is no database service to install or start. Stop Jeff before
+copying `jeff.db` so SQLite checkpoints the WAL; a running copy must include the
+`-wal` and `-shm` files.
 
 The server installer can also provision a development environment on the
 server, where Jeff's terminal and tools actually run:
@@ -196,7 +188,7 @@ toast. Installing the downloaded APK still requires the normal Android prompt.
 
 ### Desktop
 
-Install the Windows or Linux package from the [latest release](https://github.com/ferforastieri/jeff/releases/latest). Desktop local mode is a self-hosted runtime embedded in the desktop package: it asks for a workspace folder, starts the same Rust backend, and updates with the desktop installer. Server mode asks only for a URL on first use and reconnects to the last server on later launches. The launcher also offers an optional development-environment installer for Git, Node.js, pnpm, Rust, Go and Python. The local backend uses the app data directory for its master key and requires a PostgreSQL URL (`JEFF_DATABASE_URL`).
+Install the Windows or Linux package from the [latest release](https://github.com/ferforastieri/jeff/releases/latest). Desktop local mode is a self-hosted runtime embedded in the desktop package: it asks for a workspace folder, starts the same Rust backend, and updates with the desktop installer. Server mode asks only for a URL on first use and reconnects to the last server on later launches. The launcher also offers an optional development-environment installer for Git, Node.js, pnpm, Rust, Go and Python. The local backend keeps its master key and SQLite database under the app data directory; there is no database service to start.
 
 The desktop and Android entrypoints share `packages/launcher/` and `packages/native/`; Android remains remote-only and does not compile the embedded server. Windows ships a Jeff-branded NSIS installer (per-user or per-machine, directory and shortcut choices, Portuguese/English/Spanish, MIT license) and an equivalent WiX MSI, both with the current brand artwork.
 
@@ -222,9 +214,7 @@ The generated Android project is committed in `src-tauri/gen/android`; release s
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `JEFF_ADDR` | `127.0.0.1:8787` | HTTP listen address |
-| `JEFF_DATA_DIR` | `./data` | Master key and runtime data |
-| `JEFF_DATABASE_URL` | none | PostgreSQL URL used by the app; required to start |
-| `JEFF_REDIS_URL` | provisioned by `install.sh` | Redis URL for the session cache and notification fanout |
+| `JEFF_DATA_DIR` | `./data` | Master key, runtime data and the `jeff.db` SQLite file |
 | `JEFF_WORKSPACES` | `/workspaces` | Colon-separated roots that projects may use |
 | `JEFF_ADMIN_PASSWORD` | generated on first run | Initial admin password |
 | `JEFF_SECURE_COOKIES` | `false` | Require HTTPS for browser sessions; the installer sets `true` |

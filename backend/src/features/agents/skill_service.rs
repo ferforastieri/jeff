@@ -88,7 +88,7 @@ impl Service {
         Self(store)
     }
 
-    fn row(row: &sqlx::postgres::PgRow) -> AppResult<ManagedSkill> {
+    fn row(row: &sqlx::sqlite::SqliteRow) -> AppResult<ManagedSkill> {
         let agents: String = row.get("agents");
         Ok(ManagedSkill {
             id: row.get("id"),
