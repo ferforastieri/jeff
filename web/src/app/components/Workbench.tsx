@@ -977,7 +977,7 @@ export default function Workbench() {
   if (!project) {
     if (projects.length === 0) {
       return (
-        <main className="relative flex min-h-dvh items-center justify-center bg-background-full p-4 sm:p-6">
+        <main className="safe-screen relative flex min-h-dvh items-center justify-center bg-background-full p-4 sm:p-6">
           <section className="w-full max-w-lg rounded-3xl border border-border-button-white bg-background-primary-default p-3 shadow-2xl">
             <ProjectSwitcher onSelect={switchProject} heading="Repos abertos" />
           </section>

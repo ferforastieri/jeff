@@ -268,7 +268,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
   const roomBots = room?.members.filter((member) => member.kind === "bot") ?? [];
 
   return (
-    <div className="fixed inset-0 z-[70] flex bg-background-full text-text-primary">
+    <div className="rooms-overlay fixed inset-0 z-[70] flex bg-background-full text-text-primary">
       <aside className="relative flex w-[300px] shrink-0 flex-col border-r border-separator-border bg-background-secondary-default">
         <header className="flex h-10 shrink-0 items-center gap-2 border-b border-separator-border px-3">
           <strong className="text-body-2-medium">Salas</strong>
@@ -647,7 +647,7 @@ export default function RoomsOverlay({ project }: { project: Project }) {
       </main>
 
       {roomHistory ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4">
+        <div className="safe-screen fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4">
           <section className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border-button-white bg-background-primary-default p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-body-1-medium">Histórico de {room?.name}</h3>

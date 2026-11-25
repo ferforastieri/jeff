@@ -12,6 +12,46 @@ interface JeffInsetsBridge {
 
 let installed = false;
 
+const NON_TEXT_INPUTS = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "file",
+  "hidden",
+  "image",
+  "radio",
+  "range",
+  "reset",
+  "submit",
+]);
+
+function isEditable(element: Element | null): element is HTMLElement {
+  if (!(element instanceof HTMLElement)) return false;
+  if (element.isContentEditable) return true;
+  if (element.tagName === "TEXTAREA" || element.tagName === "SELECT") return true;
+  if (element.tagName !== "INPUT") return false;
+  return !NON_TEXT_INPUTS.has((element as HTMLInputElement).type.toLowerCase());
+}
+
+/**
+ * The on-screen keyboard overlays the layout viewport on Android and in most
+ * mobile browsers. When a field is focused, bring it above the visible area so
+ * forms inside sheets, dialogs and the workspace do not end up under the keys.
+ */
+function scrollFocusedIntoView(): void {
+  const active = document.activeElement;
+  if (!isEditable(active)) return;
+  const viewport = window.visualViewport;
+  const viewportTop = viewport?.offsetTop ?? 0;
+  const viewportHeight = viewport?.height ?? window.innerHeight;
+  const rect = active.getBoundingClientRect();
+  const margin = 12;
+  const above = viewportTop + margin;
+  const below = viewportTop + viewportHeight - margin;
+  if (rect.top >= above && rect.bottom <= below) return;
+  active.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+}
+
 function readInsets(): NativeInsets | null {
   const bridge = (window as unknown as { JeffInsets?: JeffInsetsBridge }).JeffInsets;
   if (!bridge?.insets) return null;
@@ -38,6 +78,7 @@ export function installNativeInsets(): void {
   installed = true;
   const root = document.documentElement;
   let frame = 0;
+  let focusFrame = 0;
 
   const apply = () => {
     frame = 0;
@@ -65,12 +106,31 @@ export function installNativeInsets(): void {
     frame = window.requestAnimationFrame(apply);
   };
 
+  // The keyboard animates after focus and after the visual viewport changes;
+  // wait for it to settle before scrolling the field into view.
+  const scheduleFocus = () => {
+    if (focusFrame) window.clearTimeout(focusFrame);
+    focusFrame = window.setTimeout(() => {
+      focusFrame = 0;
+      scrollFocusedIntoView();
+    }, 280);
+  };
+
   apply();
-  window.addEventListener("resize", schedule, { passive: true });
+  window.addEventListener("resize", () => {
+    schedule();
+    scheduleFocus();
+  }, { passive: true });
   window.addEventListener("orientationchange", schedule, { passive: true });
-  window.addEventListener("focusin", schedule, { passive: true });
+  window.addEventListener("focusin", () => {
+    schedule();
+    scheduleFocus();
+  }, { passive: true });
   window.addEventListener("focusout", schedule, { passive: true });
-  window.visualViewport?.addEventListener("resize", schedule, { passive: true });
+  window.visualViewport?.addEventListener("resize", () => {
+    schedule();
+    scheduleFocus();
+  }, { passive: true });
   window.visualViewport?.addEventListener("scroll", schedule, { passive: true });
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) schedule();

@@ -44,7 +44,7 @@ export default function AcceptInvite({ token }: { token: string }) {
 
   if (!info.valid) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-background-full p-4">
+      <main className="safe-screen flex min-h-dvh items-center justify-center bg-background-full p-4">
         <section className="w-full max-w-md rounded-[10px] border border-border-button-white bg-background-primary-default p-6 text-center">
           <h1 className="text-title-2-medium">Convite inválido</h1>
           <p className="mt-1 text-body-2-regular text-text-secondary">
@@ -59,7 +59,7 @@ export default function AcceptInvite({ token }: { token: string }) {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background-full p-4">
+    <main className="safe-screen flex min-h-dvh items-center justify-center bg-background-full p-4">
       <section className="w-full max-w-md rounded-[10px] border border-border-button-white bg-background-primary-default p-6 shadow-2xl">
         <h1 className="text-title-2-medium">Entrar no time</h1>
         <p className="mt-1 text-body-2-regular text-text-secondary">

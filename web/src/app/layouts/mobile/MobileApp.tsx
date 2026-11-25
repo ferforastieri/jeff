@@ -344,7 +344,7 @@ export default function MobileApp() {
 
   if (!project) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-background-full p-4">
+      <main className="safe-screen flex min-h-dvh items-center justify-center bg-background-full p-4">
         <section className="w-full max-w-md rounded-3xl border border-border-button-white bg-background-primary-default p-3 shadow-xs">
           <ProjectSwitcher onSelect={selectProjectFromSheet} heading="Repos abertos" />
         </section>

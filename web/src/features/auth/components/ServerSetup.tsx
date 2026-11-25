@@ -26,7 +26,7 @@ export default function ServerSetup({ defaultUrl, onConnected }: Props) {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4">
+    <main className="safe-screen flex min-h-dvh items-center justify-center p-4">
       <section className="bg-background-primary-default flex w-full max-w-sm flex-col gap-6 rounded-3xl p-7 shadow-xs">
         <header className="flex flex-col items-center gap-2 text-center">
           <BrandMark size="large" />

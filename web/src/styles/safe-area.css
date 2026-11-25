@@ -1,0 +1,228 @@
+/*
+ * Safe areas and the on-screen keyboard.
+ *
+ * --safe-* combines the native Android bridge with env(safe-area-inset-*),
+ * so the same rules cover the Android app, an installed PWA and a phone
+ * browser. --keyboard-inset and --visual-viewport-height come from
+ * nativeInsets.ts and keep focused fields above the keys.
+ */
+
+html {
+  scroll-padding-top: calc(var(--safe-top) + 12px);
+  scroll-padding-bottom: calc(var(--keyboard-inset) + 16px);
+}
+
+/* A centered card screen: launcher, invite, server setup and error pages. */
+.safe-screen {
+  box-sizing: border-box;
+  padding-top: calc(1rem + var(--safe-top));
+  padding-right: calc(1rem + var(--safe-right));
+  padding-bottom: calc(1rem + var(--safe-bottom));
+  padding-left: calc(1rem + var(--safe-left));
+}
+
+@media (min-width: 640px) {
+  .safe-screen {
+    padding-top: calc(1.5rem + var(--safe-top));
+    padding-right: calc(1.5rem + var(--safe-right));
+    padding-bottom: calc(1.5rem + var(--safe-bottom));
+    padding-left: calc(1.5rem + var(--safe-left));
+  }
+}
+
+/* Login, server setup and the invite flow. */
+.jeff-welcome__header {
+  padding-top: calc(20px + var(--safe-top));
+  padding-right: calc(24px + var(--safe-right));
+  padding-left: calc(24px + var(--safe-left));
+}
+
+.jeff-welcome__main {
+  padding-right: calc(16px + var(--safe-right));
+  padding-bottom: calc(24vh + var(--safe-bottom));
+  padding-left: calc(16px + var(--safe-left));
+}
+
+/* The workspace setup wizard. */
+.jeff-wizard {
+  box-sizing: border-box;
+  padding-top: calc(24px + var(--safe-top));
+  padding-right: calc(24px + var(--safe-right));
+  padding-bottom: calc(24px + var(--safe-bottom));
+  padding-left: calc(24px + var(--safe-left));
+}
+
+/* Full-screen rooms and voice: the fixed overlay lives inside the notches. */
+.rooms-overlay {
+  box-sizing: border-box;
+  padding-top: var(--safe-top);
+  padding-right: var(--safe-right);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+}
+
+/* The Slack shell and the dev workbench. */
+.ws-work {
+  box-sizing: border-box;
+  padding-top: calc(8px + var(--safe-top));
+  padding-right: calc(8px + var(--safe-right));
+  padding-bottom: calc(8px + var(--safe-bottom));
+  padding-left: var(--safe-left);
+}
+
+.ws-sidebar {
+  padding-top: calc(16px + var(--safe-top));
+  padding-right: calc(12px + var(--safe-right));
+  padding-bottom: calc(16px + var(--safe-bottom));
+  padding-left: calc(12px + var(--safe-left));
+}
+
+.dev-workbench {
+  box-sizing: border-box;
+  padding-top: calc(8px + var(--safe-top));
+  padding-right: calc(8px + var(--safe-right));
+  padding-bottom: calc(8px + var(--safe-bottom));
+  padding-left: var(--safe-left);
+}
+
+.ws-loading {
+  bottom: calc(16px + var(--safe-bottom));
+}
+
+/* Full-screen menus (the workspace menu, settings and account overlays). */
+.ac-mo {
+  padding-top: calc(88px + var(--safe-top));
+  padding-right: calc(24px + var(--safe-right));
+  padding-bottom: calc(56px + var(--safe-bottom));
+  padding-left: calc(24px + var(--safe-left));
+}
+
+.ac-mo__close {
+  top: calc(20px + var(--safe-top));
+  right: calc(24px + var(--safe-right));
+}
+
+/* Dialogs are bottom sheets on phones; keep them clear of the notch and the
+   home indicator, and lift them when the keyboard overlays the viewport. */
+.ac-dialog {
+  max-height: calc(100dvh - 48px - var(--safe-top) - var(--safe-bottom));
+}
+
+/* Toasts, palettes and the mobile search overlay. */
+.ac-toasts {
+  bottom: calc(16px + var(--safe-bottom));
+}
+
+.ac-palette {
+  top: calc(var(--safe-top) + 12px);
+}
+
+.mobile-search-overlay {
+  padding-right: calc(12px + var(--safe-right));
+  padding-bottom: calc(24px + var(--safe-bottom));
+  padding-left: calc(12px + var(--safe-left));
+}
+
+.mobile-tabbar-nav {
+  padding-right: var(--safe-right);
+  padding-left: var(--safe-left);
+}
+
+/* Fields keep room above the keyboard when scrollIntoView centers them. */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  scroll-margin-top: calc(var(--safe-top) + 24px);
+  scroll-margin-bottom: calc(var(--keyboard-inset) + 24px);
+}
+
+/* Every scrollable surface the forms may live in understands the keyboard. */
+.jeff-welcome__main,
+.jeff-wizard__main,
+.ac-dialog__body,
+.ac-dialog__list,
+.ac-details__body,
+.ac-mo,
+.mobile-search-overlay,
+.ws-body,
+.ws-shell,
+.dev-workbench__main,
+.dev-workbench__terminal {
+  scroll-padding-top: calc(var(--safe-top) + 12px);
+  scroll-padding-bottom: calc(var(--keyboard-inset) + 16px);
+}
+
+body.keyboard-open .jeff-welcome__main {
+  padding-bottom: calc(16px + var(--keyboard-inset) + var(--safe-bottom));
+}
+
+body.keyboard-open .jeff-wizard__main {
+  padding-bottom: calc(24px + var(--keyboard-inset) + var(--safe-bottom));
+}
+
+@media (max-width: 820px) {
+  .jeff-wizard {
+    padding-top: calc(10px + var(--safe-top));
+    padding-right: calc(10px + var(--safe-right));
+    padding-bottom: calc(10px + var(--safe-bottom));
+    padding-left: calc(10px + var(--safe-left));
+  }
+}
+
+@media (max-width: 640px) {
+  .jeff-welcome__header {
+    padding-top: calc(14px + var(--safe-top));
+    padding-right: calc(16px + var(--safe-right));
+    padding-left: calc(16px + var(--safe-left));
+  }
+
+  .jeff-welcome__main {
+    padding-bottom: calc(18vh + var(--safe-bottom));
+  }
+
+  .ac-dialog {
+    right: var(--safe-right);
+    bottom: 0;
+    left: var(--safe-left);
+    width: auto;
+    max-height: calc(100dvh - 12px - var(--safe-top));
+    padding-bottom: var(--safe-bottom);
+  }
+
+  body.keyboard-open .ac-dialog {
+    bottom: var(--keyboard-inset);
+    max-height: calc(var(--visual-viewport-height, 100dvh) - 12px);
+  }
+
+  .ac-details,
+  .ac-details--lg,
+  .ac-details--xl {
+    padding-top: var(--safe-top);
+    padding-right: var(--safe-right);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+  }
+
+  body.keyboard-open .ac-details,
+  body.keyboard-open .ac-details--lg,
+  body.keyboard-open .ac-details--xl {
+    height: var(--visual-viewport-height, 100dvh);
+  }
+
+  .ws-sidebar {
+    padding-top: calc(16px + var(--safe-top));
+    padding-bottom: calc(16px + var(--safe-bottom));
+    padding-left: calc(12px + var(--safe-left));
+  }
+
+  .mobile-search-overlay {
+    padding-bottom: calc(16px + var(--keyboard-inset) + var(--safe-bottom));
+  }
+
+  .ac-toasts {
+    right: calc(12px + var(--safe-right));
+    bottom: calc(12px + var(--safe-bottom));
+    left: calc(12px + var(--safe-left));
+  }
+}
