@@ -1,4 +1,4 @@
-.PHONY: dev dev-live dev-backend web web-landing build run test fmt mobile db
+.PHONY: dev dev-live dev-backend web web-landing build run test fmt mobile
 
 web:
 	npm install
@@ -40,6 +40,3 @@ mobile:
 	npm ci
 	cd mobile && npm run icons
 	cd mobile && npm run tauri -- android build --debug --apk --target aarch64
-
-db:
-	docker compose -f scripts/compose.postgres.yml up -d

@@ -54,7 +54,7 @@ packages/native/   Shared Tauri runtime source
 packages/brand/    Brand assets and BrandMark
 packages/ui/       Shared React UI primitives
 packages/icons/    Shared icon components
-scripts/           Development helpers and the local Postgres/Redis compose
+scripts/           Development helpers
 ```
 
 The backend embeds only the application. The landing page is never installed, embedded, released or served by the Jeff server.
@@ -100,12 +100,10 @@ The Rust server is the only component that touches repositories, database creden
 - PostgreSQL 15+
 - Redis 7+ (session cache and cross-instance notifications)
 - Linux or macOS
-- Docker and Docker Compose v2, optional and only for the local development database (`scripts/compose.postgres.yml`)
 
 ### Development
 
 ```sh
-docker compose -f scripts/compose.postgres.yml up -d
 cp .env.example .env
 cargo run --manifest-path backend/Cargo.toml --bin jeff
 ```

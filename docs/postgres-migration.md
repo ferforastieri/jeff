@@ -24,7 +24,6 @@ para o ciclo de vida do banco, não uma camada obrigatória em cima de cada quer
 ## Rodar
 
 ```bash
-docker compose -f scripts/compose.postgres.yml up -d
 export JEFF_DATABASE_URL=postgres://jeff:jeff@127.0.0.1:5432/jeff
 cargo run --manifest-path backend/Cargo.toml --bin jeff
 ```
