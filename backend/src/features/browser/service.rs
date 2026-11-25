@@ -879,6 +879,14 @@ async fn launch(
         let _ = std::fs::remove_file(user_data.join(name));
     }
 
+    // Let the OS pick a free debug port instead of asking Chrome to write
+    // `DevToolsActivePort`. Wrappers such as snap-confined Chromium can hide
+    // the file in a private /tmp even though the port is reachable.
+    let debug_port = std::net::TcpListener::bind(("127.0.0.1", 0))
+        .and_then(|listener| listener.local_addr())
+        .map(|address| address.port())
+        .map_err(|error| AppError::ServiceUnavailable(format!("Chromium debug port: {error}")))?;
+
     let mut child = Command::new(&binary)
         .arg("--headless=new")
         .arg("--no-sandbox")
@@ -894,7 +902,7 @@ async fn launch(
         .arg("--force-device-scale-factor=1")
         .arg(format!("--window-size={VIEWPORT_WIDTH},{VIEWPORT_HEIGHT}"))
         .arg("--remote-debugging-address=127.0.0.1")
-        .arg("--remote-debugging-port=0")
+        .arg(format!("--remote-debugging-port={debug_port}"))
         .arg(format!("--user-data-dir={}", user_data.display()))
         .args(if proxy.trim().is_empty() {
             vec![]
@@ -908,52 +916,36 @@ async fn launch(
         .stderr(Stdio::null())
         .spawn()?;
 
-    let port_file = user_data.join("DevToolsActivePort");
-    let mut devtools_port = 0u16;
-    for _ in 0..150 {
-        if let Ok(text) = std::fs::read_to_string(&port_file) {
-            if let Some(port) = text
-                .lines()
-                .next()
-                .and_then(|line| line.trim().parse::<u16>().ok())
-            {
-                devtools_port = port;
-                break;
-            }
-        }
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(2))
+        .build()
+        .map_err(|error| AppError::ServiceUnavailable(format!("Chromium CDP: {error}")))?;
+    let mut ws_url = String::new();
+    let mut reachable = false;
+    for _ in 0..450 {
         if let Some(status) = child.try_wait()? {
             return Err(AppError::ServiceUnavailable(format!(
                 "O Chromium encerrou ao iniciar ({status})."
             )));
         }
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    }
-    if devtools_port == 0 {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(AppError::ServiceUnavailable(
-            "O Chromium não abriu a porta de depuração.".into(),
-        ));
-    }
-
-    let client = reqwest::Client::new();
-    let mut ws_url = String::new();
-    for _ in 0..50 {
-        let list_url = format!("http://127.0.0.1:{devtools_port}/json/list");
+        let list_url = format!("http://127.0.0.1:{debug_port}/json/list");
         if let Ok(response) = client.get(&list_url).send().await {
-            if let Ok(list) = response.json::<Value>().await {
-                if let Some(url) = list
-                    .as_array()
-                    .and_then(|items| {
-                        items.iter().find(|item| {
-                            item["type"].as_str() == Some("page")
-                                && item["webSocketDebuggerUrl"].as_str().is_some()
+            if response.status().is_success() {
+                reachable = true;
+                if let Ok(list) = response.json::<Value>().await {
+                    if let Some(url) = list
+                        .as_array()
+                        .and_then(|items| {
+                            items.iter().find(|item| {
+                                item["type"].as_str() == Some("page")
+                                    && item["webSocketDebuggerUrl"].as_str().is_some()
+                            })
                         })
-                    })
-                    .and_then(|item| item["webSocketDebuggerUrl"].as_str())
-                {
-                    ws_url = url.to_string();
-                    break;
+                        .and_then(|item| item["webSocketDebuggerUrl"].as_str())
+                    {
+                        ws_url = url.to_string();
+                        break;
+                    }
                 }
             }
         }
@@ -962,9 +954,11 @@ async fn launch(
     if ws_url.is_empty() {
         let _ = child.kill();
         let _ = child.wait();
-        return Err(AppError::ServiceUnavailable(
-            "O Chromium não expôs uma página depurável.".into(),
-        ));
+        return Err(AppError::ServiceUnavailable(if reachable {
+            "O Chromium não expôs uma página depurável.".into()
+        } else {
+            "O Chromium não abriu a porta de depuração.".into()
+        }));
     }
 
     let (socket, _) = connect_async(&ws_url)
