@@ -14,19 +14,69 @@ fn passwords_use_argon2_and_verify() {
 }
 
 #[tokio::test]
-async fn auth_bootstraps_and_authenticates_sessions() {
+async fn registration_creates_the_admin_and_authenticates_sessions() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
     let auth = AuthManager::new(store.clone(), false);
-    assert_eq!(auth.bootstrap("secret").await.unwrap(), None);
-    assert_eq!(auth.bootstrap("secret").await.unwrap(), None);
-    let login = auth.login("admin", "secret", "web").await.unwrap();
+    let login = auth
+        .register_by_email("admin@example.com", "Admin", "secret123", "web")
+        .await
+        .unwrap();
+    assert!(login.user.is_admin());
+    assert_eq!(login.user.display_name, "Admin");
+
     let (session, user) = auth.authenticate(&login.token).await.unwrap();
     assert_eq!(session.id, login.session.id);
-    assert_eq!(user.username, "admin");
-    assert!(auth.login("admin", "wrong", "web").await.is_err());
+    assert_eq!(user.username, "admin@example.com");
+
+    assert!(auth
+        .login_with_email("admin@example.com", "wrong", "web")
+        .await
+        .is_err());
+    let again = auth
+        .login_with_email("ADMIN@example.com", "secret123", "web")
+        .await
+        .unwrap();
+    assert_eq!(again.user.id, login.user.id);
+
     auth.logout(&session.id).await.unwrap();
     assert!(auth.authenticate(&login.token).await.is_err());
+}
+
+#[tokio::test]
+async fn email_login_never_creates_an_account() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
+    let auth = AuthManager::new(store.clone(), false);
+    assert!(auth
+        .login_with_email("missing@example.com", "secret123", "web")
+        .await
+        .is_err());
+    assert_eq!(store.user_count().await.unwrap(), 0);
+}
+
+#[tokio::test]
+async fn legacy_installer_admin_is_removed_before_the_first_account() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
+    store
+        .create_user(
+            "admin",
+            &hash_password("printed").unwrap(),
+            "admin",
+            "Admin",
+        )
+        .await
+        .unwrap();
+    store.remove_legacy_admin().await.unwrap();
+    assert_eq!(store.user_count().await.unwrap(), 0);
+
+    let auth = AuthManager::new(store.clone(), false);
+    let first = auth
+        .register_by_email("admin@example.com", "Admin", "secret123", "web")
+        .await
+        .unwrap();
+    assert!(first.user.is_admin());
 }
 
 #[tokio::test]
@@ -247,49 +297,27 @@ async fn chat_history_is_paginated_by_scope() {
 }
 
 #[tokio::test]
-async fn email_login_claims_the_admin_and_then_reuses_it() {
+async fn the_second_account_is_a_member_and_keeps_its_password() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
     let auth = AuthManager::new(store.clone(), false);
-    auth.bootstrap("secret").await.unwrap();
-
     let first = auth
-        .login_by_email("Admin@Example.com", "web")
+        .register_by_email("admin@example.com", "Admin", "secret123", "web")
         .await
         .unwrap();
-    assert!(first.user.is_admin());
-    assert_eq!(first.user.display_name, "Admin");
-
-    let again = auth
-        .login_by_email("admin@example.com", "web")
-        .await
-        .unwrap();
-    assert_eq!(again.user.id, first.user.id);
-    assert!(again.user.is_admin());
-
     let member = auth
-        .login_by_email("outra@example.com", "web")
-        .await
-        .unwrap();
-    assert_eq!(member.user.id, first.user.id + 1);
-    assert!(!member.user.is_admin());
-}
-
-#[tokio::test]
-async fn email_login_claims_an_admin_whose_email_is_an_empty_string() {
-    let dir = tempfile::tempdir().unwrap();
-    let store = Store::open(&dir.path().join("jeff.db")).await.unwrap();
-    let auth = AuthManager::new(store.clone(), false);
-    auth.bootstrap("secret").await.unwrap();
-
-    let mut users = store.list_users().await.unwrap();
-    let admin = users.remove(0);
-    store.set_user_email(admin.id, "").await.unwrap();
-
-    let first = auth
-        .login_by_email("empty-admin@example.com", "web")
+        .register_by_email("member@example.com", "Member", "other123", "web")
         .await
         .unwrap();
     assert!(first.user.is_admin());
-    assert_eq!(first.user.id, admin.id);
+    assert!(!member.user.is_admin());
+    assert_eq!(member.user.id, first.user.id + 1);
+    assert!(auth
+        .login_with_email("member@example.com", "secret123", "web")
+        .await
+        .is_err());
+    assert!(auth
+        .login_with_email("member@example.com", "other123", "web")
+        .await
+        .is_ok());
 }

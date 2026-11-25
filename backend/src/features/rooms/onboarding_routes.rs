@@ -41,6 +41,7 @@ pub(super) async fn onboarding_status(
     let me = state.store.ensure_human_principal(auth.user.id).await?;
     let workspace_state_raw = read(&state, &format!("workspace.state:{}", auth.user.id)).await;
     let workspace_state: Value = serde_json::from_str(&workspace_state_raw).unwrap_or(Value::Null);
+    let workspace_project = state.store.workspace_project().await.ok();
     Ok(Json(json!({
         "done": done,
         "activity": read(&state, "onboarding.activity").await,
@@ -54,7 +55,8 @@ pub(super) async fn onboarding_status(
         "avatar": me.avatar,
         "workspaceState": workspace_state,
         "agentId": read(&state, "onboarding.agent").await,
-        "projectId": state.store.workspace_project().await.map(|project| project.id).unwrap_or_default(),
+        "projectId": workspace_project.as_ref().map(|project| project.id.clone()).unwrap_or_default(),
+        "workspaceRoot": workspace_project.as_ref().map(|project| project.root.clone()).unwrap_or_default(),
         "displayName": auth.user.display_name,
         "email": state.store.user_email(auth.user.id).await?,
         "isAdmin": auth.user.is_admin(),

@@ -1082,7 +1082,7 @@ body:has(.jeff-workspace-home) .ac-avatar {
 
 .jeff-wizard__steps li:not(:last-child)::after {
   position: absolute;
-  top: 30px;
+  top: calc(100% - 6px);
   left: 20px;
   width: 1px;
   height: 12px;
@@ -1120,6 +1120,8 @@ body:has(.jeff-workspace-home) .ac-avatar {
 }
 
 .jeff-wizard__step-number {
+  position: relative;
+  z-index: 1;
   display: grid;
   width: 24px;
   height: 24px;
@@ -1127,6 +1129,7 @@ body:has(.jeff-workspace-home) .ac-avatar {
   place-items: center;
   border: 1px solid #333;
   border-radius: var(--jeff-r);
+  background: #101010;
   color: #bdbdbd;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -1195,8 +1198,9 @@ body:has(.jeff-workspace-home) .ac-avatar {
 .jeff-wizard__main {
   display: flex;
   min-width: 0;
+  max-height: calc(100dvh - 48px);
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 36px 12px 24px;
 }
 
@@ -1720,7 +1724,11 @@ body:has(.jeff-workspace-home) .ac-avatar {
 
 .jeff-wizard__content {
   width: min(100%, 520px);
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
   margin-top: 26px;
+  padding-right: 4px;
 }
 
 .jeff-wizard__actions {
@@ -1728,6 +1736,7 @@ body:has(.jeff-workspace-home) .ac-avatar {
   align-items: center;
   gap: 8px;
   width: min(100%, 520px);
+  flex: none;
   margin-top: 18px;
 }
 
@@ -2181,9 +2190,15 @@ body:has(.jeff-workspace-home) .ac-avatar {
   }
 
   .jeff-wizard__main {
+    max-height: none;
     order: 1;
     overflow: visible;
     padding: 18px 4px;
+  }
+
+  .jeff-wizard__content {
+    overflow: visible;
+    padding-right: 0;
   }
 
   .jeff-wizard__steps {

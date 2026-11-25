@@ -139,7 +139,8 @@ curl -fsSL https://github.com/ferforastieri/jeff/releases/latest/download/instal
 ```
 
 The installer creates the `jeff` user, installs the binary, creates a systemd
-service, generates the first password and starts Jeff on port `8787`. It also
+service and starts Jeff on port `8787`. The first account is created in the
+app with email and password; it becomes the workspace admin. The installer also
 installs the root-owned update helper used by the in-app update toast.
 
 This is the only supported server installation. The desktop app is a client;
@@ -216,7 +217,6 @@ The generated Android project is committed in `src-tauri/gen/android`; release s
 | `JEFF_ADDR` | `127.0.0.1:8787` | HTTP listen address |
 | `JEFF_DATA_DIR` | `./data` | Master key, runtime data and the `jeff.db` SQLite file |
 | `JEFF_WORKSPACES` | `/workspaces` | Colon-separated roots that projects may use |
-| `JEFF_ADMIN_PASSWORD` | generated on first run | Initial admin password |
 | `JEFF_SECURE_COOKIES` | `false` | Require HTTPS for browser sessions; the installer sets `true` |
 | `JEFF_TRUSTED_PROXIES` | empty | Comma-separated proxy IPs/CIDRs allowed to supply `X-Forwarded-For` |
 | `JEFF_FIREBASE_CREDENTIALS_FILE` | empty | Firebase service-account JSON used by the server for Android push |

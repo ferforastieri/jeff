@@ -22,13 +22,14 @@ export default function EmailLogin({ onConnected, onOpenLauncher }: Props) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [existing, setExisting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [switching, setSwitching] = useState(false);
   const logoSrc = `${import.meta.env.BASE_URL}brand/jeff-logo-horizontal.png`;
   const jeffSrc = (name: string) => `${import.meta.env.BASE_URL}jeffs/${name}.png`;
-  const firstName = name.trim().split(/\s+/)[0] || "você";
+  const firstName = name.trim().split(/\s+/)[0] || email.trim().split("@")[0] || "você";
   const passwordStrength = Math.min(7, Math.ceil((password.length / 8) * 7));
 
   async function submit(event: FormEvent) {
@@ -39,12 +40,9 @@ export default function EmailLogin({ onConnected, onOpenLauncher }: Props) {
       setBusy(true);
       try {
         const status = await api.emailStatus(email.trim());
-        if (status.exists) {
-          const result = await api.loginWithEmail(email.trim());
-          setUser(result.user);
-          return;
-        }
-        setStep("name");
+        setExisting(status.exists);
+        setPassword("");
+        setStep(status.exists ? "password" : "name");
       } catch (cause) {
         setError(
           cause instanceof ApiError
@@ -66,21 +64,33 @@ export default function EmailLogin({ onConnected, onOpenLauncher }: Props) {
       setStep("password");
       return;
     }
-    if (password.length < 8) {
+    if (!password) {
+      setError("Informe sua senha.");
+      return;
+    }
+    if (!existing && password.length < 8) {
       setError("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
     setBusy(true);
     try {
-      const result = await api.registerWithEmail(email.trim(), name.trim(), password);
+      const result = existing
+        ? await api.loginWithEmail(email.trim(), password)
+        : await api.registerWithEmail(email.trim(), name.trim(), password);
       setUser(result.user);
     } catch (cause) {
       setError(
         cause instanceof ApiError
           ? cause.status === 429
             ? "Muitas tentativas. Aguarde um minuto."
-            : cause.message
-          : "Não foi possível criar a conta.",
+            : cause.status === 401
+              ? "E-mail ou senha inválidos."
+              : cause.status === 409
+                ? "Este e-mail já está cadastrado."
+                : cause.message
+          : existing
+            ? "Não foi possível entrar."
+            : "Não foi possível criar a conta.",
       );
     } finally {
       setBusy(false);
@@ -89,10 +99,12 @@ export default function EmailLogin({ onConnected, onOpenLauncher }: Props) {
 
   const question =
     step === "email"
-      ? "Vamos criar sua conta. Qual é o seu e-mail de trabalho?"
+      ? "Qual é o seu e-mail de trabalho?"
       : step === "name"
         ? "Prazer. Esse e-mail é novo por aqui."
-        : `Boa, ${firstName}. Agora uma senha.`;
+        : existing
+          ? `Que bom te ver de novo, ${firstName}. Agora sua senha.`
+          : `Boa, ${firstName}. Agora uma senha.`;
   const hint = step === "name" ? "Como o time te chama?" : "";
 
   const emailPill =
@@ -103,6 +115,8 @@ export default function EmailLogin({ onConnected, onOpenLauncher }: Props) {
           <EventPillAction
             onClick={() => {
               setStep("email");
+              setPassword("");
+              setExisting(false);
               setError("");
             }}
           >
@@ -166,19 +180,25 @@ export default function EmailLogin({ onConnected, onOpenLauncher }: Props) {
                     <Field
                       label={<span className="ac-visually-hidden">Senha</span>}
                       example={
-                        <span className="jeff-password__strength">
-                          <span className="jeff-password__bars" aria-hidden="true">
-                            {Array.from({ length: 7 }).map((_, index) => (
-                              <span key={index} className={index < passwordStrength ? "is-on" : ""} />
-                            ))}
+                        existing ? (
+                          <span className="jeff-password__strength">
+                            <span>A senha da sua conta.</span>
                           </span>
-                          <span>Pelo menos 8 caracteres.</span>
-                        </span>
+                        ) : (
+                          <span className="jeff-password__strength">
+                            <span className="jeff-password__bars" aria-hidden="true">
+                              {Array.from({ length: 7 }).map((_, index) => (
+                                <span key={index} className={index < passwordStrength ? "is-on" : ""} />
+                              ))}
+                            </span>
+                            <span>Pelo menos 8 caracteres.</span>
+                          </span>
+                        )
                       }
                     >
                       <Input
                         type={showPassword ? "text" : "password"}
-                        autoComplete="new-password"
+                        autoComplete={existing ? "current-password" : "new-password"}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         autoFocus
@@ -206,10 +226,10 @@ export default function EmailLogin({ onConnected, onOpenLauncher }: Props) {
                   disabled={
                     (step === "email" && !email.trim()) ||
                     (step === "name" && !name.trim()) ||
-                    (step === "password" && password.length < 8)
+                    (step === "password" && (existing ? password.length === 0 : password.length < 8))
                   }
                 >
-                  {step === "password" ? "Criar conta" : "Continuar"}
+                  {step === "password" ? (existing ? "Entrar" : "Criar conta") : "Continuar"}
                   {step !== "password" ? <Icon name="arrowRight" size={16} /> : null}
                 </Button>
               </FormStack>

@@ -61,7 +61,6 @@ async fn local_mode_workspace_terminal_and_pairing() {
     let config = jeff_server::config::Config::local(
         data.path().to_path_buf(),
         workspace_root.clone(),
-        PASSWORD.into(),
         "0.0.0.0:0".into(),
     );
     let server = jeff_server::start_embedded(config)
@@ -86,10 +85,58 @@ async fn local_mode_workspace_terminal_and_pairing() {
     assert_eq!(health.get("ok").and_then(Value::as_bool), Some(true));
     assert_eq!(health.get("name").and_then(Value::as_str), Some("jeff"));
 
-    // Admin login returns the HttpOnly session plus the CSRF cookie.
+    // The first registration creates the admin and returns only HttpOnly
+    // cookies; no session token is exposed to JavaScript.
+    let registered = client
+        .post(format!("{base}/api/auth/register"))
+        .json(&json!({
+            "email": "admin@example.com",
+            "name": "Admin",
+            "password": PASSWORD,
+            "kind": "web"
+        }))
+        .send()
+        .await
+        .expect("register");
+    assert!(registered.status().is_success(), "registration failed");
+    let set_cookies = registered
+        .headers()
+        .get_all(reqwest::header::SET_COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        set_cookies.contains("jeff_session=") && set_cookies.contains("HttpOnly"),
+        "missing HttpOnly session cookie"
+    );
+    assert!(
+        !set_cookies.contains("jeff_session=;"),
+        "empty session cookie"
+    );
+    let cookie = cookie_header(&registered);
+    let csrf = cookie_value(&registered, "jeff_csrf");
+    assert!(cookie.contains("jeff_session="), "missing session cookie");
+    assert!(!csrf.is_empty(), "missing csrf cookie");
+    let registered_body: Value = registered.json().await.expect("register body");
+    assert_eq!(
+        registered_body.get("token").and_then(Value::as_str),
+        Some("")
+    );
+
+    let logged_out = client
+        .post(format!("{base}/api/auth/logout"))
+        .header(reqwest::header::COOKIE, &cookie)
+        .header("X-Jeff-CSRF", &csrf)
+        .send()
+        .await
+        .expect("logout");
+    assert!(logged_out.status().is_success(), "logout failed");
+
+    // Classic email + password login still works and always asks the password.
     let login = client
         .post(format!("{base}/api/auth/login"))
-        .json(&json!({"username": "admin", "password": PASSWORD, "kind": "web"}))
+        .json(&json!({"username": "admin@example.com", "password": PASSWORD, "kind": "web"}))
         .send()
         .await
         .expect("login");
@@ -108,7 +155,7 @@ async fn local_mode_workspace_terminal_and_pairing() {
     let me: Value = json_response(me).await;
     assert_eq!(
         me.pointer("/user/username").and_then(Value::as_str),
-        Some("admin")
+        Some("admin@example.com")
     );
 
     // The configured workspace becomes the silent workspace project without
@@ -245,7 +292,7 @@ async fn local_mode_workspace_terminal_and_pairing() {
     .await;
     assert_eq!(
         paired_me.pointer("/user/username").and_then(Value::as_str),
-        Some("admin")
+        Some("admin@example.com")
     );
 
     let replay = client

@@ -20,7 +20,6 @@ async fn terminal_websocket_streams_commands_and_output() {
     let server = jeff_server::start_embedded(Config::local(
         dir.path().join("data"),
         PathBuf::from(&workspace),
-        "secret".into(),
         "127.0.0.1:0".into(),
     ))
     .await
@@ -33,8 +32,13 @@ async fn terminal_websocket_streams_commands_and_output() {
         .build()
         .unwrap();
     let login: serde_json::Value = client
-        .post(format!("{origin}/api/auth/login"))
-        .json(&serde_json::json!({"username":"admin","password":"secret","kind":"web"}))
+        .post(format!("{origin}/api/auth/register"))
+        .json(&serde_json::json!({
+            "email": "admin@example.com",
+            "name": "Admin",
+            "password": "secret123",
+            "kind": "web"
+        }))
         .send()
         .await
         .unwrap()

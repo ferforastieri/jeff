@@ -16,7 +16,6 @@ async fn external_file_changes_are_streamed_over_websocket() {
     let config = Config::local(
         dir.path().join("data"),
         PathBuf::from(&workspace),
-        "secret".into(),
         "127.0.0.1:0".into(),
     );
     let server = jeff_server::start_embedded(config).await.unwrap();
@@ -28,8 +27,13 @@ async fn external_file_changes_are_streamed_over_websocket() {
         .build()
         .unwrap();
     let login: serde_json::Value = client
-        .post(format!("{origin}/api/auth/login"))
-        .json(&serde_json::json!({"username":"admin","password":"secret","kind":"web"}))
+        .post(format!("{origin}/api/auth/register"))
+        .json(&serde_json::json!({
+            "email": "admin@example.com",
+            "name": "Admin",
+            "password": "secret123",
+            "kind": "web"
+        }))
         .send()
         .await
         .unwrap()

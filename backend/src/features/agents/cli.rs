@@ -488,10 +488,7 @@ where
 fn server_secret(key: &str) -> bool {
     matches!(
         key,
-        "JEFF_ADMIN_PASSWORD"
-            | "JEFF_FIREBASE_CREDENTIALS_FILE"
-            | "JEFF_FIREBASE_PROJECT_ID"
-            | "JEFF_GITHUB_TOKEN"
+        "JEFF_FIREBASE_CREDENTIALS_FILE" | "JEFF_FIREBASE_PROJECT_ID" | "JEFF_GITHUB_TOKEN"
     ) || key.starts_with("JEFF_MCP_")
 }
 
@@ -1446,7 +1443,6 @@ mod tests {
     #[test]
     fn only_jeff_secrets_are_hidden_from_the_harness() {
         for key in [
-            "JEFF_ADMIN_PASSWORD",
             "JEFF_MCP_0_TOKEN",
             "JEFF_MCP_1_JEFF_PROJECT_ROOT",
             "JEFF_FIREBASE_CREDENTIALS_FILE",

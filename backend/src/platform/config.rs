@@ -10,7 +10,6 @@ pub struct Config {
     pub addr: String,
     pub data_dir: PathBuf,
     pub workspace_roots: Vec<PathBuf>,
-    pub admin_password: String,
     pub secure_cookies: bool,
     pub trusted_proxies: Vec<IpNet>,
     pub web_dir: Option<PathBuf>,
@@ -47,7 +46,6 @@ impl Config {
         Ok(Self {
             addr: env_or("JEFF_ADDR", "127.0.0.1:8787"),
             workspace_roots: roots,
-            admin_password: env::var("JEFF_ADMIN_PASSWORD").unwrap_or_default(),
             secure_cookies: env_bool("JEFF_SECURE_COOKIES", false),
             trusted_proxies: parse_trusted_proxies(
                 &env::var("JEFF_TRUSTED_PROXIES").unwrap_or_default(),
@@ -84,17 +82,11 @@ impl Config {
         })
     }
 
-    pub fn local(
-        data_dir: PathBuf,
-        workspace_root: PathBuf,
-        admin_password: String,
-        addr: String,
-    ) -> Self {
+    pub fn local(data_dir: PathBuf, workspace_root: PathBuf, addr: String) -> Self {
         Self {
             addr,
             data_dir: data_dir.clone(),
             workspace_roots: vec![workspace_root],
-            admin_password,
             secure_cookies: false,
             trusted_proxies: vec!["127.0.0.1/32".parse().expect("valid loopback prefix")],
             web_dir: None,

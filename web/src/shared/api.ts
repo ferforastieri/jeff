@@ -53,6 +53,7 @@ export interface OnboardingStatus {
   teamName: string;
   agentId: string;
   projectId: string;
+  workspaceRoot: string;
   displayName: string;
   email: string | null;
   timezone: string;
@@ -596,10 +597,10 @@ export const api = {
   },
 
 
-  async loginWithEmail(email: string): Promise<LoginResponse> {
+  async loginWithEmail(email: string, password: string): Promise<LoginResponse> {
     return request<LoginResponse>("/auth/login-email", {
       method: "POST",
-      ...json({ email, kind: "web" }),
+      ...json({ email, password, kind: "web" }),
     });
   },
 

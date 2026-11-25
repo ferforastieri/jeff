@@ -44,10 +44,10 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-if ! command -v curl >/dev/null 2>&1 || ! command -v openssl >/dev/null 2>&1; then
+if ! command -v curl >/dev/null 2>&1; then
   apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    ca-certificates curl openssl
+    ca-certificates curl
 fi
 
 if [ "$VERSION" = "latest" ]; then
@@ -228,12 +228,10 @@ if [ -f "$ENV_FILE" ]; then
     echo "JEFF_BUILD_ID=${VERSION}-$(date +%s)" >> "$ENV_FILE"
   fi
 else
-  NEW_PASSWORD="$(openssl rand -base64 32 | tr -d '/+=' | cut -c1-28)"
   {
     echo "JEFF_ADDR=0.0.0.0:${PORT}"
     echo "JEFF_DATA_DIR=${DATA_DIR}"
     echo "JEFF_WORKSPACES=${WORKSPACES}"
-    echo "JEFF_ADMIN_PASSWORD=${NEW_PASSWORD}"
     echo "JEFF_BUILD_ID=${VERSION}-$(date +%s)"
     echo "JEFF_SECURE_COOKIES=true"
     [ -n "${JEFF_TRUSTED_PROXIES:-}" ] && echo "JEFF_TRUSTED_PROXIES=${JEFF_TRUSTED_PROXIES}"
@@ -412,8 +410,7 @@ echo "  Service user: ${SERVICE_USER}"
 echo "  Service: systemctl status jeff"
 if [ "$EXISTING" -eq 0 ]; then
   echo
-  echo "Initial admin password: ${NEW_PASSWORD:-generated}"
-  echo "Store it now; it will not be printed again."
+  echo "Open the app and create the first admin account with your email."
 else
   echo
   echo "Existing application configuration preserved."

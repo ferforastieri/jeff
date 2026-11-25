@@ -78,6 +78,34 @@ impl Store {
             .await?)
     }
 
+    /// Removes the installer-created `admin` from old versions when it was
+    /// never claimed. The first registration then creates the admin normally,
+    /// and an instance upgraded from the password era has no password to know.
+    pub async fn remove_legacy_admin(&self) -> AppResult<()> {
+        if self.user_count().await? != 1 {
+            return Ok(());
+        }
+        let user = match self.list_users().await?.into_iter().next() {
+            Some(user) => user,
+            None => return Ok(()),
+        };
+        if user.username != "admin" || user.role != "admin" {
+            return Ok(());
+        }
+        if self
+            .user_email(user.id)
+            .await?
+            .is_some_and(|email| !email.trim().is_empty())
+        {
+            return Ok(());
+        }
+        if self.setting("onboarding.done").await.unwrap_or_default() == "1" {
+            return Ok(());
+        }
+        self.delete_user(user.id).await?;
+        Ok(())
+    }
+
     pub async fn set_user_email(&self, id: i64, email: &str) -> AppResult<()> {
         sqlx::query("UPDATE users SET email = $1 WHERE id = $2")
             .bind(email)

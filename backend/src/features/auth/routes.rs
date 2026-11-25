@@ -13,6 +13,7 @@ pub(super) struct LoginRequest {
 #[derive(Deserialize)]
 pub(super) struct LoginEmailRequest {
     email: String,
+    password: String,
     #[serde(default)]
     kind: String,
 }
@@ -208,7 +209,11 @@ pub(super) async fn login_email(
     if input.kind != "web" && input.kind != "mobile" {
         return AppError::BadRequest("invalid client kind".into()).into_response();
     }
-    let result = match state.auth.login_by_email(&input.email, &input.kind).await {
+    let result = match state
+        .auth
+        .login_with_email(&input.email, &input.password, &input.kind)
+        .await
+    {
         Ok(value) => value,
         Err(error) => return error.into_response(),
     };
@@ -263,9 +268,6 @@ pub(super) async fn login(
             .headers_mut()
             .insert(header::RETRY_AFTER, HeaderValue::from_static("60"));
         return response;
-    }
-    if input.username.is_empty() {
-        input.username = "admin".into();
     }
     if input.kind.is_empty() {
         input.kind = "web".into();

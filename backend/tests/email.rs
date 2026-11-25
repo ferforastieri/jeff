@@ -12,7 +12,6 @@ async fn email_accounts_are_managed_through_the_authenticated_api() {
     let config = Config::local(
         dir.path().join("data"),
         PathBuf::from(&workspace),
-        "secret".into(),
         "127.0.0.1:0".into(),
     );
     let server = jeff_server::start_embedded(config).await.unwrap();
@@ -24,8 +23,13 @@ async fn email_accounts_are_managed_through_the_authenticated_api() {
     let base = format!("http://{}", server.addr);
 
     let login: Value = client
-        .post(format!("{base}/api/auth/login"))
-        .json(&json!({"username":"admin","password":"secret","kind":"web"}))
+        .post(format!("{base}/api/auth/register"))
+        .json(&serde_json::json!({
+            "email": "admin@example.com",
+            "name": "Admin",
+            "password": "secret123",
+            "kind": "web"
+        }))
         .send()
         .await
         .unwrap()

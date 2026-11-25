@@ -3,13 +3,12 @@ import { Button } from "faang-ui/components/Button";
 import { Field, FormStack, Input } from "faang-ui/components/Field";
 import {
   Card,
-  Icon,
   Select,
   type IconName,
   type PersonRecipe,
 } from "faang-ui";
-import { PixelSpinner } from "@jeff/ui";
 import { defaultModel, modelSelectOptions, rememberModel, useAI } from "../providers/store";
+import HarnessSettings from "../settings/components/HarnessSettings";
 import { TimezoneSelect, type TimezoneSelectLabels } from "faang-ui/components/TimezoneSelect";
 import { api, type OnboardingStatus } from "../../shared/api";
 import { useApp } from "../../app/store";
@@ -261,24 +260,25 @@ export default function Onboarding({ status, onDone }: Props) {
     );
   }
 
+  const aiReady = aiModels.length > 0 && Boolean(aiModel);
   const disabled =
     (step === 0 && !workspaceName.trim()) ||
     (step === 1 && !activity) ||
-    (step === 2 && !displayName.trim());
+    (step === 2 && !displayName.trim()) ||
+    (step === 3 && !aiReady);
 
-  const actions =
-    step === 3 ? undefined : (
-      <Button
-        variant="primary"
-        size="sm"
-        block
-        loading={busy}
-        disabled={disabled}
-        onClick={() => void next()}
-      >
-        {last ? "Entrar no workspace" : "Continuar"}
-      </Button>
-    );
+  const actions = (
+    <Button
+      variant="primary"
+      size="sm"
+      block
+      loading={busy}
+      disabled={disabled}
+      onClick={() => void next()}
+    >
+      {last ? "Entrar no workspace" : "Continuar"}
+    </Button>
+  );
 
   return (
     <>
@@ -429,51 +429,42 @@ export default function Onboarding({ status, onDone }: Props) {
 
         {step === 3 ? (
           <div className="jeff-ai">
+            {aiModels.length > 0 ? (
+              <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-4">
+                <strong className="text-body-medium text-text-primary">Modelo do Jeff</strong>
+                <p className="mt-1 text-caption-1-regular text-text-secondary">
+                  Escolha o modelo global que o Jeff usa para pensar. Você troca quando quiser.
+                </p>
+                <div className="mt-3">
+                  <Select
+                    value={aiModel}
+                    onValueChange={(value) => {
+                      setAiModel(value);
+                      rememberModel(value);
+                    }}
+                    placeholder="Escolha um modelo"
+                    options={modelSelectOptions(aiModels)}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <HarnessSettings
+              projectRoot={status.workspaceRoot}
+              projectId={status.projectId}
+              onConnected={() => void loadAIModels()}
+            />
+
             {aiModelsLoading ? (
               <p role="status" className="jeff-ai__note flex items-center justify-center gap-2">
-                <PixelSpinner size={16} /> Procurando os modelos conectados…
+                Carregando os modelos conectados…
               </p>
-            ) : aiModels.length > 0 ? (
-              <>
-                <div className="rounded-2xl border border-border-button-default bg-background-primary-default p-4">
-                  <strong className="text-body-medium text-text-primary">Modelos conectados</strong>
-                  <p className="mt-1 text-caption-1-regular text-text-secondary">
-                    Escolha o modelo que o Jeff usa para pensar. A conexão já está pronta.
-                  </p>
-                  <div className="mt-3">
-                    <Select
-                      value={aiModel}
-                      onValueChange={(value) => {
-                        setAiModel(value);
-                        rememberModel(value);
-                      }}
-                      placeholder="Escolha um modelo"
-                      options={modelSelectOptions(aiModels)}
-                    />
-                  </div>
-                </div>
-                <p className="jeff-ai__note">
-                  Estes modelos vêm dos harnesses já conectados. Troque quando quiser em Configurações → Harness.
-                </p>
-              </>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border-button-default p-5 text-center">
-                <Icon name="agent" size={20} className="mx-auto text-text-tertiary" />
-                <strong className="mt-2 block text-body-medium text-text-primary">Nenhuma IA conectada ainda.</strong>
-                <p className="mx-auto mt-1 max-w-md text-caption-1-regular text-text-secondary">
-                  Conecte um CLI na página Harness. O Jeff lista os modelos automaticamente.
-                </p>
-                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                  <Button variant="default" size="sm" onClick={() => void finish(true)}>
-                    Concluir e abrir Harness
-                  </Button>
-                  <Button variant="link" onClick={() => setStep(4)}>
-                    Conectar depois
-                  </Button>
-                </div>
-                {aiModelsError ? <p className="jeff-server__error mt-2">{aiModelsError}</p> : null}
-              </div>
-            )}
+            ) : aiModels.length === 0 ? (
+              <p className="jeff-ai__note">
+                Conecte um harness para liberar a escolha do modelo.
+              </p>
+            ) : null}
+            {aiModelsError ? <p className="jeff-server__error">{aiModelsError}</p> : null}
             {error ? <p className="jeff-server__error">{error}</p> : null}
           </div>
         ) : null}

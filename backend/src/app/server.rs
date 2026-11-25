@@ -336,12 +336,8 @@ impl AppState {
 
         config.ensure_dirs()?;
         let store = Store::connect(&config.database_file).await?;
+        store.remove_legacy_admin().await?;
         let auth = AuthManager::new(store.clone(), config.secure_cookies);
-        if let Some(password) = auth.bootstrap(&config.admin_password).await? {
-            eprintln!(
-                "\n  Jeff initial admin password: {password}\n  Set JEFF_ADMIN_PASSWORD before the next start if you want a fixed password.\n"
-            );
-        }
 
         let mut roots = config.workspace_roots.clone();
         if let Ok(raw) = store.setting("workspace_roots").await {
@@ -1783,12 +1779,7 @@ mod lifecycle_tests {
         let dir = tempfile::tempdir().unwrap();
         let workspace = dir.path().join("workspace");
         std::fs::create_dir_all(&workspace).unwrap();
-        let config = Config::local(
-            dir.path().join("data"),
-            workspace,
-            "secret".into(),
-            "127.0.0.1:0".into(),
-        );
+        let config = Config::local(dir.path().join("data"), workspace, "127.0.0.1:0".into());
         let state = AppState::build(config).await.unwrap();
         let weak = Arc::downgrade(&state);
         state.agents.shutdown();
@@ -1814,12 +1805,7 @@ mod lifecycle_tests {
         let dir = tempfile::tempdir().unwrap();
         let workspace = dir.path().join("workspace");
         std::fs::create_dir_all(&workspace).unwrap();
-        let config = Config::local(
-            dir.path().join("data"),
-            workspace,
-            "secret".into(),
-            "127.0.0.1:0".into(),
-        );
+        let config = Config::local(dir.path().join("data"), workspace, "127.0.0.1:0".into());
         let state = AppState::build(config).await.unwrap();
         let project = state
             .store

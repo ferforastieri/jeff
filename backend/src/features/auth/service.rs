@@ -47,22 +47,6 @@ impl AuthManager {
         self.secure_cookies
     }
 
-    pub async fn bootstrap(&self, configured_password: &str) -> AppResult<Option<String>> {
-        if self.store.user_count().await? > 0 {
-            return Ok(None);
-        }
-        let (password, generated) = if configured_password.trim().is_empty() {
-            (random_secret(18), true)
-        } else {
-            (configured_password.to_string(), false)
-        };
-        let hash = hash_password(&password).map_err(|error| AppError::Internal(error.into()))?;
-        self.store
-            .create_user("admin", &hash, "admin", "Admin")
-            .await?;
-        Ok(generated.then_some(password))
-    }
-
     pub async fn login(
         &self,
         username: &str,
@@ -117,34 +101,27 @@ impl AuthManager {
         Ok((session, user))
     }
 
-    /// Passwordless first-run login: the email is the identity. The first
-    /// email claims the installer's admin account; later emails create members.
-    pub async fn login_by_email(&self, email: &str, kind: &str) -> AppResult<LoginResult> {
+    /// Classic email + password login. The account must already exist; a new
+    /// email is registered explicitly by the client, never by logging in.
+    pub async fn login_with_email(
+        &self,
+        email: &str,
+        password: &str,
+        kind: &str,
+    ) -> AppResult<LoginResult> {
         let email = normalize_email(email)?;
-        match self.store.user_by_email(&email).await {
-            Ok(user) => self.create_session(user, kind).await,
+        let user = match self.store.user_by_email(&email).await {
+            Ok(user) => user,
             Err(AppError::NotFound) => {
-                let users = self.store.list_users().await?;
-                let admin_email = self.store.user_email(users[0].id).await?;
-                let unclaimed = admin_email
-                    .as_deref()
-                    .map_or(true, |value| value.trim().is_empty());
-                if users.len() == 1 && unclaimed {
-                    self.store.set_user_email(users[0].id, &email).await?;
-                    return self.create_session(users[0].clone(), kind).await;
-                }
-                let password = random_secret(24);
-                let hash =
-                    hash_password(&password).map_err(|error| AppError::Internal(error.into()))?;
-                let role = if users.is_empty() { "admin" } else { "member" };
-                let user = self
-                    .store
-                    .create_email_user(&email, role, "", &hash)
-                    .await?;
-                self.create_session(user, kind).await
+                let _ = verify_password(self.dummy_hash.as_str(), password);
+                return Err(AppError::Unauthorized);
             }
-            Err(error) => Err(error),
+            Err(error) => return Err(error),
+        };
+        if !verify_password(&user.password_hash, password) {
+            return Err(AppError::Unauthorized);
         }
+        self.create_session(user, kind).await
     }
 
     /// Whether an email already belongs to an account (no session, no write).
@@ -157,10 +134,9 @@ impl AuthManager {
         }
     }
 
-    /// Creates the account on the last screen (email + name + password). A new
-    /// email claims the installer's admin when it is still unclaimed; later
-    /// emails create members. The session is created here, never on the email
-    /// check.
+    /// Creates the account on the last screen (email + name + password). The
+    /// first account becomes the admin; later emails create members. The
+    /// session is created here, never on the email check.
     pub async fn register_by_email(
         &self,
         email: &str,
@@ -191,28 +167,11 @@ impl AuthManager {
         }
         let users = self.store.list_users().await?;
         let hash = hash_password(password).map_err(|error| AppError::Internal(error.into()))?;
-        let user = if users.len() == 1 {
-            let admin_email = self.store.user_email(users[0].id).await?;
-            let unclaimed = admin_email
-                .as_deref()
-                .map_or(true, |value| value.trim().is_empty());
-            if unclaimed {
-                self.store.set_user_email(users[0].id, &email).await?;
-                self.store.set_user_display_name(users[0].id, name).await?;
-                self.store.set_user_password(users[0].id, &hash).await?;
-                self.store.user_by_email(&email).await?
-            } else {
-                let role = "member";
-                self.store
-                    .create_email_user(&email, role, name, &hash)
-                    .await?
-            }
-        } else {
-            let role = if users.is_empty() { "admin" } else { "member" };
-            self.store
-                .create_email_user(&email, role, name, &hash)
-                .await?
-        };
+        let role = if users.is_empty() { "admin" } else { "member" };
+        let user = self
+            .store
+            .create_email_user(&email, role, name, &hash)
+            .await?;
         self.create_session(user, kind).await
     }
 

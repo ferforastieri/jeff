@@ -15,6 +15,8 @@ type Busy = { id: string; action: "test" | "install" | "update" } | null;
 interface Props {
   projectRoot?: string;
   projectId?: string;
+  /** Called after an engine finishes logging in, so onboarding can reload models. */
+  onConnected?: () => void;
 }
 
 /** One place for the agent harnesses: install, log in and test the CLI. */
@@ -31,7 +33,7 @@ function HoppingToph({ className, "aria-hidden": ariaHidden }: { className?: str
   );
 }
 
-export default function HarnessSettings({ projectRoot, projectId }: Props) {
+export default function HarnessSettings({ projectRoot, projectId, onConnected }: Props) {
   const notify = useApp((state) => state.notify);
   const [loginView, setLogin] = useState<{ engine: EngineInfo; command: string; nonce: number } | null>(null);
   const [engines, setEngines] = useState<EngineInfo[]>([]);
@@ -65,7 +67,8 @@ export default function HarnessSettings({ projectRoot, projectId }: Props) {
     setLogin(null);
     notify("success", `${label} conectado.`);
     void refresh();
-  }, [notify, refresh]);
+    onConnected?.();
+  }, [notify, onConnected, refresh]);
 
   const handleLoginOutput = useCallback((chunk: string) => {
     if (!loginView) return;
