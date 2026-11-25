@@ -4,12 +4,12 @@ import { Field, FormStack, Input } from "faang-ui/components/Field";
 import {
   Card,
   Icon,
+  Select,
   type IconName,
   type PersonRecipe,
 } from "faang-ui";
 import { PixelSpinner } from "@jeff/ui";
-import ProviderModelPicker from "../providers/components/ProviderModelPicker";
-import { defaultModel, rememberModel, useAI } from "../providers/store";
+import { defaultModel, modelSelectOptions, rememberModel, useAI } from "../providers/store";
 import { TimezoneSelect, type TimezoneSelectLabels } from "faang-ui/components/TimezoneSelect";
 import { api, type OnboardingStatus } from "../../shared/api";
 import { useApp } from "../../app/store";
@@ -441,15 +441,14 @@ export default function Onboarding({ status, onDone }: Props) {
                     Escolha o modelo que o Jeff usa para pensar. A conexão já está pronta.
                   </p>
                   <div className="mt-3">
-                    <ProviderModelPicker
-                      models={aiModels}
-                      model={aiModel}
-                      onChange={(value) => {
+                    <Select
+                      value={aiModel}
+                      onValueChange={(value) => {
                         setAiModel(value);
                         rememberModel(value);
                       }}
                       placeholder="Escolha um modelo"
-                      className="w-full"
+                      options={modelSelectOptions(aiModels)}
                     />
                   </div>
                 </div>

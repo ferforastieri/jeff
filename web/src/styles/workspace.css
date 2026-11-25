@@ -6704,3 +6704,32 @@ button.ws-rail-user:hover {
   padding-top: 56px;
   padding-bottom: 40px;
 }
+
+/* Model/effort selects in the workspace composer pills. Native selects keep
+   the popup above the composer without a portal fighting the dialog layer. */
+.ws-composer .ac-composer__pill {
+  color: var(--ink2);
+}
+
+.ws-agent-select {
+  max-width: 190px;
+  min-width: 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: normal;
+  outline: none;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.ws-agent-select:disabled {
+  cursor: default;
+}
+
+.ws-agent-select option {
+  color: #111;
+  background: #fff;
+}

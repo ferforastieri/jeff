@@ -41,9 +41,9 @@ import {
 } from "../rooms/api";
 import { formatTime } from "../../shared/time";
 import { PersonFace } from "../onboarding/PersonFace";
-import ProviderModelPicker from "../providers/components/ProviderModelPicker";
-import { useAI } from "../providers/store";
+import { modelSelectOptions, useAI } from "../providers/store";
 import Board from "../rooms/Board";
+import AgentComposerControls from "./AgentComposerControls";
 import HomeDashboard from "./HomeDashboard";
 import { EditAgentDialog, EditPersonDialog, InviteUserDialog } from "./TeamDialogs";
 import WorkspaceSearch from "./WorkspaceSearch";
@@ -1769,6 +1769,14 @@ export default function Workspace({ status }: Props) {
                 sendLabel="Enviar"
                 attachLabel="Anexar"
                 emoji={EMOJI_LABELS}
+                pills={agent ? (
+                  <AgentComposerControls
+                    agent={agent}
+                    models={aiModels}
+                    onConnect={() => openSettingsScreen("harness")}
+                    onUpdated={(updated) => setBots((current) => current.map((bot) => (bot.id === updated.id ? updated : bot)))}
+                  />
+                ) : undefined}
               />
             </footer>
           </>
@@ -2245,16 +2253,15 @@ export default function Workspace({ status }: Props) {
                   <label className="ws-agent-mini">
                     <span>Modelo</span>
                     {aiModels.length > 0 ? (
-                      <ProviderModelPicker
-                        models={aiModels}
-                        model={agentModel}
-                        onChange={(value) => {
+                      <Select
+                        value={agentModel}
+                        onValueChange={(value) => {
                           setAgentModel(value);
                           const found = aiModels.find((model) => model.id === value);
                           if (found?.engine) setAgentEngine(found.engine);
                         }}
                         placeholder="Escolha um modelo"
-                        className="w-full"
+                        options={modelSelectOptions(aiModels)}
                       />
                     ) : (
                       <Button

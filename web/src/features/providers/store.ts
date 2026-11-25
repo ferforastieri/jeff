@@ -180,6 +180,18 @@ export function modelDisplay(model?: { id: string; label?: string; provider?: st
   return `${providerLabel(modelGroup({ id: model.id, label, provider: model.provider, connectionLabel: model.connectionLabel }))} · ${label}`;
 }
 
+/** Flat options for the app's Select, labelled with the provider first. */
+export function modelSelectOptions(models: AIModel[]): Array<{ value: string; label: string }> {
+  const seen = new Set<string>();
+  const options: Array<{ value: string; label: string }> = [];
+  for (const model of models) {
+    if (!model.id || seen.has(model.id)) continue;
+    seen.add(model.id);
+    options.push({ value: model.id, label: modelDisplay(model) });
+  }
+  return options;
+}
+
 /**
  * Finds the catalog entry for a stored selection. Layout files can keep an id
  * from a connection that was recreated (the prefix changes, the model does

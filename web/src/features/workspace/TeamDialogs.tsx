@@ -16,7 +16,7 @@ import {
 import { api, type AIModel, type User } from "../../shared/api";
 import { channelsApi, roomsApi, type Principal, type Room } from "../rooms/api";
 import { formatDate } from "../../shared/time";
-import ProviderModelPicker from "../providers/components/ProviderModelPicker";
+import { modelSelectOptions } from "../providers/store";
 
 /** The invite that makes a person's account, with the cargo and how long it works. */
 export function InviteUserDialog({
@@ -361,6 +361,11 @@ export function EditAgentDialog({
 
   if (!agent) return null;
 
+  const modelOptions = modelSelectOptions(models);
+  if (model && !modelOptions.some((option) => option.value === model)) {
+    modelOptions.unshift({ value: model, label: model });
+  }
+
   async function save() {
     if (!agent) return;
     if (!name.trim()) {
@@ -450,16 +455,15 @@ export function EditAgentDialog({
         </div>
         <Field label="Modelo">
           {models.length > 0 ? (
-            <ProviderModelPicker
-              models={models}
-              model={model}
-              onChange={(value) => {
+            <Select
+              value={model}
+              onValueChange={(value) => {
                 setModel(value);
                 const found = models.find((item) => item.id === value);
                 if (found?.engine) setEngine(found.engine);
               }}
               placeholder="Escolha um modelo"
-              className="w-full"
+              options={modelOptions}
             />
           ) : (
             <Button type="button" variant="default" size="sm" onClick={onConnect}>
