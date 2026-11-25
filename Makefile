@@ -42,4 +42,4 @@ mobile:
 	cd mobile && npm run tauri -- android build --debug --apk --target aarch64
 
 docker:
-	docker compose -f deploy/compose.yaml up --build
+	JEFF_UID=$$(id -u) JEFF_GID=$$(id -g) docker compose -f deploy/compose.yaml up --build

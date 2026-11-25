@@ -18,6 +18,11 @@ services:
       JEFF_ADDR: 0.0.0.0:8787
       JEFF_DATA_DIR: /data
       JEFF_WORKSPACES: /workspaces
+      # Host owner of the mounted workspace; the entrypoint drops to this
+      # UID/GID so the Drive and the agents can write and delete there.
+      JEFF_UID: ${JEFF_UID:-1000}
+      JEFF_GID: ${JEFF_GID:-1000}
+      JEFF_WORKSPACE_GID: ${JEFF_WORKSPACE_GID:-1000}
       JEFF_ADMIN_PASSWORD: ${JEFF_ADMIN_PASSWORD:-}
       JEFF_DATABASE_URL: ${JEFF_DATABASE_URL:-postgres://jeff:jeff@postgres:5432/jeff}
       JEFF_REDIS_URL: ${JEFF_REDIS_URL:-redis://redis:6379}

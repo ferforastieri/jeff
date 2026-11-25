@@ -200,17 +200,24 @@ The desktop and Android entrypoints share `packages/launcher/` and `packages/nat
 ### Docker
 
 ```sh
-JEFF_WORKSPACES_HOST=/srv/workspaces docker compose -f deploy/compose.yaml up --build
+JEFF_WORKSPACES_HOST=/srv/workspaces \
+JEFF_UID=$(id -u) JEFF_GID=$(id -g) \
+docker compose -f deploy/compose.yaml up --build
 ```
 
 The stack starts Jeff, PostgreSQL and Redis together; the app waits for both
 health checks. Point `JEFF_DATABASE_URL` at an external database if you prefer
 not to run Postgres in the stack. Mount the repositories you want to expose
-under `/workspaces` and keep `JEFF_DATA_DIR` on a persistent volume. The
-container runs as UID 1000; make sure the mounted workspace is writable by that
-user, or adjust the Compose `user:` setting. Set `JEFF_WORKSPACE_GID` to the
-numeric group that owns the mounted workspace when it differs from the
-container user (1000). By default the port is published on all interfaces
+under `/workspaces` and keep `JEFF_DATA_DIR` on a persistent volume.
+
+The container starts as root only long enough to align `/data` and
+`/home/jeff` with `JEFF_UID:JEFF_GID`, then drops privileges; the mounted
+workspace is never chowned. Set both to the host user that owns
+`JEFF_WORKSPACES_HOST` (the defaults are `1000:1000`). When the workspace group
+differs from the runtime group, set `JEFF_WORKSPACE_GID` as well. Without this,
+the Drive can list files it cannot delete (`permission denied` / `os error 13`),
+especially folders created with mode `0700`. The deployment-specific values
+live in `deploy/.env`. By default the port is published on all interfaces
 (`JEFF_BIND_ADDRESS=0.0.0.0`) so a reverse proxy on another host can reach
 Jeff; set `JEFF_BIND_ADDRESS=127.0.0.1` to keep it loopback-only.
 

@@ -36,13 +36,15 @@ RUN pip install --no-cache-dir --target /debugpy debugpy==1.8.22
 
 FROM debian:bookworm-slim
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates bash git ripgrep openssh-client tini python3 chromium fonts-liberation curl unzip xz-utils libstdc++6 \
+    && apt-get install -y --no-install-recommends ca-certificates bash git ripgrep openssh-client tini python3 chromium fonts-liberation curl unzip xz-utils libstdc++6 util-linux passwd \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 --shell /bin/bash jeff \
     && mkdir -p /data /workspaces \
     && chown -R jeff:jeff /data /workspaces
 COPY deploy/git-credential-helper.sh /usr/local/bin/jeff-git-credential
+COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/jeff-git-credential \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh \
     && git config --system credential.helper /usr/local/bin/jeff-git-credential \
     && git config --system --add safe.directory '*'
 COPY --from=web /usr/local/bin/node /usr/local/bin/node
@@ -51,11 +53,10 @@ RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 COPY --from=build /src/backend/target/release/jeff /usr/local/bin/jeff
 COPY --from=pydebug /debugpy /usr/local/lib/jeff/debug-adapters/python
-USER jeff
 WORKDIR /home/jeff
 ENV JEFF_ADDR=0.0.0.0:8787 \
     JEFF_DATA_DIR=/data \
     JEFF_WORKSPACES=/workspaces
 EXPOSE 8787
 VOLUME ["/data", "/workspaces"]
-ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/jeff"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]

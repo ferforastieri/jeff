@@ -129,6 +129,12 @@ impl WorkspaceService {
                 continue;
             };
             let path = dir.join(&name);
+            // A folder the server cannot enter is a deployment permission
+            // problem, not a project file; showing it would only offer actions
+            // that fail with EACCES.
+            if metadata.is_dir() && fs::read_dir(&path).is_err() {
+                continue;
+            }
             let Ok(relative_path) = path.strip_prefix(root) else {
                 continue;
             };
