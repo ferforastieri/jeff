@@ -27,12 +27,21 @@ beforeEach(() => {
     configurable: true,
     value: "visible",
   });
+  Object.defineProperty(navigator, "platform", {
+    configurable: true,
+    value: "Linux x86_64",
+  });
+  Object.defineProperty(navigator, "userAgent", {
+    configurable: true,
+    value: "Mozilla/5.0 (X11; Linux x86_64)",
+  });
   localStorage.removeItem("jeff_update_dismissed");
 });
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  delete (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
 });
 
 describe("UpdateToast", () => {
@@ -59,5 +68,38 @@ describe("UpdateToast", () => {
     render(<UpdateToast />);
 
     expect(await screen.findByText("Jeff v0.9.1 disponível")).toBeVisible();
+  });
+
+  it("offers the desktop installer when the server cannot self-update", async () => {
+    const invoke = vi.fn().mockResolvedValue("/tmp/Jeff.AppImage");
+    (window as unknown as { __TAURI_INTERNALS__?: { invoke: typeof invoke } }).__TAURI_INTERNALS__ = {
+      invoke,
+    };
+    vi.spyOn(api, "updateStatus").mockResolvedValue({
+      ...status("0.9.2"),
+      supported: false,
+      installers: [
+        {
+          kind: "linux-appimage",
+          name: "Jeff.AppImage",
+          url: "https://example.test/Jeff.AppImage",
+        },
+      ],
+    });
+    const startUpdate = vi.spyOn(api, "startUpdate");
+
+    render(<UpdateToast />);
+    fireEvent.click(await screen.findByRole("button", { name: "Atualizar agora" }));
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith(
+        "download_update",
+        expect.objectContaining({ filename: "Jeff.AppImage" }),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText("Jeff v0.9.2 disponível")).not.toBeInTheDocument(),
+    );
+    expect(startUpdate).not.toHaveBeenCalled();
   });
 });

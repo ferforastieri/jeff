@@ -187,6 +187,13 @@ export default function UpdateToast() {
   const [detail, setDetail] = useState("");
   const [error, setError] = useState("");
   const [dismissed, setDismissed] = useState(readDismissedVersion);
+  const native = Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+  const mobileClient = native && isMobile();
+  const desktopClient = !mobileClient && (isDesktopClient() || native);
+  const installer = status && desktopClient ? preferredInstaller(status) : undefined;
+  // A server installed with install.sh updates itself; an installed client
+  // updates through its own installer or APK even when the server cannot.
+  const clientCanUpdate = mobileClient ? Boolean(status?.apkUrl) : Boolean(installer);
 
   useEffect(() => {
     let cancelled = false;
@@ -221,11 +228,6 @@ export default function UpdateToast() {
     let target = status.latestVersion;
     // Only the installed clients download a file: the browser updates the
     // server it is served from, never the desktop installer.
-    const native = Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
-    const mobileClient = native && isMobile();
-    const desktopClient = !mobileClient && (isDesktopClient() || native);
-    const installer = desktopClient ? preferredInstaller(status) : undefined;
-
     setPhase("updating");
     setError("");
     setDetail(mobileClient || !installer ? "Atualizando o servidor…" : "Baixando o instalador…");
@@ -275,6 +277,16 @@ export default function UpdateToast() {
       }
       if (installer) {
         await downloadInstaller(installer);
+        if (!status.supported) {
+          useApp.getState().notify(
+            "info",
+            "Instalador baixado. Feche o Jeff e instale a nova versão.",
+          );
+          setPhase("idle");
+          setDetail("");
+          setStatus(null);
+          return;
+        }
       }
     } catch (err) {
       setPhase("error");
@@ -362,7 +374,7 @@ export default function UpdateToast() {
     setStatus(null);
   }
 
-  const visible = status?.supported && status.available && dismissed !== status.latestVersion;
+  const visible = Boolean(status?.available) && (Boolean(status?.supported) || clientCanUpdate) && dismissed !== status?.latestVersion;
   const updating = phase === "updating";
   const failed = phase === "error";
   // An update is a call to action: the toast stays until it is closed or the

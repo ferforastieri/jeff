@@ -102,7 +102,7 @@ install_dev_components() {
 }
 
 # Python debugging uses debugpy, installed here so the running server never
-# downloads an adapter on demand. The Docker image bundles the same files.
+# downloads an adapter on demand.
 install_debug_adapters() {
   local target=/usr/local/lib/jeff/debug-adapters/python
   if python3 -c "import debugpy" >/dev/null 2>&1; then

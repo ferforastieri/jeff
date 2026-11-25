@@ -29,7 +29,7 @@ The installed server does not serve the landing page or documentation. The landi
 - Configure the AI URL, API key and model in Settings → AI; API keys are encrypted at rest.
 - Manage direct model connections and encrypted API keys from Settings → AI. The **Conexões de IA** tab adds named provider connections. Native MCP supports local stdio commands and remote Streamable HTTP endpoints with optional bearer tokens. Tool execution, delegation, cancellation, history and compaction belong to Jeff's backend.
 - Enable editor autocomplete with an automatic lightweight model or a specific autocomplete model in Settings → AI.
-- Add server folders as workspace roots in Settings → Workspace, without Docker bind mounts.
+- Add server folders as workspace roots in Settings → Workspace.
 - Keep self-hosted and external web apps in their own tabs, including pages that block iframes, through a server-side preview proxy.
 - Switch between projects without losing the state of the current one.
 - Use the same backend from the browser, desktop app and Tauri Android client.
@@ -54,7 +54,7 @@ packages/native/   Shared Tauri runtime source
 packages/brand/    Brand assets and BrandMark
 packages/ui/       Shared React UI primitives
 packages/icons/    Shared icon components
-deploy/            Docker Compose
+scripts/           Development helpers and the local Postgres/Redis compose
 ```
 
 The backend embeds only the application. The landing page is never installed, embedded, released or served by the Jeff server.
@@ -99,13 +99,13 @@ The Rust server is the only component that touches repositories, database creden
 - Node.js 22+
 - PostgreSQL 15+
 - Redis 7+ (session cache and cross-instance notifications)
-- Linux, macOS or a Linux container
-- Docker and Docker Compose v2, optional (the compose file starts Postgres and Redis)
+- Linux or macOS
+- Docker and Docker Compose v2, optional and only for the local development database (`scripts/compose.postgres.yml`)
 
 ### Development
 
 ```sh
-docker compose -f deploy/compose.postgres.yml up -d
+docker compose -f scripts/compose.postgres.yml up -d
 cp .env.example .env
 cargo run --manifest-path backend/Cargo.toml --bin jeff
 ```
@@ -146,6 +146,10 @@ The installer creates the `jeff` user, installs the binary, creates a systemd
 service, generates the first password and starts Jeff on port `8787`. It also
 installs the root-owned update helper used by the in-app update toast.
 
+This is the only supported server installation. The desktop app is a client;
+its self-hosted local mode embeds the same backend but is installed with the
+desktop package. Android is a remote-only client.
+
 On Debian/Ubuntu and LXC it also installs PostgreSQL and Redis, creates a
 `jeff` role and database, writes a generated `JEFF_DATABASE_URL` and points
 `JEFF_REDIS_URL` at the local Redis. To use external services, export the URLs
@@ -182,9 +186,10 @@ since the latest release:
 The pipeline creates the tag, builds the server, APK and desktop installers, and
 publishes the release. It never deploys to a server by itself.
 
-Remote servers expose an update toast when a newer release exists. Clicking
-**Update** writes an authenticated update request; the root-owned helper runs
-the same `install.sh` release flow, checks health and rolls back on failure.
+Servers installed with `install.sh` expose an update toast when a newer release
+exists. Clicking **Update** writes an authenticated update request; the
+root-owned helper runs the same `install.sh` release flow, checks health and
+rolls back on failure.
 
 On the Android APK, the same action also asks Android's DownloadManager for the
 latest signed APK. The first APK that contains this downloader must be installed
@@ -193,38 +198,9 @@ toast. Installing the downloaded APK still requires the normal Android prompt.
 
 ### Desktop
 
-Install the Windows or Linux package from the [latest release](https://github.com/ferforastieri/jeff/releases/latest). Desktop local mode embeds the Rust Jeff server and asks for a workspace folder; server mode asks only for a URL on first use and reconnects to the last server on later launches. The launcher also offers an optional development-environment installer for Git, Node.js, pnpm, Rust, Go and Python. The local backend uses the app data directory for its master key and requires a PostgreSQL URL (`JEFF_DATABASE_URL`).
+Install the Windows or Linux package from the [latest release](https://github.com/ferforastieri/jeff/releases/latest). Desktop local mode is a self-hosted runtime embedded in the desktop package: it asks for a workspace folder, starts the same Rust backend, and updates with the desktop installer. Server mode asks only for a URL on first use and reconnects to the last server on later launches. The launcher also offers an optional development-environment installer for Git, Node.js, pnpm, Rust, Go and Python. The local backend uses the app data directory for its master key and requires a PostgreSQL URL (`JEFF_DATABASE_URL`).
 
 The desktop and Android entrypoints share `packages/launcher/` and `packages/native/`; Android remains remote-only and does not compile the embedded server. Windows ships a Jeff-branded NSIS installer (per-user or per-machine, directory and shortcut choices, Portuguese/English/Spanish, MIT license) and an equivalent WiX MSI, both with the current brand artwork.
-
-### Docker
-
-```sh
-JEFF_WORKSPACES_HOST=/srv/workspaces \
-JEFF_UID=$(id -u) JEFF_GID=$(id -g) \
-docker compose -f deploy/compose.yaml up --build
-```
-
-The stack starts Jeff, PostgreSQL and Redis together; the app waits for both
-health checks. Point `JEFF_DATABASE_URL` at an external database if you prefer
-not to run Postgres in the stack. Mount the repositories you want to expose
-under `/workspaces` and keep `JEFF_DATA_DIR` on a persistent volume.
-
-The container starts as root only long enough to align `/data` and
-`/home/jeff` with `JEFF_UID:JEFF_GID`, then drops privileges; the mounted
-workspace is never chowned. Set both to the host user that owns
-`JEFF_WORKSPACES_HOST` (the defaults are `1000:1000`). When the workspace group
-differs from the runtime group, set `JEFF_WORKSPACE_GID` as well. Without this,
-the Drive can list files it cannot delete (`permission denied` / `os error 13`),
-especially folders created with mode `0700`. The deployment-specific values
-live in `deploy/.env`. By default the port is published on all interfaces
-(`JEFF_BIND_ADDRESS=0.0.0.0`) so a reverse proxy on another host can reach
-Jeff; set `JEFF_BIND_ADDRESS=127.0.0.1` to keep it loopback-only.
-
-The image includes Node/npm and curl, so Settings → Harness can install and
-update OpenCode, Claude Code and Codex from the app. The `install.sh` path is
-still the recommended one when Jeff must run host toolchains, shells and agents
-directly on the machine.
 
 ### Desktop and Android
 

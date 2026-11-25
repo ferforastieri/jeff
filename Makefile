@@ -1,4 +1,4 @@
-.PHONY: dev dev-live dev-backend web web-landing build run test fmt mobile docker
+.PHONY: dev dev-live dev-backend web web-landing build run test fmt mobile db
 
 web:
 	npm install
@@ -41,5 +41,5 @@ mobile:
 	cd mobile && npm run icons
 	cd mobile && npm run tauri -- android build --debug --apk --target aarch64
 
-docker:
-	JEFF_UID=$$(id -u) JEFF_GID=$$(id -g) docker compose -f deploy/compose.yaml up --build
+db:
+	docker compose -f scripts/compose.postgres.yml up -d
