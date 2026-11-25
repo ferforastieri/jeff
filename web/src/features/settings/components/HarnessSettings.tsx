@@ -1,17 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Check, CircleAlert, Copy, Download, ExternalLink, RefreshCw } from "@jeff/icons";
+import type { Project } from "../../../shared/api";
 import { engineApi, type EngineInfo, type EngineTest } from "../../agents/api";
 import { useApp } from "../../../app/store";
-import { useSettings } from "../store";
 import HarnessIcon from "../../agents/components/HarnessIcon";
 import { Button } from "@jeff/ui/app";
 import { cx } from "@jeff/ui";
 import "./HoppingToph.css";
 
+const LoginTerminal = lazy(() => import("../../terminal/components/TerminalPanel"));
+
 type Busy = { id: string; action: "test" | "install" | "update" } | null;
 
 interface Props {
   projectRoot?: string;
+  projectId?: string;
 }
 
 /** One place for the agent harnesses: install, log in and test the CLI. */
@@ -28,8 +31,9 @@ function HoppingToph({ className, "aria-hidden": ariaHidden }: { className?: str
   );
 }
 
-export default function HarnessSettings(_props: Props) {
+export default function HarnessSettings({ projectRoot, projectId }: Props) {
   const notify = useApp((state) => state.notify);
+  const [loginView, setLogin] = useState<{ engine: EngineInfo; command: string; nonce: number } | null>(null);
   const [engines, setEngines] = useState<EngineInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Busy>(null);
@@ -113,34 +117,16 @@ export default function HarnessSettings(_props: Props) {
   }
 
   function login(engine: EngineInfo) {
-    // The harness login is interactive (it prints a URL and waits for a code):
-    // run it in the app's own terminal, with the settings dialog out of the way.
-    notify("info", "Abrindo o terminal para o login…");
-    window.dispatchEvent(new Event("jeff:close-settings"));
-    const settings = useSettings.getState();
-    if (!settings.workspaceFeatures.terminal) settings.update({ workspaceFeatures: { terminal: true } });
-    window.dispatchEvent(new CustomEvent("jeff:open-terminal", { detail: { force: true } }));
-    // The terminal mounts asynchronously. Wait for xterm before sending the
-    // command, otherwise the click looks like it did nothing on mobile.
+    // The login is interactive (it prints a URL and waits for a code). It runs
+    // in a terminal inside Settings, so it never depends on the Workbench's
+    // terminal tab or the event that opens it.
     // Antigravity runs on the server, so advertise an SSH-like environment to
     // force its manual URL/code OAuth flow instead of opening a browser there.
     const path = 'PATH="$HOME/.opencode/bin:$HOME/.local/bin:$HOME/.claude/local:$PATH"';
     const command = engine.id === "antigravity"
       ? `AGY_CLI_DISABLE_AUTO_UPDATE=true SSH_CONNECTION='jeff 0 127.0.0.1 0' SSH_CLIENT='127.0.0.1 0 0' ${path} agy`
       : `${path} ${engine.login}`;
-    let attempts = 0;
-    const send = () => {
-      if (document.querySelector(".xterm")) {
-        window.dispatchEvent(new CustomEvent("jeff:terminal-command", {
-          detail: { command: "login", text: command },
-        }));
-      } else if (attempts++ < 25) {
-        window.setTimeout(send, 200);
-      } else {
-        notify("error", "Não foi possível abrir o terminal para o login. Abra o terminal e rode o comando de login.");
-      }
-    };
-    window.setTimeout(send, 300);
+    setLogin({ engine, command, nonce: Date.now() });
   }
 
   async function copy(engine: EngineInfo) {
@@ -153,6 +139,15 @@ export default function HarnessSettings(_props: Props) {
       notify("error", "Não foi possível copiar o comando.");
     }
   }
+
+  const loginProject: Project = {
+    id: projectId ?? "workspaces",
+    name: "workspaces",
+    root: projectRoot ?? "/workspaces",
+    color: "",
+    createdAt: "",
+    updatedAt: "",
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -278,6 +273,36 @@ export default function HarnessSettings(_props: Props) {
         <p className="rounded-2xl border border-dashed border-border-button-default px-4 py-6 text-center text-caption-1-regular text-text-tertiary">
           Nenhum harness detectado.
         </p>
+      ) : null}
+
+      {loginView ? (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 9999 }}
+          className="flex flex-col bg-background-primary-default p-3"
+        >
+          <div className="flex items-center justify-between gap-2 pb-2">
+            <strong className="text-caption-1-semibold text-text-primary">Login — {loginView.engine.label}</strong>
+            <Button variant="ghost" size="small" onClick={() => setLogin(null)}>Fechar</Button>
+          </div>
+          <div className="min-h-0 flex-1">
+            <Suspense
+              fallback={(
+                <div className="flex h-full items-center justify-center gap-2 text-caption-1-regular text-text-secondary">
+                  <HoppingToph /> Abrindo terminal…
+                </div>
+              )}
+            >
+              <LoginTerminal
+                project={loginProject}
+                sheet
+                onClose={() => setLogin(null)}
+                onOpenFile={() => undefined}
+                initialCommand={{ text: loginView.command, nonce: loginView.nonce }}
+                commandTarget="login"
+              />
+            </Suspense>
+          </div>
+        </div>
       ) : null}
     </div>
   );

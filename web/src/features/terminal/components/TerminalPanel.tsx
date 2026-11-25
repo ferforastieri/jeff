@@ -38,6 +38,8 @@ interface Props {
   onOpenFile: (path: string, line?: number) => void;
   sheet?: boolean;
   onClose?: () => void;
+  initialCommand?: { text: string; nonce: number } | null;
+  commandTarget?: string;
 }
 
 const terminalTabs = [
@@ -57,7 +59,7 @@ function stripAnsi(value: string): string {
     .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "");
 }
 
-export default function TerminalPanel({ project, onOpenFile, sheet = false, onClose }: Props) {
+export default function TerminalPanel({ project, onOpenFile, sheet = false, onClose, initialCommand, commandTarget }: Props) {
   const [tab, setTab] = useState<TerminalTab>("terminal");
   const [focusNonce, setFocusNonce] = useState(0);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -82,6 +84,7 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
   const theme = useSettings((state) => state.theme);
   const setTerminalOpen = useApp((state) => state.setTerminalOpen);
   const initialized = useRef(false);
+  const initialDone = useRef<number | null>(null);
   const outputRef = useRef("");
 
   const appendOutput = useCallback((chunk: string) => {
@@ -242,7 +245,9 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
 
   useEffect(() => {
     const handleCommand = (event: Event) => {
-      const command = (event as CustomEvent<{ command?: string }>).detail?.command;
+      const detail = (event as CustomEvent<{ command?: string; text?: string; target?: string }>).detail;
+      if (detail?.target && detail.target !== commandTarget) return;
+      const command = detail?.command;
       if (command === "new") void newSession();
       else if (command === "split") void splitTerminal();
       else if (command === "clear") setClearNonce((value) => value + 1);
@@ -250,7 +255,7 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
       else if (command === "kill") void killSession();
       else if (command === "kill-all") void killAll();
       else if (command === "login" || command === "run") {
-        const text = (event as CustomEvent<{ text?: string }>).detail?.text;
+        const text = detail?.text;
         if (!text) return;
         const target = selectedSession ?? activeSession;
         if (target) {
@@ -275,7 +280,22 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
       window.removeEventListener("jeff:terminal-command", handleCommand);
       window.removeEventListener("jeff:terminal-tab", handleTab);
     };
-  }, [activeSession?.id, createSession, selectedSession?.id, shell, sessions.length]);
+  }, [activeSession?.id, commandTarget, createSession, selectedSession?.id, shell, sessions.length]);
+
+  useEffect(() => {
+    if (!initialCommand || sessions.length === 0) return;
+    if (initialDone.current === initialCommand.nonce) return;
+    initialDone.current = initialCommand.nonce;
+    window.dispatchEvent(
+      new CustomEvent("jeff:terminal-command", {
+        detail: {
+          command: "login",
+          text: initialCommand.text,
+          target: commandTarget,
+        },
+      }),
+    );
+  }, [initialCommand, sessions.length, commandTarget]);
 
   return (
     <section

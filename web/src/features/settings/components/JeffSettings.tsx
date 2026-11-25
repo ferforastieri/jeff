@@ -234,7 +234,7 @@ export function SettingsView({
           ) : section === "connectors" ? (
             <Card padded><ConnectorsSettings /></Card>
           ) : section === "harness" ? (
-            <Card padded><HarnessSettings projectRoot={projectRoot} /></Card>
+            <Card padded><HarnessSettings projectRoot={projectRoot} projectId={projectId} /></Card>
           ) : (
             <Card padded><WorkspaceSettings /></Card>
           )}
