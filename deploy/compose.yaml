@@ -9,6 +9,7 @@ services:
     container_name: jeff
     restart: unless-stopped
     init: true
+    mem_limit: 4g
     ports:
       # Publish on every interface by default so a reverse proxy on another
       # host can reach Jeff. Set JEFF_BIND_ADDRESS=127.0.0.1 for loopback-only.
@@ -45,6 +46,7 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    mem_limit: 1g
     environment:
       POSTGRES_USER: jeff
       POSTGRES_PASSWORD: jeff
@@ -60,6 +62,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    mem_limit: 256m
     command:
       - redis-server
       - --appendonly

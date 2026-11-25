@@ -482,6 +482,7 @@ export function TerminalView({ session, theme, clearNonce, focusNonce, mobile, r
   const hostRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const sendRunRef = useRef<((text: string) => void) | null>(null);
+  const pendingRunRef = useRef<string | null>(null);
   const outputCallback = useRef(onOutput);
   outputCallback.current = onOutput;
   const openFileCallback = useRef(onOpenFile);
@@ -666,6 +667,11 @@ export function TerminalView({ session, theme, clearNonce, focusNonce, mobile, r
       if (socket?.readyState === WebSocket.OPEN) socket.send(encoder.encode(`${text}\n`));
       else pendingRun = text;
     };
+    if (pendingRunRef.current) {
+      const pending = pendingRunRef.current;
+      pendingRunRef.current = null;
+      sendRunRef.current(pending);
+    }
     term.onData((data) => { if (socket?.readyState === WebSocket.OPEN) socket.send(encoder.encode(data)); });
     term.onResize(({ cols, rows }) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "resize", cols, rows })); });
     heartbeatTimer = window.setInterval(() => {
@@ -730,7 +736,8 @@ export function TerminalView({ session, theme, clearNonce, focusNonce, mobile, r
 
   useEffect(() => {
     if (!runRequest) return;
-    sendRunRef.current?.(runRequest.text);
+    if (sendRunRef.current) sendRunRef.current(runRequest.text);
+    else pendingRunRef.current = runRequest.text;
   }, [runRequest]);
 
   useEffect(() => {

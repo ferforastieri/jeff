@@ -501,6 +501,35 @@ fn server_secret(key: &str) -> bool {
 
 /// Runs a CLI once, with the prompt on stdin, and captures both streams.
 /// The whole process group is killed when the run is cancelled.
+const MAX_CAPTURE_BYTES: usize = 128 * 1024 * 1024;
+
+async fn read_capped<R>(mut reader: R) -> std::io::Result<(Vec<u8>, bool)>
+where
+    R: tokio::io::AsyncRead + Unpin,
+{
+    use tokio::io::AsyncReadExt;
+    let mut output = Vec::new();
+    let mut chunk = [0u8; 32 * 1024];
+    let mut exceeded = false;
+    loop {
+        let count = reader.read(&mut chunk).await?;
+        if count == 0 {
+            break;
+        }
+        if output.len() < MAX_CAPTURE_BYTES {
+            let room = MAX_CAPTURE_BYTES - output.len();
+            let take = room.min(count);
+            output.extend_from_slice(&chunk[..take]);
+            if take < count {
+                exceeded = true;
+            }
+        } else {
+            exceeded = true;
+        }
+    }
+    Ok((output, exceeded))
+}
+
 async fn run_capture<S: AsRef<str>>(
     binary: &Path,
     args: &[String],
@@ -544,20 +573,8 @@ async fn run_capture<S: AsRef<str>>(
         .stderr
         .take()
         .ok_or_else(|| bad_request("A CLI não abriu stderr."))?;
-    let out = tokio::spawn(async move {
-        use tokio::io::AsyncReadExt;
-        let mut reader = BufReader::new(stdout);
-        let mut buffer = Vec::new();
-        reader.read_to_end(&mut buffer).await?;
-        Ok::<_, std::io::Error>(buffer)
-    });
-    let err = tokio::spawn(async move {
-        use tokio::io::AsyncReadExt;
-        let mut reader = BufReader::new(stderr);
-        let mut buffer = Vec::new();
-        reader.read_to_end(&mut buffer).await?;
-        Ok::<_, std::io::Error>(buffer)
-    });
+    let out = tokio::spawn(read_capped(BufReader::new(stdout)));
+    let err = tokio::spawn(read_capped(BufReader::new(stderr)));
     let status = tokio::select! {
         _ = cancel.cancelled() => {
             let _ = child.kill().await;
@@ -565,12 +582,18 @@ async fn run_capture<S: AsRef<str>>(
         }
         status = child.wait() => status?,
     };
-    let stdout = out
+    let (stdout, stdout_exceeded) = out
         .await
         .map_err(|error| crate::errors::internal(error.to_string()))??;
-    let stderr = err
+    let (stderr, stderr_exceeded) = err
         .await
         .map_err(|error| crate::errors::internal(error.to_string()))??;
+    if stdout_exceeded || stderr_exceeded {
+        return Err(bad_request(format!(
+            "A CLI produziu mais de {} MB de saída; a execução foi interrompida para proteger a memória do servidor.",
+            MAX_CAPTURE_BYTES / (1024 * 1024)
+        )));
+    }
     let stdout = String::from_utf8_lossy(&stdout).to_string();
     let stderr = String::from_utf8_lossy(&stderr).to_string();
     if !status.success() {

@@ -6,6 +6,7 @@ import { useSettings } from "../store";
 import HarnessIcon from "../../agents/components/HarnessIcon";
 import { Button } from "@jeff/ui/app";
 import { cx, PixelSpinner } from "@jeff/ui";
+import "./HoppingToph.css";
 
 type Busy = { id: string; action: "test" | "install" | "update" } | null;
 
@@ -17,6 +18,18 @@ interface Props {
 /** The pixel Jeff as a Button's leading icon while a harness works. */
 function SpinnerIcon({ className }: { className?: string; "aria-hidden"?: boolean | "true" | "false" }) {
   return <PixelSpinner size={16} className={className} />;
+}
+
+/** The Toph mascot hopping while an installer runs. */
+function HoppingToph({ className, "aria-hidden": ariaHidden }: { className?: string; "aria-hidden"?: boolean | "true" | "false" }) {
+  return (
+    <img
+      src={`${import.meta.env.BASE_URL}brand/jeff-mark.png`}
+      alt=""
+      aria-hidden={ariaHidden ?? true}
+      className={cx("toph-hop", className)}
+    />
+  );
 }
 
 export default function HarnessSettings(_props: Props) {
@@ -109,27 +122,27 @@ export default function HarnessSettings(_props: Props) {
     window.dispatchEvent(new Event("jeff:close-settings"));
     const settings = useSettings.getState();
     if (!settings.workspaceFeatures.terminal) settings.update({ workspaceFeatures: { terminal: true } });
-    window.setTimeout(() => {
-      if (!useApp.getState().terminalOpen) window.dispatchEvent(new Event("jeff:open-terminal"));
-    }, 150);
+    if (!useApp.getState().terminalOpen) {
+      window.dispatchEvent(new CustomEvent("jeff:open-terminal", { detail: { force: true } }));
+    }
     // The terminal mounts asynchronously. Wait for xterm before sending the
     // command, otherwise the click looks like it did nothing on mobile.
     // Antigravity runs on the server, so advertise an SSH-like environment to
     // force its manual URL/code OAuth flow instead of opening a browser there.
-    const inUserBin = ["antigravity", "codex", "pi"].includes(engine.id);
+    const path = 'PATH="$HOME/.opencode/bin:$HOME/.local/bin:$HOME/.claude/local:$PATH"';
     const command = engine.id === "antigravity"
-      ? "AGY_CLI_DISABLE_AUTO_UPDATE=true SSH_CONNECTION='jeff 0 127.0.0.1 0' SSH_CLIENT='127.0.0.1 0 0' PATH=\"$HOME/.local/bin:$PATH\" agy"
-      : inUserBin
-        ? `PATH="$HOME/.local/bin:$PATH" ${engine.login}`
-        : engine.login;
+      ? `AGY_CLI_DISABLE_AUTO_UPDATE=true SSH_CONNECTION='jeff 0 127.0.0.1 0' SSH_CLIENT='127.0.0.1 0 0' ${path} agy`
+      : `${path} ${engine.login}`;
     let attempts = 0;
     const send = () => {
       if (document.querySelector(".xterm")) {
         window.dispatchEvent(new CustomEvent("jeff:terminal-command", {
           detail: { command: "login", text: command },
         }));
-      } else if (attempts++ < 20) {
+      } else if (attempts++ < 25) {
         window.setTimeout(send, 200);
+      } else {
+        notify("error", "Não foi possível abrir o terminal para o login. Abra o terminal e rode o comando de login.");
       }
     };
     window.setTimeout(send, 300);
@@ -227,7 +240,7 @@ export default function HarnessSettings(_props: Props) {
                         />
                       </>
                     ) : (
-                      <Button variant="primary" size="small" disabled={working} leadingIcon={working && busy?.action === "install" ? SpinnerIcon : Download} onClick={() => void install(engine)}>
+                      <Button variant="primary" size="small" disabled={working} leadingIcon={working && busy?.action === "install" ? HoppingToph : Download} onClick={() => void install(engine)}>
                         {working && busy?.action === "install" ? "Instalando…" : "Instalar"}
                       </Button>
                     )}

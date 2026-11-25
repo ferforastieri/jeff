@@ -247,13 +247,15 @@ export default function Workbench() {
   }, []);
 
   useEffect(() => {
-    const openTerminal = () => {
-      if (!terminalEnabled) return;
+    const openTerminal = (event: Event) => {
+      const force = (event as CustomEvent<{ force?: boolean }>).detail?.force === true;
+      if (!terminalEnabled && !force) return;
+      if (force && !terminalEnabled) updateSettings({ workspaceFeatures: { terminal: true } });
       setTerminalOpen(!useApp.getState().terminalOpen);
     };
     window.addEventListener("jeff:open-terminal", openTerminal);
     return () => window.removeEventListener("jeff:open-terminal", openTerminal);
-  }, [setTerminalOpen, terminalEnabled]);
+  }, [setTerminalOpen, terminalEnabled, updateSettings]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
