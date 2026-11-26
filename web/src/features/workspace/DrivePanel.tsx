@@ -90,6 +90,8 @@ export default function DrivePanel({ project }: Props) {
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [query, setQuery] = useState("");
   const [kinds, setKinds] = useState<string[]>([]);
+  const [agentPaths, setAgentPaths] = useState<string[]>([]);
+  const [agentFilter, setAgentFilter] = useState<string[]>([]);
   const prefs = usePrefs((state) => state.prefs);
   const updatePrefs = usePrefs((state) => state.update);
   const confirm = useConfirm();
@@ -103,6 +105,15 @@ export default function DrivePanel({ project }: Props) {
   const [preview, setPreview] = useState<{ entry: FileEntry; content: string } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
+
+  async function loadAgentPaths() {
+    try {
+      const result = await api.agentFiles();
+      setAgentPaths(result.paths);
+    } catch {
+      // The Drive still works when the activity index is unavailable.
+    }
+  }
 
   async function refresh(target = path) {
     if (!project.id) return;
@@ -118,6 +129,7 @@ export default function DrivePanel({ project }: Props) {
     } finally {
       setLoading(false);
     }
+    void loadAgentPaths();
   }
 
   useEffect(() => {
@@ -125,14 +137,30 @@ export default function DrivePanel({ project }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id, path]);
 
+  useEffect(() => {
+    const onFocus = () => void loadAgentPaths();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [project.id]);
+
   const trail = path.split("/").filter(Boolean);
   const folders = entries.filter((entry) => entry.dir);
   const files = entries.filter((entry) => !entry.dir);
   const searched = query.trim().toLowerCase();
-  const shownFolders = folders.filter((entry) => !searched || entry.name.toLowerCase().includes(searched));
+  const agentOnly = agentFilter.includes("touched");
+  const touched = new Set(agentPaths);
+  const hasTouchedDescendant = (folder: string) =>
+    agentPaths.some((item) => item === folder || item.startsWith(`${folder}/`));
+  const filtering = Boolean(searched) || kinds.length > 0 || agentOnly;
+  const shownFolders = folders.filter(
+    (entry) =>
+      (!searched || entry.name.toLowerCase().includes(searched)) &&
+      (!agentOnly || hasTouchedDescendant(entry.path)),
+  );
   const shownFiles = files.filter((entry) => {
     if (searched && !entry.name.toLowerCase().includes(searched)) return false;
     if (kinds.length > 0 && !kinds.includes(kindOf(entry.name))) return false;
+    if (agentOnly && !touched.has(entry.path)) return false;
     return true;
   });
 
@@ -350,6 +378,20 @@ export default function DrivePanel({ project }: Props) {
           />
         }
       >
+        <FilterChip
+          label="Jeffs"
+          icon="agent"
+          options={[
+            {
+              value: "touched",
+              label: "Criados ou usados",
+              count: agentPaths.length,
+            },
+          ]}
+          value={agentFilter}
+          onChange={setAgentFilter}
+          clearLabel="Limpar filtro dos Jeffs"
+        />
         {kindOptions.length > 0 ? (
           <FilterChip
             label="Tipo"
@@ -362,7 +404,7 @@ export default function DrivePanel({ project }: Props) {
             countText={(count) => `${count} tipos`}
           />
         ) : null}
-        {query || kinds.length > 0 ? (
+        {filtering ? (
           <Button
             size="sm"
             variant="ghost"
@@ -370,6 +412,7 @@ export default function DrivePanel({ project }: Props) {
             onClick={() => {
               setQuery("");
               setKinds([]);
+              setAgentFilter([]);
             }}
           >
             Limpar
@@ -384,13 +427,14 @@ export default function DrivePanel({ project }: Props) {
       ) : showing === 0 ? (
         <EmptyState
           icon="drive"
-          title={searched || kinds.length > 0 ? "Nada encontrado" : "Esta pasta está vazia"}
+          title={filtering ? "Nada encontrado" : "Esta pasta está vazia"}
           actions={
-            searched || kinds.length > 0 ? (
+            filtering ? (
               <Button
                 onClick={() => {
                   setQuery("");
                   setKinds([]);
+                  setAgentFilter([]);
                 }}
               >
                 Limpar filtros
@@ -407,9 +451,11 @@ export default function DrivePanel({ project }: Props) {
             )
           }
         >
-          {searched || kinds.length > 0
-            ? "Tente outro nome ou outro tipo de arquivo."
-            : "Coloque os arquivos do projeto aqui, ou crie uma pasta."}
+          {agentOnly
+            ? "Nenhum arquivo criado ou usado pelos Jeffs nesta pasta."
+            : filtering
+              ? "Tente outro nome ou outro tipo de arquivo."
+              : "Coloque os arquivos do projeto aqui, ou crie uma pasta."}
         </EmptyState>
       ) : view === "grid" ? (
         <div className="ws-drive-grid">

@@ -1231,6 +1231,7 @@ fn router(state: Arc<AppState>) -> Router {
             post(release_debug),
         )
         .route("/api/repos", get(list_repos).post(create_repo))
+        .route("/api/drive/agent-files", get(agent_files))
         .route(
             "/api/workspaces/roots",
             get(list_workspace_roots)

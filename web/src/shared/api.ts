@@ -935,6 +935,10 @@ export const api = {
     );
   },
 
+  async agentFiles(): Promise<{ paths: string[] }> {
+    return request<{ paths: string[] }>("/drive/agent-files");
+  },
+
   async file(projectId: string, path: string): Promise<FileContent> {
     return request<FileContent>(
       `/projects/${encodeURIComponent(projectId)}/file?path=${encodeURIComponent(path)}`,

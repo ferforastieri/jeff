@@ -319,6 +319,16 @@ export default function Workspace({ status }: Props) {
     }),
     [selectedRoom?.projectId, status.projectId, status.teamName],
   );
+  // Drive is the workspace-wide file browser, not the room's repo: it reads
+  // the silent workspace project so every configured root is in one place.
+  const driveProject: Project = useMemo(
+    () => ({
+      ...boardProject,
+      id: status.projectId,
+      name: status.teamName || "Drive",
+    }),
+    [boardProject, status.projectId, status.teamName],
+  );
   const draftKey = `${status.projectId}:slack:${selectedRoomId || "home"}`;
   const draft = useJeffDrafts((state) => state.drafts[draftKey] ?? "");
   const setDraft = useJeffDrafts((state) => state.setDraft);
@@ -1833,7 +1843,7 @@ export default function Workspace({ status }: Props) {
         ) : null}
         {view === "drive" ? (
           <div className="ws-panel ws-drive-panel">
-            <DrivePanel project={boardProject} />
+            <DrivePanel project={driveProject} />
           </div>
         ) : null}
         {view === "calendar" ? (

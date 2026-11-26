@@ -1,4 +1,195 @@
 use super::*;
+use sqlx::Row;
+use std::collections::BTreeSet;
+use std::path::{Path as StdPath, PathBuf};
+
+fn parse_json(value: &str) -> Value {
+    serde_json::from_str(value).unwrap_or(Value::Null)
+}
+
+fn push_agent_path(
+    raw: &str,
+    project_root: &str,
+    drive_root: &StdPath,
+    paths: &mut BTreeSet<String>,
+) {
+    let raw = raw.trim();
+    if raw.is_empty() || raw.starts_with('/') {
+        return;
+    }
+    let mut relative = PathBuf::new();
+    let mut depth = 0usize;
+    for part in raw.replace('\\', "/").split('/') {
+        if part.is_empty() || part == "." {
+            continue;
+        }
+        if part == ".." {
+            if depth == 0 {
+                return;
+            }
+            relative.pop();
+            depth -= 1;
+            continue;
+        }
+        relative.push(part);
+        depth += 1;
+    }
+    if relative.as_os_str().is_empty() {
+        return;
+    }
+    let absolute = PathBuf::from(project_root).join(&relative);
+    let absolute = std::fs::canonicalize(&absolute).unwrap_or(absolute);
+    let root = std::fs::canonicalize(drive_root).unwrap_or_else(|_| drive_root.to_path_buf());
+    if let Ok(relative) = absolute.strip_prefix(&root) {
+        let text = relative.to_string_lossy().replace('\\', "/");
+        if !text.is_empty() {
+            paths.insert(text);
+        }
+    }
+}
+
+fn collect_output_paths(value: &Value, add: &mut impl FnMut(&str)) {
+    match value {
+        Value::String(text) => {
+            if let Ok(parsed) = serde_json::from_str::<Value>(text) {
+                collect_output_paths(&parsed, add);
+            } else if !text.trim().is_empty() {
+                add(text);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                collect_output_paths(item, add);
+            }
+        }
+        Value::Object(map) => {
+            if let Some(path) = map.get("path").and_then(Value::as_str) {
+                add(path);
+            }
+            for key in ["files", "results", "matches", "items", "data"] {
+                if let Some(value) = map.get(key) {
+                    collect_output_paths(value, add);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn collect_agent_paths(
+    name: &str,
+    input: &Value,
+    output: Option<&Value>,
+    project_root: &str,
+    drive_root: &StdPath,
+    paths: &mut BTreeSet<String>,
+) {
+    let mut add = |path: &str| push_agent_path(path, project_root, drive_root, paths);
+    match name {
+        "read_file" | "read" | "edit_file" | "edit" | "write_file" | "write" | "delete_file"
+        | "delete" => {
+            if let Some(path) = input
+                .get("path")
+                .or_else(|| input.get("filePath"))
+                .and_then(Value::as_str)
+            {
+                add(path);
+            }
+        }
+        "list_files" | "list" | "search" | "grep" | "glob" => {
+            if let Some(output) = output {
+                collect_output_paths(output, &mut add);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Files the Jeffs created or touched, relative to the Drive root. It reads
+/// both the gateway tool table and the native harness transcripts, so old and
+/// new harnesses feed the same filter.
+pub(super) async fn agent_files(
+    State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    let drive_root = state
+        .store
+        .workspace_project()
+        .await
+        .map(|project| PathBuf::from(project.root))
+        .unwrap_or_default();
+    if drive_root.as_os_str().is_empty() {
+        return Ok(Json(json!({ "paths": [] })));
+    }
+
+    let mut paths = BTreeSet::new();
+    let calls = sqlx::query(
+        "SELECT t.name, t.arguments, t.result, p.root AS project_root \
+         FROM agent_tool_calls t \
+         JOIN agent_runs r ON r.id = t.run_id \
+         JOIN projects p ON p.id = r.project_id \
+         WHERE r.user_id = $1 AND t.state = 'completed'",
+    )
+    .bind(auth.user.id)
+    .fetch_all(state.store.pool())
+    .await?;
+    for row in calls {
+        let name: String = row.try_get("name")?;
+        let arguments: String = row.try_get("arguments")?;
+        let result: Option<String> = row.try_get("result").ok().flatten();
+        let project_root: String = row.try_get("project_root")?;
+        let input = parse_json(&arguments);
+        let output = result.as_deref().map(parse_json);
+        collect_agent_paths(
+            &name,
+            &input,
+            output.as_ref(),
+            &project_root,
+            &drive_root,
+            &mut paths,
+        );
+    }
+
+    let messages = sqlx::query(
+        "SELECT m.display, p.root AS project_root \
+         FROM agent_messages m \
+         JOIN agent_runs r ON r.id = m.run_id \
+         JOIN projects p ON p.id = r.project_id \
+         WHERE r.user_id = $1 AND m.role = 'tool'",
+    )
+    .bind(auth.user.id)
+    .fetch_all(state.store.pool())
+    .await?;
+    for row in messages {
+        let display: String = row.try_get("display")?;
+        let project_root: String = row.try_get("project_root")?;
+        let display = parse_json(&display);
+        let name = display
+            .get("title")
+            .or_else(|| display.get("name"))
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let detail = display
+            .get("detail")
+            .and_then(Value::as_str)
+            .map(parse_json)
+            .unwrap_or(Value::Null);
+        if !detail.is_null() {
+            collect_agent_paths(
+                name,
+                detail.get("input").unwrap_or(&Value::Null),
+                detail.get("output"),
+                &project_root,
+                &drive_root,
+                &mut paths,
+            );
+        }
+    }
+
+    Ok(Json(json!({
+        "paths": paths.into_iter().collect::<Vec<_>>(),
+    })))
+}
 
 pub(super) async fn tree(
     State(state): State<Arc<AppState>>,
@@ -542,4 +733,54 @@ pub(super) async fn persist_workspace_roots(state: &AppState) -> AppResult<()> {
         .store
         .set_setting("workspace_roots", &serde_json::to_string(&roots)?)
         .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn agent_paths_are_relative_to_the_drive_root() {
+        let dir = tempfile::tempdir().unwrap();
+        let drive = dir.path().join("repos");
+        let project = drive.join("pessoal").join("toph");
+        std::fs::create_dir_all(project.join("src")).unwrap();
+        std::fs::write(project.join("src/main.rs"), "fn main() {}").unwrap();
+        let mut paths = BTreeSet::new();
+
+        push_agent_path("src/main.rs", project.to_str().unwrap(), &drive, &mut paths);
+        push_agent_path(
+            "src/../README.md",
+            project.to_str().unwrap(),
+            &drive,
+            &mut paths,
+        );
+        push_agent_path(
+            "../outside.rs",
+            project.to_str().unwrap(),
+            &drive,
+            &mut paths,
+        );
+
+        assert_eq!(
+            paths.into_iter().collect::<Vec<_>>(),
+            vec![
+                "pessoal/toph/README.md".to_string(),
+                "pessoal/toph/src/main.rs".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn tool_outputs_supply_searched_and_listed_files() {
+        let mut paths = Vec::new();
+        collect_output_paths(
+            &json!([{"path": "src/a.rs"}, {"path": "src/b.rs"}]),
+            &mut |path| paths.push(path.to_string()),
+        );
+        collect_output_paths(&json!({"files": ["src/c.rs"]}), &mut |path| {
+            paths.push(path.to_string())
+        });
+        assert_eq!(paths, vec!["src/a.rs", "src/b.rs", "src/c.rs"]);
+    }
 }
