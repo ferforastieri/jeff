@@ -1,15 +1,32 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { Bell, Braces, Home, MessageSquare, Search, UserRound } from "@jeff/icons";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Bell,
+  BookOpen,
+  Braces,
+  HardDrive,
+  Home,
+  MessageSquare,
+  PlugZap,
+  Rows3,
+  Search,
+  Settings2,
+  Sparkles,
+  TerminalSquare,
+  Timer,
+  UserRound,
+  Users,
+} from "@jeff/icons";
 import type { AIModel, OnboardingStatus, Project, User } from "../../../shared/api";
 import type { AppNotification } from "../../../app/store";
 import type { ChannelCategory, Principal, Room, RoomMessage } from "../../rooms/api";
 import type { Section } from "../../settings/components/JeffSettings";
 import { SettingsView } from "../../settings/components/JeffSettings";
-import type { MemberStatus } from "../../../shared/ui/presence";
-import type { IconName } from "faang-ui";
-import MobileTabBar, { type MobileTabItem } from "../../../app/layouts/mobile/components/MobileTabBar";
+import { MEMBER_STATUS_LABEL, type MemberStatus } from "../../../shared/ui/presence";
+import { Menu, MenuRadioGroup, type IconName } from "faang-ui";
+import { usePrefs } from "../../../shared/prefs";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
+import MobileDrawer, { type MobileDrawerRow, type MobileDrawerSection } from "../../../app/layouts/mobile/components/MobileDrawer";
 import { useMobileBack } from "../../../app/layouts/mobile/useMobileBack";
 import { faceOf } from "../face";
 import HomeDashboard from "../HomeDashboard";
@@ -33,8 +50,6 @@ interface Props {
   teamName: string;
   workspaceLogo: string;
   memberCount: number;
-  workspaceMenuRef: RefObject<HTMLButtonElement | null>;
-  onOpenMenu: () => void;
   bots: Principal[];
   me: Principal | null;
   rooms: Room[];
@@ -106,8 +121,6 @@ export default function WorkspaceMobile(props: Props) {
     teamName,
     workspaceLogo,
     memberCount,
-    workspaceMenuRef,
-    onOpenMenu,
     bots,
     me,
     rooms,
@@ -159,9 +172,15 @@ export default function WorkspaceMobile(props: Props) {
   const [pane, setPane] = useState<MobilePane>("root");
   const [settingsSection, setSettingsSection] = useState<Section>("general");
   const [channelQuery, setChannelQuery] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const searchHost = useRef<HTMLDivElement>(null);
+  const setStatus = usePrefs((state) => state.update);
 
   useMobileBack(() => {
+    if (drawerOpen) {
+      setDrawerOpen(false);
+      return true;
+    }
     if (pane !== "root") {
       setPane("root");
       return true;
@@ -182,9 +201,18 @@ export default function WorkspaceMobile(props: Props) {
     return () => window.clearTimeout(timer);
   }, [pane]);
 
+  function openDrawer() {
+    setDrawerOpen(true);
+  }
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+  }
+
   function selectTab(next: MobileTab) {
     setTab(next);
     setPane("root");
+    setDrawerOpen(false);
     if (next === "home") onView("home");
   }
 
@@ -192,30 +220,79 @@ export default function WorkspaceMobile(props: Props) {
     onSelectRoom(room);
     setTab("conversas");
     setPane("chat");
+    setDrawerOpen(false);
   }
 
   async function openAgent(bot: Principal) {
     await onOpenAgent(bot);
     setTab("conversas");
     setPane("chat");
+    setDrawerOpen(false);
   }
 
   function openSettings(section: Section) {
     setSettingsSection(section);
     setPane("settings");
+    setDrawerOpen(false);
   }
 
   function openTool(view: "tasks" | "calendar" | "drive" | "wiki") {
     onView(view);
     setPane(view);
+    setDrawerOpen(false);
   }
 
-  const tabs: MobileTabItem[] = [
-    { id: "home", label: "Início", icon: Home },
-    { id: "conversas", label: "Conversas", icon: MessageSquare, badge: roomUnread },
-    { id: "trabalho", label: "Trabalho", icon: Braces },
-    { id: "alertas", label: "Alertas", icon: Bell },
-    { id: "voce", label: "Você", icon: UserRound },
+  function drawerRow(
+    id: string,
+    label: string,
+    icon: ReactNode,
+    onSelect: () => void,
+    options: Partial<Pick<MobileDrawerRow, "hint" | "badge" | "active" | "danger">> = {},
+  ): MobileDrawerRow {
+    return { id, label, icon, onSelect, ...options };
+  }
+
+  const drawerSections: MobileDrawerSection[] = [
+    {
+      id: "nav",
+      rows: [
+        drawerRow("home", "Início", <Home className="m-drawer__glyph" />, () => selectTab("home"), { active: tab === "home" && pane === "root" }),
+        drawerRow("conversas", "Conversas", <MessageSquare className="m-drawer__glyph" />, () => selectTab("conversas"), { active: tab === "conversas", badge: roomUnread }),
+        drawerRow("trabalho", "Trabalho", <Braces className="m-drawer__glyph" />, () => selectTab("trabalho"), { active: tab === "trabalho" && pane === "root" }),
+        drawerRow("alertas", "Alertas", <Bell className="m-drawer__glyph" />, () => selectTab("alertas"), { active: tab === "alertas", badge: unread }),
+      ],
+    },
+    {
+      id: "tools",
+      label: "Ferramentas",
+      rows: [
+        drawerRow("tasks", "Tarefas", <Rows3 className="m-drawer__glyph" />, () => openTool("tasks"), { active: pane === "tasks" }),
+        drawerRow("calendar", "Calendário", <Timer className="m-drawer__glyph" />, () => openTool("calendar"), { active: pane === "calendar" }),
+        drawerRow("drive", "Drive", <HardDrive className="m-drawer__glyph" />, () => openTool("drive"), { active: pane === "drive" }),
+        drawerRow("wiki", "Wiki", <BookOpen className="m-drawer__glyph" />, () => openTool("wiki"), { active: pane === "wiki" }),
+      ],
+    },
+    {
+      id: "repos",
+      label: "Repos",
+      rows: [
+        drawerRow("workbench", "Abrir workbench", <TerminalSquare className="m-drawer__glyph" />, () => { closeDrawer(); onOpenWorkbench(); }, { hint: "Editor, terminal e abas" }),
+      ],
+    },
+    {
+      id: "settings",
+      label: "Ajustes",
+      rows: [
+        drawerRow("you", "Você e conta", <UserRound className="m-drawer__glyph" />, () => selectTab("voce"), { hint: "Perfil, tema e sessão" }),
+        drawerRow("connectors", "Conectores e MCP", <PlugZap className="m-drawer__glyph" />, () => openSettings("connectors")),
+        drawerRow("skills", "Skills", <Sparkles className="m-drawer__glyph" />, () => openSettings("skills")),
+        drawerRow("harness", "Harness", <TerminalSquare className="m-drawer__glyph" />, () => openSettings("harness")),
+        drawerRow("workspace", "Configurações do workspace", <HardDrive className="m-drawer__glyph" />, () => openSettings("workspace")),
+        ...(isAdmin
+          ? [drawerRow("invite", "Convidar pessoas", <Users className="m-drawer__glyph" />, () => { closeDrawer(); onInvite(); })]
+          : []),
+      ],
+    },
   ];
 
   function rootScreen() {
@@ -229,7 +306,7 @@ export default function WorkspaceMobile(props: Props) {
                 logo={workspaceLogo}
                 name={teamName}
                 meta={`${memberCount} ${memberCount === 1 ? "membro" : "membros"}`}
-                onClick={onOpenMenu}
+                onClick={openDrawer}
                 compact
               />
             }
@@ -266,12 +343,14 @@ export default function WorkspaceMobile(props: Props) {
           onOpenSearch={() => setPane("search")}
           onOpenProjects={() => onOpenWorkbench()}
           devMode={status.devMode}
+          onMenu={openDrawer}
         />
       );
     }
     if (tab === "alertas") {
       return (
         <AlertsScreen
+          onMenu={openDrawer}
           onOpen={(notification) => {
             onOpenNotification(notification);
             if (notification.roomId) {
@@ -297,6 +376,7 @@ export default function WorkspaceMobile(props: Props) {
           onOpenSettings={openSettings}
           onOpenWorkbench={onOpenWorkbench}
           devMode={status.devMode}
+          onMenu={openDrawer}
         />
       );
     }
@@ -305,8 +385,7 @@ export default function WorkspaceMobile(props: Props) {
         teamName={teamName}
         workspaceLogo={workspaceLogo}
         memberCount={memberCount}
-        workspaceMenuRef={workspaceMenuRef}
-        onOpenMenu={onOpenMenu}
+        onOpenDrawer={openDrawer}
         bots={bots}
         me={me}
         rooms={rooms}
@@ -497,7 +576,48 @@ export default function WorkspaceMobile(props: Props) {
   return (
     <div className="m-app">
       <div className="m-app__body">{pane === "root" ? rootScreen() : pushedScreen()}</div>
-      {pane === "root" ? <MobileTabBar items={tabs} active={tab} onSelect={(id) => selectTab(id as MobileTab)} /> : null}
+      <MobileDrawer
+        open={drawerOpen}
+        onClose={closeDrawer}
+        title={teamName}
+        meta={`${memberCount} ${memberCount === 1 ? "membro" : "membros"} · ${bots.length} ${bots.length === 1 ? "agente" : "agentes"}`}
+        mark={<img src={workspaceLogo} alt="" draggable={false} />}
+        sections={drawerSections}
+        footer={
+          <div className="m-profilebar">
+            <Menu
+              align="start"
+              label="Seu status"
+              trigger={
+                <button type="button" className="m-profilebar__me" aria-label={`Seu status: ${MEMBER_STATUS_LABEL[userStatus]}`}>
+                  <span className="m-profilebar__face">
+                    {userFace}
+                    <span className="m-presence" data-status={userStatus} aria-hidden="true" />
+                  </span>
+                  <span className="m-profilebar__copy">
+                    <strong>{userName}</strong>
+                    <small data-status={userStatus}>{MEMBER_STATUS_LABEL[userStatus]}</small>
+                  </span>
+                </button>
+              }
+            >
+              <MenuRadioGroup
+                label="Seu status"
+                value={userStatus}
+                onValueChange={(value) => setStatus({ userStatus: value as MemberStatus })}
+                options={(["online", "away", "busy", "offline"] as MemberStatus[]).map((value) => ({
+                  value,
+                  label: MEMBER_STATUS_LABEL[value],
+                  leading: <span className="m-status-mark" data-status={value} />,
+                }))}
+              />
+            </Menu>
+            <div className="m-profilebar__actions">
+              <MobileIconButton icon={Settings2} label="Configurações" onClick={() => openSettings("general")} />
+            </div>
+          </div>
+        }
+      />
     </div>
   );
 }

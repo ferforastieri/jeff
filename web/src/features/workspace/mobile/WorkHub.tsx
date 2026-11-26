@@ -4,6 +4,7 @@ import {
   Braces,
   ChevronRight,
   HardDrive,
+  MenuBars,
   Rows3,
   Search,
   TerminalSquare,
@@ -25,6 +26,7 @@ interface Props {
   onOpenSearch: () => void;
   onOpenProjects: () => void;
   devMode: boolean;
+  onMenu: () => void;
 }
 
 const TOOLS: Array<{ id: WorkView; label: string; hint: string; icon: ComponentType<{ className?: string }> }> = [
@@ -35,7 +37,7 @@ const TOOLS: Array<{ id: WorkView; label: string; hint: string; icon: ComponentT
 ];
 
 /** Trabalho: the workspace tools and the repos that open the dev workbench. */
-export default function WorkHub({ workspaceName, onOpenView, onOpenWorkbench, onOpenSearch, onOpenProjects, devMode }: Props) {
+export default function WorkHub({ workspaceName, onOpenView, onOpenWorkbench, onOpenSearch, onOpenProjects, devMode, onMenu }: Props) {
   const projects = useApp((state) => state.projects);
   const activeProjectId = useApp((state) => state.activeProjectId);
   const setProjects = useApp((state) => state.setProjects);
@@ -63,6 +65,7 @@ export default function WorkHub({ workspaceName, onOpenView, onOpenWorkbench, on
         variant="title"
         title="Trabalho"
         subtitle={workspaceName}
+        lead={<MobileIconButton icon={MenuBars} label="Abrir navegação" onClick={onMenu} />}
         actions={<MobileIconButton icon={Search} label="Buscar" onClick={onOpenSearch} />}
       />
       <div className="m-scroll">

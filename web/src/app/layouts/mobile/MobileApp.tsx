@@ -2,19 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import {
   Braces,
   ChevronDown,
-  ChevronRight,
   Home,
   Database,
   Files,
   GitBranch,
   Globe2,
+  MenuBars,
   MessageSquarePlus,
-  MoreHorizontal,
   Search,
   Settings2,
   TerminalSquare,
   UserRound,
-  Wrench,
   X,
 } from "@jeff/icons";
 import { api, type Project, type SchemaTable, type WebTarget } from "../../../shared/api";
@@ -44,14 +42,15 @@ import { useJeffDrafts } from "../../../features/agents/drafts";
 import MobileBranchSheet from "./MobileBranchSheet";
 import MobileAccountSheet from "./MobileAccountSheet";
 import { useMobileBack } from "./useMobileBack";
+import { Avatar } from "faang-ui";
 import JeffSettings from "../../../features/settings/components/JeffSettings";
 import ProjectMonogram from "../../../features/projects/components/ProjectMonogram";
-import MobileTabBar, { type MobileTabItem } from "./components/MobileTabBar";
+import MobileDrawer, { type MobileDrawerRow, type MobileDrawerSection } from "./components/MobileDrawer";
 import MobileScreenHeader from "./components/MobileScreenHeader";
 import MobileIconButton from "./components/MobileIconButton";
 import { MobileEmpty } from "../../../features/workspace/mobile/mobile-ui";
 
-type DevTab = "work" | "jeff" | "files" | "git" | "more";
+type DevTab = "work" | "jeff" | "files" | "git";
 type SettingsSection = "general" | "skills" | "connectors" | "harness" | "workspace";
 type Pushed =
   | { kind: "projects" }
@@ -95,6 +94,7 @@ export default function MobileApp() {
 
   const [tab, setTab] = useState<DevTab>("work");
   const [pushed, setPushed] = useState<Pushed | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [sessionFilter, setSessionFilter] = useState("");
   const [branchOpen, setBranchOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -218,6 +218,10 @@ export default function MobileApp() {
   }, [pushed, tab]);
 
   useMobileBack(() => {
+    if (drawerOpen) {
+      setDrawerOpen(false);
+      return true;
+    }
     if (closeTarget) {
       setCloseTarget(null);
       return true;
@@ -252,8 +256,23 @@ export default function MobileApp() {
     setTab("work");
   }
 
+  function openDrawer() {
+    setDrawerOpen(true);
+  }
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+  }
+
+  function selectTab(next: DevTab) {
+    setTab(next);
+    setPushed(null);
+    setDrawerOpen(false);
+  }
+
   function openProjectSheet() {
     setPushed({ kind: "projects" });
+    setDrawerOpen(false);
   }
 
   function openChat(chatId?: string | null) {
@@ -264,6 +283,7 @@ export default function MobileApp() {
     }
     setTab("jeff");
     setPushed({ kind: "chat" });
+    setDrawerOpen(false);
   }
 
   function newTask() {
@@ -416,16 +436,8 @@ export default function MobileApp() {
 
   const repo = project;
 
-  const tabsList: MobileTabItem[] = [
-    { id: "work", label: "Trabalho", icon: Braces },
-    { id: "jeff", label: "Jeff", icon: UserRound, brand: true },
-    { id: "files", label: "Arquivos", icon: Files },
-    { id: "git", label: "Git", icon: GitBranch },
-    { id: "more", label: "Mais", icon: MoreHorizontal },
-  ];
-
   const projectLead = (
-    <button type="button" className="m-devproject" onClick={openProjectSheet} aria-label={`Trocar repo. ${repo.name}`}>
+    <button type="button" className="m-devproject" onClick={openDrawer} aria-label={`Abrir navegação. ${repo.name}`}>
       <ProjectMonogram project={repo} size={32} />
       <span className="m-devproject__copy">
         <strong>{repo.name}</strong>
@@ -434,6 +446,62 @@ export default function MobileApp() {
       <ChevronDown className="m-devproject__chevron" />
     </button>
   );
+
+  const menuLead = <MobileIconButton icon={MenuBars} label="Abrir navegação" onClick={openDrawer} />;
+
+  function drawerRow(
+    id: string,
+    label: string,
+    icon: React.ReactNode,
+    onSelect: () => void,
+    options: Partial<Pick<MobileDrawerRow, "hint" | "active" | "danger">> = {},
+  ): MobileDrawerRow {
+    return { id, label, icon, onSelect, ...options };
+  }
+
+  function pushTool(kind: "terminal" | "db" | "web") {
+    setPushed({ kind });
+    setDrawerOpen(false);
+  }
+
+  const drawerSections: MobileDrawerSection[] = [
+    {
+      id: "nav",
+      rows: [
+        drawerRow("work", "Trabalho", <Braces className="m-drawer__glyph" />, () => selectTab("work"), { active: tab === "work" && !pushed }),
+        drawerRow("jeff", "Jeff", <BrandGlyph size={17} className="m-drawer__glyph" />, () => selectTab("jeff"), { active: tab === "jeff" && !pushed, hint: "Sessões e conversas" }),
+        drawerRow("files", "Arquivos", <Files className="m-drawer__glyph" />, () => selectTab("files"), { active: tab === "files" && !pushed }),
+        drawerRow("git", "Git", <GitBranch className="m-drawer__glyph" />, () => selectTab("git"), { active: tab === "git" && !pushed, hint: currentBranch || "mudanças" }),
+      ],
+    },
+    {
+      id: "tools",
+      label: "Ferramentas",
+      rows: [
+        drawerRow("terminal", "Terminal", <TerminalSquare className="m-drawer__glyph" />, () => pushTool("terminal"), { hint: "Shell do repo" }),
+        drawerRow("db", "Bancos", <Database className="m-drawer__glyph" />, () => pushTool("db"), { hint: "Conexões e queries" }),
+        drawerRow("web", "Web apps", <Globe2 className="m-drawer__glyph" />, () => pushTool("web"), { hint: "Sites e previews" }),
+      ],
+    },
+    {
+      id: "project",
+      label: "Projeto",
+      rows: [
+        drawerRow("new-task", "Nova tarefa", <MessageSquarePlus className="m-drawer__glyph" />, () => { closeDrawer(); newTask(); }),
+        drawerRow("repos", "Repos", <GitBranch className="m-drawer__glyph" />, openProjectSheet, { hint: "Abrir ou fechar" }),
+        drawerRow("branch", "Branch", <GitBranch className="m-drawer__glyph" />, () => { closeDrawer(); setBranchOpen(true); }, { hint: currentBranch || "Trocar ou criar" }),
+      ],
+    },
+    {
+      id: "app",
+      label: "App",
+      rows: [
+        drawerRow("settings", "Configurações", <Settings2 className="m-drawer__glyph" />, () => { closeDrawer(); openSettings("general"); }, { hint: "Conta, skills, MCP e harness" }),
+        drawerRow("account", "Conta", <UserRound className="m-drawer__glyph" />, () => { closeDrawer(); setAccountOpen(true); }, { hint: user?.username ?? "Sessão e servidor" }),
+        drawerRow("workspace", "Voltar ao workspace", <Home className="m-drawer__glyph" />, openWorkspace, { hint: "Canais, tarefas e calendário" }),
+      ],
+    },
+  ];
 
   function tabHeader() {
     if (tab === "work") {
@@ -455,7 +523,12 @@ export default function MobileApp() {
         <MobileScreenHeader
           title="Jeff"
           subtitle={`Tarefas do repo · ${repo.name}`}
-          lead={<span className="m-devface"><BrandGlyph size={22} /></span>}
+          lead={
+            <span className="m-header__leadrow">
+              {menuLead}
+              <span className="m-devface"><BrandGlyph size={22} /></span>
+            </span>
+          }
           actions={<MobileIconButton icon={MessageSquarePlus} label="Nova tarefa" onClick={newTask} />}
         />
       );
@@ -465,24 +538,17 @@ export default function MobileApp() {
         <MobileScreenHeader
           title="Arquivos"
           subtitle={repo.name}
+          lead={menuLead}
           actions={<MobileIconButton icon={Search} label="Buscar arquivos" onClick={() => { setSearchOpen(true); setSearchToken((token) => token + 1); }} />}
-        />
-      );
-    }
-    if (tab === "git") {
-      return (
-        <MobileScreenHeader
-          title="Git"
-          subtitle={currentBranch || repo.name}
-          actions={<MobileIconButton icon={GitBranch} label="Trocar branch" onClick={() => setBranchOpen(true)} />}
         />
       );
     }
     return (
       <MobileScreenHeader
-        title="Mais"
-        subtitle={repo.name}
-        actions={<MobileIconButton icon={Search} label="Buscar arquivos" onClick={() => { setSearchOpen(true); setSearchToken((token) => token + 1); }} />}
+        title="Git"
+        subtitle={currentBranch || repo.name}
+        lead={menuLead}
+        actions={<MobileIconButton icon={GitBranch} label="Trocar branch" onClick={() => setBranchOpen(true)} />}
       />
     );
   }
@@ -572,64 +638,7 @@ export default function MobileApp() {
         />
       );
     }
-    return (
-      <div className="m-scroll m-scroll--more">
-        <section className="m-toolgrid">
-          <button type="button" className="m-tool" onClick={() => setPushed({ kind: "terminal" })}>
-            <span className="m-tool__icon"><TerminalSquare className="m-tool__glyph" /></span>
-            <span className="m-tool__copy"><strong>Terminal</strong><small>Shell do repo</small></span>
-          </button>
-          <button type="button" className="m-tool" onClick={() => setPushed({ kind: "db" })}>
-            <span className="m-tool__icon"><Database className="m-tool__glyph" /></span>
-            <span className="m-tool__copy"><strong>Bancos</strong><small>Conexões e queries</small></span>
-          </button>
-          <button type="button" className="m-tool" onClick={() => setPushed({ kind: "web" })}>
-            <span className="m-tool__icon"><Globe2 className="m-tool__glyph" /></span>
-            <span className="m-tool__copy"><strong>Web apps</strong><small>Sites e previews</small></span>
-          </button>
-          <button type="button" className="m-tool" onClick={openProjectSheet}>
-            <span className="m-tool__icon"><GitBranch className="m-tool__glyph" /></span>
-            <span className="m-tool__copy"><strong>Repos</strong><small>Abrir ou fechar</small></span>
-          </button>
-        </section>
-
-        <div className="m-block">
-          <h2 className="m-block__title">Projeto e conta</h2>
-          <div className="m-settinglist">
-            <button type="button" className="m-settingrow" onClick={() => setBranchOpen(true)}>
-              <span className="m-settingrow__icon"><GitBranch className="m-settingrow__glyph" /></span>
-              <span className="m-settingrow__copy"><strong>Branch</strong><small>{currentBranch || "Trocar ou criar"}</small></span>
-            </button>
-            <button type="button" className="m-settingrow" onClick={() => setAccountOpen(true)}>
-              <span className="m-settingrow__icon"><UserRound className="m-settingrow__glyph" /></span>
-              <span className="m-settingrow__copy"><strong>Conta</strong><small>{user?.username ?? "Sessão e servidor"}</small></span>
-            </button>
-            <button type="button" className="m-settingrow" onClick={() => openSettings("general")}>
-              <span className="m-settingrow__icon"><Settings2 className="m-settingrow__glyph" /></span>
-              <span className="m-settingrow__copy"><strong>Configurações</strong><small>Sua conta, skills, MCP e harness</small></span>
-            </button>
-            </div>
-        </div>
-
-        <div className="m-block">
-          <h2 className="m-block__title">Workspace</h2>
-          <button type="button" className="m-wscard m-wscard--button" onClick={openWorkspace}>
-            <img src={`${import.meta.env.BASE_URL}brand/jeff-mark.png?v=5`} alt="" className="m-wscard__logo" draggable={false} />
-            <span className="m-wscard__copy">
-              <strong>Voltar ao workspace</strong>
-              <small>Os canais, as tarefas e o calendário</small>
-            </span>
-            <ChevronRight className="m-wscard__icon" />
-          </button>
-        </div>
-
-        <p className="m-footer">
-          <Wrench className="m-footer__icon" />
-          Jeff · workbench mobile
-        </p>
-        <div className="m-scroll__end" />
-      </div>
-    );
+    return null;
   }
 
   function pushedScreen() {
@@ -752,7 +761,44 @@ export default function MobileApp() {
           </div>
         )}
       </div>
-      {pushed ? null : <MobileTabBar items={tabsList} active={tab} onSelect={(id) => { setTab(id as DevTab); setPushed(null); }} />}
+      <MobileDrawer
+        open={drawerOpen}
+        onClose={closeDrawer}
+        title={repo.name}
+        meta={currentBranch || repo.root}
+        mark={<ProjectMonogram project={repo} size={40} />}
+        sections={drawerSections}
+        footer={
+          <div className="m-profilebar">
+            <button
+              type="button"
+              className="m-profilebar__me"
+              onClick={() => {
+                closeDrawer();
+                setAccountOpen(true);
+              }}
+            >
+              <span className="m-profilebar__face">
+                <Avatar name={user?.displayName || user?.username || "Conta"} size="sm" />
+              </span>
+              <span className="m-profilebar__copy">
+                <strong>{user?.displayName || user?.username || "Conta"}</strong>
+                <small>{repo.name}</small>
+              </span>
+            </button>
+            <div className="m-profilebar__actions">
+              <MobileIconButton
+                icon={Settings2}
+                label="Configurações"
+                onClick={() => {
+                  closeDrawer();
+                  openSettings("general");
+                }}
+              />
+            </div>
+          </div>
+        }
+      />
 
       <MobileBranchSheet
         open={branchOpen}

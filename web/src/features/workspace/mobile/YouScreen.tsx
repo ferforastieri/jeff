@@ -5,6 +5,7 @@ import {
   Globe2,
   HardDrive,
   LogOut,
+  MenuBars,
   Moon,
   PlugZap,
   Settings2,
@@ -21,6 +22,7 @@ import { MEMBER_STATUS_LABEL, type MemberStatus } from "../../../shared/ui/prese
 import { runThemeTransition } from "../../../shared/ui/theme-transition";
 import { cx } from "@jeff/ui";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
+import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
 import { type Section } from "../../settings/components/JeffSettings";
 
 interface Props {
@@ -36,6 +38,7 @@ interface Props {
   onOpenSettings: (section: Section) => void;
   onOpenWorkbench: () => void;
   devMode: boolean;
+  onMenu: () => void;
 }
 
 const SETTINGS: Array<{ section: Section; label: string; hint: string; icon: ReactNode }> = [
@@ -60,6 +63,7 @@ export default function YouScreen({
   onOpenSettings,
   onOpenWorkbench,
   devMode,
+  onMenu,
 }: Props) {
   const theme = useSettings((state) => state.theme);
   const setTheme = useSettings((state) => state.setTheme);
@@ -100,7 +104,7 @@ export default function YouScreen({
 
   return (
     <div className="m-screen">
-      <MobileScreenHeader title="Você" subtitle={workspaceName} />
+      <MobileScreenHeader title="Você" subtitle={workspaceName} lead={<MobileIconButton icon={MenuBars} label="Abrir navegação" onClick={onMenu} />} />
       <div className="m-scroll">
         <section className="m-profilecard">
           <span className="m-profilecard__face">

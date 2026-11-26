@@ -123,11 +123,6 @@ html {
   padding-left: calc(12px + var(--safe-left));
 }
 
-.mobile-tabbar-nav {
-  padding-right: var(--safe-right);
-  padding-left: var(--safe-left);
-}
-
 /* Fields keep room above the keyboard when scrollIntoView centers them. */
 input,
 textarea,

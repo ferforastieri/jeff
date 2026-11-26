@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Check, MessageSquare } from "@jeff/icons";
+import { Bell, Check, MenuBars, MessageSquare } from "@jeff/icons";
 import { api } from "../../../shared/api";
 import { useApp, type AppNotification } from "../../../app/store";
 import { formatTime } from "../../../shared/time";
@@ -10,10 +10,11 @@ import { MobileEmpty } from "./mobile-ui";
 
 interface Props {
   onOpen: (notification: AppNotification) => void;
+  onMenu: () => void;
 }
 
 /** Alertas: the workspace inbox as a full screen, with the room or the chat it points to. */
-export default function AlertsScreen({ onOpen }: Props) {
+export default function AlertsScreen({ onOpen, onMenu }: Props) {
   const notifications = useApp((state) => state.notifications);
   const hydrate = useApp((state) => state.hydrateNotifications);
   const markRead = useApp((state) => state.markNotificationRead);
@@ -50,6 +51,7 @@ export default function AlertsScreen({ onOpen }: Props) {
       <MobileScreenHeader
         title="Alertas"
         subtitle={unread > 0 ? `${unread} ${unread === 1 ? "não lido" : "não lidos"}` : "Tudo em dia"}
+        lead={<MobileIconButton icon={MenuBars} label="Abrir navegação" onClick={onMenu} />}
         actions={
           <MobileIconButton
             icon={Check}

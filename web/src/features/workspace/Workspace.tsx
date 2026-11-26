@@ -1067,8 +1067,6 @@ export default function Workspace({ status }: Props) {
           teamName={status.teamName || "Seu workspace"}
           workspaceLogo={workspaceLogo}
           memberCount={status.memberCount}
-          workspaceMenuRef={workspaceMenuTrigger}
-          onOpenMenu={() => setWorkspaceMenuOpen(true)}
           bots={bots}
           me={me}
           rooms={allRooms}

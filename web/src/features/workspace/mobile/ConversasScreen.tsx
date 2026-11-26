@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode } from "react";
 import { Icon, Menu, MenuItem, MenuRadioGroup, MenuSeparator } from "faang-ui";
 import { Avatar } from "faang-ui";
 import { Bell, MoreHorizontal, Plus, Search, Settings2 } from "@jeff/icons";
@@ -25,8 +25,7 @@ interface Props {
   teamName: string;
   workspaceLogo: string;
   memberCount: number;
-  workspaceMenuRef: RefObject<HTMLButtonElement | null>;
-  onOpenMenu: () => void;
+  onOpenDrawer: () => void;
   bots: Principal[];
   me: Principal | null;
   rooms: Room[];
@@ -67,8 +66,7 @@ export default function ConversasScreen({
   teamName,
   workspaceLogo,
   memberCount,
-  workspaceMenuRef,
-  onOpenMenu,
+  onOpenDrawer,
   bots,
   me,
   rooms,
@@ -176,7 +174,7 @@ export default function ConversasScreen({
     <div className="m-screen m-screen--conversas">
       <MobileScreenHeader
         variant="workspace"
-        lead={<MobileWorkspaceButton ref={workspaceMenuRef} logo={workspaceLogo} name={teamName} meta={`${memberCount} ${memberCount === 1 ? "membro" : "membros"} · ${bots.length} ${bots.length === 1 ? "agente" : "agentes"}`} onClick={onOpenMenu} />}
+        lead={<MobileWorkspaceButton logo={workspaceLogo} name={teamName} meta={`${memberCount} ${memberCount === 1 ? "membro" : "membros"} · ${bots.length} ${bots.length === 1 ? "agente" : "agentes"}`} onClick={onOpenDrawer} />}
         actions={
           <>
             <MobileIconButton icon={Search} label="Buscar" onClick={onOpenSearch} />
