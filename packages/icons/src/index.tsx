@@ -22,6 +22,10 @@ function glyph(name: IconName) {
 }
 
 export const AlertTriangle = glyph("alert");
+export const ChevronLeft = glyph("chevronLeft");
+export const Home = glyph("home");
+export const SlidersHorizontal = glyph("filter");
+export const Users = glyph("members");
 export const TriangleAlert = glyph("alert");
 export const CircleAlert = glyph("alert");
 export const ArrowDown = glyph("arrowDown");

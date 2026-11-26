@@ -1,0 +1,3120 @@
+/*
+ * The phone shell.
+ *
+ * One Discord-shaped skeleton for the workspace and the dev workbench: a
+ * compact header, a scrolling body and the five labeled destinations at the
+ * bottom. The desktop keeps its own layout; everything here starts at 900px,
+ * the same width where the app switches to the compact shell.
+ */
+
+@media (max-width: 900px) {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  /* A toast is a banner under the notch on a phone: it never stretches down
+     the page and never sits over the tab bar. */
+  .ac-toasts {
+    position: fixed;
+    top: calc(var(--safe-top) + 62px);
+    right: 12px;
+    bottom: auto;
+    left: 12px;
+    z-index: 210;
+    width: auto;
+    max-width: none;
+    transform: none;
+    pointer-events: none;
+  }
+
+  .ac-toast {
+    pointer-events: auto;
+  }
+
+  .jeff-workspace-home.is-mobile {
+    display: block;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--pane);
+  }
+
+  .jeff-workspace-home.is-mobile .ws-desktop {
+    display: none;
+  }
+}
+
+/* ---------- The shell ---------- */
+.m-app {
+  display: flex;
+  height: min(var(--visual-viewport-height, 100dvh), calc(100dvh - var(--keyboard-inset, 0px)));
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--pane);
+  color: var(--ink);
+}
+
+.m-app__body {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.m-screen {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--pane);
+  animation: m-screen-in 180ms var(--out) both;
+}
+
+@keyframes m-screen-in {
+  from {
+    opacity: 0.5;
+    transform: translateY(4px);
+  }
+}
+
+.m-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 8px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.m-scroll__end {
+  height: calc(18px + var(--safe-bottom));
+}
+
+.m-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Header ---------- */
+.m-header {
+  position: relative;
+  z-index: 20;
+  flex: none;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--pane) 96%, transparent);
+  padding: calc(5px + var(--safe-top)) calc(8px + var(--safe-right)) 5px calc(8px + var(--safe-left));
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.m-header__row {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+}
+
+.m-header__back {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ink2);
+  transition: background-color 0.15s, transform 0.12s;
+}
+
+.m-header__back:hover {
+  background: var(--plate);
+}
+
+.m-header__back:active {
+  transform: scale(0.94);
+}
+
+.m-header__back-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.m-header__lead {
+  display: flex;
+  min-width: 0;
+  flex: none;
+  align-items: center;
+}
+
+.m-header__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 2px;
+}
+
+.m-header__title {
+  overflow: hidden;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-header__subtitle {
+  overflow: hidden;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-header__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 1px;
+}
+
+.m-header--workspace .m-header__lead {
+  min-width: 0;
+  flex: 1;
+}
+
+.m-header--workspace .m-header__copy {
+  display: none;
+}
+
+.m-header--workspace .m-header__row {
+  min-height: 48px;
+}
+
+.m-header--plain .m-header__row {
+  min-height: 36px;
+}
+
+/* ---------- Icon targets ---------- */
+.m-iconbtn {
+  position: relative;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+  transition: background-color 0.15s, color 0.15s, transform 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.m-iconbtn:hover,
+.m-iconbtn.is-active {
+  background: var(--plate);
+  color: var(--ink);
+}
+
+.m-iconbtn:active {
+  transform: scale(0.93);
+}
+
+.m-iconbtn:disabled {
+  opacity: 0.4;
+}
+
+.m-iconbtn__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.m-iconbtn__badge {
+  position: absolute;
+  top: 4px;
+  right: 3px;
+  display: grid;
+  min-width: 17px;
+  height: 17px;
+  place-items: center;
+  border: 2px solid var(--pane);
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 3px;
+}
+
+/* ---------- The workspace title ---------- */
+.m-wsbtn {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  border-radius: 12px;
+  padding: 2px 3px;
+  text-align: start;
+  transition: background-color 0.15s;
+}
+
+.m-wsbtn:hover {
+  background: var(--plate);
+}
+
+.m-wsbtn__logo {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.m-wsbtn.is-compact .m-wsbtn__logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.m-wsbtn__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.m-wsbtn__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-wsbtn__copy strong {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-wsbtn.is-compact .m-wsbtn__copy strong {
+  font-size: 15px;
+  line-height: 18px;
+}
+
+.m-wsbtn__copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-wsbtn__chevron {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--faint);
+}
+
+/* ---------- The bottom destinations ---------- */
+.m-tabbar {
+  position: relative;
+  z-index: 40;
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--side) 97%, transparent);
+  padding: 5px calc(4px + var(--safe-right)) calc(5px + var(--safe-bottom)) calc(4px + var(--safe-left));
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+}
+
+.m-tabbar__item {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-radius: 12px;
+  padding: 4px 2px 2px;
+  color: var(--faint);
+  transition: color 0.15s, transform 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.m-tabbar__item:active {
+  transform: scale(0.94);
+}
+
+.m-tabbar__item.is-active {
+  color: var(--ink);
+}
+
+.m-tabbar__glyph {
+  position: relative;
+  display: grid;
+  width: 30px;
+  height: 24px;
+  place-items: center;
+}
+
+.m-tabbar__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.m-tabbar__mark {
+  display: block;
+  width: 21px;
+  height: 21px;
+  background: currentColor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.m-tabbar__item.is-active .m-tabbar__glyph::after {
+  position: absolute;
+  bottom: -1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--agent);
+  content: "";
+}
+
+.m-tabbar__label {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 10.5px;
+  font-weight: 550;
+  letter-spacing: 0.005em;
+  line-height: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-tabbar__item.is-active .m-tabbar__label {
+  font-weight: 700;
+}
+
+.m-tabbar__badge {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  display: grid;
+  min-width: 15px;
+  height: 15px;
+  place-items: center;
+  border: 1.5px solid var(--side);
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 3px;
+}
+
+/* ---------- Section headings and rows ---------- */
+.m-section {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 16px 4px 4px;
+}
+
+.m-section__toggle {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  color: var(--faint);
+  text-align: start;
+}
+
+.m-section__toggle:disabled {
+  cursor: default;
+}
+
+.m-section__chevron {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+
+.m-section__label {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.m-section__count {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--plate);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  padding: 0 5px;
+}
+
+.m-section__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 1px;
+}
+
+.m-section__add {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--faint);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.m-section__add:hover {
+  background: var(--plate);
+  color: var(--ink);
+}
+
+.m-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.m-category {
+  margin-top: 2px;
+}
+
+.m-category .m-section {
+  padding-top: 12px;
+  padding-left: 2px;
+}
+
+.m-rowwrap {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  border-radius: 10px;
+  transition: background-color 0.12s;
+}
+
+.m-rowwrap:hover {
+  background: var(--side-hover);
+}
+
+.m-row {
+  display: flex;
+  min-width: 0;
+  min-height: 43px;
+  flex: 1;
+  align-items: center;
+  gap: 9px;
+  border-radius: 10px;
+  padding: 0 8px;
+  color: var(--muted);
+  text-align: start;
+  transition: background-color 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.m-row:active {
+  background: var(--side-chosen);
+}
+
+.m-row[data-active] {
+  background: var(--side-chosen);
+  color: var(--ink);
+}
+
+.m-row__glyph {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--faint);
+}
+
+.m-row[data-active] .m-row__glyph {
+  color: var(--ink);
+}
+
+.m-row__name {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-row[data-active] .m-row__name {
+  font-weight: 650;
+}
+
+.m-row__tag {
+  flex: none;
+  border-radius: 5px;
+  background: var(--plate);
+  color: var(--faint);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  line-height: 15px;
+  padding: 0 5px;
+  text-transform: uppercase;
+}
+
+.m-row__face {
+  position: relative;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+}
+
+.m-row__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.m-row__line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.m-row__sub {
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  gap: 5px;
+  color: var(--faint);
+  font-size: 11.5px;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-row__sub[data-status="working"] {
+  color: var(--warn);
+}
+
+.m-row__action {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  opacity: 0.55;
+}
+
+.m-rowwrap:hover .m-row__action {
+  opacity: 1;
+}
+
+.m-presence {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border: 2.5px solid var(--pane);
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.m-presence[data-status="online"] {
+  background: var(--ok);
+}
+
+.m-presence[data-status="away"] {
+  background: var(--warn);
+}
+
+.m-presence[data-status="busy"] {
+  background: var(--danger);
+}
+
+.m-presence[data-status="offline"] {
+  background: var(--faint);
+}
+
+.m-presence-dot,
+.m-status-mark {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.m-presence-dot[data-status="online"],
+.m-status-mark[data-status="online"] {
+  background: var(--ok);
+}
+
+.m-presence-dot[data-status="away"],
+.m-status-mark[data-status="away"] {
+  background: var(--warn);
+}
+
+.m-presence-dot[data-status="busy"],
+.m-status-mark[data-status="busy"] {
+  background: var(--danger);
+}
+
+.m-presence-dot[data-status="offline"],
+.m-status-mark[data-status="offline"] {
+  background: var(--faint);
+}
+
+.m-searchline {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--sunken);
+  margin: 6px 8px 2px;
+  padding: 0 9px;
+  height: 36px;
+}
+
+.m-searchline__icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--faint);
+}
+
+.m-searchline input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 14px;
+  outline: none;
+}
+
+.m-searchline input::placeholder {
+  color: var(--faint);
+}
+
+.m-searchline__clear {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--plate);
+  color: var(--muted);
+}
+
+/* ---------- The profile footer of the channel screen ---------- */
+.m-profilebar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  background: var(--side);
+  padding: 5px 6px;
+}
+
+.m-profilebar__me {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 9px;
+  border-radius: 10px;
+  padding: 3px 4px;
+  text-align: start;
+  transition: background-color 0.15s;
+}
+
+.m-profilebar__me:hover {
+  background: var(--side-hover);
+}
+
+.m-profilebar__face {
+  position: relative;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+}
+
+.m-profilebar__face .ws-face,
+.m-profilebar__face .ac-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.m-profilebar__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-profilebar__copy strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-profilebar__copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-profilebar__copy small[data-status="online"] {
+  color: var(--ok);
+}
+
+.m-profilebar__copy small[data-status="busy"] {
+  color: var(--danger);
+}
+
+.m-profilebar__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+/* ---------- Empty states ---------- */
+.m-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 18px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.m-empty__icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 18px;
+  background: var(--plate);
+  color: var(--faint);
+  margin-bottom: 4px;
+}
+
+.m-empty__glyph {
+  width: 22px;
+  height: 22px;
+}
+
+.m-empty strong {
+  color: var(--ink2);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.m-empty p {
+  max-width: 280px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 18px;
+}
+
+.m-addbtn {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--faint);
+}
+
+.m-addbtn__icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Trabalho: tools and repos ---------- */
+.m-toolgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 4px 2px;
+}
+
+.m-tool {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  border-radius: 16px;
+  background: var(--raised);
+  box-shadow: var(--e1), var(--top);
+  padding: 11px 10px;
+  text-align: start;
+  transition: transform 0.15s, background-color 0.15s;
+}
+
+.m-tool:active {
+  transform: scale(0.98);
+}
+
+.m-tool__icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--agent) 13%, transparent);
+  color: var(--agent);
+}
+
+.m-tool__glyph {
+  width: 18px;
+  height: 18px;
+}
+
+.m-tool__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-tool__copy strong {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-tool__copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-tool__chevron {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--faint);
+}
+
+.m-blockhead {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 20px 5px 8px;
+}
+
+.m-blockhead > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.m-blockhead h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 20px;
+}
+
+.m-blockhead p {
+  margin: 1px 0 0;
+  color: var(--faint);
+  font-size: 11.5px;
+  line-height: 16px;
+}
+
+.m-blockhead__action {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  border-radius: 9px;
+  background: var(--plate);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 9px;
+}
+
+.m-blockhead__icon {
+  width: 14px;
+  height: 14px;
+}
+
+.m-devcard {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  background: var(--raised);
+  box-shadow: var(--e1), var(--top);
+  margin-bottom: 8px;
+  padding: 10px;
+  text-align: start;
+}
+
+.m-devcard__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-devcard__copy strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-devcard__copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-devcard__meta {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--agent);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.m-devcard__icon {
+  width: 14px;
+  height: 14px;
+}
+
+.m-repolist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.m-reporow {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 7px 6px;
+  text-align: start;
+  transition: background-color 0.15s;
+}
+
+.m-reporow:hover,
+.m-reporow[data-active] {
+  background: var(--side-hover);
+}
+
+.m-reporow__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-reporow__copy strong {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-reporow__copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-reporow__icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--faint);
+}
+
+.m-wideaction {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--agent) 12%, transparent);
+  color: var(--agent);
+  font-size: 13px;
+  font-weight: 650;
+  margin-top: 12px;
+  padding: 12px;
+}
+
+.m-wideaction__icon {
+  width: 17px;
+  height: 17px;
+}
+
+.m-wideaction__tag {
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--agent) 20%, transparent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  text-transform: uppercase;
+}
+
+.m-muted {
+  margin: 0;
+  color: var(--faint);
+  font-size: 12.5px;
+  line-height: 18px;
+}
+
+.m-muted--pad {
+  padding: 10px 6px;
+}
+
+/* ---------- Alertas ---------- */
+.m-segmented {
+  display: grid;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  border-radius: 11px;
+  background: var(--sunken);
+  margin: 8px 8px 2px;
+  padding: 3px;
+}
+
+.m-segmented button {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.m-segmented button.is-active {
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: var(--e1);
+}
+
+.m-segmented button span {
+  display: grid;
+  min-width: 17px;
+  height: 17px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--plate);
+  font-size: 9px;
+  padding: 0 4px;
+}
+
+.m-alertlist {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 6px 0 0;
+  list-style: none;
+}
+
+.m-alert {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 9px;
+  border-radius: 12px;
+  padding: 9px 8px;
+  text-align: start;
+  transition: background-color 0.15s;
+}
+
+.m-alert:hover {
+  background: var(--plate-soft);
+}
+
+.m-alert[data-unread] {
+  background: color-mix(in srgb, var(--agent) 7%, transparent);
+}
+
+.m-alert__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--plate);
+  color: var(--muted);
+}
+
+.m-alert[data-unread] .m-alert__icon {
+  background: color-mix(in srgb, var(--agent) 16%, transparent);
+  color: var(--agent);
+}
+
+.m-alert__glyph {
+  width: 17px;
+  height: 17px;
+}
+
+.m-alert__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.m-alert__top {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.m-alert__top strong {
+  overflow: hidden;
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-alert__top time {
+  flex: none;
+  color: var(--faint);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-alert__body {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 17px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.m-alert__meta {
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.m-alert__dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--agent);
+  margin-top: 6px;
+}
+
+/* ---------- Você ---------- */
+.m-profilecard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 18px;
+  background: var(--raised);
+  box-shadow: var(--e1), var(--top);
+  margin: 10px 4px 0;
+  padding: 14px;
+}
+
+.m-profilecard__face {
+  position: relative;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  place-items: center;
+}
+
+.m-profilecard__face .ws-face,
+.m-profilecard__face .ac-avatar {
+  width: 56px;
+  height: 56px;
+}
+
+.m-profilecard__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-profilecard__copy > strong {
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 23px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-profilecard__copy > small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-profilecard__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 550;
+  margin-top: 3px;
+  padding: 2px 4px 2px 0;
+  text-align: start;
+}
+
+.m-profilecard__chevron {
+  width: 12px;
+  height: 12px;
+  color: var(--faint);
+}
+
+.m-wscard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  background: var(--raised);
+  box-shadow: var(--e1), var(--top);
+  margin: 8px 4px 0;
+  padding: 11px;
+}
+
+.m-wscard__logo {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.m-wscard__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-wscard__copy strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-wscard__copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-wscard__dev {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--agent) 13%, transparent);
+  color: var(--agent);
+  font-size: 11px;
+  font-weight: 650;
+  padding: 6px 8px;
+}
+
+.m-wscard__icon {
+  width: 14px;
+  height: 14px;
+}
+
+.m-block {
+  margin-top: 20px;
+  padding: 0 4px;
+}
+
+.m-block__title {
+  margin: 0 0 7px 4px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  line-height: 15px;
+  text-transform: uppercase;
+}
+
+.m-themecard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  background: var(--raised);
+  box-shadow: var(--e1), var(--top);
+  padding: 11px;
+}
+
+.m-themecard__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+}
+
+.m-themecard__glyph {
+  width: 19px;
+  height: 19px;
+  flex: none;
+  color: var(--agent);
+}
+
+.m-themecard__copy > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.m-themecard__copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.m-themecard__copy small {
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 14px;
+}
+
+.m-themecard__toggle {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--sunken);
+  padding: 2px;
+}
+
+.m-themecard__toggle button {
+  display: grid;
+  width: 30px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--faint);
+}
+
+.m-themecard__toggle button.is-active {
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: var(--e1);
+}
+
+.m-themecard__icon {
+  width: 15px;
+  height: 15px;
+}
+
+.m-settinglist {
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--raised);
+  box-shadow: var(--e1), var(--top);
+}
+
+.m-settingrow {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  text-align: start;
+  transition: background-color 0.15s;
+}
+
+.m-settingrow + .m-settingrow {
+  border-top: 1px solid var(--line);
+}
+
+.m-settingrow:hover {
+  background: var(--plate-soft);
+}
+
+.m-settingrow__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--plate);
+  color: var(--muted);
+}
+
+.m-settingrow__glyph {
+  width: 17px;
+  height: 17px;
+}
+
+.m-settingrow__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-settingrow__copy strong {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.m-settingrow__copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-settingrow__chevron {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--faint);
+}
+
+.m-accountcard {
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--raised);
+  box-shadow: var(--e1), var(--top);
+}
+
+.m-accountrow {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 11px;
+}
+
+.m-accountrow + .m-accountrow {
+  border-top: 1px solid var(--line);
+}
+
+.m-accountrow span {
+  flex: none;
+  color: var(--faint);
+  font-size: 11.5px;
+}
+
+.m-accountrow strong {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-signout {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 650;
+  margin-top: 8px;
+  padding: 11px;
+}
+
+.m-signout__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.m-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--faint);
+  font-size: 10.5px;
+  padding: 22px 0 0;
+}
+
+.m-footer__icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* ---------- Chat ---------- */
+.m-chathead__face {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+}
+
+.m-chathead__channel {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--plate);
+  color: var(--muted);
+}
+
+.m-chatsearch {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 0 1px;
+}
+
+.m-chatsearch .ac-searchfield {
+  min-width: 0;
+  flex: 1;
+}
+
+.m-chatscroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 6px 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.m-chatlist {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-bottom: 4px;
+}
+
+.m-chatlist .ac-msg {
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.m-chatlist .ac-msg:hover {
+  background: var(--plate-soft);
+}
+
+.m-chatlist .ac-msg__text {
+  font-size: 14.5px;
+  line-height: 21px;
+}
+
+.m-chatlist .ac-msg__avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.m-chatlist .ac-msg__avatar .ws-face,
+.m-chatlist .ac-msg__avatar .ac-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.m-chatlist .ac-msg__head {
+  gap: 7px;
+}
+
+.m-chatlist .ac-msg__author {
+  font-size: 14px;
+}
+
+.m-chatlist .ac-msg__time {
+  font-size: 10px;
+}
+
+.m-chatlist .ac-msg--grouped {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.m-chatempty {
+  padding: 28px 16px;
+  color: var(--faint);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.m-arrival {
+  margin: 4px 0 8px;
+}
+
+.m-composer {
+  flex: none;
+  border-top: 1px solid var(--line);
+  background: var(--pane);
+  padding: 6px calc(6px + var(--safe-right)) calc(6px + var(--safe-bottom)) calc(6px + var(--safe-left));
+}
+
+.m-composer .ac-composer {
+  max-width: none;
+  border-radius: 20px;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.m-composer .ac-composer textarea {
+  min-height: 30px;
+  padding: 5px 8px;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.m-composer .ac-composer__tools .ac-btn--icon:not(.ac-composer__send) {
+  width: 30px;
+  height: 30px;
+}
+
+.m-composer .ac-composer__send {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+}
+
+.m-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.m-details__hero {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.m-details__channel {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--plate);
+  color: var(--muted);
+}
+
+.m-details__hero strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.m-details__hero p {
+  margin: 1px 0 0;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.m-details__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.m-details__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.m-details__members {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.m-details__status {
+  color: var(--faint);
+  font-size: 10.5px;
+}
+
+/* ---------- Settings and pushed screens ---------- */
+.m-settingsects {
+  display: flex;
+  flex: none;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 8px 8px 6px;
+  scrollbar-width: none;
+}
+
+.m-settingsects::-webkit-scrollbar {
+  display: none;
+}
+
+.m-settingsects button {
+  flex: none;
+  border-radius: 999px;
+  background: var(--plate);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 11px;
+  white-space: nowrap;
+}
+
+.m-settingsects button.is-active {
+  background: var(--ink);
+  color: var(--pane);
+}
+
+.m-pushed__body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 8px calc(14px + var(--safe-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.m-pushed__body--panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.m-pushed__body--panel > * {
+  min-height: 0;
+  flex: 1;
+}
+
+.m-settingsbody {
+  padding: 0 12px 24px;
+}
+
+.m-settingsbody .settings__section {
+  padding: 0;
+}
+
+.m-settingsbody .settings__page-head {
+  display: none;
+}
+
+.m-searchscreen {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 10px 20px;
+}
+
+.m-searchscreen .ws-search-box {
+  width: 100%;
+}
+
+.m-searchscreen .ac-searchfield {
+  height: 42px;
+  border-radius: 12px;
+}
+
+.m-searchscreen .ws-search-panel {
+  position: static;
+  width: 100%;
+  max-height: none;
+  margin-top: 8px;
+  box-shadow: none;
+  border: 0;
+  background: transparent;
+}
+
+.m-searchscreen .ws-search-panel__hint {
+  display: none;
+}
+
+.m-searchscreen .ws-search-result {
+  min-height: 48px;
+}
+
+/* ---------- The dashboard, board, calendar, drive and wiki on a phone ---------- */
+.m-scroll--dash {
+  padding: 0;
+}
+
+.m-scroll--dash .ws-home-page {
+  gap: 14px;
+  padding: 12px 10px 0;
+}
+
+.m-scroll--dash .ws-home-stats__head {
+  align-items: flex-start;
+}
+
+.m-scroll--dash .ws-home-stats__head > div {
+  flex: 1 1 100%;
+}
+
+.m-scroll--dash .ws-home-stats__head .ac-chip {
+  display: none;
+}
+
+.m-scroll--dash .ws-home-stats__head .ac-btn {
+  flex: 1;
+}
+
+.m-scroll--dash .ws-widgets {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.m-scroll--dash .ws-widget {
+  min-height: 148px;
+}
+
+.m-scroll--dash .ws-widget[data-w="2"] {
+  grid-column: span 2;
+}
+
+.m-scroll--dash .ws-widget[data-h="2"] {
+  grid-row: span 1;
+}
+
+@media (max-width: 420px) {
+  .m-scroll--dash .ws-widgets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .m-scroll--dash .ws-widget[data-w="2"] {
+    grid-column: span 1;
+  }
+
+  .m-toolgrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Board: one column at a time, snapped, the phone's kanban. */
+@media (max-width: 900px) {
+  .ws-tasks {
+    padding: 10px 10px 0;
+  }
+
+  .ws-tasks-page {
+    gap: 10px;
+  }
+
+  .ws-boardframe {
+    margin: 0 -10px;
+  }
+
+  .ws-boardwrap {
+    scroll-snap-type: x mandatory;
+    padding: 2px 10px 14px;
+    scroll-padding-inline: 10px;
+  }
+
+  .ws-board {
+    gap: 9px;
+  }
+
+  .ws-board-col {
+    min-width: min(82vw, 330px);
+    flex: 0 0 min(82vw, 330px);
+    scroll-snap-align: start;
+  }
+
+  .ws-calendar-panel,
+  .ws-wiki-panel {
+    padding: 12px 10px;
+  }
+
+  .ws-calendar-head h1 {
+    font-size: 20px;
+    line-height: 26px;
+  }
+
+  .ws-calendar-layout {
+    overflow-y: auto;
+  }
+
+  .ws-cal {
+    min-width: 620px;
+  }
+
+  .ws-calendar-main {
+    overflow-x: auto;
+  }
+
+  .ws-cal__cell {
+    min-height: 66px;
+  }
+
+  .ws-cal-event__title {
+    font-size: 10px;
+  }
+
+  .ws-drive-page {
+    padding: 10px;
+  }
+
+  .ws-drive-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+
+  .ws-wiki {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .ws-wiki__nav {
+    max-height: none;
+    flex: none;
+  }
+
+  .ws-wiki__tree {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .ws-wiki__doc {
+    min-height: 320px;
+  }
+
+  .ws-wiki__dochead {
+    flex-wrap: wrap;
+  }
+
+  .ws-home-panel,
+  .ws-calendar-panel,
+  .ws-drive-panel,
+  .ws-wiki-panel {
+    padding: 0;
+  }
+
+  .ws-home-panel {
+    overflow: visible;
+  }
+}
+
+/* My own composer on a phone: the model and effort are one quiet line above
+   the text, never chips squeezed between attach and the caret. */
+.m-composer .ac-composer__pills {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 4px 8px 0;
+  scrollbar-width: none;
+}
+
+.m-composer .ac-composer__pills::-webkit-scrollbar {
+  display: none;
+}
+
+.m-composer .ac-composer__pill,
+.m-composer .ac-composer__agent {
+  height: 26px;
+  flex: none;
+  border-radius: 8px;
+  font-size: 11.5px;
+  gap: 5px;
+  padding: 0 8px;
+}
+
+.m-composer .ac-composer__pill .model-usage-ring {
+  width: 22px;
+  height: 22px;
+}
+
+.m-composer .ac-composer__row {
+  padding: 2px 4px 4px;
+}
+
+.m-composer .ac-composer__tools {
+  gap: 0;
+}
+
+.m-composer .ac-composer__tools .ac-btn {
+  width: 30px;
+  height: 30px;
+}
+
+/* The first-run card is part of the conversation on a phone: full width,
+   compact rows, and one button per step. */
+.m-chatlist .ws-welcome {
+  max-width: none;
+  margin: 2px 0 6px;
+  border-radius: 14px;
+}
+
+.m-chatlist .ws-welcome .setup-cl__head {
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 12px 12px 8px;
+}
+
+.m-chatlist .ws-welcome .setup-cl__title b {
+  white-space: normal;
+}
+
+.m-chatlist .ws-welcome .setup-cl__title small {
+  font-size: 11.5px;
+}
+
+.m-chatlist .ws-welcome .setup-cl__meter {
+  padding: 0 12px 10px;
+}
+
+.m-chatlist .ws-welcome .setup-row {
+  padding: 8px 12px;
+}
+
+.m-chatlist .ws-welcome .setup-row__title {
+  font-size: 13.5px;
+}
+
+.m-chatlist .ws-welcome .setup-row__text > span {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.m-chatlist .ws-welcome .ac-mediarow__end--wrap {
+  row-gap: 6px;
+}
+
+.m-chatlist .ws-welcome .ac-btn {
+  height: 32px;
+}
+
+/* An unread channel is white in the list, as in Discord, with a dot at the end. */
+.m-row__unread {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--agent);
+}
+
+.m-row[data-unread] .m-row__name {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.m-row[data-unread] .m-row__glyph {
+  color: var(--ink);
+}
+
+/* The DM rows with a face need the same active plate as the channels. */
+.m-row--person[data-active] {
+  background: var(--side-chosen);
+}
+
+@media (max-width: 900px) {
+  .m-header__title {
+    font-size: 16px;
+  }
+
+  .m-wsbtn__copy strong {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .m-tabbar__label {
+    font-size: 9.5px;
+  }
+
+  .m-tabbar__glyph {
+    width: 26px;
+    height: 22px;
+  }
+
+  .m-tabbar__icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .m-profilecard {
+    padding: 11px;
+  }
+
+  .m-profilecard__face,
+  .m-profilecard__face .ws-face,
+  .m-profilecard__face .ac-avatar {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* ---------- The dev workbench ---------- */
+.m-app__content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.m-app__content > * {
+  min-height: 0;
+  flex: 1;
+}
+
+.m-devproject {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 4px;
+  text-align: start;
+}
+
+.m-devproject__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.m-devproject__copy strong {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-devproject__copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-devface {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--agent) 12%, transparent);
+  color: var(--agent);
+}
+
+.m-devwork {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 10px 0;
+  overscroll-behavior: contain;
+}
+
+.m-devcard--project {
+  margin: 0 0 10px;
+}
+
+.m-quickgrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.m-quick {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border-radius: 14px;
+  background: var(--raised);
+  box-shadow: var(--e1), var(--top);
+  color: var(--muted);
+  padding: 10px 4px 8px;
+  transition: transform 0.15s, color 0.15s;
+}
+
+.m-quick:active {
+  transform: scale(0.97);
+}
+
+.m-quick__glyph {
+  width: 20px;
+  height: 20px;
+  color: var(--agent);
+}
+
+.m-quick span {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-devtablist {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-bottom: 4px;
+}
+
+.m-devrowwrap {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  border-radius: 10px;
+  transition: background-color 0.15s;
+}
+
+.m-devrowwrap:hover,
+.m-devrowwrap[data-active] {
+  background: var(--side-hover);
+}
+
+.m-devrow {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  flex: 1;
+  align-items: center;
+  gap: 9px;
+  padding: 0 8px;
+  text-align: start;
+}
+
+.m-devrow__icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--plate);
+  color: var(--muted);
+}
+
+.m-devrow__glyph {
+  width: 16px;
+  height: 16px;
+}
+
+.m-devrow__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-devrow__copy strong {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-devrow__copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-devrow__dirty {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--agent);
+}
+
+.m-dev-sessions {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.m-dev-sessions .m-searchline {
+  flex: none;
+}
+
+.m-dev-sessionlist {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+}
+
+.m-dev-sessionlist > li {
+  border-radius: 10px;
+}
+
+.m-dev-sessionlist > li:hover {
+  background: var(--side-hover);
+}
+
+.m-dev-sessionlist .ac-row,
+.m-dev-sessionlist .truncate {
+  min-height: 44px;
+}
+
+.m-sessions-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 22px;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.m-wideaction--new {
+  justify-content: center;
+  margin: 6px 8px 2px;
+  width: auto;
+}
+
+.m-wideaction--empty {
+  width: auto;
+  margin-top: 4px;
+}
+
+.m-scroll--more {
+  padding-bottom: 8px;
+}
+
+.m-scroll--more .m-toolgrid {
+  padding-top: 12px;
+}
+
+.m-wscard--button {
+  width: calc(100% - 8px);
+  margin: 0 4px;
+  text-align: start;
+}
+
+.m-pushed__body--terminal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.m-pushed__body--terminal > * {
+  min-height: 0;
+  flex: 1;
+}
+
+.m-tabview {
+  background: var(--pane);
+}
+
+.m-tabview > * {
+  min-height: 0;
+  flex: 1;
+}
+
+/* The dev screens (files, git, databases, web apps) already use their own cards
+   and paddings; the phone only tightens them. */
+.m-app .m-pushed__body--panel > .flex,
+.m-app .m-app__content > .flex {
+  min-height: 0;
+  flex: 1;
+}
+
+/* The picker before a repo is chosen. */
+.m-app--picker {
+  height: 100dvh;
+  overflow-y: auto;
+  padding: calc(18px + var(--safe-top)) 12px calc(18px + var(--safe-bottom));
+}
+
+.m-pickerhead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 10px 18px;
+  text-align: center;
+}
+
+.m-pickerhead strong {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.m-pickerhead p {
+  margin: 0;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.m-pickerbody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+@media (max-width: 360px) {
+  .m-quickgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .m-quick {
+    flex-direction: row;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 6px;
+  }
+
+  .m-quick span {
+    font-size: 11px;
+  }
+}
+
+/* The dev composer: the model, the effort and the mode on their own line above
+   the input; attach, text and send keep the bottom row for the thumb. */
+.m-app .agent-composer {
+  border-radius: 20px;
+}
+
+.m-app .agent-composer textarea {
+  min-height: 44px;
+  padding: 4px 12px;
+  font-size: 15px;
+}
+
+.m-app .agent-composer-footer {
+  flex-wrap: wrap;
+  gap: 3px 4px;
+  padding: 4px 8px 7px;
+}
+
+.m-app .agent-composer-leading {
+  order: -1;
+  flex: 1 1 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.m-app .agent-composer-leading::-webkit-scrollbar {
+  display: none;
+}
+
+.m-app .agent-composer-leading .composer-trigger {
+  height: 27px;
+  flex: none;
+  font-size: 11.5px;
+  max-width: 140px;
+}
+
+.m-app .agent-composer-leading .composer-trigger > svg {
+  flex: none;
+}
+
+.m-app .agent-composer-spacer {
+  flex: 1;
+}
+
+.m-app .agent-composer-footer > .ac-btn,
+.m-app .agent-composer-footer > div > .ac-btn {
+  flex: none;
+}
+
+.m-app .agent-composer-footer > :last-child {
+  margin-left: auto;
+}
+
+/* Dialogs are bottom sheets on every compact width, not a centered card that
+   the old snapshot still places from the middle. */
+@media (max-width: 900px) {
+  .ac-dialog {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - var(--safe-top) - 10px);
+    transform: none;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: var(--safe-bottom);
+    --dialog-pad: 16px;
+  }
+
+  .ac-dialog[data-state="open"] {
+    animation: ac-sheet-up 220ms var(--out) both;
+  }
+
+  body.keyboard-open .ac-dialog {
+    bottom: var(--keyboard-inset);
+    max-height: var(--visual-viewport-height, 100dvh);
+    padding-bottom: 0;
+  }
+
+  .ac-dialog__body {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* The workspace menu on a phone: the mark and the name on one line, the
+     invite under them, never squeezing the name into an ellipsis. */
+  .ac-mo {
+    padding: calc(64px + var(--safe-top)) 12px calc(32px + var(--safe-bottom));
+  }
+
+  .ac-mo__head {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+  }
+
+  .ac-mo__titles {
+    flex: 1 1 200px;
+  }
+
+  .ac-mo__title {
+    overflow: visible;
+    font-size: 30px;
+    line-height: 34px;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .ac-mo__action {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .ac-mo__action > .ac-btn,
+  .ac-mo__action > .ac-btn--sm {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ac-mo__close {
+    top: calc(12px + var(--safe-top));
+    right: calc(10px + var(--safe-right));
+  }
+
+  .ac-mo__wrap {
+    gap: 18px;
+  }
+
+  /* The pages inside the pushed tools: one header, no second one. */
+  .m-pushed__body .ac-pagehead {
+    gap: 10px;
+    padding: 2px 0 4px;
+  }
+
+  .m-pushed__body .ac-pagehead__text {
+    display: none;
+  }
+
+  .m-pushed__body .ac-pagehead__row {
+    min-height: 34px;
+  }
+
+  .m-pushed__body .ac-pagehead__actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
+  .m-pushed__body .ac-pagehead__actions > .ac-btn:only-child {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .m-pushed__body .ac-pagehead__bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .m-pushed__body .ac-toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .m-pushed__body .ac-toolbar__search {
+    flex: 1 1 100%;
+  }
+
+  .m-pushed__body .ac-toolbar__filters {
+    gap: 6px;
+  }
+
+  .m-pushed__body .ac-toolbar__actions {
+    margin-left: 0;
+  }
+
+  .m-pushed__body .ac-toolbar .ac-kbd,
+  .m-pushed__body .ac-pagehead .ac-kbd {
+    display: none;
+  }
+
+  /* Calendar: the controls wrap; the month grid fits seven columns. */
+  .m-pushed__body .cal-page__tools {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .m-pushed__body .cal-page__tools .ac-seg {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .m-pushed__body .ws-cal {
+    min-width: 0;
+  }
+
+  .m-pushed__body .ws-cal__head span {
+    padding: 6px 3px;
+    font-size: 10px;
+    text-align: center;
+  }
+
+  .m-pushed__body .ws-cal__grid {
+    grid-auto-rows: minmax(58px, 1fr);
+  }
+
+  .m-pushed__body .ws-cal__cell {
+    min-height: 58px;
+    padding: 2px;
+    gap: 1px;
+  }
+
+  .m-pushed__body .ws-cal__num {
+    width: 20px;
+    height: 20px;
+    font-size: 10.5px;
+  }
+
+  .m-pushed__body .ws-cal-event {
+    gap: 2px;
+    padding: 2px 3px;
+    font-size: 9px;
+  }
+
+  .m-pushed__body .ws-cal-event__time {
+    display: none;
+  }
+
+  .m-pushed__body .ws-cal-event__title {
+    font-size: 9px;
+    line-height: 11px;
+  }
+
+  .m-pushed__body .ws-cal__more {
+    font-size: 9px;
+  }
+
+  /* Wiki: the page tree is a short block over the document, not a column. */
+  .m-pushed__body .ws-wiki {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    gap: 10px;
+  }
+
+  .m-pushed__body .ws-wiki__nav {
+    max-height: 210px;
+    flex: none;
+  }
+
+  .m-pushed__body .ws-wiki__tree {
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .m-pushed__body .ws-wiki__outline {
+    display: none;
+  }
+
+  .m-pushed__body .ws-wiki__doc {
+    min-height: 320px;
+    overflow: visible;
+  }
+
+  .m-pushed__body .ws-wiki__dochead {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .m-pushed__body .ws-wiki__title {
+    font-size: 24px;
+    line-height: 30px;
+  }
+}
+
+/* The pushed tools own the whole panel: their page needs its own gutter, as
+   the desktop wrapper used to give it. */
+@media (max-width: 900px) {
+  .m-pushed__body .ws-calendar-page,
+  .m-pushed__body .ws-drive-page,
+  .m-pushed__body .ws-wiki-page {
+    padding: 10px;
+  }
+
+  .m-pushed__body .ws-tasks-page {
+    padding: 10px 10px 0;
+  }
+
+  .m-pushed__body .ws-wiki__reader {
+    overflow-x: auto;
+  }
+
+  .m-pushed__body .ws-wiki__reader pre,
+  .m-pushed__body .ws-wiki__reader table {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .m-pushed__body .ws-home-panel,
+  .m-pushed__body .ws-calendar-panel,
+  .m-pushed__body .ws-drive-panel,
+  .m-pushed__body .ws-wiki-panel {
+    padding: 0;
+  }
+}
+
+.m-toolgrid--workspace {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.m-toolgrid--workspace .m-tool {
+  min-height: 96px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 11px;
+}
+
+.m-toolgrid--workspace .m-tool__copy {
+  width: 100%;
+}
+
+.m-toolgrid--workspace .m-tool__chevron {
+  position: absolute;
+  top: 13px;
+  right: 11px;
+}
+
+.m-toolgrid--workspace .m-tool {
+  position: relative;
+}
+
+@media (max-width: 340px) {
+  .m-toolgrid--workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.m-devrow--session {
+  min-height: 60px;
+  width: 100%;
+  border-radius: 10px;
+}
+
+.m-devrow--session[data-active] {
+  background: var(--side-chosen);
+}
+
+.m-devrow__icon--agent {
+  background: color-mix(in srgb, var(--agent) 12%, transparent);
+  color: var(--agent);
+}
+
+.m-devrow__copy-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.m-devrow__copy-line strong {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-dev-sessionlist > li {
+  list-style: none;
+}
+
+.mobile-search-overlay .quick-open-hints {
+  display: none;
+}
+
+/* Simulated keyboard: the shell already shrinks with the native insets; the
+   composer keeps its place above them. */
+body.keyboard-open .m-app {
+  height: min(var(--visual-viewport-height, 100dvh), calc(100dvh - var(--keyboard-inset, 0px)));
+}
+
+.m-devproject__chevron {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--faint);
+}
+
+/* The setup wizard on a phone: one column, the form on top and the progress
+   in the headline; the rail would be a second empty card under it. */
+@media (max-width: 900px) {
+  .jeff-wizard {
+    display: block;
+    min-height: 100dvh;
+    overflow-y: auto;
+    padding: calc(8px + var(--safe-top)) calc(10px + var(--safe-right)) calc(12px + var(--safe-bottom)) calc(10px + var(--safe-left));
+  }
+
+  .jeff-wizard__rail,
+  .jeff-wizard__side {
+    display: none;
+  }
+
+  .jeff-wizard__main {
+    display: flex;
+    min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 20px);
+    flex-direction: column;
+    overflow: visible;
+    padding: 6px 2px 0;
+  }
+
+  .jeff-wizard__head h1 {
+    font-size: 28px;
+    line-height: 34px;
+  }
+
+  .jeff-wizard__head p {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .jeff-wizard__content {
+    flex: 1;
+  }
+
+  .jeff-wizard__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background: linear-gradient(transparent, #0b0b0b 30%);
+    padding: 14px 0 var(--safe-bottom);
+  }
+
+  body.keyboard-open .jeff-wizard__actions {
+    position: static;
+  }
+}
+
+/* Channels under a category are indented, as in Discord's drawer. */
+.m-category .m-rowwrap {
+  margin-left: 8px;
+}
+
+.m-category .m-rowwrap .m-row {
+  padding-left: 6px;
+}
+
+/* Agenda rows on a phone: the title gets the room, the type is its icon. */
+@media (max-width: 900px) {
+  .m-pushed__body .ws-cal-agenda__row {
+    gap: 8px;
+    padding: 8px 6px;
+  }
+
+  .m-pushed__body .ws-cal-agenda__face {
+    display: none;
+  }
+
+  .m-pushed__body .ws-cal-agenda__date {
+    width: 38px;
+  }
+
+  .m-pushed__body .ws-cal-agenda__row .ac-chip {
+    flex: none;
+    gap: 0;
+    padding: 0 7px;
+  }
+
+  .m-pushed__body .ws-cal-agenda__row .ac-chip__text {
+    display: none;
+  }
+}
+
+.m-pushed__body .ws-wiki__navhead {
+  justify-content: flex-end;
+}
+
+.m-pushed__body .ws-wiki__navhead h1 {
+  display: none;
+}
+
+/* 16 px keeps iOS Safari from zooming a focused field; phones read it better too. */
+@media (max-width: 900px) {
+  .m-app .ac-input,
+  .ac-dialog .ac-input,
+  .jeff-wizard .ac-input,
+  .jeff-welcome .ac-input,
+  .m-searchline input {
+    font-size: 16px;
+  }
+
+  .m-composer .ac-composer textarea,
+  .m-app .agent-composer textarea,
+  .m-app .agent-composer .ac-input {
+    font-size: 16px;
+    line-height: 22px;
+  }
+}

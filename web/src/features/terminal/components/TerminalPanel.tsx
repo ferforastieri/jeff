@@ -175,7 +175,10 @@ export default function TerminalPanel({ project, onOpenFile, sheet = false, onCl
         if (!cancelled) setError(err instanceof Error ? err.message : "Não foi possível abrir o terminal.");
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      initialized.current = false;
+    };
   }, [createSession, ephemeral, project.id]);
 
   useEffect(() => {

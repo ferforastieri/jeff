@@ -200,7 +200,7 @@ export default function QuickOpen({ project, focusToken, onOpenFile, floating = 
           <div className="max-h-[min(420px,60vh)] overflow-y-auto p-2">
             {resultContent}
           </div>
-          <div className="flex items-center justify-between border-t border-separator-border px-3 py-2 text-caption-1-regular text-text-tertiary">
+          <div className="quick-open-hints flex items-center justify-between border-t border-separator-border px-3 py-2 text-caption-1-regular text-text-tertiary">
             <span>↑ ↓ navegar</span>
             <span>Enter abrir · Esc fechar</span>
           </div>

@@ -195,9 +195,9 @@ interface Props {
 
 /** Calendário: views, mini month, upcomings, filters, routines and deadlines. */
 export default function CalendarPanel({ project, rooms, bots, people, selectedRoomId }: Props) {
-  const [view, setView] = useState<ViewMode>("month");
+  const [view, setView] = useState<ViewMode>(() => (typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches ? "agenda" : "month"));
   const [focus, setFocus] = useState(() => startOfDay(new Date()));
-  const [panel, setPanel] = useState(true);
+  const [panel, setPanel] = useState(() => !(typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches));
   const [sources, setSources] = useState({ routine: true, deadline: true });
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [cards, setCards] = useState<TaskCard[]>([]);

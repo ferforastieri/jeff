@@ -24,7 +24,6 @@ import {
   SearchField,
   Select,
   type IconName,
-  type PersonRecipe,
 } from "faang-ui";
 import { api, type OnboardingStatus, type Project, type Repository, type User } from "../../shared/api";
 import { useApp, type AppNotification } from "../../app/store";
@@ -38,7 +37,7 @@ import {
   type RoomMessage,
 } from "../rooms/api";
 import { formatTime } from "../../shared/time";
-import { PersonFace } from "../onboarding/PersonFace";
+import { WORKSPACE_FACE, faceOf, personName } from "./face";
 import { modelSelectOptions, useAI } from "../providers/store";
 import Board from "../rooms/Board";
 import AgentComposerControls from "./AgentComposerControls";
@@ -59,6 +58,9 @@ import NotificationBell from "../notifications/components/NotificationBell";
 import { useNotificationStream } from "../notifications/stream";
 import { useJeffDrafts } from "../agents/drafts";
 import { ThemeToggle } from "../../shared/ui/ThemeToggle";
+import Toasts from "../notifications/components/Toasts";
+import { useIsMobile } from "../../shared/ui/useIsMobile";
+import WorkspaceMobile from "./mobile/WorkspaceMobile";
 
 type View = "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings";
 
@@ -83,9 +85,6 @@ const NAV_ITEMS: NavItem[] = [
 
 const NAV_DEFAULT = NAV_ITEMS.map((item) => item.id);
 
-const AGENT_FACE = `${import.meta.env.BASE_URL}jeffs/jeff-01-blue.png`;
-const WORKSPACE_FACE = `${import.meta.env.BASE_URL}brand/jeff-mark.png`;
-
 const EMOJI_LABELS = {
   dialog: "Emojis",
   search: "Buscar emoji",
@@ -104,50 +103,6 @@ const EMOJI_LABELS = {
   },
   button: "Emoji",
 };
-
-function faceOf(principal: Principal | null | undefined, size = 36) {
-  const avatar = principal?.avatar as
-    | { kind?: string; url?: string; recipe?: PersonRecipe }
-    | undefined;
-  if (avatar?.kind === "photo" && avatar.url) {
-    return (
-      <Avatar
-        kind="person"
-        name={principal?.name ?? ""}
-        size={size >= 56 ? "lg" : size >= 32 ? "md" : "sm"}
-        imageUrl={avatar.url}
-      />
-    );
-  }
-  if (avatar?.kind === "person" && avatar.recipe) {
-    return (
-      <span className="ws-face" style={{ width: size, height: size }}>
-        <PersonFace recipe={avatar.recipe} crop="face" />
-      </span>
-    );
-  }
-  if (principal?.kind === "bot") {
-    return (
-      <span className="ws-face ws-face--agent" style={{ width: size, height: size }}>
-        <img src={AGENT_FACE} alt="" draggable={false} />
-      </span>
-    );
-  }
-  return (
-    <Avatar
-      kind="person"
-      name={principal?.name ?? "?"}
-      size={size >= 56 ? "lg" : size >= 32 ? "md" : "sm"}
-    />
-  );
-}
-
-function personName(room: Room, me: Principal | null) {
-  return room.members
-    .filter((member) => member.id !== me?.id && member.kind === "human")
-    .map((member) => member.name)
-    .join(", ");
-}
 
 interface Props {
   status: OnboardingStatus;
@@ -249,8 +204,24 @@ export default function Workspace({ status }: Props) {
   const bottom = useRef<HTMLDivElement>(null);
   const workspaceLogo = status.workspaceLogo || WORKSPACE_FACE;
   const user = useApp((state) => state.user);
+  const notifications = useApp((state) => state.notifications);
+  const hydrateNotifications = useApp((state) => state.hydrateNotifications);
+  const mobile = useIsMobile();
 
   useNotificationStream({ onOpened: openInboxItem });
+
+  useEffect(() => {
+    let cancelled = false;
+    void api
+      .notifications()
+      .then((items) => {
+        if (!cancelled) hydrateNotifications(items);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrateNotifications]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1040,6 +1011,12 @@ export default function Workspace({ status }: Props) {
     window.location.assign(`${window.location.pathname}?${params.toString()}`);
   }
 
+  /** The phone's way into the dev workbench, on the repo the user picked. */
+  function openWorkbench(projectId?: string) {
+    if (projectId) useApp.getState().setActiveProject(projectId);
+    openDev();
+  }
+
   /**
    * Where a bell item lands: a room stays in the Slack shell; an agent
    * completion opens the dev surface on that exact conversation.
@@ -1083,7 +1060,81 @@ export default function Workspace({ status }: Props) {
       : selectedRoom?.title || (selectedRoom ? `${selectedRoom.members.length} membros` : "Escolha um canal");
 
   return (
-    <main className={`jeff-workspace-home${collapsed ? " is-collapsed" : ""}`}>
+    <main className={`jeff-workspace-home${collapsed ? " is-collapsed" : ""}${mobile ? " is-mobile" : ""}`}>
+      {mobile ? (
+        <WorkspaceMobile
+          status={status}
+          teamName={status.teamName || "Seu workspace"}
+          workspaceLogo={workspaceLogo}
+          memberCount={status.memberCount}
+          workspaceMenuRef={workspaceMenuTrigger}
+          onOpenMenu={() => setWorkspaceMenuOpen(true)}
+          bots={bots}
+          me={me}
+          rooms={allRooms}
+          categories={categories}
+          teamMembers={teamMembers}
+          user={user}
+          userName={userName}
+          userFace={userFace}
+          userStatus={userStatus}
+          isAdmin={status.isAdmin}
+          unread={notifications.filter((notification) => !notification.read).length}
+          roomUnread={notifications.filter((notification) => !notification.read && notification.roomId).length}
+          unreadRoomIds={new Set(notifications.filter((notification) => !notification.read && notification.roomId).map((notification) => notification.roomId as string))}
+          activeAgents={activeAgents.length}
+          selectedRoomId={selectedRoomId}
+          selectedRoom={selectedRoom}
+          agent={agent}
+          messages={messages}
+          people={people}
+          roomTitle={roomTitle}
+          roomSubtitle={roomSubtitle}
+          draft={draft}
+          models={aiModels}
+          boardProject={boardProject}
+          driveProject={driveProject}
+          welcome={
+            <WelcomeCard
+              agentName={agent?.name || "Jeff"}
+              teamName={status.teamName}
+              aiReady={aiModels.length > 0}
+              aiModelCount={aiModels.length}
+              onConnect={() => openSettingsScreen("harness")}
+              onInvite={() => setInviteOpen(true)}
+              onSettings={() => openSettingsScreen("connectors")}
+            />
+          }
+          onSelectRoom={selectRoom}
+          onOpenAgent={openAgent}
+          onEditPerson={(person) => setPersonEdit(teamUsers.find((item) => item.id === person.id) ?? person)}
+          onEditAgent={setAgentEdit}
+          onCreateChannel={openChannel}
+          onCreateCategory={() => {
+            setCategoryName("");
+            setCategoryChannels([]);
+            setCategoryOpen(true);
+          }}
+          onRenameCategory={(category) => {
+            setRenamingCategory(category);
+            setRenameCategoryName(category.name);
+          }}
+          onDeleteCategory={(category) => void removeCategory(category)}
+          onMoveChannel={(room, categoryId) => void moveChannel(room, categoryId)}
+          onDeleteChannel={(room) => void deleteChannel(room)}
+          onOpenChannelAgents={openChannelAgents}
+          onOpenChannelRepos={() => void openRepos()}
+          onDraft={(value) => setDraft(draftKey, value)}
+          onSend={(text) => void send(text)}
+          onConnectAI={() => openSettingsScreen("harness")}
+          onAgentUpdated={(updated) => setBots((current) => current.map((bot) => (bot.id === updated.id ? updated : bot)))}
+          onOpenWorkbench={openWorkbench}
+          onOpenNotification={openInboxItem}
+          onView={changeView}
+          onInvite={() => setInviteOpen(true)}
+        />
+      ) : (
+      <>
       {collapsed ? (
         <WorkspaceRail
           workspaceLogo={workspaceLogo}
@@ -1949,7 +2000,10 @@ export default function Workspace({ status }: Props) {
       </div>
       </div>
       </div>
+      </>
+      )}
 
+      <Toasts />
 
       <Dialog
         open={channelOpen}

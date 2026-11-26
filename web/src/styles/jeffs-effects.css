@@ -87,17 +87,9 @@
   }
 }
 
-/* On a phone notices sit centred under the header, thin enough not to take
-   the screen: the composer and the tab bar stay untouched. */
+/* On a phone notices are full-width banners under the notch (mobile.css). */
 @media (max-width: 640px) {
   .ac-toasts {
-    top: calc(var(--safe-top) + 8px);
-    bottom: auto;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: min(420px, calc(100vw - 24px));
-    max-width: none;
     align-items: stretch;
     gap: 6px;
   }
@@ -137,61 +129,7 @@
   padding-top: 2px;
 }
 
-/* The phone's tab bar: four even columns (the utility of the old build had no plain grid-cols-4). */
-.mobile-tabbar {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  padding-inline: 0.375rem;
-}
 
-
-/* The phone's header and tab bar: the surface, the hairline and the sizes the
-   screens ask for, without depending on utility names the old build never had. */
-.mobile-topbar {
-  background: color-mix(in srgb, var(--bg) 95%, transparent);
-  border-bottom: 1px solid var(--line);
-}
-.mobile-topbar__title {
-  font-size: 20px;
-}
-.mobile-topbar__brand {
-  background: var(--raised);
-}
-.mobile-topbar__sessions {
-  background: var(--raised);
-  border: 1px solid var(--line);
-}
-.mobile-topbar__sessions:hover {
-  border-color: var(--line-strong);
-}
-.mobile-tabbar-nav {
-  background: color-mix(in srgb, var(--bg) 95%, transparent);
-  border-top: 1px solid var(--line);
-  padding-top: 10px;
-  padding-bottom: calc(6px + var(--safe-bottom));
-}
-.mobile-tabbar__icon {
-  width: 20px;
-  height: 20px;
-}
-
-/* The Jeff tab wears the brand's own mark, tinted like the other tabs (ink selected, faint otherwise). */
-.jeff-tab-mark {
-  display: block;
-  width: 20px;
-  height: 20px;
-  background: currentColor;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-}
-.jeff-tab-icon {
-  width: 20px;
-  height: 20px;
-}
 
 
 /* Theme change as a view transition (the Faang app's): the old page stays under

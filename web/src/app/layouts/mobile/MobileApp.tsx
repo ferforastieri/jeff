@@ -1,112 +1,129 @@
 import { useEffect, useRef, useState } from "react";
-import { Boxes, Database, Files, GitBranch, Globe2, MoreHorizontal, Plus, TerminalSquare } from "@jeff/icons";
+import {
+  Braces,
+  ChevronDown,
+  ChevronRight,
+  Home,
+  Database,
+  Files,
+  GitBranch,
+  Globe2,
+  MessageSquarePlus,
+  MoreHorizontal,
+  Search,
+  Settings2,
+  TerminalSquare,
+  UserRound,
+  Wrench,
+  X,
+} from "@jeff/icons";
 import { api, type Project, type SchemaTable, type WebTarget } from "../../../shared/api";
 import { useApp } from "../../store";
-import { useIsMobile } from "../../../shared/ui/useIsMobile";
 import { nativePushToken, requestMobileNotificationPermission } from "../../../features/notifications/notifications";
-import { basename, quoteIdentifier } from "../../../shared/lib";
+import { basename, dirname, quoteIdentifier } from "../../../shared/lib";
 import BrandMark from "@jeff/brand";
 import BrandGlyph from "../../../shared/ui/BrandGlyph";
-import { Button } from "@jeff/ui/app";
-import { Modal } from "@jeff/ui/app";
 import BotStudioTab from "../../../features/conversations/components/BotStudioTab";
 import DbPanelTab from "../../../features/databases/components/DbPanelTab";
 import DiffPanelTab from "../../../features/editor/components/DiffPanelTab";
 import EditorPanel from "../../../features/editor/components/EditorPanel";
 import WebPanelTab from "../../../features/previews/components/WebPanelTab";
-import Tabs from "../../components/Tabs";
 import TerminalPanel from "../../../features/terminal/components/TerminalPanel";
 import Toasts from "../../../features/notifications/components/Toasts";
 import FilesScreen from "./screens/FilesScreen";
 import GitScreen from "./screens/GitScreen";
 import DatabasesScreen from "./screens/DatabasesScreen";
 import WebAppsScreen from "./screens/WebAppsScreen";
+import SessionsScreen from "./screens/SessionsScreen";
 import ProjectSwitcher from "../../../features/projects/components/ProjectSwitcher";
 import QuickOpen from "../../../features/explorer/components/QuickOpen";
 import CloseProjectModal from "../../../features/projects/components/CloseProjectModal";
-import MobileTopBar from "./components/MobileTopBar";
 import { latestChatForJeff, useChats } from "../../../features/conversations/store";
+import { ensureJeff } from "../../../features/agents/default-jeff";
 import { useJeffDrafts } from "../../../features/agents/drafts";
 import MobileBranchSheet from "./MobileBranchSheet";
 import MobileAccountSheet from "./MobileAccountSheet";
-import MobileConversationsSheet from "./MobileConversationsSheet";
-import MobileBottomNav from "./MobileBottomNav";
 import { useMobileBack } from "./useMobileBack";
-import MobileMoreScreen from "./MobileMoreScreen";
-import { type MobileScreen } from "./mobile-nav";
 import JeffSettings from "../../../features/settings/components/JeffSettings";
+import ProjectMonogram from "../../../features/projects/components/ProjectMonogram";
+import MobileTabBar, { type MobileTabItem } from "./components/MobileTabBar";
+import MobileScreenHeader from "./components/MobileScreenHeader";
+import MobileIconButton from "./components/MobileIconButton";
+import { MobileEmpty } from "../../../features/workspace/mobile/mobile-ui";
 
+type DevTab = "work" | "jeff" | "files" | "git" | "more";
+type SettingsSection = "general" | "skills" | "connectors" | "harness" | "workspace";
+type Pushed =
+  | { kind: "projects" }
+  | { kind: "chat" }
+  | { kind: "tab"; tabId: string }
+  | { kind: "terminal" }
+  | { kind: "db" }
+  | { kind: "web" };
+
+const TAB_ICONS = {
+  editor: Files,
+  diff: Files,
+  db: Database,
+  web: Globe2,
+  ai: BrandGlyph,
+} as const;
+
+function openSettings(section: SettingsSection) {
+  window.dispatchEvent(new CustomEvent("jeff:open-settings", { detail: { section } }));
+}
+
+function tabIcon(tab: { kind: keyof typeof TAB_ICONS }) {
+  const Glyph = TAB_ICONS[tab.kind];
+  return <Glyph className="m-devrow__glyph" />;
+}
+
+/** The phone's dev workbench: Discord's shell around the project's tabs, sessions and tools. */
 export default function MobileApp() {
   const projects = useApp((state) => state.projects);
   const activeProjectId = useApp((state) => state.activeProjectId);
   const setActiveProject = useApp((state) => state.setActiveProject);
   const tabs = useApp((state) => state.tabs);
   const activeTabId = useApp((state) => state.activeTabId);
+  const setActiveTab = useApp((state) => state.setActiveTab);
   const openTab = useApp((state) => state.openTab);
+  const closeTab = useApp((state) => state.closeTab);
   const notify = useApp((state) => state.notify);
   const user = useApp((state) => state.user);
-  const notifications = useApp((state) => state.notifications);
   const closeProjectTab = useApp((state) => state.closeProjectTab);
-  const mobile = useIsMobile();
   const project = projects.find((item) => item.id === activeProjectId) ?? null;
-  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
-  const projectUnread = project
-    ? notifications.filter((notification) => !notification.read && notification.projectId === project.id).length
-    : 0;
 
-  const screen = useApp((state) => state.mobileScreen);
-  const setScreen = useApp((state) => state.setMobileScreen);
-  const [terminalOpen, setTerminalOpen] = useState(false);
-  const [projectsOpen, setProjectsOpen] = useState(false);
-  const [projectPicker, setProjectPicker] = useState<"open" | "closed">("open");
+  const [tab, setTab] = useState<DevTab>("work");
+  const [pushed, setPushed] = useState<Pushed | null>(null);
+  const [sessionFilter, setSessionFilter] = useState("");
+  const [branchOpen, setBranchOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchToken, setSearchToken] = useState(0);
   const [closeTarget, setCloseTarget] = useState<Project | null>(null);
   const [closeBusy, setCloseBusy] = useState(false);
   const [closeError, setCloseError] = useState("");
-  const [branchOpen, setBranchOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [conversationsOpen, setConversationsOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchToken, setSearchToken] = useState(0);
+  const [currentBranch, setCurrentBranch] = useState("");
   const pendingBot = useRef<{ projectId: string; botId: string; chatId?: string } | null>(null);
   const chatsHydrated = useChats((state) => activeProjectId ? state.byProject[activeProjectId]?.hydrated === true : false);
   const activeConversationId = useChats((state) => activeProjectId ? state.byProject[activeProjectId]?.activeChatId ?? null : null);
-  const [currentBranch, setCurrentBranch] = useState("");
-  const screenTitles: Record<MobileScreen, string> = {
-    bots: "Jeff",
-    files: "Arquivos",
-    scm: "Git",
-    db: "Bancos",
-    web: "Web apps",
-    workspace: activeTab?.title ?? "Trabalho",
-    more: "Mais",
-  };
-  const screenIcons = { bots: BrandGlyph, files: Files, scm: GitBranch, db: Database, web: Globe2, workspace: Boxes, more: MoreHorizontal };
-  const pageTitle = screenTitles[screen];
-  const pageSubtitle = screen === "scm" && currentBranch ? currentBranch : (project?.name ?? "");
-  const pageIcon = screenIcons[screen];
+  const activeChat = useChats((state) => activeProjectId && activeConversationId ? state.byProject[activeProjectId]?.chats.find((chat) => chat.id === activeConversationId) ?? null : null);
+
 
   useEffect(() => {
-    setScreen("bots");
-    setTerminalOpen(false);
-    setConversationsOpen(false);
-  }, [activeProjectId]);
-
-  function refreshBranch() {
-    if (!project) {
-      setCurrentBranch("");
-      return;
+    function refreshBranch() {
+      if (!project) {
+        setCurrentBranch("");
+        return;
+      }
+      api.gitBranches(project.id)
+        .then((info) => setCurrentBranch(info.current))
+        .catch(() => setCurrentBranch(""));
     }
-    api.gitBranches(project.id)
-      .then((info) => setCurrentBranch(info.current))
-      .catch(() => setCurrentBranch(""));
-  }
-
-  useEffect(() => {
     refreshBranch();
   }, [project?.id]);
 
   useEffect(() => {
-    if (!mobile) return;
     const timer = window.setTimeout(() => requestMobileNotificationPermission(), 900);
     let stopped = false;
     let attempts = 0;
@@ -140,7 +157,7 @@ export default function MobileApp() {
       window.clearInterval(poll);
       delete (window as unknown as { __jeffPushToken?: (token: string) => void }).__jeffPushToken;
     };
-  }, [mobile]);
+  }, []);
 
   useEffect(() => {
     const openBot = (event: Event) => {
@@ -150,7 +167,8 @@ export default function MobileApp() {
       const chats = useChats.getState().byProject[detail.projectId];
       if (!chats?.hydrated) {
         pendingBot.current = { projectId: detail.projectId, botId: detail.botId ?? "", chatId: detail.chatId };
-        setScreen("bots");
+        setTab("jeff");
+        setPushed({ kind: "chat" });
         return;
       }
       if (detail.chatId && chats.chats.some((chat) => chat.id === detail.chatId)) {
@@ -160,9 +178,10 @@ export default function MobileApp() {
           ?? useChats.getState().createConversation(detail.projectId, [detail.botId], { name: chats.jeffs.find((jeff) => jeff.id === detail.botId)?.name ?? "" });
         if (latest) useChats.getState().setActiveChat(detail.projectId, latest.id);
       }
-      setScreen("bots");
+      setTab("jeff");
+      setPushed({ kind: "chat" });
     };
-    const openTerminal = () => setTerminalOpen(true);
+    const openTerminal = () => setPushed({ kind: "terminal" });
     window.addEventListener("jeff:open-bot", openBot);
     window.addEventListener("jeff:open-chat", openBot);
     window.addEventListener("jeff:open-terminal", openTerminal);
@@ -185,50 +204,93 @@ export default function MobileApp() {
     pendingBot.current = null;
   }, [activeProjectId, chatsHydrated]);
 
-  function openProjectSheet() {
-    setProjectPicker("open");
-    setProjectsOpen(true);
-  }
+  useEffect(() => {
+    const screen = pushed?.kind === "chat"
+      ? "bots"
+      : tab === "work"
+        ? "workspace"
+        : tab === "files"
+          ? "files"
+          : tab === "git"
+            ? "scm"
+            : "more";
+    useApp.getState().setMobileScreen(screen);
+  }, [pushed, tab]);
 
-  function selectProjectFromSheet(id: string) {
+  useMobileBack(() => {
+    if (closeTarget) {
+      setCloseTarget(null);
+      return true;
+    }
+    if (searchOpen) {
+      setSearchOpen(false);
+      return true;
+    }
+    if (branchOpen) {
+      setBranchOpen(false);
+      return true;
+    }
+    if (accountOpen) {
+      setAccountOpen(false);
+      return true;
+    }
+    if (pushed) {
+      setPushed(null);
+      return true;
+    }
+    if (tab !== "work") {
+      setTab("work");
+      return true;
+    }
+    return false;
+  });
+
+  function selectProject(id: string) {
     useApp.getState().markProjectNotificationsRead(id);
     setActiveProject(id);
-    setProjectsOpen(false);
-    setScreen("bots");
+    setPushed(null);
+    setTab("work");
   }
 
-  function selectScreen(next: MobileScreen) {
-    setScreen(next);
-    setTerminalOpen(false);
+  function openProjectSheet() {
+    setPushed({ kind: "projects" });
   }
 
-  function openConversations() {
-    setTerminalOpen(false);
-    setConversationsOpen(true);
+  function openChat(chatId?: string | null) {
+    if (project && chatId) {
+      useApp.getState().markChatNotificationsRead(chatId);
+      useChats.getState().setActiveChat(project.id, chatId);
+      useChats.getState().touchConversation(project.id, chatId);
+    }
+    setTab("jeff");
+    setPushed({ kind: "chat" });
   }
 
-  function selectConversationScreen() {
-    setConversationsOpen(false);
-    setTerminalOpen(false);
-    setScreen("bots");
+  function newTask() {
+    if (!project) return;
+    const jeff = ensureJeff(project.id);
+    if (!jeff) return;
+    const created = useChats.getState().createConversation(project.id, [jeff.id]);
+    if (created) openChat(created.id);
   }
 
-  function openSearch() {
-    setSearchOpen(true);
-    setSearchToken((token) => token + 1);
+  function pushTab(tabId: string) {
+    setActiveTab(tabId);
+    setPushed({ kind: "tab", tabId });
   }
 
   function openFile(path: string, line?: number) {
     if (!project) return;
+    const id = `editor:${project.id}:${path}`;
     openTab({
-      id: `editor:${project.id}:${path}`,
+      id,
       kind: "editor",
       title: basename(path),
       projectId: project.id,
       path,
       line,
     });
-    setScreen("workspace");
+    pushTab(id);
   }
 
   function openTable(profileId: string, table: SchemaTable, driver: string) {
@@ -249,8 +311,9 @@ export default function MobileApp() {
       sql = `SELECT * FROM ${quoteIdentifier(driver, schema, table.name)} LIMIT 100;`;
     }
     const editable = !["mongodb", "redis", "elasticsearch", "neo4j", "cassandra"].includes(driver);
+    const id = `db:table:${project.id}:${profileId}:${schema}.${table.name}`;
     openTab({
-      id: `db:table:${project.id}:${profileId}:${schema}.${table.name}`,
+      id,
       kind: "db",
       title: table.name,
       projectId: project.id,
@@ -265,38 +328,40 @@ export default function MobileApp() {
           }
         : undefined,
     });
-    setScreen("workspace");
+    pushTab(id);
   }
 
   function openDiff(path: string, staged: boolean) {
     if (!project) return;
+    const id = `diff:${project.id}:${staged ? "staged" : "worktree"}:${path}`;
     openTab({
-      id: `diff:${project.id}:${staged ? "staged" : "worktree"}:${path}`,
+      id,
       kind: "diff",
       title: basename(path),
       projectId: project.id,
       path,
       staged,
     });
-    setScreen("workspace");
+    pushTab(id);
   }
 
   function openWeb(target: WebTarget) {
     if (!project) return;
+    const id = `web:${project.id}:${target.id}`;
     openTab({
-      id: `web:${project.id}:${target.id}`,
+      id,
       kind: "web",
       title: target.name,
       projectId: project.id,
       url: target.url,
     });
-    setScreen("workspace");
+    pushTab(id);
   }
 
   function requestCloseProject(id: string) {
     const target = projects.find((item) => item.id === id);
     if (!target) return;
-    setProjectsOpen(false);
+    setPushed(null);
     setCloseError("");
     setCloseTarget(target);
   }
@@ -311,10 +376,8 @@ export default function MobileApp() {
       const result = await api.closeProject(id);
       useChats.getState().forget(id);
       useJeffDrafts.getState().clearProject(id);
-      const wasActive = activeProjectId === id;
       closeProjectTab(id);
       setCloseTarget(null);
-      if (wasActive) setScreen("bots");
       const count = result.processes.length;
       notify("info", `Repo ${target.name} fechado. ${count} processo${count === 1 ? "" : "s"} encerrado${count === 1 ? "" : "s"}.`);
       if (result.failed.length > 0) {
@@ -327,208 +390,381 @@ export default function MobileApp() {
     }
   }
 
-  useMobileBack(() => {
-    if (closeTarget) { setCloseTarget(null); return true; }
-    if (terminalOpen) { setTerminalOpen(false); return true; }
-    if (conversationsOpen) { setConversationsOpen(false); return true; }
-    if (projectsOpen) { setProjectsOpen(false); return true; }
-    if (branchOpen) { setBranchOpen(false); return true; }
-    if (accountOpen) { setAccountOpen(false); return true; }
-    if (screen !== "bots") { setScreen("bots"); return true; }
-    if (project && activeConversationId) {
-      useChats.getState().setActiveChat(project.id, null);
-      return true;
-    }
-    return false;
-  });
+  function openWorkspace() {
+    window.location.assign(window.location.pathname);
+  }
 
   if (!project) {
     return (
-      <main className="safe-screen flex min-h-dvh items-center justify-center bg-background-full p-4">
-        <section className="w-full max-w-md rounded-3xl border border-border-button-white bg-background-primary-default p-3 shadow-xs">
-          <ProjectSwitcher onSelect={selectProjectFromSheet} heading="Repos abertos" />
-        </section>
+      <main className="m-app m-app--picker">
+        <header className="m-pickerhead">
+          <BrandMark size="large" />
+          <strong>Escolha um repo</strong>
+          <p>O workbench abre no projeto que você escolher.</p>
+        </header>
+        <div className="m-pickerbody">
+          <ProjectSwitcher onSelect={selectProject} heading="Repos" />
+          <button type="button" className="m-wideaction" onClick={openWorkspace}>
+            <Home className="m-wideaction__icon" />
+            Voltar ao workspace
+          </button>
+        </div>
         <Toasts />
       </main>
     );
   }
 
-  return (
-    <div
-      className="relative flex h-dvh flex-col overflow-hidden bg-[var(--side)]"
-      style={{
-        height: "min(var(--visual-viewport-height, 100dvh), calc(100dvh - var(--keyboard-inset, 0px)))",
-        paddingTop: "var(--safe-top)",
-        paddingLeft: "var(--safe-left)",
-        paddingRight: "var(--safe-right)",
-      }}
-    >
-      <MobileTopBar
-        title={pageTitle}
-        subtitle={pageSubtitle}
-        project={project}
-        unreadCount={projectUnread}
-        icon={pageIcon}
-        onJeffs={openConversations}
-        onProjects={openProjectSheet}
-        brandIcon={screen === "bots"}
-        onBrand={() => setScreen("bots")}
-        onSearch={openSearch}
+  const repo = project;
+
+  const tabsList: MobileTabItem[] = [
+    { id: "work", label: "Trabalho", icon: Braces },
+    { id: "jeff", label: "Jeff", icon: UserRound, brand: true },
+    { id: "files", label: "Arquivos", icon: Files },
+    { id: "git", label: "Git", icon: GitBranch },
+    { id: "more", label: "Mais", icon: MoreHorizontal },
+  ];
+
+  const projectLead = (
+    <button type="button" className="m-devproject" onClick={openProjectSheet} aria-label={`Trocar repo. ${repo.name}`}>
+      <ProjectMonogram project={repo} size={32} />
+      <span className="m-devproject__copy">
+        <strong>{repo.name}</strong>
+        <small>{currentBranch || repo.root}</small>
+      </span>
+      <ChevronDown className="m-devproject__chevron" />
+    </button>
+  );
+
+  function tabHeader() {
+    if (tab === "work") {
+      return (
+        <MobileScreenHeader
+          variant="workspace"
+          lead={projectLead}
+          actions={
+            <>
+              <MobileIconButton icon={Search} label="Buscar arquivos" onClick={() => { setSearchOpen(true); setSearchToken((token) => token + 1); }} />
+              <MobileIconButton icon={MessageSquarePlus} label="Nova tarefa" onClick={newTask} />
+            </>
+          }
+        />
+      );
+    }
+    if (tab === "jeff") {
+      return (
+        <MobileScreenHeader
+          title="Jeff"
+          subtitle={`Tarefas do repo · ${repo.name}`}
+          lead={<span className="m-devface"><BrandGlyph size={22} /></span>}
+          actions={<MobileIconButton icon={MessageSquarePlus} label="Nova tarefa" onClick={newTask} />}
+        />
+      );
+    }
+    if (tab === "files") {
+      return (
+        <MobileScreenHeader
+          title="Arquivos"
+          subtitle={repo.name}
+          actions={<MobileIconButton icon={Search} label="Buscar arquivos" onClick={() => { setSearchOpen(true); setSearchToken((token) => token + 1); }} />}
+        />
+      );
+    }
+    if (tab === "git") {
+      return (
+        <MobileScreenHeader
+          title="Git"
+          subtitle={currentBranch || repo.name}
+          actions={<MobileIconButton icon={GitBranch} label="Trocar branch" onClick={() => setBranchOpen(true)} />}
+        />
+      );
+    }
+    return (
+      <MobileScreenHeader
+        title="Mais"
+        subtitle={repo.name}
+        actions={<MobileIconButton icon={Search} label="Buscar arquivos" onClick={() => { setSearchOpen(true); setSearchToken((token) => token + 1); }} />}
       />
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background-primary-default pb-2">
-        {screen === "bots" ? (
-          <>
-            {activeConversationId ? (
-              <BotStudioTab
-                key={activeConversationId}
-                project={project}
-                conversationId={activeConversationId}
-                mobile
-                onOpenFile={(path, line) => openFile(path, line)}
-              />
-            ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8 text-center">
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><BrandGlyph size={22} /></span>
-                <strong className="text-title-3-medium text-text-primary">Nenhuma sessão aberta</strong>
-                <p className="max-w-xs text-caption-1-regular text-text-secondary">Abra uma sessão ou comece uma nova tarefa com o Jeff.</p>
-                <Button variant="secondary" size="small" onClick={openConversations}>Ver sessões</Button>
-              </div>
-            )}
-          </>
-        ) : screen === "files" ? (
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <FilesScreen project={project} onOpenFile={openFile} />
+    );
+  }
+
+  function tabBody() {
+    if (tab === "work") {
+      return (
+        <div className="m-devwork">
+          <div className="m-quickgrid">
+            <button type="button" className="m-quick" onClick={newTask}>
+              <MessageSquarePlus className="m-quick__glyph" />
+              <span>Nova tarefa</span>
+            </button>
+            <button type="button" className="m-quick" onClick={() => setTab("files")}>
+              <Files className="m-quick__glyph" />
+              <span>Arquivos</span>
+            </button>
+            <button type="button" className="m-quick" onClick={() => setPushed({ kind: "terminal" })}>
+              <TerminalSquare className="m-quick__glyph" />
+              <span>Terminal</span>
+            </button>
+            <button type="button" className="m-quick" onClick={() => setTab("git")}>
+              <GitBranch className="m-quick__glyph" />
+              <span>Git</span>
+            </button>
           </div>
-        ) : screen === "scm" ? (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <GitScreen
-              project={project}
-              branch={currentBranch}
-              onOpenDiff={openDiff}
-              onBranch={() => setBranchOpen(true)}
-            />
-          </div>
-        ) : screen === "db" ? (
-          <DatabasesScreen project={project} onOpenTable={openTable} />
-        ) : screen === "web" ? (
-          <WebAppsScreen onOpenWeb={openWeb} />
-        ) : screen === "more" ? (
-          <MobileMoreScreen
-            activeTitle={activeTab?.title}
-            onScreen={selectScreen}
-            onTerminal={() => setTerminalOpen(true)}
-            onProjects={openProjectSheet}
-            onBranch={() => setBranchOpen(true)}
-            onAccount={() => setAccountOpen(true)}
-          />
-        ) : (
-          <>
-            {tabs.length > 0 ? <Tabs /> : null}
-            <div className="relative flex min-h-0 flex-1 overflow-hidden">
-              {!activeTab ? (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-6 text-center">
-                  <BrandMark size="large" />
-                  <strong className="text-title-3-medium text-text-primary">Nenhuma aba aberta</strong>
-                  <p className="max-w-sm text-caption-1-regular text-text-secondary">
-                    Abra um arquivo, banco ou web app para começar. As abas ficam salvas por repo.
-                  </p>
-                  <div className="flex w-full max-w-xs flex-col gap-2">
-                    <Button variant="secondary" className="w-full justify-center" onClick={() => selectScreen("files")}>
-                      Abrir arquivos
-                    </Button>
-                    <Button variant="ghost" className="w-full justify-center" onClick={() => selectScreen("more")}>
-                      Ver todas as ferramentas
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-              {activeTab?.kind === "editor" && <EditorPanel tab={activeTab} project={project} mobile onOpenChanges={(path) => openDiff(path, false)} />}
-              {activeTab?.kind === "db" && <DbPanelTab tab={activeTab} />}
-              {activeTab?.kind === "web" && <WebPanelTab tab={activeTab} />}
-              {activeTab?.kind === "diff" && <DiffPanelTab tab={activeTab} project={project} />}
-              {activeTab?.kind === "ai" && activeTab.chatId && <BotStudioTab project={project} conversationId={activeTab.chatId} mobile onOpenFile={(path, line) => openFile(path, line)} />}
+          <header className="m-blockhead">
+            <div>
+              <h2>Abas abertas</h2>
+              <p>O que está aberto neste repo.</p>
             </div>
-          </>
-        )}
-      </main>
+          </header>
+          <div className="m-devtablist">
+            {tabs.map((item) => (
+              <div key={item.id} className="m-devrowwrap" data-active={item.id === activeTabId || undefined}>
+                <button type="button" className="m-devrow" onClick={() => pushTab(item.id)}>
+                  <span className="m-devrow__icon">{tabIcon(item)}</span>
+                  <span className="m-devrow__copy">
+                    <strong>{item.title}</strong>
+                    <small>
+                      {item.kind === "editor" && item.path
+                        ? dirname(item.path) || "raiz"
+                        : item.kind === "diff"
+                          ? "alterações"
+                          : item.kind === "db"
+                            ? "consulta"
+                            : item.kind === "web"
+                              ? "web app"
+                              : "conversa"}
+                    </small>
+                  </span>
+                  {item.dirty ? <span className="m-devrow__dirty" title="Não salvo" /> : null}
+                </button>
+                <MobileIconButton icon={X} label={`Fechar ${item.title}`} className="m-row__action" onClick={() => closeTab(item.id)} />
+              </div>
+            ))}
+            {tabs.length === 0 ? (
+              <MobileEmpty icon={<Files className="m-empty__glyph" />} title="Nenhuma aba aberta">
+                Abra um arquivo, um banco ou um web app para começar.
+              </MobileEmpty>
+            ) : null}
+          </div>
+          <div className="m-scroll__end" />
+        </div>
+      );
+    }
+    if (tab === "jeff") {
+      return (
+        <SessionsScreen
+          project={repo}
+          filter={sessionFilter}
+          onFilter={setSessionFilter}
+          onOpenChat={(chatId) => openChat(chatId)}
+        />
+      );
+    }
+    if (tab === "files") {
+      return <FilesScreen project={repo} onOpenFile={openFile} />;
+    }
+    if (tab === "git") {
+      return (
+        <GitScreen
+          project={repo}
+          branch={currentBranch}
+          onOpenDiff={openDiff}
+          onBranch={() => setBranchOpen(true)}
+        />
+      );
+    }
+    return (
+      <div className="m-scroll m-scroll--more">
+        <section className="m-toolgrid">
+          <button type="button" className="m-tool" onClick={() => setPushed({ kind: "terminal" })}>
+            <span className="m-tool__icon"><TerminalSquare className="m-tool__glyph" /></span>
+            <span className="m-tool__copy"><strong>Terminal</strong><small>Shell do repo</small></span>
+          </button>
+          <button type="button" className="m-tool" onClick={() => setPushed({ kind: "db" })}>
+            <span className="m-tool__icon"><Database className="m-tool__glyph" /></span>
+            <span className="m-tool__copy"><strong>Bancos</strong><small>Conexões e queries</small></span>
+          </button>
+          <button type="button" className="m-tool" onClick={() => setPushed({ kind: "web" })}>
+            <span className="m-tool__icon"><Globe2 className="m-tool__glyph" /></span>
+            <span className="m-tool__copy"><strong>Web apps</strong><small>Sites e previews</small></span>
+          </button>
+          <button type="button" className="m-tool" onClick={openProjectSheet}>
+            <span className="m-tool__icon"><GitBranch className="m-tool__glyph" /></span>
+            <span className="m-tool__copy"><strong>Repos</strong><small>Abrir ou fechar</small></span>
+          </button>
+        </section>
 
-      <MobileBottomNav
-        screen={screen}
-        onSelect={selectScreen}
-      />
+        <div className="m-block">
+          <h2 className="m-block__title">Projeto e conta</h2>
+          <div className="m-settinglist">
+            <button type="button" className="m-settingrow" onClick={() => setBranchOpen(true)}>
+              <span className="m-settingrow__icon"><GitBranch className="m-settingrow__glyph" /></span>
+              <span className="m-settingrow__copy"><strong>Branch</strong><small>{currentBranch || "Trocar ou criar"}</small></span>
+            </button>
+            <button type="button" className="m-settingrow" onClick={() => setAccountOpen(true)}>
+              <span className="m-settingrow__icon"><UserRound className="m-settingrow__glyph" /></span>
+              <span className="m-settingrow__copy"><strong>Conta</strong><small>{user?.username ?? "Sessão e servidor"}</small></span>
+            </button>
+            <button type="button" className="m-settingrow" onClick={() => openSettings("general")}>
+              <span className="m-settingrow__icon"><Settings2 className="m-settingrow__glyph" /></span>
+              <span className="m-settingrow__copy"><strong>Configurações</strong><small>Sua conta, skills, MCP e harness</small></span>
+            </button>
+            </div>
+        </div>
 
-      {terminalOpen && (
-        <div
-          className="fixed inset-0 z-[120] flex flex-col bg-background-primary-default"
-          style={{
-            paddingTop: "var(--safe-top)",
-            paddingBottom: "var(--safe-bottom)",
-            paddingLeft: "var(--safe-left)",
-            paddingRight: "var(--safe-right)",
-          }}
-        >
-          <MobileTopBar
-            title="Terminal"
-            subtitle={project.name}
-            project={project}
-            unreadCount={projectUnread}
-            icon={TerminalSquare}
-            onProjects={() => { setTerminalOpen(false); openProjectSheet(); }}
-            onClose={() => setTerminalOpen(false)}
-            onSearch={openSearch}
-          />
-          <div className="min-h-0 flex-1">
-            <TerminalPanel project={project} onOpenFile={openFile} sheet onClose={() => setTerminalOpen(false)} />
+        <div className="m-block">
+          <h2 className="m-block__title">Workspace</h2>
+          <button type="button" className="m-wscard m-wscard--button" onClick={openWorkspace}>
+            <img src={`${import.meta.env.BASE_URL}brand/jeff-mark.png?v=5`} alt="" className="m-wscard__logo" draggable={false} />
+            <span className="m-wscard__copy">
+              <strong>Voltar ao workspace</strong>
+              <small>Os canais, as tarefas e o calendário</small>
+            </span>
+            <ChevronRight className="m-wscard__icon" />
+          </button>
+        </div>
+
+        <p className="m-footer">
+          <Wrench className="m-footer__icon" />
+          Jeff · workbench mobile
+        </p>
+        <div className="m-scroll__end" />
+      </div>
+    );
+  }
+
+  function pushedScreen() {
+    if (!pushed) return null;
+    if (pushed.kind === "projects") {
+      return (
+        <div className="m-screen">
+          <MobileScreenHeader title="Repos" subtitle="Trocar de projeto" onBack={() => setPushed(null)} />
+          <div className="m-pushed__body">
+            <ProjectSwitcher
+              heading="Repos abertos"
+              onSelect={selectProject}
+              onCloseProject={requestCloseProject}
+            />
+            <button type="button" className="m-wideaction" onClick={openWorkspace}>
+              <Home className="m-wideaction__icon" />
+              Voltar ao workspace
+            </button>
           </div>
         </div>
-      )}
-
-      <Modal
-        isOpen={projectsOpen}
-        onClose={() => setProjectsOpen(false)}
-        title={projectPicker === "open" ? "Repos abertos" : "Abrir repo"}
-        size="sm"
-        bodyClassName="p-2.5"
-       
-      >
-        <ProjectSwitcher
-          onlyOpen={projectPicker === "open"}
-          onlyClosed={projectPicker === "closed"}
-          heading={projectPicker === "open" ? "Repos abertos" : "Outros repos"}
-          action={projectPicker === "open" ? (
-            <Button
-              variant="secondary"
-              size="xs"
-              iconOnly
-              leadingIcon={Plus}
-              aria-label="Abrir outro repo"
-              title="Abrir outro repo"
-              onClick={() => setProjectPicker("closed")}
+      );
+    }
+    if (pushed.kind === "chat") {
+      const chatTitle = activeChat?.name?.trim() || "Nova tarefa";
+      return (
+        <div className="m-screen m-screen--chat">
+          <MobileScreenHeader
+            onBack={() => setPushed(null)}
+            backLabel="Voltar às tarefas"
+            lead={<span className="m-devface"><BrandGlyph size={22} /></span>}
+            title={chatTitle}
+            subtitle={`${repo.name} · ${currentBranch || "repo"}`}
+            actions={<MobileIconButton icon={MessageSquarePlus} label="Nova tarefa" onClick={newTask} />}
+          />
+          {activeConversationId ? (
+            <BotStudioTab
+              key={activeConversationId}
+              project={repo}
+              conversationId={activeConversationId}
+              mobile
+              onOpenFile={openFile}
             />
           ) : (
-            <Button variant="secondary" size="xs" onClick={() => setProjectPicker("open")}>
-              Voltar
-            </Button>
+            <MobileEmpty icon={<BrandGlyph size={22} />} title="Nenhuma sessão aberta">
+              Escolha uma tarefa na lista ou comece uma nova.
+            </MobileEmpty>
           )}
-          onSelect={selectProjectFromSheet}
-          onCloseProject={projectPicker === "open" ? (id) => requestCloseProject(id) : undefined}
+        </div>
+      );
+    }
+    if (pushed.kind === "terminal") {
+      return (
+        <div className="m-screen">
+          <MobileScreenHeader title="Terminal" subtitle={repo.name} onBack={() => setPushed(null)} />
+          <div className="m-pushed__body m-pushed__body--terminal">
+            <TerminalPanel project={repo} onOpenFile={openFile} sheet onClose={() => setPushed(null)} />
+          </div>
+        </div>
+      );
+    }
+    if (pushed.kind === "db") {
+      return (
+        <div className="m-screen">
+          <MobileScreenHeader title="Bancos" subtitle={repo.name} onBack={() => setPushed(null)} />
+          <div className="m-pushed__body m-pushed__body--panel">
+            <DatabasesScreen project={repo} onOpenTable={openTable} />
+          </div>
+        </div>
+      );
+    }
+    if (pushed.kind === "web") {
+      return (
+        <div className="m-screen">
+          <MobileScreenHeader title="Web apps" subtitle={repo.name} onBack={() => setPushed(null)} />
+          <div className="m-pushed__body m-pushed__body--panel">
+            <WebAppsScreen onOpenWeb={openWeb} />
+          </div>
+        </div>
+      );
+    }
+    const item = tabs.find((entry) => entry.id === pushed.tabId);
+    if (!item) return null;
+    return (
+      <div className="m-screen">
+        <MobileScreenHeader
+          title={item.title}
+          subtitle={repo.name}
+          onBack={() => setPushed(null)}
+          actions={
+            <MobileIconButton
+              icon={X}
+              label={`Fechar ${item.title}`}
+              onClick={() => {
+                closeTab(item.id);
+                setPushed(null);
+              }}
+            />
+          }
         />
-      </Modal>
+        <div className="m-pushed__body m-pushed__body--panel m-tabview">
+          {item.kind === "editor" ? <EditorPanel tab={item} project={repo} mobile onOpenChanges={(path) => openDiff(path, false)} /> : null}
+          {item.kind === "db" ? <DbPanelTab tab={item} /> : null}
+          {item.kind === "web" ? <WebPanelTab tab={item} /> : null}
+          {item.kind === "diff" ? <DiffPanelTab tab={item} project={repo} mobile /> : null}
+          {item.kind === "ai" && item.chatId ? <BotStudioTab project={repo} conversationId={item.chatId} mobile onOpenFile={openFile} /> : null}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="m-app">
+      <div className="m-app__body">
+        {pushed ? (
+          pushedScreen()
+        ) : (
+          <div className="m-screen" key={tab}>
+            {tabHeader()}
+            <div className="m-app__content">{tabBody()}</div>
+          </div>
+        )}
+      </div>
+      {pushed ? null : <MobileTabBar items={tabsList} active={tab} onSelect={(id) => { setTab(id as DevTab); setPushed(null); }} />}
 
       <MobileBranchSheet
         open={branchOpen}
-        projectId={project.id}
+        projectId={repo.id}
         onClose={() => setBranchOpen(false)}
-        onChanged={refreshBranch}
-      />
-      <MobileConversationsSheet
-        open={conversationsOpen}
-        project={project}
-        onClose={() => setConversationsOpen(false)}
-        onSelected={selectConversationScreen}
+        onChanged={() => {
+          api.gitBranches(repo.id).then((info) => setCurrentBranch(info.current)).catch(() => undefined);
+        }}
       />
       <MobileAccountSheet open={accountOpen} user={user} onClose={() => setAccountOpen(false)} />
-      <JeffSettings user={user} projectRoot={project.root} projectId={project.id} hideTrigger />
+      <JeffSettings user={user} projectRoot={repo.root} projectId={repo.id} hideTrigger />
+
       {searchOpen ? (
         <div
           className="mobile-search-overlay"
@@ -540,7 +776,7 @@ export default function MobileApp() {
         >
           <div className="mobile-search-card">
             <QuickOpen
-              project={project}
+              project={repo}
               focusToken={searchToken}
               onOpenFile={(path, line) => { setSearchOpen(false); openFile(path, line); }}
               floating

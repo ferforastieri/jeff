@@ -141,7 +141,7 @@ export default function EditorPanel({ tab, project, onOpenChanges, mobile = fals
         ) : contentError ? (
           <div className="flex h-full w-full items-center justify-center p-6 text-center text-sm text-text-tertiary">{contentError}</div>
         ) : (
-          <CodeEditor path={tab.path ?? tab.title} projectId={project.id} projectRoot={project.root} onOpenChanges={onOpenChanges} value={tab.content ?? ""} language={languageFor(tab.path ?? tab.title)} line={tab.line} blame={blame} onChange={(content) => updateTab(tab.id, { content, dirty: true })} onCursorPosition={(line, column) => { window.dispatchEvent(new CustomEvent("jeff:cursor", { detail: { line, column, language: languageFor(tab.path ?? tab.title) } })); }} onSave={() => void save()} />
+          <CodeEditor path={tab.path ?? tab.title} projectId={project.id} projectRoot={project.root} onOpenChanges={onOpenChanges} value={tab.content ?? ""} language={languageFor(tab.path ?? tab.title)} line={tab.line} blame={mobile ? [] : blame} onChange={(content) => updateTab(tab.id, { content, dirty: true })} onCursorPosition={(line, column) => { window.dispatchEvent(new CustomEvent("jeff:cursor", { detail: { line, column, language: languageFor(tab.path ?? tab.title) } })); }} onSave={() => void save()} />
         )}
       </div>
     </div>

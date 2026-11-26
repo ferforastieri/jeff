@@ -12,7 +12,7 @@ import { Badge } from "@jeff/ui/app";
 import { useApp, type Tab } from "../../../app/store";
 import LoadingState from "../../../shared/ui/LoadingState";
 
-export default function DiffPanelTab({ tab, project }: { tab: Tab; project: Project }) {
+export default function DiffPanelTab({ tab, project, mobile = false }: { tab: Tab; project: Project; mobile?: boolean }) {
   const notify = useApp((state) => state.notify);
   const theme = useSettings((state) => state.theme);
   const [versions, setVersions] = useState<{ original: string; modified: string } | null>(null);
@@ -38,16 +38,18 @@ export default function DiffPanelTab({ tab, project }: { tab: Tab; project: Proj
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col">
-      <Breadcrumb className="h-8 min-w-0 shrink-0 items-center border-b px-2">
-        <BreadcrumbItem current className="shrink-0">{project.name}</BreadcrumbItem>
-        <BreadcrumbItem current className="min-w-0">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <FileIcon name={tab.path ?? tab.title} path={tab.path} size={13} />
-            <span className="truncate">{tab.path}</span>
-          </span>
-        </BreadcrumbItem>
-        <BreadcrumbItem><Badge color="neutral" className="text-[10px]">{tab.staged ? "staged" : "working tree"}</Badge></BreadcrumbItem>
-      </Breadcrumb>
+      {mobile ? null : (
+        <Breadcrumb className="h-8 min-w-0 shrink-0 items-center border-b px-2">
+          <BreadcrumbItem current className="shrink-0">{project.name}</BreadcrumbItem>
+          <BreadcrumbItem current className="min-w-0">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <FileIcon name={tab.path ?? tab.title} path={tab.path} size={13} />
+              <span className="truncate">{tab.path}</span>
+            </span>
+          </BreadcrumbItem>
+          <BreadcrumbItem><Badge color="neutral" className="text-[10px]">{tab.staged ? "staged" : "working tree"}</Badge></BreadcrumbItem>
+        </Breadcrumb>
+      )}
       <div className="min-h-0 flex-1 overflow-hidden">
         <DiffEditor
           original={versions.original}
@@ -60,16 +62,17 @@ export default function DiffPanelTab({ tab, project }: { tab: Tab; project: Proj
           }}
           options={{
             readOnly: true,
-            renderSideBySide: true,
-            useInlineViewWhenSpaceIsLimited: false,
+            renderSideBySide: !mobile,
+            useInlineViewWhenSpaceIsLimited: mobile,
             automaticLayout: true,
             minimap: { enabled: false },
             scrollBeyondLastLine: true,
             fontFamily: CODE_FONT_FAMILY,
-            fontSize: 14,
-            lineHeight: codeLineHeight(14),
-            lineNumbersMinChars: 3,
+            fontSize: mobile ? 12 : 14,
+            lineHeight: codeLineHeight(mobile ? 12 : 14),
+            lineNumbersMinChars: mobile ? 2 : 3,
             glyphMargin: false,
+            wordWrap: mobile ? "on" : "off",
             padding: { top: 0, bottom: 0 },
           }}
         />
