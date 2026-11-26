@@ -962,12 +962,6 @@
   color: var(--danger);
 }
 
-.m-profilebar__actions {
-  display: flex;
-  flex: none;
-  align-items: center;
-}
-
 /* ---------- Empty states ---------- */
 .m-empty {
   display: flex;
@@ -1910,6 +1904,34 @@
   padding: 6px calc(6px + var(--safe-right)) calc(6px + var(--safe-bottom)) calc(6px + var(--safe-left));
 }
 
+.m-composer-controls {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 0 4px 6px;
+  scrollbar-width: none;
+}
+
+.m-composer-controls::-webkit-scrollbar {
+  display: none;
+}
+
+.m-composer-controls .composer-trigger {
+  height: 28px;
+  flex: none;
+  max-width: 150px;
+  gap: 5px;
+  border-radius: 8px;
+  background: var(--plate-soft);
+  font-size: 11.5px;
+  padding: 0 8px;
+}
+
+.m-composer-controls .model-usage-ring {
+  width: 22px;
+  height: 22px;
+}
+
 .m-composer .ac-composer {
   max-width: none;
   border-radius: 20px;
@@ -2254,32 +2276,6 @@
 
 /* My own composer on a phone: the model and effort are one quiet line above
    the text, never chips squeezed between attach and the caret. */
-.m-composer .ac-composer__pills {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding: 4px 8px 0;
-  scrollbar-width: none;
-}
-
-.m-composer .ac-composer__pills::-webkit-scrollbar {
-  display: none;
-}
-
-.m-composer .ac-composer__pill,
-.m-composer .ac-composer__agent {
-  height: 26px;
-  flex: none;
-  border-radius: 8px;
-  font-size: 11.5px;
-  gap: 5px;
-  padding: 0 8px;
-}
-
-.m-composer .ac-composer__pill .model-usage-ring {
-  width: 22px;
-  height: 22px;
-}
-
 .m-composer .ac-composer__row {
   padding: 2px 4px 4px;
 }
@@ -2731,56 +2727,70 @@
 
 /* The dev composer: the model, the effort and the mode on their own line above
    the input; attach, text and send keep the bottom row for the thumb. */
-.m-app .agent-composer {
-  border-radius: 20px;
-}
-
-.m-app .agent-composer textarea {
-  min-height: 44px;
-  padding: 4px 12px;
-  font-size: 15px;
-}
-
-.m-app .agent-composer-footer {
-  flex-wrap: wrap;
-  gap: 3px 4px;
-  padding: 4px 8px 7px;
-}
-
-.m-app .agent-composer-leading {
-  order: -1;
-  flex: 1 1 100%;
+.agent-composer-controls {
+  display: flex;
+  gap: 4px;
   overflow-x: auto;
+  padding: 0 2px 6px;
   scrollbar-width: none;
-  padding-bottom: 2px;
 }
 
-.m-app .agent-composer-leading::-webkit-scrollbar {
+.agent-composer-controls::-webkit-scrollbar {
   display: none;
 }
 
-.m-app .agent-composer-leading .composer-trigger {
-  height: 27px;
+.agent-composer-controls .composer-trigger {
+  height: 28px;
   flex: none;
+  max-width: 160px;
+  gap: 5px;
+  border-radius: 8px;
+  background: var(--plate-soft);
   font-size: 11.5px;
-  max-width: 140px;
+  padding: 0 8px;
 }
 
-.m-app .agent-composer-leading .composer-trigger > svg {
-  flex: none;
+.agent-composer-controls .model-usage-ring {
+  width: 22px;
+  height: 22px;
 }
 
-.m-app .agent-composer-spacer {
+/* One row on a phone: attach, the prompt, the mic/send. The field keeps the
+   card's width, and the model controls sit above it, outside the field. */
+.agent-composer-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.agent-composer-field {
+  min-width: 0;
   flex: 1;
 }
 
-.m-app .agent-composer-footer > .ac-btn,
-.m-app .agent-composer-footer > div > .ac-btn {
-  flex: none;
+.agent-composer-field > .ac-field {
+  width: 100%;
 }
 
-.m-app .agent-composer-footer > :last-child {
-  margin-left: auto;
+.agent-composer-voice {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.m-app .agent-composer {
+  border-radius: 20px;
+  padding: 4px 6px 6px;
+}
+
+.m-app .agent-composer textarea {
+  min-height: 40px;
+  padding: 8px 4px;
+  font-size: 16px;
+  line-height: 22px;
 }
 
 /* Dialogs are bottom sheets on every compact width, not a centered card that

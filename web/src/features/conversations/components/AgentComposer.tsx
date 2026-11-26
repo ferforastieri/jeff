@@ -6,6 +6,7 @@ import { IconButton } from "@jeff/ui/app";
 import { Textarea } from "@jeff/ui/app";
 import { ComposerLoader } from "@jeff/ui/app";
 import { useAudioRecorder, type AgentAttachment } from "../../../shared/ui/useAudioRecorder";
+import { useIsMobile } from "../../../shared/ui/useIsMobile";
 import type { ChatJeff } from "../store";
 import BotAvatar from "../../agents/components/BotAvatar";
 
@@ -37,6 +38,7 @@ function SpinnerIcon({
 }
 
 export function AgentComposer({ value, onChange, onSend, onStop, busy, placeholder, allowAttachments = true, leadingControls, modeControls, history = [], members = [] }: Props) {
+  const mobile = useIsMobile();
   const [attachments, setAttachments] = useState<AgentAttachment[]>([]);
   const attachmentsRef = useRef<AgentAttachment[]>([]);
   attachmentsRef.current = attachments;
@@ -186,6 +188,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
           <p className="mt-1 border-t border-separator-border px-2 py-1 text-[10px] text-text-tertiary">Enter insere · Esc fecha</p>
         </div>
       ) : null}
+      {mobile && leadingControls ? <div className="agent-composer-controls">{leadingControls}</div> : null}
       <ComposerLoader active={busy} radius={20} surface>
         <form
           onSubmit={(event) => { event.preventDefault(); event.stopPropagation(); submit(); }}
@@ -268,63 +271,126 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
             </div>
           ) : null}
           {error && <p className="text-caption-2-regular text-text-error-primary">{error}</p>}
-          <Textarea
-            ref={areaRef}
-            value={value}
-            onChange={(next) => { historyIndex.current = -1; historyDraft.current = next; detectMention(next); onChange(next); }}
-            placeholder={placeholder}
-            aria-label="Mensagem para o agente"
-            rows={1}
-            autoResize
-            maxRows={6}
-            resize="none"
-            fieldClassName="flex min-h-[50px] items-start rounded-none bg-transparent p-0 ring-0 shadow-none"
-            className="min-h-[50px] px-4 text-[14px] leading-[1.55]"
-          />
-          <div className="agent-composer-footer flex min-w-0 items-center gap-2.5 px-4 pb-3 pt-2">
-            {allowAttachments ? <Button type="button" variant="ghost" size="small" iconOnly leadingIcon={ImagePlus} aria-label="Anexar arquivo" title="Anexar arquivo (Ctrl+U)" onClick={() => fileRef.current?.click()} /> : null}
-            {leadingControls ? <div className="agent-composer-leading flex min-w-0 items-center gap-0.5">{leadingControls}</div> : null}
-            <span className="agent-composer-spacer min-w-0 flex-1" />
-            {modeControls ? <div className="flex shrink-0 items-center gap-0.5">{modeControls}</div> : null}
-            {audio.processing ? (
-              <Button type="button" variant="secondary" size="small" iconOnly leadingIcon={SpinnerIcon} disabled aria-label="Processando áudio" title="Processando áudio" className="shrink-0 rounded-full" />
-            ) : audio.recording ? (
-              <Button type="button" variant="danger" size="small" iconOnly leadingIcon={Stop} onClick={() => audio.stop()} aria-label="Parar gravação" title="Parar gravação e transcrever" className="shrink-0 rounded-full" />
-            ) : busy && onStop ? (
-              <div className="flex shrink-0 items-center gap-1">
-                {value.trim() || attachments.length > 0 ? (
-                  <Button type="submit" variant="primary" size="small" iconOnly leadingIcon={ArrowUp} aria-label="Enfileirar mensagem" title="Enviar quando a execução atual terminar" className="shrink-0 rounded-full" />
-                ) : null}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="small"
-                  iconOnly
-                  leadingIcon={Stop}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={(event) => { event.preventDefault(); event.stopPropagation(); onStop(); }}
-                  aria-label="Parar"
-                  title="Parar execução"
-                  className="shrink-0 rounded-full"
+          {mobile ? (
+            <div className="agent-composer-row">
+              {allowAttachments ? <Button type="button" variant="ghost" size="small" iconOnly leadingIcon={ImagePlus} aria-label="Anexar arquivo" title="Anexar arquivo (Ctrl+U)" onClick={() => fileRef.current?.click()} /> : null}
+              <div className="agent-composer-field">
+                <Textarea
+                  ref={areaRef}
+                  value={value}
+                  onChange={(next) => { historyIndex.current = -1; historyDraft.current = next; detectMention(next); onChange(next); }}
+                  placeholder={placeholder}
+                  aria-label="Mensagem para o agente"
+                  rows={1}
+                  autoResize
+                  maxRows={6}
+                  resize="none"
+                  fieldClassName="flex min-h-[40px] items-start rounded-none bg-transparent p-0 ring-0 shadow-none"
+                  className="min-h-[40px] px-1 text-[16px] leading-[22px]"
                 />
               </div>
-            ) : value.trim() || attachments.length > 0 ? (
-              <Button type="submit" variant="primary" size="small" iconOnly leadingIcon={ArrowUp} aria-label="Enviar" title="Enviar" className="shrink-0 rounded-full" />
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                size="small"
-                iconOnly
-                leadingIcon={Mic}
-                onClick={() => void audio.start()}
-                disabled={busy || !audio.supported}
-                aria-label="Gravar áudio"
-                title={audio.supported ? "Gravar áudio" : "Gravação de áudio indisponível"}
-                className="shrink-0 rounded-full"
+              <div className="agent-composer-voice">
+                {audio.processing ? (
+                  <Button type="button" variant="secondary" size="small" iconOnly leadingIcon={SpinnerIcon} disabled aria-label="Processando áudio" title="Processando áudio" className="shrink-0 rounded-full" />
+                ) : audio.recording ? (
+                  <Button type="button" variant="danger" size="small" iconOnly leadingIcon={Stop} onClick={() => audio.stop()} aria-label="Parar gravação" title="Parar gravação e transcrever" className="shrink-0 rounded-full" />
+                ) : busy && onStop ? (
+                  <div className="flex shrink-0 items-center gap-1">
+                    {value.trim() || attachments.length > 0 ? (
+                      <Button type="submit" variant="primary" size="small" iconOnly leadingIcon={ArrowUp} aria-label="Enfileirar mensagem" title="Enviar quando a execução atual terminar" className="shrink-0 rounded-full" />
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="small"
+                      iconOnly
+                      leadingIcon={Stop}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => { event.preventDefault(); event.stopPropagation(); onStop(); }}
+                      aria-label="Parar"
+                      title="Parar execução"
+                      className="shrink-0 rounded-full"
+                    />
+                  </div>
+                ) : value.trim() || attachments.length > 0 ? (
+                  <Button type="submit" variant="primary" size="small" iconOnly leadingIcon={ArrowUp} aria-label="Enviar" title="Enviar" className="shrink-0 rounded-full" />
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="small"
+                    iconOnly
+                    leadingIcon={Mic}
+                    onClick={() => void audio.start()}
+                    disabled={busy || !audio.supported}
+                    aria-label="Gravar áudio"
+                    title={audio.supported ? "Gravar áudio" : "Gravação de áudio indisponível"}
+                    className="shrink-0 rounded-full"
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <Textarea
+                ref={areaRef}
+                value={value}
+                onChange={(next) => { historyIndex.current = -1; historyDraft.current = next; detectMention(next); onChange(next); }}
+                placeholder={placeholder}
+                aria-label="Mensagem para o agente"
+                rows={1}
+                autoResize
+                maxRows={6}
+                resize="none"
+                fieldClassName="flex min-h-[50px] items-start rounded-none bg-transparent p-0 ring-0 shadow-none"
+                className="min-h-[50px] px-4 text-[14px] leading-[1.55]"
               />
-            )}
-          </div>
+              <div className="agent-composer-footer flex min-w-0 items-center gap-2.5 px-4 pb-3 pt-2">
+                {allowAttachments ? <Button type="button" variant="ghost" size="small" iconOnly leadingIcon={ImagePlus} aria-label="Anexar arquivo" title="Anexar arquivo (Ctrl+U)" onClick={() => fileRef.current?.click()} /> : null}
+                {leadingControls ? <div className="agent-composer-leading flex min-w-0 items-center gap-0.5">{leadingControls}</div> : null}
+                <span className="agent-composer-spacer min-w-0 flex-1" />
+                {modeControls ? <div className="flex shrink-0 items-center gap-0.5">{modeControls}</div> : null}
+                {audio.processing ? (
+                  <Button type="button" variant="secondary" size="small" iconOnly leadingIcon={SpinnerIcon} disabled aria-label="Processando áudio" title="Processando áudio" className="shrink-0 rounded-full" />
+                ) : audio.recording ? (
+                  <Button type="button" variant="danger" size="small" iconOnly leadingIcon={Stop} onClick={() => audio.stop()} aria-label="Parar gravação" title="Parar gravação e transcrever" className="shrink-0 rounded-full" />
+                ) : busy && onStop ? (
+                  <div className="flex shrink-0 items-center gap-1">
+                    {value.trim() || attachments.length > 0 ? (
+                      <Button type="submit" variant="primary" size="small" iconOnly leadingIcon={ArrowUp} aria-label="Enfileirar mensagem" title="Enviar quando a execução atual terminar" className="shrink-0 rounded-full" />
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="small"
+                      iconOnly
+                      leadingIcon={Stop}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => { event.preventDefault(); event.stopPropagation(); onStop(); }}
+                      aria-label="Parar"
+                      title="Parar execução"
+                      className="shrink-0 rounded-full"
+                    />
+                  </div>
+                ) : value.trim() || attachments.length > 0 ? (
+                  <Button type="submit" variant="primary" size="small" iconOnly leadingIcon={ArrowUp} aria-label="Enviar" title="Enviar" className="shrink-0 rounded-full" />
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="small"
+                    iconOnly
+                    leadingIcon={Mic}
+                    onClick={() => void audio.start()}
+                    disabled={busy || !audio.supported}
+                    aria-label="Gravar áudio"
+                    title={audio.supported ? "Gravar áudio" : "Gravação de áudio indisponível"}
+                    className="shrink-0 rounded-full"
+                  />
+                )}
+              </div>
+            </>
+          )}
         </form>
       </ComposerLoader>
       {allowAttachments && <input ref={fileRef} type="file" hidden multiple onChange={(event) => void pickFiles(event.target.files)} />}

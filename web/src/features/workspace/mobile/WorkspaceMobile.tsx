@@ -283,6 +283,7 @@ export default function WorkspaceMobile(props: Props) {
       id: "settings",
       label: "Ajustes",
       rows: [
+        drawerRow("general", "Configurações", <Settings2 className="m-drawer__glyph" />, () => openSettings("general"), { hint: "Conta, servidor e modelos" }),
         drawerRow("you", "Você e conta", <UserRound className="m-drawer__glyph" />, () => selectTab("voce"), { hint: "Perfil, tema e sessão" }),
         drawerRow("connectors", "Conectores e MCP", <PlugZap className="m-drawer__glyph" />, () => openSettings("connectors")),
         drawerRow("skills", "Skills", <Sparkles className="m-drawer__glyph" />, () => openSettings("skills")),
@@ -413,7 +414,6 @@ export default function WorkspaceMobile(props: Props) {
         onDeleteChannel={onDeleteChannel}
         onOpenSearch={() => setPane("search")}
         onOpenNotifications={() => setTab("alertas")}
-        onOpenSettings={() => openSettings("general")}
         onOpenWorkbench={() => onOpenWorkbench()}
       />
     );
@@ -612,9 +612,6 @@ export default function WorkspaceMobile(props: Props) {
                 }))}
               />
             </Menu>
-            <div className="m-profilebar__actions">
-              <MobileIconButton icon={Settings2} label="Configurações" onClick={() => openSettings("general")} />
-            </div>
           </div>
         }
       />

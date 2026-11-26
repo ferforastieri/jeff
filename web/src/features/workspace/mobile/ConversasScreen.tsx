@@ -53,7 +53,6 @@ interface Props {
   onDeleteChannel: (room: Room) => void;
   onOpenSearch: () => void;
   onOpenNotifications: () => void;
-  onOpenSettings: () => void;
   onOpenWorkbench: () => void;
 }
 
@@ -94,7 +93,6 @@ export default function ConversasScreen({
   onDeleteChannel,
   onOpenSearch,
   onOpenNotifications,
-  onOpenSettings,
   onOpenWorkbench,
 }: Props) {
   const setUserStatus = usePrefs((state) => state.update);
@@ -386,9 +384,6 @@ export default function ConversasScreen({
             }))}
           />
         </Menu>
-        <div className="m-profilebar__actions">
-          <MobileIconButton icon={Settings2} label="Configurações" onClick={onOpenSettings} />
-        </div>
       </div>
     </div>
   );

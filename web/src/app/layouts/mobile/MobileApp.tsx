@@ -786,16 +786,6 @@ export default function MobileApp() {
                 <small>{repo.name}</small>
               </span>
             </button>
-            <div className="m-profilebar__actions">
-              <MobileIconButton
-                icon={Settings2}
-                label="Configurações"
-                onClick={() => {
-                  closeDrawer();
-                  openSettings("general");
-                }}
-              />
-            </div>
           </div>
         }
       />

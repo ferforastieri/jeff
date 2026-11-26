@@ -212,6 +212,16 @@ export default function ChatScreen({
       </div>
 
       <footer className="m-composer">
+        {agent ? (
+          <div className="m-composer-controls">
+            <AgentComposerControls
+              agent={agent}
+              models={models}
+              onConnect={onConnectAI}
+              onUpdated={onAgentUpdated}
+            />
+          </div>
+        ) : null}
         <Composer
           value={draft}
           onChange={onDraft}
@@ -221,16 +231,6 @@ export default function ChatScreen({
           sendLabel="Enviar"
           attachLabel="Anexar"
           emoji={EMOJI_LABELS}
-          pills={
-            agent ? (
-              <AgentComposerControls
-                agent={agent}
-                models={models}
-                onConnect={onConnectAI}
-                onUpdated={onAgentUpdated}
-              />
-            ) : undefined
-          }
         />
       </footer>
 
