@@ -10,7 +10,6 @@ import {
   DialogBody,
   DialogFooter,
   Field,
-  GroupHeading,
   Icon,
   Input,
   ListRow,
@@ -206,7 +205,6 @@ export default function Workspace({ status }: Props) {
   const [sectionMark, setSectionMark] = useState<{ id: SectionId; where: "before" | "after" } | null>(null);
   const [draggedNav, setDraggedNav] = useState<string | null>(null);
   const [overNav, setOverNav] = useState<{ id: string; where: "before" | "after" } | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(true);
   const [messageMode, setMessageMode] = useState<"channel" | "sessions">("channel");
   const [channelSessionsTarget, setChannelSessionsTarget] = useState<{ chatId?: string; botId?: string } | null>(null);
@@ -1100,14 +1098,18 @@ export default function Workspace({ status }: Props) {
     setChannelDevBusy(true);
     try {
       await ensureChannelDevProject(targetRoom, repo);
-      useApp.getState().setSidebar(tool);
+      if (tool === "terminal") {
+        useApp.getState().setTerminalOpen(true);
+      } else {
+        useApp.getState().setSidebar(tool);
+        // Re-clicking the active tool reopens its panel after the user closes it.
+        window.dispatchEvent(new CustomEvent("jeff:dev-tool", { detail: { tool } }));
+      }
       setChannelDevTool(tool);
       setMessageMode("channel");
       setChannelSessionsTarget(null);
       setView("chat");
       setMenuOpen(false);
-      // Re-clicking the active tool reopens its panel after the user closes it.
-      window.dispatchEvent(new CustomEvent("jeff:dev-tool", { detail: { tool } }));
     } catch (cause) {
       useApp.getState().notify(
         "error",
@@ -1788,43 +1790,32 @@ export default function Workspace({ status }: Props) {
                 ) : null}
               </>
             ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              iconOnly
+              icon="members"
+              className={`ws-members-toggle${membersOpen ? " is-active" : ""}`}
+              aria-label={membersOpen ? "Ocultar equipe" : "Mostrar equipe"}
+              title={membersOpen ? "Ocultar equipe" : "Mostrar equipe"}
+              onClick={() => setMembersOpen((value) => !value)}
+            />
             {!channelDevTool ? (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  iconOnly
-                  icon="search"
-                  className="ws-search-toggle"
-                  aria-label="Buscar"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  iconOnly
-                  icon="members"
-                  className={`ws-members-toggle${membersOpen ? " is-active" : ""}`}
-                  aria-label={membersOpen ? "Ocultar equipe" : "Mostrar equipe"}
-                  title={membersOpen ? "Ocultar equipe" : "Mostrar equipe"}
-                  onClick={() => setMembersOpen((value) => !value)}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  iconOnly
-                  icon="sidebar"
-                  className="ws-details-toggle"
-                  aria-label={detailsOpen ? "Ocultar detalhes" : "Mostrar detalhes"}
-                  onClick={() => setDetailsOpen((value) => !value)}
-                />
-              </>
+              <Button
+                variant="ghost"
+                size="sm"
+                iconOnly
+                icon="search"
+                className="ws-search-toggle"
+                aria-label="Buscar"
+              />
             ) : null}
           </span>
         </header>
         ) : null}
 
         {view === "chat" && selectedRoom?.kind === "room" && devMode && selectedRoom.repos.length > 0 ? (
-          <div className="ws-devbar" role="tablist" aria-label="Ferramentas do canal">
+          <div className="ws-devbar" role="toolbar" aria-label="Ferramentas do canal">
             {selectedRoom.kind === "room" && selectedRoom.repos.length > 0 ? (
               selectedRoom.repos.length === 1 ? (
                 <span className="ws-devbar__repo" title={selectedRoom.repos[0]}>
@@ -1864,8 +1855,7 @@ export default function Workspace({ status }: Props) {
             ) : null}
             <button
               type="button"
-              role="tab"
-              aria-selected={!channelDevTool}
+              aria-pressed={!channelDevTool}
               className={`ws-devbar__tab${!channelDevTool ? " is-active" : ""}`}
               onClick={closeChannelDev}
             >
@@ -1878,8 +1868,7 @@ export default function Workspace({ status }: Props) {
                 <button
                   key={tool.id}
                   type="button"
-                  role="tab"
-                  aria-selected={channelDevTool === tool.id}
+                  aria-pressed={channelDevTool === tool.id}
                   className={`ws-devbar__tab${channelDevTool === tool.id ? " is-active" : ""}`}
                   disabled={channelDevBusy}
                   onClick={() => void openChannelDev(tool.id)}
@@ -1892,12 +1881,12 @@ export default function Workspace({ status }: Props) {
           </div>
         ) : null}
 
-        <div className={`ws-body${view === "chat" && detailsOpen && !channelDevTool ? "" : " is-details-closed"}${view === "chat" && membersOpen ? " has-members" : ""}`}>
+        <div className="ws-body">
         <section className="ws-main">
         {view === "chat" && channelDevTool && channelDevProjectId ? (
           <div className="ws-panel ws-dev-panel">
             <Suspense fallback={null}>
-              <Workbench projectId={channelDevProjectId ?? undefined} />
+              <Workbench projectId={channelDevProjectId ?? undefined} initialTerminal={channelDevTool === "terminal"} />
             </Suspense>
           </div>
         ) : null}
@@ -2071,160 +2060,102 @@ export default function Workspace({ status }: Props) {
         ) : null}
         {error ? <p className="ws-error">{error}</p> : null}
       </section>
-
-      <aside className="ws-right">
-        <div className="ws-agent-hero">
-          {faceOf(agent, 64)}
-          <h2>{agent?.name || "Jeff"}</h2>
-          <p>Seu braço direito</p>
-          <span className="ws-agent-status">Offline</span>
-        </div>
-        {selectedRoom?.kind === "room" ? (
-          <div className="ws-right-section">
-            <GroupHeading title="Agentes do canal" />
-            <div className="ws-repos">
-              {selectedChannelAgents.length ? (
-                selectedChannelAgents.map((agent) => (
-                  <Chip key={agent.id}>{agent.name}</Chip>
-                ))
-              ) : (
-                <p className="ws-muted">Nenhum agente neste canal.</p>
-              )}
-            </div>
-            <Button
-              variant="default"
-              size="sm"
-              icon="members"
-              onClick={openChannelAgents}
-            >
-              Escolher agentes
-            </Button>
-          </div>
-        ) : null}
-        {selectedRoom?.kind === "room" ? (
-          <div className="ws-right-section">
-            <GroupHeading title="Repos do canal" />
-            <div className="ws-repos">
-              {selectedRoom.repos?.length ? (
-                selectedRoom.repos.map((path) => (
-                  <Chip key={path}>{path.split("/").pop() || path}</Chip>
-                ))
-              ) : (
-                <p className="ws-muted">Nenhum repo escolhido.</p>
-              )}
-            </div>
-            {status.isAdmin ? (
-              <Button
-                variant="default"
-                size="sm"
-                icon="repo"
-                onClick={() => void openRepos()}
-              >
-                Escolher repos
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-        <div className="ws-right-section">
-          <GroupHeading title="Computador" />
-          <p className="ws-muted">
-            Sem computador aqui. O computador do workspace roda todos os agentes como um só usuário.
-          </p>
-        </div>
-        <div className="ws-right-section">
-          <GroupHeading title="Como pensa" />
-          <ListRow
-            lead={<Icon name="brainAgent" size={18} />}
-            title="Sua IA"
-            meta={agent?.bot?.model || "Ninguém te responde aqui ainda"}
-            trailing={<Icon name="chevronRight" size={14} />}
-            onClick={() => openSettingsScreen("general")}
-          />
-        </div>
-      </aside>
-
+      </div>
+      </div>
+      </div>
       {view === "chat" && membersOpen ? (
-        <aside className="ws-members" aria-label="Equipe">
-          <div className="ws-members-head">
-            <GroupHeading title="Equipe" />
-            {status.isAdmin ? (
-              <Menu
-                align="end"
-                label="Adicionar à equipe"
-                trigger={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    iconOnly
-                    icon="plus"
-                    className="ws-group-add"
-                    aria-label="Adicionar à equipe"
-                  />
-                }
-              >
-                <MenuItem icon="agent" onSelect={() => startNewAgent()}>
-                  Novo agente
-                </MenuItem>
-                <MenuItem icon="personAdd" onSelect={() => setInviteOpen(true)}>
-                  Novo usuário
-                </MenuItem>
-              </Menu>
-            ) : null}
-          </div>
-          <div className="ws-members-list">
-            {teamMembers.map((member) => {
-              const active =
-                member.bot &&
-                selectedRoom?.kind === "dm" &&
-                selectedRoom.members.some((item) => item.id === member.bot?.id);
-              return (
-                <div className="ws-team-member" key={member.key}>
-                  <button
-                    type="button"
-                    className={`ws-agent-row${active ? " is-active" : ""}`}
-                    onClick={() => {
-                      if (member.bot) void openAgent(member.bot);
-                      else if (member.user) setPersonEdit(member.user);
-                    }}
+        <aside className="ws-team-sidebar" aria-label="Equipe">
+          <div className="ws-team-scroll">
+            <section className="ws-group" aria-label="Equipe">
+              <div className="ws-group-head">
+                <span className="ws-group-label">Equipe</span>
+                <span className="ws-group-count">{teamMembers.length}</span>
+                <button
+                  type="button"
+                  className="ws-team-collapse"
+                  aria-label="Recolher equipe"
+                  title="Recolher equipe"
+                  onClick={() => setMembersOpen(false)}
+                >
+                  <Icon name="chevronRight" size={14} />
+                </button>
+                {status.isAdmin ? (
+                  <Menu
+                    align="end"
+                    label="Adicionar à equipe"
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconOnly
+                        icon="plus"
+                        className="ws-group-add"
+                        aria-label="Adicionar à equipe"
+                      />
+                    }
                   >
-                    <span className="ws-member-face">
-                      {member.bot ? faceOf(member.bot, 32) : <Avatar name={member.name} size="md" />}
-                      <span className="ws-member-presence" data-status={member.status} aria-hidden="true" />
-                    </span>
-                    <span className="ws-agent-copy">
-                      <strong>{member.name}</strong>
-                      <span className="ws-member-status" data-status={member.status}>
-                        <i aria-hidden="true" />
-                        {member.statusText}
-                      </span>
-                      <span className="ws-member-meta">{member.meta}</span>
-                    </span>
-                  </button>
-                  {status.isAdmin ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      iconOnly
-                      icon="edit"
-                      className="ws-row-action ws-team-edit"
-                      aria-label={`Editar ${member.name}`}
-                      title={`Editar ${member.name}`}
-                      onClick={() => {
-                        if (member.bot) setAgentEdit(member.bot);
-                        else if (member.user) setPersonEdit(member.user);
-                      }}
-                    />
-                  ) : null}
-                </div>
-              );
-            })}
-            {teamMembers.length === 0 ? <p className="ws-dm-note">Ninguém na equipe ainda.</p> : null}
+                    <MenuItem icon="agent" onSelect={() => startNewAgent()}>
+                      Novo agente
+                    </MenuItem>
+                    <MenuItem icon="personAdd" onSelect={() => setInviteOpen(true)}>
+                      Novo usuário
+                    </MenuItem>
+                  </Menu>
+                ) : null}
+              </div>
+              <div className="ws-group-body">
+                {teamMembers.map((member) => {
+                  const active =
+                    member.bot &&
+                    selectedRoom?.kind === "dm" &&
+                    selectedRoom.members.some((item) => item.id === member.bot?.id);
+                  return (
+                    <div className="ws-agent-wrap ws-team-member" key={member.key}>
+                      <button
+                        type="button"
+                        className={`ws-agent-row${active ? " is-active" : ""}`}
+                        onClick={() => {
+                          if (member.bot) void openAgent(member.bot);
+                          else if (member.user) setPersonEdit(member.user);
+                        }}
+                      >
+                        <span className="ws-member-face">
+                          {member.bot ? faceOf(member.bot, 36) : <Avatar name={member.name} size="md" />}
+                          <span className="ws-member-presence" data-status={member.status} aria-hidden="true" />
+                        </span>
+                        <span className="ws-agent-copy">
+                          <strong>{member.name}</strong>
+                          <span className="ws-member-status" data-status={member.status}>
+                            <i aria-hidden="true" />
+                            {member.statusText}
+                          </span>
+                          <span className="ws-member-meta">{member.meta}</span>
+                        </span>
+                      </button>
+                      {status.isAdmin ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          iconOnly
+                          icon="edit"
+                          className="ws-row-action ws-team-edit"
+                          aria-label={`Editar ${member.name}`}
+                          title={`Editar ${member.name}`}
+                          onClick={() => {
+                            if (member.bot) setAgentEdit(member.bot);
+                            else if (member.user) setPersonEdit(member.user);
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  );
+                })}
+                {teamMembers.length === 0 ? <p className="ws-dm-note">Ninguém na equipe ainda.</p> : null}
+              </div>
+            </section>
           </div>
         </aside>
       ) : null}
-      </div>
-      </div>
-      </div>
       </div>
       </>
       )}

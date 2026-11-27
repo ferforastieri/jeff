@@ -7,6 +7,7 @@ import { basename, quoteIdentifier } from "../../../shared/lib";
 import FilesScreen from "../../../app/layouts/mobile/screens/FilesScreen";
 import GitScreen from "../../../app/layouts/mobile/screens/GitScreen";
 import DatabasesScreen from "../../../app/layouts/mobile/screens/DatabasesScreen";
+import TerminalPanel from "../../terminal/components/TerminalPanel";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
 import MobileBranchSheet from "../../../app/layouts/mobile/MobileBranchSheet";
@@ -32,6 +33,7 @@ const TITLES: Record<ChannelDevTool, string> = {
   files: "Explorer",
   scm: "Source Control",
   db: "Databases",
+  terminal: "Terminal",
 };
 
 /** The channel's dev tools: the repo comes from the channel, never a picker. */
@@ -200,6 +202,16 @@ export default function ChannelDevMobile({ project, tool, onBack, onBackRef, onS
             onOpenDiff={openDiff}
             onBranch={() => setBranchOpen(true)}
           />
+        </div>
+      );
+    }
+    if (tool === "terminal") {
+      return (
+        <div className="m-screen">
+          {header()}
+          <div className="m-pushed__body m-pushed__body--terminal">
+            <TerminalPanel project={project} onOpenFile={openFile} sheet onClose={onBack} />
+          </div>
         </div>
       );
     }

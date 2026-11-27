@@ -3027,6 +3027,7 @@ body.keyboard-open .m-app {
 .m-devbar__repo {
   color: var(--ink);
   font-weight: 650;
+  border-color: var(--line);
 }
 
 .m-devbar__repo > .ac-icon:last-child {
@@ -3039,9 +3040,11 @@ body.keyboard-open .m-app {
   align-items: center;
   gap: 6px;
   height: 30px;
+  border: 1px solid var(--line);
   border-radius: 9px;
+  background: var(--plate-soft);
   padding: 0 10px;
-  color: var(--muted);
+  color: var(--ink2);
   font-size: 12.5px;
   font-weight: 600;
   white-space: nowrap;
@@ -3049,7 +3052,13 @@ body.keyboard-open .m-app {
 
 .m-devbar__tab:hover,
 .m-devbar__tab:active {
-  background: var(--plate-soft);
+  background: var(--plate);
+  color: var(--ink);
+}
+
+.m-devbar__tab.is-active {
+  border-color: var(--line-strong, var(--line));
+  background: var(--chosen-bg, var(--plate));
   color: var(--ink);
 }
 

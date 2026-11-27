@@ -62,7 +62,7 @@ function rightPanelForSidebar(sidebar: Sidebar): RightPanel | null {
   }
 }
 
-export default function Workbench({ projectId }: { projectId?: string } = {}) {
+export default function Workbench({ projectId, initialTerminal = false }: { projectId?: string; initialTerminal?: boolean } = {}) {
   const projects = useApp((state) => state.projects);
   const user = useApp((state) => state.user);
   const storeProjectId = useApp((state) => state.activeProjectId);
@@ -529,7 +529,7 @@ export default function Workbench({ projectId }: { projectId?: string } = {}) {
     const initialFeatures = useSettings.getState().workspaceFeatures;
     const initialEnabled = (feature: WorkspaceFeature) => featureEnabled(initialFeatures, feature);
     const initialTopOnly = isJeffOnly(initialFeatures);
-    setTerminalOpen(initialEnabled("terminal") && !initialTopOnly && !desktopClient);
+    setTerminalOpen(initialEnabled("terminal") && (initialTerminal || (!initialTopOnly && !desktopClient)));
     api
       .layout(activeProjectId)
       .then((layout) => {
@@ -552,9 +552,11 @@ export default function Workbench({ projectId }: { projectId?: string } = {}) {
           setSidebar("bots");
         }
         setTerminalOpen(
-          enabled("terminal") && !currentTopOnly && (
-            typeof layout.terminalOpen === "boolean" ? layout.terminalOpen : !desktopClient
-          ),
+          enabled("terminal") && (initialTerminal || (
+            !currentTopOnly && (
+              typeof layout.terminalOpen === "boolean" ? layout.terminalOpen : !desktopClient
+            )
+          )),
         );
         loadedProject.current = activeProjectId;
         setProjectEpoch((value) => value + 1);
@@ -572,7 +574,7 @@ export default function Workbench({ projectId }: { projectId?: string } = {}) {
       cancelled = true;
       useChats.getState().unload(activeProjectId);
     };
-  }, [activeProjectId, desktopClient, loadChats, notify, setSidebar, setTabs, setTerminalOpen]);
+  }, [activeProjectId, desktopClient, initialTerminal, loadChats, notify, setSidebar, setTabs, setTerminalOpen]);
 
   useEffect(() => {
     if (!activeProjectId || (!filesEnabled && !sourceControlEnabled)) {

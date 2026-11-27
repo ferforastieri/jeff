@@ -69,34 +69,10 @@ html[data-menu-overlay] .jeff-workspace-home {
 
 .ws-body {
   position: relative;
-  display: grid;
+  display: flex;
   min-height: 0;
   flex: 1;
-  grid-template-columns: minmax(0, 1fr) 300px;
   overflow: hidden;
-  transition: grid-template-columns 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.ws-body.is-details-closed {
-  grid-template-columns: minmax(0, 1fr) 0px;
-}
-
-.ws-body.has-members {
-  grid-template-columns: minmax(0, 1fr) 300px 260px;
-}
-
-.ws-body.is-details-closed.has-members {
-  grid-template-columns: minmax(0, 1fr) 0px 260px;
-}
-
-.ws-body.is-details-closed .ws-right {
-  width: 0;
-  opacity: 0;
-  transform: translateX(14px);
-  border-left-width: 0;
-  padding-left: 0;
-  padding-right: 0;
-  pointer-events: none;
 }
 
 .ws-workspace-head {
@@ -589,6 +565,7 @@ html[data-menu-overlay] .jeff-workspace-home {
   display: flex;
   min-width: 0;
   min-height: 0;
+  flex: 1;
   flex-direction: column;
   background: var(--pane, #181817);
 }
@@ -745,32 +722,45 @@ html[data-menu-overlay] .jeff-workspace-home {
   padding-top: 80px;
 }
 
-.ws-members {
-  min-width: 0;
+.ws-team-sidebar {
+  position: relative;
+  display: flex;
+  width: 260px;
   min-height: 0;
+  flex: none;
+  flex-direction: column;
+  margin-left: 8px;
+  background: var(--side, #0b0d11);
+  padding: 8px 4px;
+  animation: ws-panel-in 200ms ease both;
+}
+
+.ws-team-scroll {
+  min-height: 0;
+  flex: 1;
   overflow-x: hidden;
   overflow-y: auto;
-  border-left: 1px solid var(--line, rgba(255, 255, 255, 0.1));
-  background: var(--pane, #181817);
-  padding: 14px 10px;
+  padding: 0 4px;
 }
 
-.ws-members-head {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 2px 8px;
+.ws-team-sidebar .ws-group {
+  margin: 0;
 }
 
-.ws-members-head > :first-child {
-  min-width: 0;
-  flex: 1;
+.ws-team-collapse {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  margin-left: auto;
+  border-radius: 7px;
+  color: var(--faint, #8f8f8f);
 }
 
-.ws-members-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.ws-team-collapse:hover {
+  background: var(--plate-soft, rgba(127, 127, 127, 0.08));
+  color: var(--ink, #efefec);
 }
 
 .ws-team-member {
@@ -792,50 +782,9 @@ html[data-menu-overlay] .jeff-workspace-home {
   color: var(--ink);
 }
 
-.ws-right {
-  min-width: 0;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  border-left: 1px solid var(--line, rgba(255, 255, 255, 0.1));
-  background: var(--pane, #181817);
-  padding: 16px;
-  transition:
-    border-left-width 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 160ms ease,
-    padding 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    width 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.ws-agent-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 4px 4px 18px;
-}
-
-.ws-agent-hero h2 {
-  margin: 6px 0 0;
-  font-size: 18px;
-  font-weight: 650;
-}
-
-.ws-agent-hero p {
-  margin: 0;
-  color: #8f8f8f;
-  font-size: 13px;
-}
-
 .ws-agent-status {
   color: #8f8f8f;
   font-size: 12px;
-}
-
-.ws-right-section {
-  border-top: 1px solid #242424;
-  padding: 16px 4px;
 }
 
 .ws-muted {
@@ -1091,15 +1040,7 @@ html[data-menu-overlay] .jeff-workspace-home {
 }
 
 @media (max-width: 1200px) {
-  .ws-body,
-  .ws-body.is-details-closed,
-  .ws-body.has-members,
-  .ws-body.is-details-closed.has-members {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ws-right,
-  .ws-members {
+  .ws-team-sidebar {
     display: none;
   }
 
@@ -1846,44 +1787,6 @@ html:not([data-pointer]) .setup-row__link:focus-visible {
   margin: 8px 0;
 }
 
-.ws-members {
-  display: flex;
-  width: 100%;
-  max-width: 860px;
-  flex-direction: column;
-  gap: 16px;
-  margin: 0 auto;
-}
-
-.ws-members-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.ws-members-head h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 650;
-}
-
-.ws-members-head p {
-  margin: 4px 0 0;
-  color: #8f8f8f;
-  font-size: 12px;
-}
-
-.ws-members .ws-error {
-  margin: 0;
-}
-
-.ws-member-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .ws-member {
   display: flex;
   flex-direction: column;
@@ -2628,11 +2531,6 @@ html:not([data-pointer]) .setup-row__link:focus-visible {
 }
 
 /* The team page takes the sheet's width, as the reference's `.page.team` does. */
-.ws-members {
-  max-width: none;
-  margin: 0;
-}
-
 /* ---------- New agent: the reference's cargo list beside the card ---------- */
 .ws-agent-dialog .ac-dialog__body {
   padding: 0;
@@ -6989,9 +6887,10 @@ html:not([data-pointer]) .store-back:focus-visible {
   align-items: center;
   gap: 2px;
   overflow-x: auto;
+  gap: 6px;
   border-bottom: 1px solid var(--line);
   background: var(--pane);
-  padding: 4px 12px;
+  padding: 7px 12px;
   scrollbar-width: none;
 }
 
@@ -7004,9 +6903,11 @@ html:not([data-pointer]) .store-back:focus-visible {
   flex: none;
   align-items: center;
   gap: 6px;
-  height: 28px;
+  height: 30px;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 0 8px;
+  background: var(--plate-soft);
+  padding: 0 9px;
   color: var(--ink);
   font-size: 12.5px;
   font-weight: 650;
@@ -7014,7 +6915,7 @@ html:not([data-pointer]) .store-back:focus-visible {
 }
 
 .ws-devbar__repo--menu:hover {
-  background: var(--plate-soft);
+  background: var(--plate);
 }
 
 .ws-devbar__repo > .ac-icon:last-child {
@@ -7030,23 +6931,26 @@ html:not([data-pointer]) .store-back:focus-visible {
   flex: none;
   align-items: center;
   gap: 6px;
-  height: 28px;
+  height: 30px;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 0 9px;
-  color: var(--muted);
+  background: var(--plate-soft);
+  padding: 0 10px;
+  color: var(--ink2);
   font-size: 12.5px;
   font-weight: 600;
   white-space: nowrap;
-  transition: background-color 0.15s, color 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .ws-devbar__tab:hover {
-  background: var(--plate-soft);
+  background: var(--plate);
   color: var(--ink);
 }
 
 .ws-devbar__tab.is-active {
-  background: var(--plate-soft);
+  border-color: var(--line-strong, var(--line));
+  background: var(--chosen-bg, var(--plate));
   color: var(--ink);
 }
 

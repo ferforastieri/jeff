@@ -365,7 +365,7 @@ export default function WorkspaceMobile(props: Props) {
     setChannelDevBusy(true);
     try {
       await resolveChannelProject(room, repoPath);
-      useApp.getState().setSidebar(tool);
+      if (tool !== "terminal") useApp.getState().setSidebar(tool);
       setChannelDevTarget(null);
       setMessageMode("channel");
       setChannelDevTool(tool);
@@ -601,7 +601,7 @@ export default function WorkspaceMobile(props: Props) {
     if (selectedRoom?.kind !== "room" || !status.devMode || selectedRoom.repos.length === 0) return null;
     const repo = channelDevRepoPath || selectedRoom.repos[0];
     return (
-      <div className="m-devbar" role="tablist" aria-label="Ferramentas do canal">
+      <div className="m-devbar" role="toolbar" aria-label="Ferramentas do canal">
         {selectedRoom.repos.length === 1 ? (
           <span className="m-devbar__repo" title={repo}>
             <Icon name="repo" size={16} />
