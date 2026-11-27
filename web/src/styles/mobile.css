@@ -2977,101 +2977,27 @@ body.keyboard-open .m-app {
   padding-bottom: var(--safe-bottom);
 }
 
-.m-message-tabs {
-  display: flex;
+.m-view-trigger {
+  display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 2px;
-  border-bottom: 1px solid var(--line);
-  background: var(--pane);
-  padding: 4px 10px;
-}
-
-.m-message-tab {
-  display: inline-flex;
-  align-items: center;
+  gap: 5px;
   height: 28px;
-  border-radius: 8px;
-  padding: 0 10px;
-  color: var(--muted);
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.m-message-tab.is-active {
-  background: var(--plate-soft);
-  color: var(--ink);
-}
-
-.m-message-tab:disabled {
-  opacity: 0.55;
-}
-
-/* The channel's dev tools: a compact strip under the chat header. */
-.m-devbar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 2px;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--line);
-  background: var(--pane);
-  padding: 5px 10px;
-  scrollbar-width: none;
-}
-
-.m-devbar::-webkit-scrollbar {
-  display: none;
-}
-
-.m-devbar__repo {
-  color: var(--ink);
-  font-weight: 650;
-  border-color: var(--line);
-}
-
-.m-devbar__repo > .ac-icon:last-child {
-  color: var(--faint);
-}
-
-.m-devbar__tab {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--plate-soft);
-  padding: 0 10px;
+  padding: 0 9px;
   color: var(--ink2);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.m-devbar__tab:hover,
-.m-devbar__tab:active {
+.m-view-trigger:hover {
   background: var(--plate);
   color: var(--ink);
 }
 
-.m-devbar__tab.is-active {
-  border-color: var(--line-strong, var(--line));
-  background: var(--chosen-bg, var(--plate));
-  color: var(--ink);
-}
-
-.m-devbar__tab:disabled {
-  opacity: 0.55;
-}
-
-.m-devbar__busy {
-  flex: none;
-  margin-left: auto;
-  color: var(--faint);
-  font-size: 12px;
-}
 
 .m-dev-surface > .m-screen {
   min-height: 0;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MessageSquarePlus } from "@jeff/icons";
 import { api, type Project } from "../../../shared/api";
 import { useApp } from "../../../app/store";
@@ -17,6 +17,7 @@ interface Props {
   initialBotId?: string | null;
   onBack: () => void;
   onBackRef: { current: (() => boolean) | null };
+  viewMenu?: ReactNode;
 }
 
 /** The private sessions half of Mensagens, inside the channel. */
@@ -26,6 +27,7 @@ export default function ChannelSessionsMobile({
   initialBotId,
   onBack,
   onBackRef,
+  viewMenu,
 }: Props) {
   const chats = useChats((state) => state.byProject[project.id]);
   const [filter, setFilter] = useState("");
@@ -114,17 +116,8 @@ export default function ChannelSessionsMobile({
         subtitle={project.name}
         onBack={onBack}
         backLabel="Voltar ao canal"
-        actions={<MobileIconButton icon={MessageSquarePlus} label="Nova tarefa" onClick={newTask} />}
-      >
-        <div className="m-message-tabs" role="tablist" aria-label="Mensagens do canal">
-          <button type="button" role="tab" aria-selected={false} className="m-message-tab" onClick={onBack}>
-            Canal
-          </button>
-          <button type="button" role="tab" aria-selected className="m-message-tab is-active" onClick={() => undefined}>
-            Sessões
-          </button>
-        </div>
-      </MobileScreenHeader>
+        actions={<>{viewMenu}<MobileIconButton icon={MessageSquarePlus} label="Nova tarefa" onClick={newTask} /></>}
+      />
       <SessionsScreen
         project={project}
         filter={filter}

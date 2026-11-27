@@ -23,7 +23,7 @@ import { channelsApi, type ChannelCategory, type Principal, type Room, type Room
 import type { Section } from "../../settings/components/JeffSettings";
 import { SettingsView } from "../../settings/components/JeffSettings";
 import { MEMBER_STATUS_LABEL, type MemberStatus } from "../../../shared/ui/presence";
-import { Icon, Menu, MenuItem, MenuRadioGroup, type IconName } from "faang-ui";
+import { Icon, Menu, MenuItem, MenuRadioGroup, MenuSeparator, type IconName } from "faang-ui";
 import { usePrefs } from "../../../shared/prefs";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
@@ -190,6 +190,7 @@ export default function WorkspaceMobile(props: Props) {
   const [layoutReady, setLayoutReady] = useState(false);
   const [layoutEpoch, setLayoutEpoch] = useState(0);
   const searchHost = useRef<HTMLDivElement>(null);
+  const loadedModeRoom = useRef<string | null>(null);
   const channelDevBack = useRef<(() => boolean) | null>(null);
   const channelSessionsBack = useRef<(() => boolean) | null>(null);
   const setStatus = usePrefs((state) => state.update);
@@ -260,7 +261,7 @@ export default function WorkspaceMobile(props: Props) {
     }
     if (messageMode === "sessions") {
       if (channelSessionsBack.current?.()) return true;
-      setMessageMode("channel");
+      changeMessageMode("channel");
       return true;
     }
     if (pane !== "root") {
@@ -304,8 +305,13 @@ export default function WorkspaceMobile(props: Props) {
     setPane("chat");
     setDrawerOpen(false);
     resetChannelDev();
-    setMessageMode("channel");
+    setChannelDevTarget(null);
+    loadedModeRoom.current = room.id;
+    const mode = savedChannelMode(room);
+    localStorage.setItem(channelModeKey(room.id), mode);
+    setMessageMode(mode);
     if (room.kind === "room" && room.repos.length > 0) setChannelDevRepoPath(room.repos[0]);
+    if (mode === "sessions") void openChannelSessions(room);
   }
 
   async function openAgent(bot: Principal) {
@@ -366,8 +372,6 @@ export default function WorkspaceMobile(props: Props) {
     try {
       await resolveChannelProject(room, repoPath);
       if (tool !== "terminal") useApp.getState().setSidebar(tool);
-      setChannelDevTarget(null);
-      setMessageMode("channel");
       setChannelDevTool(tool);
       setPane("chat");
       setDrawerOpen(false);
@@ -391,6 +395,7 @@ export default function WorkspaceMobile(props: Props) {
     setChannelDevBusy(true);
     try {
       await resolveChannelProject(room, repoPath);
+      localStorage.setItem(channelModeKey(room.id), "sessions");
       setChannelDevTool(null);
       setChannelDevTarget(target);
       setMessageMode("sessions");
@@ -405,6 +410,36 @@ export default function WorkspaceMobile(props: Props) {
       setChannelDevBusy(false);
     }
   }
+
+  function channelModeKey(roomId: string): string {
+    return `jeff:channel-mode:${roomId}`;
+  }
+
+  function savedChannelMode(room: Room): "channel" | "sessions" {
+    if (!status.devMode || room.kind !== "room" || room.repos.length === 0) return "channel";
+    return localStorage.getItem(channelModeKey(room.id)) === "sessions" ? "sessions" : "channel";
+  }
+
+  function changeMessageMode(mode: "channel" | "sessions") {
+    if (selectedRoom) localStorage.setItem(channelModeKey(selectedRoom.id), mode);
+    if (mode === "sessions") {
+      void openChannelSessions();
+      return;
+    }
+    setMessageMode("channel");
+    setChannelDevTool(null);
+    setChannelDevTarget(null);
+  }
+
+  useEffect(() => {
+    const room = selectedRoom;
+    if (!room || room.kind !== "room" || loadedModeRoom.current === room.id) return;
+    loadedModeRoom.current = room.id;
+    const mode = savedChannelMode(room);
+    localStorage.setItem(channelModeKey(room.id), mode);
+    setMessageMode(mode);
+    if (mode === "sessions") void openChannelSessions(room);
+  }, [selectedRoom?.id]);
 
   // A native push opened the app: land on the room, or on the exact dev chat.
   useEffect(() => {
@@ -597,83 +632,67 @@ export default function WorkspaceMobile(props: Props) {
     );
   }
 
-  function channelDevBar() {
-    if (selectedRoom?.kind !== "room" || !status.devMode || selectedRoom.repos.length === 0) return null;
+  function channelViewMenu() {
+    if (!status.devMode || selectedRoom?.kind !== "room" || selectedRoom.repos.length === 0) return null;
     const repo = channelDevRepoPath || selectedRoom.repos[0];
+    const aux = CHANNEL_DEV_TOOLS.filter(
+      (tool) => tool.id !== "terminal" && (!tool.feature || featureEnabled(workspaceFeatures, tool.feature)),
+    );
     return (
-      <div className="m-devbar" role="toolbar" aria-label="Ferramentas do canal">
-        {selectedRoom.repos.length === 1 ? (
-          <span className="m-devbar__repo" title={repo}>
-            <Icon name="repo" size={16} />
-            {repo.split("/").pop() || repo}
-          </span>
-        ) : (
-          <Menu
-            align="start"
-            label="Repositório do canal"
-            trigger={
-              <button type="button" className="m-devbar__tab m-devbar__repo" disabled={channelDevBusy}>
-                <Icon name="repo" size={16} />
-                {repo.split("/").pop()}
-                <Icon name="chevronDown" size={14} />
-              </button>
-            }
-          >
-            {selectedRoom.repos.map((path) => (
+      <Menu
+        align="end"
+        label="Aba e ferramentas do canal"
+        trigger={
+          <button type="button" className="m-view-trigger" disabled={channelDevBusy}>
+            <Icon name={messageMode === "sessions" ? "agent" : "message"} size={16} />
+            {messageMode === "sessions" ? "Sessões" : "Canal"}
+            <Icon name="chevronDown" size={14} />
+          </button>
+        }
+      >
+        <MenuRadioGroup
+          label="Aba principal"
+          value={messageMode}
+          onValueChange={(value) => changeMessageMode(value === "sessions" ? "sessions" : "channel")}
+          options={[
+            { value: "channel", label: "Canal" },
+            { value: "sessions", label: "Sessões" },
+          ]}
+        />
+        {aux.length > 0 ? (
+          <>
+            <MenuSeparator />
+            {aux.map((tool) => (
               <MenuItem
-                key={path}
-                icon={repo === path ? "check" : "repo"}
-                onSelect={() => {
-                  if (repo === path) return;
-                  setChannelDevRepoPath(path);
-                  setChannelDevProjectId(null);
-                  if (channelDevTool) void openChannelDev(channelDevTool, selectedRoom, path);
-                  else if (messageMode === "sessions") void openChannelSessions(selectedRoom, path);
-                }}
+                key={tool.id}
+                icon={channelDevTool === tool.id ? "check" : tool.icon}
+                onSelect={() => void openChannelDev(tool.id)}
               >
-                {path.split("/").pop() || path}
+                {tool.label}
               </MenuItem>
             ))}
-          </Menu>
-        )}
-        {CHANNEL_DEV_TOOLS
-          .filter((tool) => !tool.feature || featureEnabled(workspaceFeatures, tool.feature))
-          .map((tool) => (
-            <button
-              key={tool.id}
-              type="button"
-              role="tab"
-              className="m-devbar__tab"
-              disabled={channelDevBusy}
-              onClick={() => void openChannelDev(tool.id)}
-            >
-              <Icon name={tool.icon} size={16} />
-              {tool.label}
-            </button>
-          ))}
-        {channelDevBusy ? <span className="m-devbar__busy">Abrindo…</span> : null}
-      </div>
-    );
-  }
-
-  function messageTabs() {
-    if (selectedRoom?.kind !== "room" || !status.devMode || selectedRoom.repos.length === 0) return null;
-    return (
-      <div className="m-message-tabs" role="tablist" aria-label="Mensagens do canal">
-        <button type="button" role="tab" aria-selected className="m-message-tab is-active">
-          Canal
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={false}
-          className="m-message-tab"
-          disabled={channelDevBusy}
-          onClick={() => void openChannelSessions()}
-        >
-          Sessões
-        </button>
-      </div>
+          </>
+        ) : null}
+        {selectedRoom.repos.length > 1 ? (
+          <>
+            <MenuSeparator />
+            <MenuRadioGroup
+              label="Repositório"
+              value={repo}
+              onValueChange={(path) => {
+                if (path === repo) return;
+                setChannelDevRepoPath(path);
+                setChannelDevProjectId(null);
+                if (messageMode === "sessions") void openChannelSessions(selectedRoom, path);
+              }}
+              options={selectedRoom.repos.map((path) => ({
+                value: path,
+                label: path.split("/").pop() || path,
+              }))}
+            />
+          </>
+        ) : null}
+      </Menu>
     );
   }
 
@@ -702,8 +721,6 @@ export default function WorkspaceMobile(props: Props) {
           tool={channelDevTool}
           onBack={() => setChannelDevTool(null)}
           onBackRef={channelDevBack}
-          onSelectTool={(next) => void openChannelDev(next)}
-          busy={channelDevBusy}
         />
       );
     }
@@ -721,7 +738,7 @@ export default function WorkspaceMobile(props: Props) {
         if (!project || !layoutReady) {
           return (
             <div className="m-screen">
-              <MobileScreenHeader title="Sessões" onBack={() => setMessageMode("channel")} backLabel="Voltar ao canal" />
+              <MobileScreenHeader title="Sessões" onBack={() => changeMessageMode("channel")} backLabel="Voltar ao canal" />
               <MobileEmpty title="Abrindo…">Carregando as sessões do repo.</MobileEmpty>
             </div>
           );
@@ -731,8 +748,9 @@ export default function WorkspaceMobile(props: Props) {
             project={project}
             initialChatId={channelDevTarget?.chatId}
             initialBotId={channelDevTarget?.botId}
-            onBack={() => setMessageMode("channel")}
+            onBack={() => changeMessageMode("channel")}
             onBackRef={channelSessionsBack}
+            viewMenu={channelViewMenu()}
           />
         );
       }
@@ -759,8 +777,7 @@ export default function WorkspaceMobile(props: Props) {
           onOpenAgent={(bot) => void openAgent(bot)}
           onOpenMember={onEditPerson}
           renderFace={faceOf}
-          messageTabs={messageTabs()}
-          devBar={channelDevBar()}
+          viewMenu={channelViewMenu()}
         />
       );
     }

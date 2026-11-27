@@ -65,10 +65,8 @@ interface Props {
   onOpenAgent: (agent: Principal) => void;
   onOpenMember: (user: User) => void;
   renderFace: (principal: Principal | null | undefined, size?: number) => ReactNode;
-  /** Mensagens' Canal / Sessões tabs, when the channel has a dev repo. */
-  messageTabs?: ReactNode;
-  /** The channel's repo tools; only channels with a repo get one. */
-  devBar?: ReactNode;
+  /** The view menu next to the channel name: Canal/Sessões and aux tools. */
+  viewMenu?: ReactNode;
 }
 
 /** A room or DM as the phone's chat screen: flat messages, Discord's shape, and one composer. */
@@ -94,8 +92,7 @@ export default function ChatScreen({
   onOpenAgent,
   onOpenMember,
   renderFace,
-  messageTabs,
-  devBar,
+  viewMenu,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -137,6 +134,7 @@ export default function ChatScreen({
         subtitle={subtitle}
         actions={
           <>
+            {viewMenu}
             <MobileIconButton icon={Search} label="Buscar nesta conversa" active={searchOpen} onClick={() => setSearchOpen((value) => !value)} />
             <MobileIconButton icon={Info} label="Detalhes da conversa" onClick={() => setDetailsOpen(true)} />
           </>
@@ -169,9 +167,6 @@ export default function ChatScreen({
           </div>
         ) : null}
       </MobileScreenHeader>
-
-      {messageTabs}
-      {devBar}
 
       <div className="m-chatscroll" ref={scroller}>
         <MessageLookContext.Provider value={{ style: "left", tone: "strong", mine: "var(--agent)", names: true, faces: true }}>

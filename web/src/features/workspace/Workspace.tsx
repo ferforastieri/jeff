@@ -24,8 +24,8 @@ import {
   Select,
   type IconName,
 } from "faang-ui";
-import { api, type OnboardingStatus, type Project, type Repository, type User } from "../../shared/api";
-import { useApp, type AppNotification } from "../../app/store";
+import { api, type OnboardingStatus, type Project, type Repository, type User, type WorkspaceLayout, type SchemaTable } from "../../shared/api";
+import { useApp, type AppNotification, type Tab } from "../../app/store";
 import { SettingsView, type Section } from "../settings/components/JeffSettings";
 import {
   channelsApi,
@@ -36,6 +36,7 @@ import {
   type RoomMessage,
 } from "../rooms/api";
 import { formatTime } from "../../shared/time";
+import { basename, quoteIdentifier } from "../../shared/lib";
 import { WORKSPACE_FACE, faceOf, personName } from "./face";
 import { modelSelectOptions, useAI } from "../providers/store";
 import Board from "../rooms/Board";
@@ -52,6 +53,9 @@ import BotAvatar from "../agents/components/BotAvatar";
 import SidebarJeffs from "../../shared/ui/SidebarJeffs";
 import { MEMBER_STATUS_LABEL, type MemberStatus } from "../../shared/ui/presence";
 import { usePrefs } from "../../shared/prefs";
+import { useChats, type ProjectChats } from "../conversations/store";
+import { useWorkspacePersistence } from "../projects/hooks/useWorkspacePersistence";
+import BotsSidebar from "../agents/components/BotsSidebar";
 import { animateReorder } from "../../shared/ui/animateReorder";
 import NotificationBell from "../notifications/components/NotificationBell";
 import { useNotificationStream } from "../notifications/stream";
@@ -61,13 +65,19 @@ import Toasts from "../notifications/components/Toasts";
 import { useIsMobile } from "../../shared/ui/useIsMobile";
 import WorkspaceMobile from "./mobile/WorkspaceMobile";
 import ChannelEditDialog from "./ChannelEditDialog";
-import SessionsWorkspace from "./SessionsWorkspace";
-import { CHANNEL_DEV_TOOLS, type ChannelDevTool } from "./channelDev";
+import SessionsChat from "./SessionsChat";
 import { featureEnabled, useSettings } from "../settings/store";
 
-const Workbench = lazy(() => import("../../app/components/Workbench"));
+const ExplorerPanel = lazy(() => import("../../features/explorer/components/ExplorerPanel"));
+const SourceControlPanel = lazy(() => import("../../features/git/components/SourceControlPanel"));
+const DatabasesPanel = lazy(() => import("../../features/databases/components/DatabasesPanel"));
+const EditorPanel = lazy(() => import("../../features/editor/components/EditorPanel"));
+const DiffPanelTab = lazy(() => import("../../features/editor/components/DiffPanelTab"));
+const DbPanelTab = lazy(() => import("../../features/databases/components/DbPanelTab"));
 
 type View = "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings";
+type RightView = "team" | "files" | "scm" | "db" | "sessions";
+type MessageMode = "channel" | "sessions";
 
 function isView(value: string | undefined): value is View {
   return value === "home" || value === "chat" || value === "tasks" || value === "calendar" || value === "drive" || value === "wiki";
@@ -205,16 +215,22 @@ export default function Workspace({ status }: Props) {
   const [sectionMark, setSectionMark] = useState<{ id: SectionId; where: "before" | "after" } | null>(null);
   const [draggedNav, setDraggedNav] = useState<string | null>(null);
   const [overNav, setOverNav] = useState<{ id: string; where: "before" | "after" } | null>(null);
-  const [membersOpen, setMembersOpen] = useState(true);
-  const [messageMode, setMessageMode] = useState<"channel" | "sessions">("channel");
+  const [rightOpen, setRightOpen] = useState(true);
+  const [rightView, setRightView] = useState<RightView>("team");
+  const [messageMode, setMessageMode] = useState<MessageMode>("channel");
   const [channelSessionsTarget, setChannelSessionsTarget] = useState<{ chatId?: string; botId?: string } | null>(null);
   const [activeAgents, setActiveAgents] = useState<import("../rooms/api").AgentActivity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [channelDevTool, setChannelDevTool] = useState<ChannelDevTool | null>(null);
   const [channelDevRoomId, setChannelDevRoomId] = useState<string | null>(null);
   const [channelDevProjectId, setChannelDevProjectId] = useState<string | null>(null);
   const [channelDevRepoPath, setChannelDevRepoPath] = useState<string | null>(null);
   const [channelDevBusy, setChannelDevBusy] = useState(false);
+  const [sessionsReady, setSessionsReady] = useState(false);
+  const [sessionsLayout, setSessionsLayout] = useState<WorkspaceLayout | null>(null);
+  const [sessionsEpoch, setSessionsEpoch] = useState(0);
+  const [editorTarget, setEditorTarget] = useState<{ path: string; line?: number } | null>(null);
+  const [diffTarget, setDiffTarget] = useState<{ path: string; staged: boolean } | null>(null);
+  const [dbTarget, setDbTarget] = useState<{ profileId: string; table: SchemaTable; driver: string } | null>(null);
   const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
   const projects = useApp((state) => state.projects);
   const bottom = useRef<HTMLDivElement>(null);
@@ -268,6 +284,10 @@ export default function Workspace({ status }: Props) {
           ) ??
           all[0];
         setSelectedRoomId(selected?.id ?? "");
+        const mode = selected ? savedChannelMode(selected) : "channel";
+        setMessageMode(mode);
+        setRightView(mode === "sessions" ? "sessions" : "team");
+        if (selected && mode === "sessions") void openChannelSessions(selected);
         setError("");
       } catch (cause) {
         if (!cancelled) {
@@ -295,6 +315,7 @@ export default function Workspace({ status }: Props) {
         : [],
     [selectedRoom],
   );
+  const sessionsProject = projects.find((project) => project.id === channelDevProjectId) ?? null;
   const boardProject: Project = useMemo(
     () => ({
       id: selectedRoom?.projectId || status.projectId,
@@ -585,6 +606,43 @@ export default function Workspace({ status }: Props) {
 
   useEffect(() => setDevMode(status.devMode), [status.devMode]);
 
+  // Sessões load the repo's chats only while the primary tab is Sessões.
+  useEffect(() => {
+    setSessionsReady(false);
+    setSessionsLayout(null);
+    const projectId = channelDevProjectId;
+    if (!projectId || messageMode !== "sessions") return;
+    let cancelled = false;
+    useChats.getState().unload(projectId);
+    void api.layout(projectId)
+      .then((layout) => {
+        if (cancelled) return;
+        setSessionsLayout({
+          tabs: Array.isArray(layout.tabs) ? layout.tabs : [],
+          activeTabId: typeof layout.activeTabId === "string" ? layout.activeTabId : null,
+          sidebar: layout.sidebar,
+          terminalOpen: layout.terminalOpen,
+        });
+        useChats.getState().load(projectId, layout.chats as ProjectChats | null | undefined);
+        setSessionsReady(true);
+        setSessionsEpoch((value) => value + 1);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        useChats.getState().load(projectId, null);
+        setSessionsReady(true);
+        setSessionsEpoch((value) => value + 1);
+      });
+    return () => { cancelled = true; };
+  }, [channelDevProjectId, messageMode]);
+
+  useWorkspacePersistence(channelDevProjectId, sessionsReady && sessionsLayout !== null, {
+    tabs: sessionsLayout?.tabs ?? [],
+    activeTabId: sessionsLayout?.activeTabId ?? null,
+    sidebar: sessionsLayout?.sidebar,
+    terminalOpen: sessionsLayout?.terminalOpen,
+  }, sessionsEpoch);
+
   useEffect(() => {
     void loadAIModels();
   }, [loadAIModels]);
@@ -674,11 +732,6 @@ export default function Workspace({ status }: Props) {
   function changeView(next: View) {
     setView(next);
     setMenuOpen(false);
-    if (next !== "chat") {
-      resetChannelDev();
-      setMessageMode("channel");
-      setChannelSessionsTarget(null);
-    }
     if (next !== "settings") savePosition(selectedRoomId, next);
   }
 
@@ -694,9 +747,16 @@ export default function Workspace({ status }: Props) {
     setMenuOpen(false);
     savePosition(room.id, "chat");
     resetChannelDev();
-    setMessageMode("channel");
     setChannelSessionsTarget(null);
+    const mode = savedChannelMode(room);
+    localStorage.setItem(channelModeKey(room.id), mode);
+    setMessageMode(mode);
+    setRightView(mode === "sessions" ? "sessions" : "team");
     if (room.kind === "room" && room.repos.length > 0) setChannelDevRepoPath(room.repos[0]);
+    if (mode === "sessions") {
+      setRightOpen(true);
+      void openChannelSessions(room);
+    }
   }
 
   async function openAgent(bot: Principal) {
@@ -1061,53 +1121,59 @@ export default function Workspace({ status }: Props) {
   }
 
   function resetChannelDev() {
-    setChannelDevTool(null);
     setChannelDevRoomId(null);
     setChannelDevProjectId(null);
     setChannelDevRepoPath(null);
   }
 
+  function baseRightView(mode: MessageMode = messageMode): RightView {
+    return mode === "sessions" ? "sessions" : "team";
+  }
+
+  function closeRightTool() {
+    setRightView(baseRightView());
+  }
+
   /** Resolves the channel's repo into the project the dev panels read. */
   async function ensureChannelDevProject(room: Room, repoPath: string): Promise<string> {
-    if (channelDevRoomId === room.id && channelDevProjectId && channelDevRepoPath === repoPath) {
-      return channelDevProjectId;
+    // Re-adopt the project even after a reset: leaving and returning to the
+    // channel must not depend on local state that was cleared on the way out.
+    let project = useApp.getState().projects.find((item) => item.root === repoPath);
+    if (!project) {
+      const result = await channelsApi.devProject(room.id, repoPath);
+      project = result.project;
+      const app = useApp.getState();
+      if (!app.projects.some((item) => item.id === project!.id)) {
+        app.setProjects([...app.projects, project]);
+      }
     }
-    const { project } = await channelsApi.devProject(room.id, repoPath);
-    const app = useApp.getState();
-    const exists = app.projects.some((item) => item.id === project.id);
-    app.setProjects(exists ? app.projects : [...app.projects, project]);
-    app.setActiveProject(project.id);
+    useApp.getState().setActiveProject(project.id);
     setChannelDevRoomId(room.id);
     setChannelDevProjectId(project.id);
     setChannelDevRepoPath(repoPath);
     return project.id;
   }
 
-  /** Opens one of the channel's dev tools, with the channel's repo as project. */
-  async function openChannelDev(
-    tool: ChannelDevTool,
+  function channelRepoFor(room: Room, repoPath?: string): string {
+    return repoPath && room.repos.includes(repoPath)
+      ? repoPath
+      : channelDevRepoPath && room.repos.includes(channelDevRepoPath)
+        ? channelDevRepoPath
+        : room.repos[0];
+  }
+
+  /** Opens an auxiliary tool in the right sidebar, replacing the team. */
+  async function openRightTool(
+    view: "files" | "scm" | "db",
     targetRoom: Room | null = selectedRoom,
     repoPath?: string,
   ) {
     if (!devMode || !targetRoom || targetRoom.kind !== "room" || targetRoom.repos.length === 0) return;
-    const repo = repoPath && targetRoom.repos.includes(repoPath)
-      ? repoPath
-      : channelDevRepoPath && targetRoom.repos.includes(channelDevRepoPath)
-        ? channelDevRepoPath
-        : targetRoom.repos[0];
     setChannelDevBusy(true);
     try {
-      await ensureChannelDevProject(targetRoom, repo);
-      if (tool === "terminal") {
-        useApp.getState().setTerminalOpen(true);
-      } else {
-        useApp.getState().setSidebar(tool);
-        // Re-clicking the active tool reopens its panel after the user closes it.
-        window.dispatchEvent(new CustomEvent("jeff:dev-tool", { detail: { tool } }));
-      }
-      setChannelDevTool(tool);
-      setMessageMode("channel");
-      setChannelSessionsTarget(null);
+      await ensureChannelDevProject(targetRoom, channelRepoFor(targetRoom, repoPath));
+      setRightView(view);
+      setRightOpen(true);
       setView("chat");
       setMenuOpen(false);
     } catch (cause) {
@@ -1120,8 +1186,138 @@ export default function Workspace({ status }: Props) {
     }
   }
 
-  function closeChannelDev() {
-    setChannelDevTool(null);
+  function changeMessageMode(mode: MessageMode) {
+    if (selectedRoom) localStorage.setItem(channelModeKey(selectedRoom.id), mode);
+    if (mode === "sessions") {
+      void openChannelSessions();
+      return;
+    }
+    setMessageMode("channel");
+    setChannelSessionsTarget(null);
+    // The auxiliary tool belongs to the channel, not to the tab: only the
+    // sessions list gives way when Canal becomes the primary tab again.
+    setRightView((current) => (current === "sessions" ? "team" : current));
+  }
+
+  function channelModeKey(roomId: string): string {
+    return `jeff:channel-mode:${roomId}`;
+  }
+
+  function savedChannelMode(room: Room): MessageMode {
+    if (!devMode || room.kind !== "room" || room.repos.length === 0) return "channel";
+    return localStorage.getItem(channelModeKey(room.id)) === "sessions" ? "sessions" : "channel";
+  }
+
+  function channelViewMenu() {
+    const room = selectedRoom;
+    if (!devMode || !room || room.kind !== "room" || room.repos.length === 0) return null;
+    const aux = [
+      { id: "files" as const, label: "Explorer", icon: "file" as IconName, feature: "files" as const },
+      { id: "scm" as const, label: "Source Control", icon: "gitPull" as IconName, feature: "sourceControl" as const },
+      { id: "db" as const, label: "Databases", icon: "database" as IconName, feature: "databases" as const },
+    ].filter((tool) => featureEnabled(workspaceFeatures, tool.feature));
+    const repo = channelRepoFor(room);
+    return (
+      <Menu
+        align="start"
+        label="Aba e ferramentas do canal"
+        trigger={
+          <button type="button" className="ws-view-trigger" disabled={channelDevBusy}>
+            <Icon name={messageMode === "sessions" ? "agent" : "message"} size={14} />
+            {messageMode === "sessions" ? "Sessões" : "Canal"}
+            <Icon name="chevronDown" size={14} />
+          </button>
+        }
+      >
+        <MenuRadioGroup
+          label="Aba principal"
+          value={messageMode}
+          onValueChange={(value) => changeMessageMode(value === "sessions" ? "sessions" : "channel")}
+          options={[
+            { value: "channel", label: "Canal" },
+            { value: "sessions", label: "Sessões" },
+          ]}
+        />
+        {aux.length > 0 ? (
+          <>
+            <MenuSeparator />
+            {aux.map((tool) => (
+              <MenuItem
+                key={tool.id}
+                icon={rightView === tool.id ? "check" : tool.icon}
+                onSelect={() => void openRightTool(tool.id)}
+              >
+                {tool.label}
+              </MenuItem>
+            ))}
+          </>
+        ) : null}
+        {room.repos.length > 1 ? (
+          <>
+            <MenuSeparator />
+            <MenuRadioGroup
+              label="Repositório"
+              value={repo}
+              onValueChange={(value) => void selectChannelRepo(value)}
+              options={room.repos.map((path) => ({
+                value: path,
+                label: path.split("/").pop() || path,
+              }))}
+            />
+          </>
+        ) : null}
+      </Menu>
+    );
+  }
+
+  function dbTabFor(target: { profileId: string; table: SchemaTable; driver: string }, project: Project): Tab {
+    const { profileId, table, driver } = target;
+    const schema = table.schema;
+    let sql = "";
+    if (driver === "mongodb") {
+      sql = JSON.stringify({ database: schema, collection: table.name, filter: {}, limit: 100 }, null, 2);
+    } else if (driver === "redis") {
+      sql = "SCAN 0 COUNT 100";
+    } else if (driver === "elasticsearch") {
+      sql = JSON.stringify({ index: table.name, body: { query: { match_all: {} }, size: 100 } }, null, 2);
+    } else if (driver === "neo4j") {
+      sql = `MATCH (n:${table.name}) RETURN n LIMIT 100;`;
+    } else if (driver === "cassandra") {
+      sql = `SELECT * FROM ${schema}.${table.name} LIMIT 100;`;
+    } else {
+      sql = `SELECT * FROM ${quoteIdentifier(driver, schema, table.name)} LIMIT 100;`;
+    }
+    const editable = !["mongodb", "redis", "elasticsearch", "neo4j", "cassandra"].includes(driver);
+    return {
+      id: `db:table:${project.id}:${profileId}:${schema}.${table.name}`,
+      kind: "db",
+      title: table.name,
+      projectId: project.id,
+      profileId,
+      sql,
+      autoRun: true,
+      table: editable
+        ? {
+            schema,
+            name: table.name,
+            primary: table.columns.filter((column) => column.primary).map((column) => column.name),
+          }
+        : undefined,
+    };
+  }
+
+  async function selectChannelRepo(path: string) {
+    if (!selectedRoom || selectedRoom.kind !== "room") return;
+    if (channelRepoFor(selectedRoom) === path) return;
+    setChannelDevRepoPath(path);
+    setChannelDevProjectId(null);
+    if (messageMode === "sessions") {
+      await openChannelSessions(selectedRoom, path);
+      return;
+    }
+    if (rightView === "files" || rightView === "scm" || rightView === "db") {
+      await openRightTool(rightView, selectedRoom, path);
+    }
   }
 
   /** The private sessions live inside Mensagens, scoped to the selected repo. */
@@ -1132,18 +1328,16 @@ export default function Workspace({ status }: Props) {
   ) {
     if (!devMode || !targetRoom || targetRoom.kind !== "room" || targetRoom.repos.length === 0) return;
     const room = targetRoom;
-    const repo = repoPath && room.repos.includes(repoPath)
-      ? repoPath
-      : channelDevRepoPath && room.repos.includes(channelDevRepoPath)
-        ? channelDevRepoPath
-        : room.repos[0];
     setChannelDevBusy(true);
     try {
-      await ensureChannelDevProject(room, repo);
-      setChannelDevTool(null);
+      await ensureChannelDevProject(room, channelRepoFor(room, repoPath));
+      localStorage.setItem(channelModeKey(room.id), "sessions");
       setMessageMode("sessions");
       setChannelSessionsTarget(target);
+      setRightView("sessions");
+      setRightOpen(true);
       setView("chat");
+      setMenuOpen(false);
     } catch (cause) {
       useApp.getState().notify(
         "error",
@@ -1724,11 +1918,14 @@ export default function Workspace({ status }: Props) {
         <header className="ws-main-head">
           <span className="ws-main-face">{faceOf(agent, 32)}</span>
           <span className="ws-main-title">
-            <h1>{roomTitle}</h1>
+            <span className="ws-main-heading">
+              <h1>{roomTitle}</h1>
+              {channelViewMenu()}
+            </span>
             <p>{roomSubtitle}</p>
           </span>
           <span className="ws-main-actions">
-            {!channelDevTool ? (
+            {messageMode === "channel" ? (
             <div className="ws-chat-search">
               <SearchField
                 value={chatQuery}
@@ -1794,13 +1991,13 @@ export default function Workspace({ status }: Props) {
               variant="ghost"
               size="sm"
               iconOnly
-              icon="members"
-              className={`ws-members-toggle${membersOpen ? " is-active" : ""}`}
-              aria-label={membersOpen ? "Ocultar equipe" : "Mostrar equipe"}
-              title={membersOpen ? "Ocultar equipe" : "Mostrar equipe"}
-              onClick={() => setMembersOpen((value) => !value)}
+              icon="sidebar"
+              className={`ws-right-toggle${rightOpen ? " is-active" : ""}`}
+              aria-label={rightOpen ? "Fechar barra da direita" : "Abrir barra da direita"}
+              title={rightOpen ? "Fechar barra da direita" : "Abrir barra da direita"}
+              onClick={() => setRightOpen((value) => !value)}
             />
-            {!channelDevTool ? (
+            {messageMode === "channel" ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -1814,82 +2011,8 @@ export default function Workspace({ status }: Props) {
         </header>
         ) : null}
 
-        {view === "chat" && selectedRoom?.kind === "room" && devMode && selectedRoom.repos.length > 0 ? (
-          <div className="ws-devbar" role="toolbar" aria-label="Ferramentas do canal">
-            {selectedRoom.kind === "room" && selectedRoom.repos.length > 0 ? (
-              selectedRoom.repos.length === 1 ? (
-                <span className="ws-devbar__repo" title={selectedRoom.repos[0]}>
-                  <Icon name="repo" size={14} />
-                  {selectedRoom.repos[0].split("/").pop() || selectedRoom.repos[0]}
-                </span>
-              ) : (
-                <Menu
-                  align="start"
-                  label="Repositório do canal"
-                  trigger={
-                    <button type="button" className="ws-devbar__repo ws-devbar__repo--menu" disabled={channelDevBusy}>
-                      <Icon name="repo" size={14} />
-                      {(channelDevRepoPath || selectedRoom.repos[0]).split("/").pop()}
-                      <Icon name="chevronDown" size={14} />
-                    </button>
-                  }
-                >
-                  {selectedRoom.repos.map((path) => (
-                    <MenuItem
-                      key={path}
-                      icon={(channelDevRepoPath || selectedRoom.repos[0]) === path ? "check" : "repo"}
-                      onSelect={() => {
-                        if ((channelDevRepoPath || selectedRoom.repos[0]) === path) return;
-                        setChannelDevRepoPath(path);
-                        const tool = channelDevTool;
-                        setChannelDevProjectId(null);
-                        if (tool) void openChannelDev(tool, selectedRoom, path);
-                        else if (messageMode === "sessions") void openChannelSessions(selectedRoom, path);
-                      }}
-                    >
-                      {path.split("/").pop() || path}
-                    </MenuItem>
-                  ))}
-                </Menu>
-              )
-            ) : null}
-            <button
-              type="button"
-              aria-pressed={!channelDevTool}
-              className={`ws-devbar__tab${!channelDevTool ? " is-active" : ""}`}
-              onClick={closeChannelDev}
-            >
-              <Icon name="message" size={14} />
-              Mensagens
-            </button>
-            {CHANNEL_DEV_TOOLS
-              .filter((tool) => !tool.feature || featureEnabled(workspaceFeatures, tool.feature))
-              .map((tool) => (
-                <button
-                  key={tool.id}
-                  type="button"
-                  aria-pressed={channelDevTool === tool.id}
-                  className={`ws-devbar__tab${channelDevTool === tool.id ? " is-active" : ""}`}
-                  disabled={channelDevBusy}
-                  onClick={() => void openChannelDev(tool.id)}
-                >
-                  <Icon name={tool.icon} size={14} />
-                  {tool.label}
-                </button>
-              ))}
-            {channelDevBusy ? <span className="ws-devbar__busy">Abrindo…</span> : null}
-          </div>
-        ) : null}
-
         <div className="ws-body">
         <section className="ws-main">
-        {view === "chat" && channelDevTool && channelDevProjectId ? (
-          <div className="ws-panel ws-dev-panel">
-            <Suspense fallback={null}>
-              <Workbench projectId={channelDevProjectId ?? undefined} initialTerminal={channelDevTool === "terminal"} />
-            </Suspense>
-          </div>
-        ) : null}
         {view === "home" ? (
           <div className="ws-panel ws-home-panel">
             <HomeDashboard
@@ -1905,46 +2028,20 @@ export default function Workspace({ status }: Props) {
             />
           </div>
         ) : null}
-        {view === "chat" && !channelDevTool ? (
-          <>
-            {devMode && selectedRoom?.kind === "room" && selectedRoom.repos.length > 0 ? (
-              <div className="ws-message-tabs" role="tablist" aria-label="Mensagens do canal">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={messageMode === "channel"}
-                  className={`ws-message-tab${messageMode === "channel" ? " is-active" : ""}`}
-                  onClick={() => setMessageMode("channel")}
-                >
-                  <Icon name="message" size={14} />
-                  Canal
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={messageMode === "sessions"}
-                  className={`ws-message-tab${messageMode === "sessions" ? " is-active" : ""}`}
-                  disabled={channelDevBusy}
-                  onClick={() => void openChannelSessions()}
-                >
-                  <Icon name="agent" size={14} />
-                  Sessões
-                </button>
-              </div>
-            ) : null}
-            {messageMode === "sessions" && channelDevProjectId ? (
-              (() => {
-                const sessionsProject = projects.find((project) => project.id === channelDevProjectId);
-                return sessionsProject ? (
-                  <SessionsWorkspace
-                    project={sessionsProject}
-                    initialChatId={channelSessionsTarget?.chatId}
-                    initialBotId={channelSessionsTarget?.botId}
-                  />
-                ) : null;
-              })()
+        {view === "chat" ? (
+          messageMode === "sessions" ? (
+            sessionsProject ? (
+              <SessionsChat
+                project={sessionsProject}
+                ready={sessionsReady}
+                initialChatId={channelSessionsTarget?.chatId}
+                initialBotId={channelSessionsTarget?.botId}
+              />
             ) : (
-              <>
+              <div className="ws-chat-loading">Carregando sessões…</div>
+            )
+          ) : (
+            <>
             <div className="ws-messages">
               <div className="ws-message-list">
                 {messages.length === 0 && agent ? (
@@ -2014,9 +2111,8 @@ export default function Workspace({ status }: Props) {
                 ) : undefined}
               />
             </footer>
-              </>
-            )}
-          </>
+            </>
+          )
         ) : null}
 
         {view === "tasks" && selectedRoom ? (
@@ -2063,97 +2159,156 @@ export default function Workspace({ status }: Props) {
       </div>
       </div>
       </div>
-      {view === "chat" && membersOpen ? (
-        <aside className="ws-team-sidebar" aria-label="Equipe">
-          <div className="ws-team-scroll">
-            <section className="ws-group" aria-label="Equipe">
-              <div className="ws-group-head">
-                <span className="ws-group-label">Equipe</span>
-                <span className="ws-group-count">{teamMembers.length}</span>
-                <button
-                  type="button"
-                  className="ws-team-collapse"
-                  aria-label="Recolher equipe"
-                  title="Recolher equipe"
-                  onClick={() => setMembersOpen(false)}
-                >
-                  <Icon name="chevronRight" size={14} />
-                </button>
-                {status.isAdmin ? (
-                  <Menu
-                    align="end"
-                    label="Adicionar à equipe"
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        iconOnly
-                        icon="plus"
-                        className="ws-group-add"
-                        aria-label="Adicionar à equipe"
-                      />
-                    }
+      {view === "chat" && rightOpen ? (
+        <aside
+          className={`ws-team-sidebar${rightView === "files" || rightView === "scm" || rightView === "db" ? " is-aux" : ""}`}
+          aria-label="Barra da direita"
+        >
+          {rightView === "team" ? (
+            <div className="ws-team-scroll">
+              <section className="ws-group" aria-label="Equipe">
+                <div className="ws-group-head">
+                  <span className="ws-group-label">Equipe</span>
+                  <span className="ws-group-count">{teamMembers.length}</span>
+                  <button
+                    type="button"
+                    className="ws-team-collapse"
+                    aria-label="Recolher equipe"
+                    title="Recolher equipe"
+                    onClick={() => setRightOpen(false)}
                   >
-                    <MenuItem icon="agent" onSelect={() => startNewAgent()}>
-                      Novo agente
-                    </MenuItem>
-                    <MenuItem icon="personAdd" onSelect={() => setInviteOpen(true)}>
-                      Novo usuário
-                    </MenuItem>
-                  </Menu>
-                ) : null}
-              </div>
-              <div className="ws-group-body">
-                {teamMembers.map((member) => {
-                  const active =
-                    member.bot &&
-                    selectedRoom?.kind === "dm" &&
-                    selectedRoom.members.some((item) => item.id === member.bot?.id);
-                  return (
-                    <div className="ws-agent-wrap ws-team-member" key={member.key}>
-                      <button
-                        type="button"
-                        className={`ws-agent-row${active ? " is-active" : ""}`}
-                        onClick={() => {
-                          if (member.bot) void openAgent(member.bot);
-                          else if (member.user) setPersonEdit(member.user);
-                        }}
-                      >
-                        <span className="ws-member-face">
-                          {member.bot ? faceOf(member.bot, 36) : <Avatar name={member.name} size="md" />}
-                          <span className="ws-member-presence" data-status={member.status} aria-hidden="true" />
-                        </span>
-                        <span className="ws-agent-copy">
-                          <strong>{member.name}</strong>
-                          <span className="ws-member-status" data-status={member.status}>
-                            <i aria-hidden="true" />
-                            {member.statusText}
-                          </span>
-                          <span className="ws-member-meta">{member.meta}</span>
-                        </span>
-                      </button>
-                      {status.isAdmin ? (
+                    <Icon name="chevronRight" size={14} />
+                  </button>
+                  {status.isAdmin ? (
+                    <Menu
+                      align="end"
+                      label="Adicionar à equipe"
+                      trigger={
                         <Button
                           variant="ghost"
                           size="sm"
                           iconOnly
-                          icon="edit"
-                          className="ws-row-action ws-team-edit"
-                          aria-label={`Editar ${member.name}`}
-                          title={`Editar ${member.name}`}
+                          icon="plus"
+                          className="ws-group-add"
+                          aria-label="Adicionar à equipe"
+                        />
+                      }
+                    >
+                      <MenuItem icon="agent" onSelect={() => startNewAgent()}>
+                        Novo agente
+                      </MenuItem>
+                      <MenuItem icon="personAdd" onSelect={() => setInviteOpen(true)}>
+                        Novo usuário
+                      </MenuItem>
+                    </Menu>
+                  ) : null}
+                </div>
+                <div className="ws-group-body">
+                  {teamMembers.map((member) => {
+                    const active =
+                      member.bot &&
+                      selectedRoom?.kind === "dm" &&
+                      selectedRoom.members.some((item) => item.id === member.bot?.id);
+                    return (
+                      <div className="ws-agent-wrap ws-team-member" key={member.key}>
+                        <button
+                          type="button"
+                          className={`ws-agent-row${active ? " is-active" : ""}`}
                           onClick={() => {
-                            if (member.bot) setAgentEdit(member.bot);
+                            if (member.bot) void openAgent(member.bot);
                             else if (member.user) setPersonEdit(member.user);
                           }}
-                        />
-                      ) : null}
-                    </div>
-                  );
-                })}
-                {teamMembers.length === 0 ? <p className="ws-dm-note">Ninguém na equipe ainda.</p> : null}
-              </div>
-            </section>
-          </div>
+                        >
+                          <span className="ws-member-face">
+                            {member.bot ? faceOf(member.bot, 36) : <Avatar name={member.name} size="md" />}
+                            <span className="ws-member-presence" data-status={member.status} aria-hidden="true" />
+                          </span>
+                          <span className="ws-agent-copy">
+                            <strong>{member.name}</strong>
+                            <span className="ws-member-status" data-status={member.status}>
+                              <i aria-hidden="true" />
+                              {member.statusText}
+                            </span>
+                            <span className="ws-member-meta">{member.meta}</span>
+                          </span>
+                        </button>
+                        {status.isAdmin ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            iconOnly
+                            icon="edit"
+                            className="ws-row-action ws-team-edit"
+                            aria-label={`Editar ${member.name}`}
+                            title={`Editar ${member.name}`}
+                            onClick={() => {
+                              if (member.bot) setAgentEdit(member.bot);
+                              else if (member.user) setPersonEdit(member.user);
+                            }}
+                          />
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                  {teamMembers.length === 0 ? <p className="ws-dm-note">Ninguém na equipe ainda.</p> : null}
+                </div>
+              </section>
+            </div>
+          ) : rightView === "sessions" ? (
+            sessionsProject ? (
+              <BotsSidebar
+                project={sessionsProject}
+                title="Sessões"
+                onOpenChat={() => undefined}
+                headerControl={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="close"
+                    aria-label="Fechar sessões"
+                    title="Fechar sessões"
+                    onClick={() => setRightOpen(false)}
+                  />
+                }
+              />
+            ) : (
+              <div className="ws-side-loading">Carregando sessões…</div>
+            )
+          ) : sessionsProject ? (
+            <Suspense fallback={<div className="ws-side-loading">Carregando…</div>}>
+              {rightView === "files" ? (
+                <ExplorerPanel
+                  project={sessionsProject}
+                  headerControl={
+                    <Button variant="ghost" size="sm" iconOnly icon="close" aria-label="Fechar Explorer" title="Fechar Explorer" onClick={closeRightTool} />
+                  }
+                  onOpenFile={(path, line) => setEditorTarget({ path, line })}
+                />
+              ) : null}
+              {rightView === "scm" ? (
+                <SourceControlPanel
+                  project={sessionsProject}
+                  view="scm"
+                  headerControl={
+                    <Button variant="ghost" size="sm" iconOnly icon="close" aria-label="Fechar Source Control" title="Fechar Source Control" onClick={closeRightTool} />
+                  }
+                  onOpenDiff={(path, staged) => setDiffTarget({ path, staged })}
+                />
+              ) : null}
+              {rightView === "db" ? (
+                <DatabasesPanel
+                  project={sessionsProject}
+                  headerControl={
+                    <Button variant="ghost" size="sm" iconOnly icon="close" aria-label="Fechar Databases" title="Fechar Databases" onClick={closeRightTool} />
+                  }
+                  onOpenTable={(profileId, table, driver) => setDbTarget({ profileId, table, driver })}
+                />
+              ) : null}
+            </Suspense>
+          ) : (
+            <div className="ws-side-loading">Abrindo…</div>
+          )}
         </aside>
       ) : null}
       </div>
@@ -2728,9 +2883,91 @@ export default function Workspace({ status }: Props) {
         onClose={() => setChannelEdit(null)}
         onSaved={(updated) => {
           setRooms((current) => current.map((room) => (room.id === updated.id ? updated : room)));
-          if (channelDevTool && updated.id === selectedRoomId) resetChannelDev();
+          if (updated.id !== selectedRoomId) return;
+          resetChannelDev();
+          if (updated.repos.length === 0 || !devMode) {
+            setMessageMode("channel");
+            setChannelSessionsTarget(null);
+            setRightView("team");
+          } else if (messageMode === "sessions") {
+            void openChannelSessions(updated);
+          } else if (rightView === "files" || rightView === "scm" || rightView === "db") {
+            setRightView("team");
+          }
         }}
       />
+
+      {editorTarget && sessionsProject ? (
+        <Dialog
+          open
+          onOpenChange={(open) => { if (!open) setEditorTarget(null); }}
+          title={basename(editorTarget.path)}
+          description={editorTarget.path}
+          closeLabel="Fechar"
+          width={1100}
+        >
+          <DialogBody className="p-0">
+            <div className="h-[min(82vh,780px)]">
+              <EditorPanel
+                tab={{
+                  id: `editor:${sessionsProject.id}:${editorTarget.path}`,
+                  kind: "editor",
+                  title: basename(editorTarget.path),
+                  projectId: sessionsProject.id,
+                  path: editorTarget.path,
+                  line: editorTarget.line,
+                }}
+                project={sessionsProject}
+                onOpenChanges={(path) => setDiffTarget({ path, staged: false })}
+              />
+            </div>
+          </DialogBody>
+        </Dialog>
+      ) : null}
+
+      {diffTarget && sessionsProject ? (
+        <Dialog
+          open
+          onOpenChange={(open) => { if (!open) setDiffTarget(null); }}
+          title={basename(diffTarget.path)}
+          description={diffTarget.path}
+          closeLabel="Fechar"
+          width={1100}
+        >
+          <DialogBody className="p-0">
+            <div className="h-[min(82vh,780px)]">
+              <DiffPanelTab
+                tab={{
+                  id: `diff:${sessionsProject.id}:${diffTarget.staged ? "staged" : "worktree"}:${diffTarget.path}`,
+                  kind: "diff",
+                  title: basename(diffTarget.path),
+                  projectId: sessionsProject.id,
+                  path: diffTarget.path,
+                  staged: diffTarget.staged,
+                }}
+                project={sessionsProject}
+              />
+            </div>
+          </DialogBody>
+        </Dialog>
+      ) : null}
+
+      {dbTarget && sessionsProject ? (
+        <Dialog
+          open
+          onOpenChange={(open) => { if (!open) setDbTarget(null); }}
+          title={dbTarget.table.name}
+          description={`${dbTarget.driver} · ${dbTarget.table.schema}`}
+          closeLabel="Fechar"
+          width={1100}
+        >
+          <DialogBody className="p-0">
+            <div className="h-[min(82vh,780px)]">
+              <DbPanelTab tab={dbTabFor(dbTarget, sessionsProject)} />
+            </div>
+          </DialogBody>
+        </Dialog>
+      ) : null}
 
       <WorkspaceMenu
         open={workspaceMenuOpen}

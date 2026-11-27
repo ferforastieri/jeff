@@ -609,10 +609,57 @@ html[data-menu-overlay] .jeff-workspace-home {
   white-space: nowrap;
 }
 
+.ws-main-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-main-heading h1 {
+  min-width: 0;
+}
+
+.ws-view-trigger {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--plate-soft);
+  padding: 0 7px;
+  color: var(--ink2);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ws-view-trigger:hover {
+  background: var(--plate);
+  color: var(--ink);
+}
+
 .ws-main-actions {
   display: flex;
   align-items: center;
   gap: 2px;
+}
+
+.ws-right-toggle.is-active {
+  background: var(--plate-soft);
+  color: var(--ink);
+}
+
+.ws-side-loading,
+.ws-chat-loading {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: var(--faint, #8f8f8f);
+  font-size: 12px;
 }
 
 .ws-messages {
@@ -735,6 +782,12 @@ html[data-menu-overlay] .jeff-workspace-home {
   animation: ws-panel-in 200ms ease both;
 }
 
+.ws-team-sidebar.is-aux {
+  width: 340px;
+  overflow: hidden;
+  padding: 0;
+}
+
 .ws-team-scroll {
   min-height: 0;
   flex: 1;
@@ -775,11 +828,6 @@ html[data-menu-overlay] .jeff-workspace-home {
 .ws-team-member:hover .ws-row-action,
 .ws-team-member:focus-within .ws-row-action {
   opacity: 1;
-}
-
-.ws-members-toggle.is-active {
-  background: var(--plate-soft);
-  color: var(--ink);
 }
 
 .ws-agent-status {
@@ -6823,42 +6871,6 @@ html:not([data-pointer]) .store-back:focus-visible {
 }
 
 /* ---------- Dev tools inside a channel ---------- */
-.ws-message-tabs {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 2px;
-  border-bottom: 1px solid var(--line);
-  padding: 5px 12px;
-}
-
-.ws-message-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  border-radius: 8px;
-  padding: 0 10px;
-  color: var(--muted);
-  font-size: 12.5px;
-  font-weight: 600;
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.ws-message-tab:hover {
-  background: var(--plate-soft);
-  color: var(--ink);
-}
-
-.ws-message-tab.is-active {
-  background: var(--plate-soft);
-  color: var(--ink);
-}
-
-.ws-message-tab:disabled {
-  opacity: 0.55;
-}
-
 .ws-sessions {
   display: flex;
   min-height: 0;
@@ -6881,104 +6893,7 @@ html:not([data-pointer]) .store-back:focus-visible {
   flex: 1;
 }
 
-.ws-devbar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 2px;
-  overflow-x: auto;
-  gap: 6px;
-  border-bottom: 1px solid var(--line);
-  background: var(--pane);
-  padding: 7px 12px;
-  scrollbar-width: none;
-}
-
-.ws-devbar::-webkit-scrollbar {
-  display: none;
-}
-
-.ws-devbar__repo {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--plate-soft);
-  padding: 0 9px;
-  color: var(--ink);
-  font-size: 12.5px;
-  font-weight: 650;
-  white-space: nowrap;
-}
-
-.ws-devbar__repo--menu:hover {
-  background: var(--plate);
-}
-
-.ws-devbar__repo > .ac-icon:last-child {
-  color: var(--faint);
-}
-
-.ws-devbar__repo + .ws-devbar__tab {
-  margin-left: 6px;
-}
-
-.ws-devbar__tab {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--plate-soft);
-  padding: 0 10px;
-  color: var(--ink2);
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.ws-devbar__tab:hover {
-  background: var(--plate);
-  color: var(--ink);
-}
-
-.ws-devbar__tab.is-active {
-  border-color: var(--line-strong, var(--line));
-  background: var(--chosen-bg, var(--plate));
-  color: var(--ink);
-}
-
-.ws-devbar__tab:disabled {
-  opacity: 0.55;
-}
-
-.ws-devbar__busy {
-  flex: none;
-  margin-left: auto;
-  color: var(--faint);
-  font-size: 12px;
-}
-
 /* ---------- Dev inside the Slack workbench ---------- */
-.ws-dev-panel {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  overflow: hidden;
-  padding: 0;
-}
-
-.ws-dev-panel > * {
-  min-height: 0;
-  flex: 1;
-}
-
 .dev-embedded {
   height: 100%;
   min-height: 0;

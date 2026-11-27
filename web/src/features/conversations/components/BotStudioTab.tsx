@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowDown, Bot, Globe2, Timer, X } from "@jeff/icons";
+import { ArrowDown, Bot, Globe2, TerminalSquare, Timer, X } from "@jeff/icons";
 import { PixelSpinner } from "@jeff/ui";
 import type { Project } from "../../../shared/api";
 import { ApiError } from "../../../shared/api";
@@ -21,6 +21,7 @@ import { Button } from "@jeff/ui/app";
 import { Dialog, DialogBody } from "faang-ui";
 import { cx } from "@jeff/ui";
 import BotBrowserPanel from "../../rooms/BotBrowserPanel";
+import TerminalPanel from "../../terminal/components/TerminalPanel";
 
 interface Props {
   project: Project;
@@ -44,6 +45,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   const [atBottom, setAtBottom] = useState(true);
   const [queued, setQueued] = useState<Array<{ text: string; attachments: AgentAttachment[] }>>([]);
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const draftKey = `${project.id}:dev:${chat?.id ?? "new"}`;
   const text = useJeffDrafts((s) => s.drafts[draftKey] ?? "");
   const setDraft = useJeffDrafts((s) => s.setDraft);
@@ -345,7 +347,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         <AgentComposer value={text} onChange={(value) => setDraft(draftKey, value)} onSend={(value, files) => void send(value, files)} onStop={() => void stop()} busy={busy}
           placeholder={debug ? "Descreva o bug e como ele acontece…" : "Pergunte ao Jeff…"}
           history={native.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /><ConversationModePicker projectId={project.id} chat={chat!} jeffs={jeffs} />{!debug ? <button type="button" onClick={() => setBrowserOpen(true)} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-caption-2-medium text-text-tertiary transition-colors hover:text-text-primary" aria-label="Abrir navegador do agente" title="Ver o que o agente vê e assumir o navegador"><Globe2 size={13} /> Navegador</button> : null}</>}
+          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /><ConversationModePicker projectId={project.id} chat={chat!} jeffs={jeffs} />{!debug ? <><button type="button" onClick={() => setBrowserOpen(true)} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-caption-2-medium text-text-tertiary transition-colors hover:text-text-primary" aria-label="Abrir navegador do agente" title="Ver o que o agente vê e assumir o navegador"><Globe2 size={13} /> Navegador</button><button type="button" onClick={() => setTerminalOpen(true)} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-caption-2-medium text-text-tertiary transition-colors hover:text-text-primary" aria-label="Abrir terminal do agente" title="Abrir o terminal do agente"><TerminalSquare size={13} /> Terminal</button></> : null}</>}
           members={jeffs} />
       </div>}
     </section>
@@ -385,6 +387,37 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
             bots={browserAgents}
             initialAgentId={browserAgents[0]?.id}
           />
+        </div>
+      </div>
+    ) : null}
+    {!mobile ? (
+      <Dialog
+        open={terminalOpen}
+        onOpenChange={setTerminalOpen}
+        title="Terminal do agente"
+        description="O terminal do projeto, no mesmo repo da conversa."
+        closeLabel="Fechar"
+        width={1000}
+      >
+        <DialogBody className="p-0">
+          <div className="h-[min(60vh,520px)]">
+            <TerminalPanel project={project} onOpenFile={() => undefined} />
+          </div>
+        </DialogBody>
+      </Dialog>
+    ) : mobile && terminalOpen ? (
+      <div className="bot-browser-mobile" role="dialog" aria-modal="true" aria-label="Terminal do agente">
+        <header className="bot-browser-mobile__head">
+          <span className="min-w-0 flex-1">
+            <strong>Terminal do agente</strong>
+            <small>O terminal do projeto, no mesmo repo da conversa.</small>
+          </span>
+          <button type="button" className="bot-browser-mobile__close" aria-label="Fechar terminal" onClick={() => setTerminalOpen(false)}>
+            <X size={18} />
+          </button>
+        </header>
+        <div className="bot-browser-mobile__body">
+          <TerminalPanel project={project} onOpenFile={() => undefined} sheet onClose={() => setTerminalOpen(false)} />
         </div>
       </div>
     ) : null}

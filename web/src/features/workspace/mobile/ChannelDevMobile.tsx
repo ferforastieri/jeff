@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Search, X } from "@jeff/icons";
 import { api, type Project, type SchemaTable } from "../../../shared/api";
-import { Icon } from "faang-ui";
 import { useApp } from "../../../app/store";
 import { basename, quoteIdentifier } from "../../../shared/lib";
 import FilesScreen from "../../../app/layouts/mobile/screens/FilesScreen";
@@ -16,7 +15,7 @@ import DbPanelTab from "../../databases/components/DbPanelTab";
 import DiffPanelTab from "../../editor/components/DiffPanelTab";
 import BotStudioTab from "../../conversations/components/BotStudioTab";
 import QuickOpen from "../../explorer/components/QuickOpen";
-import { CHANNEL_DEV_TOOLS, type ChannelDevTool } from "../channelDev";
+import type { ChannelDevTool } from "../channelDev";
 
 type Pushed = null | { kind: "tab"; tabId: string };
 
@@ -25,8 +24,6 @@ interface Props {
   tool: ChannelDevTool;
   onBack: () => void;
   onBackRef: { current: (() => boolean) | null };
-  onSelectTool: (tool: ChannelDevTool) => void;
-  busy?: boolean;
 }
 
 const TITLES: Record<ChannelDevTool, string> = {
@@ -37,7 +34,7 @@ const TITLES: Record<ChannelDevTool, string> = {
 };
 
 /** The channel's dev tools: the repo comes from the channel, never a picker. */
-export default function ChannelDevMobile({ project, tool, onBack, onBackRef, onSelectTool, busy = false }: Props) {
+export default function ChannelDevMobile({ project, tool, onBack, onBackRef }: Props) {
   const tabs = useApp((state) => state.tabs);
   const openTab = useApp((state) => state.openTab);
   const closeTab = useApp((state) => state.closeTab);
@@ -162,24 +159,7 @@ export default function ChannelDevMobile({ project, tool, onBack, onBackRef, onS
         onBack={onBack}
         backLabel="Voltar ao canal"
         actions={actions}
-      >
-        <div className="m-devbar" role="tablist" aria-label="Ferramentas do canal">
-          {CHANNEL_DEV_TOOLS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={item.id === tool}
-              className={`m-devbar__tab${item.id === tool ? " is-active" : ""}`}
-              disabled={busy}
-              onClick={() => onSelectTool(item.id)}
-            >
-              <Icon name={item.icon} size={16} />
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </MobileScreenHeader>
+      />
     );
   }
 
