@@ -217,12 +217,13 @@ impl Store {
         let now = now_ms();
         let mut tx = self.pool.begin().await?;
         sqlx::query(
-            "INSERT INTO rooms(id,project_id,kind,name,title,instructions,lead_id,isolated,archived,category_id,visibility,repos,created_at,updated_at)
-             VALUES($1, $2, 'room', $3, $4, $5, $6, 0, 0, $7, $8, $9, $10, $11)",
+            "INSERT INTO rooms(id,project_id,kind,name,icon,title,instructions,lead_id,isolated,archived,category_id,visibility,repos,created_at,updated_at)
+             VALUES($1, $2, 'room', $3, $4, $5, $6, $7, 0, 0, $8, $9, $10, $11, $12)",
         )
         .bind(&id)
         .bind(project_id)
         .bind(name)
+        .bind(input.icon.trim())
         .bind(input.title.trim())
         .bind(input.instructions.trim())
         .bind(input.lead_id.as_deref())
@@ -312,7 +313,7 @@ impl Store {
 
     pub async fn list_rooms(&self, project_id: &str) -> AppResult<Vec<Room>> {
         let rows = sqlx::query(
-            "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at
+            "SELECT id,project_id,kind,name,icon,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at
              FROM rooms WHERE project_id = $1 AND archived = 0 ORDER BY updated_at DESC",
         )
         .bind(project_id)
@@ -334,6 +335,7 @@ impl Store {
             project_id: row.try_get("project_id")?,
             kind: row.try_get("kind")?,
             name: row.try_get("name")?,
+            icon: row.try_get::<String, _>("icon").unwrap_or_default(),
             title: row.try_get("title")?,
             instructions: row.try_get("instructions")?,
             lead_id: row.try_get("lead_id")?,
@@ -405,6 +407,7 @@ impl Store {
         project_id: &str,
         room_id: &str,
         name: &str,
+        icon: &str,
         title: &str,
         instructions: &str,
         visibility: &str,
@@ -418,11 +421,12 @@ impl Store {
         let mut tx = self.pool.begin().await?;
         let affected = sqlx::query(
             "UPDATE rooms
-             SET name = $1, title = $2, instructions = $3, visibility = $4,
-                 category_id = $5, repos = $6, lead_id = $7, updated_at = $8
-             WHERE id = $9 AND project_id = $10",
+             SET name = $1, icon = $2, title = $3, instructions = $4, visibility = $5,
+                 category_id = $6, repos = $7, lead_id = $8, updated_at = $9
+             WHERE id = $10 AND project_id = $11",
         )
         .bind(name.trim())
+        .bind(icon.trim())
         .bind(title.trim())
         .bind(instructions.trim())
         .bind(if visibility == "public" {
@@ -489,7 +493,7 @@ impl Store {
 
     pub async fn room(&self, project_id: &str, room_id: &str) -> AppResult<Room> {
         let row = sqlx::query(
-            "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at
+            "SELECT id,project_id,kind,name,icon,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at
              FROM rooms WHERE id = $1 AND project_id = $2",
         )
         .bind(room_id)
@@ -506,7 +510,7 @@ impl Store {
     /// project check the HTTP route already did.
     pub async fn room_by_id(&self, room_id: &str) -> AppResult<Room> {
         let row = sqlx::query(
-            "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at
+            "SELECT id,project_id,kind,name,icon,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at
              FROM rooms WHERE id = $1",
         )
         .bind(room_id)
@@ -628,13 +632,17 @@ impl Store {
 
     pub async fn list_channel_categories(&self) -> AppResult<Vec<ChannelCategory>> {
         Ok(sqlx::query_as::<_, ChannelCategory>(
-            "SELECT id,name,position,created_at,updated_at FROM channel_categories ORDER BY position, name",
+            "SELECT id,name,icon,position,created_at,updated_at FROM channel_categories ORDER BY position, name",
         )
         .fetch_all(&self.pool)
         .await?)
     }
 
-    pub async fn create_channel_category(&self, name: &str) -> AppResult<ChannelCategory> {
+    pub async fn create_channel_category(
+        &self,
+        name: &str,
+        icon: &str,
+    ) -> AppResult<ChannelCategory> {
         let name = name.trim();
         if name.is_empty() || name.chars().count() > 40 {
             return Err(bad_request(
@@ -657,11 +665,12 @@ impl Store {
                 .fetch_one(&self.pool)
                 .await?;
         sqlx::query(
-            "INSERT INTO channel_categories(id,name,position,created_at,updated_at)
-             VALUES($1,$2,$3,$4,$5)",
+            "INSERT INTO channel_categories(id,name,icon,position,created_at,updated_at)
+             VALUES($1,$2,$3,$4,$5,$6)",
         )
         .bind(&id)
         .bind(name)
+        .bind(icon.trim())
         .bind(position)
         .bind(now)
         .bind(now)
@@ -670,6 +679,7 @@ impl Store {
         Ok(ChannelCategory {
             id,
             name: name.to_string(),
+            icon: icon.trim().to_string(),
             position,
             created_at: now,
             updated_at: now,
@@ -680,6 +690,7 @@ impl Store {
         &self,
         id: &str,
         name: &str,
+        icon: &str,
     ) -> AppResult<ChannelCategory> {
         let name = name.trim();
         if name.is_empty() || name.chars().count() > 40 {
@@ -698,19 +709,21 @@ impl Store {
             return Err(AppError::Conflict);
         }
         let now = now_ms();
-        let affected =
-            sqlx::query("UPDATE channel_categories SET name = $1, updated_at = $2 WHERE id = $3")
-                .bind(name)
-                .bind(now)
-                .bind(id)
-                .execute(&self.pool)
-                .await?
-                .rows_affected();
+        let affected = sqlx::query(
+            "UPDATE channel_categories SET name = $1, icon = $2, updated_at = $3 WHERE id = $4",
+        )
+        .bind(name)
+        .bind(icon.trim())
+        .bind(now)
+        .bind(id)
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
         if affected == 0 {
             return Err(AppError::NotFound);
         }
         sqlx::query_as::<_, ChannelCategory>(
-            "SELECT id,name,position,created_at,updated_at FROM channel_categories WHERE id = $1",
+            "SELECT id,name,icon,position,created_at,updated_at FROM channel_categories WHERE id = $1",
         )
         .bind(id)
         .fetch_one(&self.pool)
@@ -1412,6 +1425,7 @@ mod tests {
                 &me,
                 CreateRoomInput {
                     name: "Geral".into(),
+                    icon: String::new(),
                     title: String::new(),
                     instructions: String::new(),
                     lead_id: Some(ana.id.clone()),
@@ -1461,6 +1475,7 @@ mod tests {
                 &me,
                 CreateRoomInput {
                     name: "Geral".into(),
+                    icon: String::new(),
                     title: String::new(),
                     instructions: String::new(),
                     lead_id: None,
@@ -1499,6 +1514,7 @@ mod tests {
                 &me,
                 CreateRoomInput {
                     name: "Geral".into(),
+                    icon: String::new(),
                     title: String::new(),
                     instructions: String::new(),
                     lead_id: Some(ana.id.clone()),

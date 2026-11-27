@@ -16,8 +16,9 @@ import {
   SearchField,
 } from "faang-ui";
 import { Info, Search, SlidersHorizontal } from "@jeff/icons";
+import { CategoryGlyph, ChannelGlyph } from "../WorkspaceGlyph";
 import type { AIModel, User } from "../../../shared/api";
-import type { Principal, Room, RoomMessage } from "../../rooms/api";
+import type { ChannelCategory, Principal, Room, RoomMessage } from "../../rooms/api";
 import AgentComposerControls from "../AgentComposerControls";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
@@ -51,6 +52,7 @@ interface Props {
   messages: RoomMessage[];
   title: string;
   subtitle: string;
+  category?: ChannelCategory | null;
   draft: string;
   models: AIModel[];
   welcome: ReactNode;
@@ -65,8 +67,8 @@ interface Props {
   onOpenAgent: (agent: Principal) => void;
   onOpenMember: (user: User) => void;
   renderFace: (principal: Principal | null | undefined, size?: number) => ReactNode;
-  /** The view menu next to the channel name: Canal/Sessões and aux tools. */
-  viewMenu?: ReactNode;
+  /** The Canal/Sessões and tool tabs under the channel name. */
+  viewTabs?: ReactNode;
 }
 
 /** A room or DM as the phone's chat screen: flat messages, Discord's shape, and one composer. */
@@ -78,6 +80,7 @@ export default function ChatScreen({
   messages,
   title,
   subtitle,
+  category,
   draft,
   models,
   welcome,
@@ -92,7 +95,7 @@ export default function ChatScreen({
   onOpenAgent,
   onOpenMember,
   renderFace,
-  viewMenu,
+  viewTabs,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -121,25 +124,27 @@ export default function ChatScreen({
       <MobileScreenHeader
         onBack={onBack}
         backLabel="Voltar às conversas"
-        lead={
-          <span className="m-chathead__face">
-            {room.kind === "room" ? (
-              <span className="m-chathead__channel"><Icon name="channel" size={18} /></span>
-            ) : (
-              renderFace(other, 32)
-            )}
-          </span>
+        icon={
+          room.kind === "room" ? (
+            <span className="m-chathead__icons">
+              {category?.icon ? <CategoryGlyph category={category} size={14} /> : null}
+              {category?.icon ? <Icon name="chevronRight" size={14} className="m-chathead__chevron" /> : null}
+              <ChannelGlyph room={room} size={18} />
+            </span>
+          ) : (
+            renderFace(other, 24)
+          )
         }
         title={title}
         subtitle={subtitle}
         actions={
           <>
-            {viewMenu}
             <MobileIconButton icon={Search} label="Buscar nesta conversa" active={searchOpen} onClick={() => setSearchOpen((value) => !value)} />
             <MobileIconButton icon={Info} label="Detalhes da conversa" onClick={() => setDetailsOpen(true)} />
           </>
         }
       >
+        {viewTabs}
         {searchOpen ? (
           <div className="m-chatsearch">
             <SearchField

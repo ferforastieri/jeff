@@ -21,6 +21,7 @@ interface Props {
   project: Project;
   onOpenFile: (path: string, line?: number) => void;
   onStatusChange?: (status: string) => void;
+  embedded?: boolean;
   headerControl?: ReactNode;
 }
 
@@ -124,6 +125,7 @@ export default function ExplorerPanel({
   project,
   onOpenFile,
   onStatusChange,
+  embedded = false,
   headerControl,
 }: Props) {
   const notify = useApp((state) => state.notify);
@@ -511,12 +513,19 @@ export default function ExplorerPanel({
           Solte os arquivos ou pastas para enviar
         </div>
       ) : null}
-      <SidebarHeader control={headerControl} icon={<Files size={15} className="text-accent-500" />} title="Explorer" actions={
-        <div className="flex items-center gap-0.5">
-          <Button variant="ghost" size="xs" iconOnly className="max-[900px]:flex-1" leadingIcon={FilePlus2} aria-label="Novo arquivo" title="Novo arquivo" onClick={() => void newFile(rootEntry)} />
-          <Button variant="ghost" size="xs" iconOnly className="max-[900px]:flex-1" leadingIcon={FolderPlus} aria-label="Nova pasta" title="Nova pasta" onClick={() => void newFolder(rootEntry)} />
+      {embedded ? (
+        <div className="ws-side-toolbar">
+          <Button variant="ghost" size="xs" iconOnly leadingIcon={FilePlus2} aria-label="Novo arquivo" title="Novo arquivo" onClick={() => void newFile(rootEntry)} />
+          <Button variant="ghost" size="xs" iconOnly leadingIcon={FolderPlus} aria-label="Nova pasta" title="Nova pasta" onClick={() => void newFolder(rootEntry)} />
         </div>
-      } />
+      ) : (
+        <SidebarHeader control={headerControl} icon={<Files size={15} className="text-accent-500" />} title="Explorer" actions={
+          <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="xs" iconOnly className="max-[900px]:flex-1" leadingIcon={FilePlus2} aria-label="Novo arquivo" title="Novo arquivo" onClick={() => void newFile(rootEntry)} />
+            <Button variant="ghost" size="xs" iconOnly className="max-[900px]:flex-1" leadingIcon={FolderPlus} aria-label="Nova pasta" title="Nova pasta" onClick={() => void newFolder(rootEntry)} />
+          </div>
+        } />
+      )}
       {uploadProgress && (
         <div className="shrink-0 border-b px-2 py-1.5">
           <ProgressBar size="sm" label={uploadProgress.label} value={uploadProgress.value} valueLabel={uploadProgress.valueLabel} />

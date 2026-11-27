@@ -23,6 +23,7 @@ export interface Room {
   projectId: string;
   kind: "room" | "dm";
   name: string;
+  icon: string;
   title: string;
   instructions: string;
   leadId: string | null;
@@ -39,6 +40,7 @@ export interface Room {
 export interface ChannelCategory {
   id: string;
   name: string;
+  icon: string;
   position: number;
   createdAt: number;
   updatedAt: number;
@@ -66,6 +68,7 @@ export interface RoomMessage {
 
 export interface UpdateChannelBody {
   name: string;
+  icon: string;
   title: string;
   instructions?: string;
   visibility: "public" | "private";
@@ -77,6 +80,7 @@ export interface UpdateChannelBody {
 
 export interface CreateRoomBody {
   name: string;
+  icon?: string;
   title?: string;
   instructions?: string;
   leadId?: string | null;
@@ -237,11 +241,12 @@ export const channelsApi = {
   addAgent: (roomId: string, agentId: string) =>
     request<{ ok: boolean }>(`${channels}/${encodeURIComponent(roomId)}/agents`, json({ agentId })),
   categories: () => request<{ categories: ChannelCategory[] }>("/channel-categories"),
-  createCategory: (name: string) => request<ChannelCategory>("/channel-categories", json({ name })),
-  renameCategory: (id: string, name: string) =>
+  createCategory: (name: string, icon = "") =>
+    request<ChannelCategory>("/channel-categories", json({ name, icon })),
+  renameCategory: (id: string, name: string, icon = "") =>
     request<ChannelCategory>(`/channel-categories/${encodeURIComponent(id)}`, {
       method: "PATCH",
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, icon }),
     }),
   deleteCategory: (id: string) =>
     request<{ ok: boolean }>(`/channel-categories/${encodeURIComponent(id)}`, {

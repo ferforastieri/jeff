@@ -7,10 +7,39 @@ use std::time::Duration;
 use sea_orm::{DatabaseConnection, SqlxSqliteConnector};
 use sea_orm_migration::MigratorTrait;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
+use sqlx::Row;
 
 use crate::errors::{AppError, AppResult};
 
 mod migration;
+
+/// Adds a column to a table created by an older schema. SQLite's
+/// `CREATE TABLE IF NOT EXISTS` does not evolve existing tables, and the
+/// single-file schema has no per-version migrations, so this keeps installs
+/// from the previous build working.
+async fn ensure_column(
+    pool: &sqlx::SqlitePool,
+    table: &str,
+    column: &str,
+    definition: &str,
+) -> Result<(), sqlx::Error> {
+    let rows = sqlx::query(&format!("PRAGMA table_info({table})"))
+        .fetch_all(pool)
+        .await?;
+    let exists = rows.iter().any(|row| {
+        row.try_get::<String, _>("name")
+            .map(|name| name == column)
+            .unwrap_or(false)
+    });
+    if !exists {
+        sqlx::query(&format!(
+            "ALTER TABLE {table} ADD COLUMN {column} {definition}"
+        ))
+        .execute(pool)
+        .await?;
+    }
+    Ok(())
+}
 
 #[derive(Clone)]
 pub struct Database {
@@ -40,6 +69,12 @@ impl Database {
         migration::Migrator::up(&connection, None)
             .await
             .map_err(|error| AppError::Internal(anyhow::anyhow!("sqlite migration: {error}")))?;
+        let pool = connection.get_sqlite_connection_pool();
+        for (table, column) in [("rooms", "icon"), ("channel_categories", "icon")] {
+            ensure_column(pool, table, column, "TEXT NOT NULL DEFAULT ''")
+                .await
+                .map_err(|error| AppError::Internal(anyhow::anyhow!("sqlite schema: {error}")))?;
+        }
         Ok(Self { connection })
     }
 

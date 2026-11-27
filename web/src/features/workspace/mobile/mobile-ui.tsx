@@ -31,12 +31,14 @@ export const MobileWorkspaceButton = forwardRef<HTMLButtonElement, WorkspaceButt
 
 export function MobileSectionTitle({
   title,
+  icon,
   count,
   open,
   onToggle,
   actions,
 }: {
   title: string;
+  icon?: ReactNode;
   count?: number;
   open?: boolean;
   onToggle?: () => void;
@@ -52,6 +54,7 @@ export function MobileSectionTitle({
         disabled={!onToggle}
       >
         {open === undefined ? null : open ? <ChevronDown className="m-section__chevron" /> : <ChevronRight className="m-section__chevron" />}
+        {icon ? <span className="m-section__icon">{icon}</span> : null}
         <span className="m-section__label">{title}</span>
         {typeof count === "number" ? <span className="m-section__count">{count}</span> : null}
       </button>

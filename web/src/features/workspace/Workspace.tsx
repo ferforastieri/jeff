@@ -41,6 +41,9 @@ import { WORKSPACE_FACE, faceOf, personName } from "./face";
 import { modelSelectOptions, useAI } from "../providers/store";
 import Board from "../rooms/Board";
 import AgentComposerControls from "./AgentComposerControls";
+import SidebarHeader from "../../app/components/SidebarHeader";
+import { CategoryGlyph, ChannelGlyph } from "./WorkspaceGlyph";
+import { ImageCropDialog } from "../onboarding/ImageCropDialog";
 import WorkspaceMenu, { WorkspaceMenuSky } from "./WorkspaceMenu";
 import HomeDashboard from "./HomeDashboard";
 import { EditAgentDialog, EditPersonDialog, InviteUserDialog } from "./TeamDialogs";
@@ -159,6 +162,7 @@ export default function Workspace({ status }: Props) {
   const [agentsBusy, setAgentsBusy] = useState(false);
   const [agentsError, setAgentsError] = useState("");
   const [channelName, setChannelName] = useState("");
+  const [channelIcon, setChannelIcon] = useState("");
   const [channelTopic, setChannelTopic] = useState("");
   const [channelRepos, setChannelRepos] = useState<string[]>([]);
   const [channelRepoQuery, setChannelRepoQuery] = useState("");
@@ -169,9 +173,12 @@ export default function Workspace({ status }: Props) {
   const [teamPrincipals, setTeamPrincipals] = useState<Principal[]>([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [categoryName, setCategoryName] = useState("");
+  const [categoryIcon, setCategoryIcon] = useState("");
   const [categoryChannels, setCategoryChannels] = useState<string[]>([]);
   const [renamingCategory, setRenamingCategory] = useState<ChannelCategory | null>(null);
   const [renameCategoryName, setRenameCategoryName] = useState("");
+  const [renameCategoryIcon, setRenameCategoryIcon] = useState("");
+  const [iconCrop, setIconCrop] = useState<"channel" | "category" | "category-edit" | null>(null);
   const [agentName, setAgentName] = useState("");
   const [agentHandle, setAgentHandle] = useState("");
   const [agentTitle, setAgentTitle] = useState("");
@@ -315,6 +322,19 @@ export default function Workspace({ status }: Props) {
         : [],
     [selectedRoom],
   );
+  const selectedCategory = useMemo(
+    () =>
+      selectedRoom?.kind === "room" && selectedRoom.categoryId
+        ? categories.find((category) => category.id === selectedRoom.categoryId) ?? null
+        : null,
+    [categories, selectedRoom],
+  );
+  const activeChannelRepo =
+    selectedRoom?.kind === "room" ? channelRepoFor(selectedRoom) : "";
+  const auxTitle =
+    rightView === "files" ? "Explorer" : rightView === "scm" ? "Source Control" : "Databases";
+  const auxIcon: IconName =
+    rightView === "files" ? "file" : rightView === "scm" ? "gitPull" : "database";
   const sessionsProject = projects.find((project) => project.id === channelDevProjectId) ?? null;
   const boardProject: Project = useMemo(
     () => ({
@@ -742,10 +762,14 @@ export default function Workspace({ status }: Props) {
   }
 
   function selectRoom(room: Room) {
+    const sameRoom = room.id === selectedRoomId;
     setSelectedRoomId(room.id);
     setView("chat");
     setMenuOpen(false);
     savePosition(room.id, "chat");
+    // Coming back to the open channel keeps its tab and tool exactly where
+    // they were; only a different channel starts a new dev context.
+    if (sameRoom) return;
     resetChannelDev();
     setChannelSessionsTarget(null);
     const mode = savedChannelMode(room);
@@ -795,6 +819,7 @@ export default function Workspace({ status }: Props) {
 
   function openChannel(categoryId: string | null = null) {
     setChannelName("");
+    setChannelIcon("");
     setChannelTopic("");
     setChannelCategoryId(categoryId);
     setChannelVisibility("public");
@@ -811,6 +836,21 @@ export default function Workspace({ status }: Props) {
     void loadAvailableRepos();
   }
 
+  function openNewCategory() {
+    setCategoryName("");
+    setCategoryIcon("");
+    setCategoryChannels([]);
+    setError("");
+    setCategoryOpen(true);
+  }
+
+  function openEditCategory(category: ChannelCategory) {
+    setRenamingCategory(category);
+    setRenameCategoryName(category.name);
+    setRenameCategoryIcon(category.icon ?? "");
+    setError("");
+  }
+
   async function createChannel() {
     if (!channelName.trim()) {
       setError("Dê um nome ao canal.");
@@ -821,6 +861,7 @@ export default function Workspace({ status }: Props) {
     try {
       const room = await channelsApi.create({
         name: channelName.trim(),
+        icon: channelIcon,
         title: channelTopic.trim(),
         categoryId: channelCategoryId,
         visibility: channelVisibility,
@@ -847,7 +888,7 @@ export default function Workspace({ status }: Props) {
     setBusy(true);
     setError("");
     try {
-      const created = await channelsApi.createCategory(categoryName.trim());
+      const created = await channelsApi.createCategory(categoryName.trim(), categoryIcon);
       for (const roomId of categoryChannels) {
         await channelsApi.setCategory(roomId, created.id);
       }
@@ -862,6 +903,7 @@ export default function Workspace({ status }: Props) {
       }
       setCategoryOpen(false);
       setCategoryName("");
+      setCategoryIcon("");
       setCategoryChannels([]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível criar a categoria.");
@@ -878,6 +920,7 @@ export default function Workspace({ status }: Props) {
       const updated = await channelsApi.renameCategory(
         renamingCategory.id,
         renameCategoryName.trim(),
+        renameCategoryIcon,
       );
       setCategories((current) =>
         current.map((category) => (category.id === updated.id ? updated : category)),
@@ -1126,12 +1169,8 @@ export default function Workspace({ status }: Props) {
     setChannelDevRepoPath(null);
   }
 
-  function baseRightView(mode: MessageMode = messageMode): RightView {
-    return mode === "sessions" ? "sessions" : "team";
-  }
-
   function closeRightTool() {
-    setRightView(baseRightView());
+    setRightView("team");
   }
 
   /** Resolves the channel's repo into the project the dev panels read. */
@@ -1208,65 +1247,64 @@ export default function Workspace({ status }: Props) {
     return localStorage.getItem(channelModeKey(room.id)) === "sessions" ? "sessions" : "channel";
   }
 
-  function channelViewMenu() {
+  function channelTabs() {
     const room = selectedRoom;
-    if (!devMode || !room || room.kind !== "room" || room.repos.length === 0) return null;
+    if (!room || room.kind !== "room") return null;
+    const devReady = devMode && room.repos.length > 0;
     const aux = [
       { id: "files" as const, label: "Explorer", icon: "file" as IconName, feature: "files" as const },
       { id: "scm" as const, label: "Source Control", icon: "gitPull" as IconName, feature: "sourceControl" as const },
       { id: "db" as const, label: "Databases", icon: "database" as IconName, feature: "databases" as const },
     ].filter((tool) => featureEnabled(workspaceFeatures, tool.feature));
-    const repo = channelRepoFor(room);
     return (
-      <Menu
-        align="start"
-        label="Aba e ferramentas do canal"
-        trigger={
-          <button type="button" className="ws-view-trigger" disabled={channelDevBusy}>
-            <Icon name={messageMode === "sessions" ? "agent" : "message"} size={14} />
-            {messageMode === "sessions" ? "Sessões" : "Canal"}
-            <Icon name="chevronDown" size={14} />
+      <div className="ws-main-tabs" aria-label="Abas e ferramentas do canal">
+        <button
+          type="button"
+          className={`ws-main-tab${messageMode === "channel" ? " is-active" : ""}`}
+          aria-pressed={messageMode === "channel"}
+          title="Canal"
+          onClick={() => changeMessageMode("channel")}
+        >
+          <Icon name="message" size={14} />
+          <span className="ws-main-tab__label">Canal</span>
+        </button>
+        {devReady ? (
+          <button
+            type="button"
+            className={`ws-main-tab${messageMode === "sessions" ? " is-active" : ""}`}
+            aria-pressed={messageMode === "sessions"}
+            title="Sessões privadas"
+            disabled={channelDevBusy}
+            onClick={() => changeMessageMode("sessions")}
+          >
+            <Icon name="agent" size={14} />
+            <span className="ws-main-tab__label">Sessões</span>
           </button>
-        }
-      >
-        <MenuRadioGroup
-          label="Aba principal"
-          value={messageMode}
-          onValueChange={(value) => changeMessageMode(value === "sessions" ? "sessions" : "channel")}
-          options={[
-            { value: "channel", label: "Canal" },
-            { value: "sessions", label: "Sessões" },
-          ]}
-        />
-        {aux.length > 0 ? (
-          <>
-            <MenuSeparator />
-            {aux.map((tool) => (
-              <MenuItem
+        ) : null}
+        {devReady && aux.length > 0 ? (
+          <span className="ws-main-tabs__sep" aria-hidden="true" />
+        ) : null}
+        {devReady
+          ? aux.map((tool) => (
+              <button
                 key={tool.id}
-                icon={rightView === tool.id ? "check" : tool.icon}
-                onSelect={() => void openRightTool(tool.id)}
+                type="button"
+                className={`ws-main-tab ws-main-tab--aux${rightView === tool.id ? " is-active" : ""}`}
+                aria-pressed={rightView === tool.id}
+                aria-label={tool.label}
+                title={tool.label}
+                disabled={channelDevBusy}
+                onClick={() => {
+                  if (rightView === tool.id && rightOpen) return;
+                  void openRightTool(tool.id);
+                }}
               >
-                {tool.label}
-              </MenuItem>
-            ))}
-          </>
-        ) : null}
-        {room.repos.length > 1 ? (
-          <>
-            <MenuSeparator />
-            <MenuRadioGroup
-              label="Repositório"
-              value={repo}
-              onValueChange={(value) => void selectChannelRepo(value)}
-              options={room.repos.map((path) => ({
-                value: path,
-                label: path.split("/").pop() || path,
-              }))}
-            />
-          </>
-        ) : null}
-      </Menu>
+                <Icon name={tool.icon} size={16} />
+                <span className="ws-main-tab__label ws-main-tab__label--aux">{tool.label}</span>
+              </button>
+            ))
+          : null}
+      </div>
     );
   }
 
@@ -1450,15 +1488,8 @@ export default function Workspace({ status }: Props) {
           onEditPerson={(person) => setPersonEdit(teamUsers.find((item) => item.id === person.id) ?? person)}
           onEditAgent={setAgentEdit}
           onCreateChannel={openChannel}
-          onCreateCategory={() => {
-            setCategoryName("");
-            setCategoryChannels([]);
-            setCategoryOpen(true);
-          }}
-          onRenameCategory={(category) => {
-            setRenamingCategory(category);
-            setRenameCategoryName(category.name);
-          }}
+          onCreateCategory={openNewCategory}
+          onRenameCategory={openEditCategory}
           onDeleteCategory={(category) => void removeCategory(category)}
           onEditChannel={(room) => openChannelEdit(room)}
           onDeleteChannel={(room) => void deleteChannel(room)}
@@ -1672,11 +1703,7 @@ export default function Workspace({ status }: Props) {
                   </MenuItem>
                   <MenuItem
                     icon="layers"
-                    onSelect={() => {
-                      setCategoryName("");
-                      setCategoryChannels([]);
-                      setCategoryOpen(true);
-                    }}
+                    onSelect={openNewCategory}
                   >
                     Nova categoria
                   </MenuItem>
@@ -1689,7 +1716,7 @@ export default function Workspace({ status }: Props) {
                   <div className="ws-channel-wrap" key={room.id}>
                     <ListRow
                       className={`ws-channel-row${view === "chat" && selectedRoomId === room.id ? " is-active" : ""}`}
-                      lead={<Icon name="channel" size={16} />}
+                      lead={<ChannelGlyph room={room} size={16} />}
                       title={room.name}
                       onClick={() => selectRoom(room)}
                     />
@@ -1732,6 +1759,7 @@ export default function Workspace({ status }: Props) {
                           aria-expanded={open}
                           onClick={() => toggleCategory(category.id)}
                         >
+                          <CategoryGlyph category={category} size={14} className="ws-category-glyph" />
                           <span className="ws-category-label">{category.name}</span>
                           <Icon name="chevronDown" size={14} className="ws-category-chevron" />
                         </button>
@@ -1760,14 +1788,8 @@ export default function Workspace({ status }: Props) {
                                 />
                               }
                             >
-                              <MenuItem
-                                icon="edit"
-                                onSelect={() => {
-                                  setRenamingCategory(category);
-                                  setRenameCategoryName(category.name);
-                                }}
-                              >
-                                Renomear
+                              <MenuItem icon="edit" onSelect={() => openEditCategory(category)}>
+                                Editar categoria
                               </MenuItem>
                               <MenuItem danger onSelect={() => void removeCategory(category)}>
                                 Excluir categoria
@@ -1782,7 +1804,7 @@ export default function Workspace({ status }: Props) {
                             <div className="ws-channel-wrap" key={room.id}>
                               <ListRow
                                 className={`ws-channel-row${view === "chat" && selectedRoomId === room.id ? " is-active" : ""}`}
-                                lead={<Icon name="channel" size={16} />}
+                                lead={<ChannelGlyph room={room} size={16} />}
                                 title={room.name}
                                 onClick={() => selectRoom(room)}
                               />
@@ -1916,15 +1938,50 @@ export default function Workspace({ status }: Props) {
       <div className="ws-shell" key={`${view}:${selectedRoomId}`}>
         {view === "chat" ? (
         <header className="ws-main-head">
-          <span className="ws-main-face">{faceOf(agent, 32)}</span>
-          <span className="ws-main-title">
-            <span className="ws-main-heading">
-              <h1>{roomTitle}</h1>
-              {channelViewMenu()}
+          <span className="ws-main-identity">
+            {selectedCategory?.icon ? (
+              <span className="ws-main-category" title={selectedCategory.name}>
+                <CategoryGlyph category={selectedCategory} size={16} />
+                <Icon name="chevronRight" size={14} className="ws-main-category-chevron" />
+              </span>
+            ) : null}
+            <span className={`ws-main-face${selectedRoom?.kind === "room" ? " is-room" : ""}`}>
+              {selectedRoom?.kind === "room" ? (
+                <ChannelGlyph room={selectedRoom} size={20} />
+              ) : (
+                faceOf(agent, 32)
+              )}
             </span>
-            <p>{roomSubtitle}</p>
+            <span className="ws-main-title">
+              <h1>{roomTitle}</h1>
+              <p>{roomSubtitle}</p>
+            </span>
           </span>
+          {channelTabs()}
           <span className="ws-main-actions">
+            {devMode && selectedRoom?.kind === "room" && selectedRoom.repos.length > 1 ? (
+              <Menu
+                align="end"
+                label="Repositório do canal"
+                trigger={
+                  <button type="button" className="ws-repo-trigger" disabled={channelDevBusy}>
+                    <Icon name="repo" size={14} />
+                    <span>{activeChannelRepo.split("/").pop()}</span>
+                    <Icon name="chevronDown" size={14} />
+                  </button>
+                }
+              >
+                <MenuRadioGroup
+                  label="Repositório"
+                  value={activeChannelRepo}
+                  onValueChange={(value) => void selectChannelRepo(value)}
+                  options={selectedRoom.repos.map((path) => ({
+                    value: path,
+                    label: path.split("/").pop() || path,
+                  }))}
+                />
+              </Menu>
+            ) : null}
             {messageMode === "channel" ? (
             <div className="ws-chat-search">
               <SearchField
@@ -1997,16 +2054,6 @@ export default function Workspace({ status }: Props) {
               title={rightOpen ? "Fechar barra da direita" : "Abrir barra da direita"}
               onClick={() => setRightOpen((value) => !value)}
             />
-            {messageMode === "channel" ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                iconOnly
-                icon="search"
-                className="ws-search-toggle"
-                aria-label="Buscar"
-              />
-            ) : null}
           </span>
         </header>
         ) : null}
@@ -2161,7 +2208,7 @@ export default function Workspace({ status }: Props) {
       </div>
       {view === "chat" && rightOpen ? (
         <aside
-          className={`ws-team-sidebar${rightView === "files" || rightView === "scm" || rightView === "db" ? " is-aux" : ""}`}
+          className={`ws-team-sidebar${rightView !== "team" ? " is-aux" : ""}`}
           aria-label="Barra da direita"
         >
           {rightView === "team" ? (
@@ -2260,52 +2307,87 @@ export default function Workspace({ status }: Props) {
                 project={sessionsProject}
                 title="Sessões"
                 onOpenChat={() => undefined}
-                headerControl={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    iconOnly
-                    icon="close"
-                    aria-label="Fechar sessões"
-                    title="Fechar sessões"
-                    onClick={() => setRightOpen(false)}
-                  />
+                headerActions={
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      icon="close"
+                      aria-label="Fechar sessões e voltar à equipe"
+                      title="Fechar e voltar à equipe"
+                      onClick={closeRightTool}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      icon="chevronRight"
+                      aria-label="Recolher barra da direita"
+                      title="Recolher barra"
+                      onClick={() => setRightOpen(false)}
+                    />
+                  </>
                 }
               />
             ) : (
               <div className="ws-side-loading">Carregando sessões…</div>
             )
           ) : sessionsProject ? (
-            <Suspense fallback={<div className="ws-side-loading">Carregando…</div>}>
-              {rightView === "files" ? (
-                <ExplorerPanel
-                  project={sessionsProject}
-                  headerControl={
-                    <Button variant="ghost" size="sm" iconOnly icon="close" aria-label="Fechar Explorer" title="Fechar Explorer" onClick={closeRightTool} />
-                  }
-                  onOpenFile={(path, line) => setEditorTarget({ path, line })}
-                />
-              ) : null}
-              {rightView === "scm" ? (
-                <SourceControlPanel
-                  project={sessionsProject}
-                  view="scm"
-                  headerControl={
-                    <Button variant="ghost" size="sm" iconOnly icon="close" aria-label="Fechar Source Control" title="Fechar Source Control" onClick={closeRightTool} />
-                  }
-                  onOpenDiff={(path, staged) => setDiffTarget({ path, staged })}
-                />
-              ) : null}
-              {rightView === "db" ? (
-                <DatabasesPanel
-                  project={sessionsProject}
-                  headerControl={
-                    <Button variant="ghost" size="sm" iconOnly icon="close" aria-label="Fechar Databases" title="Fechar Databases" onClick={closeRightTool} />
-                  }
-                  onOpenTable={(profileId, table, driver) => setDbTarget({ profileId, table, driver })}
-                />
-              ) : null}
-            </Suspense>
+            <div className="ws-side-panel">
+              <SidebarHeader
+                icon={<Icon name={auxIcon} size={16} />}
+                title={auxTitle}
+                actions={
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      icon="close"
+                      aria-label={`Fechar ${auxTitle} e voltar à equipe`}
+                      title="Fechar e voltar à equipe"
+                      onClick={closeRightTool}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      icon="chevronRight"
+                      aria-label="Recolher barra da direita"
+                      title="Recolher barra"
+                      onClick={() => setRightOpen(false)}
+                    />
+                  </>
+                }
+              />
+              <div className="ws-side-panel__body">
+                <Suspense fallback={<div className="ws-side-loading">Carregando…</div>}>
+                  {rightView === "files" ? (
+                    <ExplorerPanel
+                      project={sessionsProject}
+                      embedded
+                      onOpenFile={(path, line) => setEditorTarget({ path, line })}
+                    />
+                  ) : null}
+                  {rightView === "scm" ? (
+                    <SourceControlPanel
+                      project={sessionsProject}
+                      view="scm"
+                      embedded
+                      onOpenDiff={(path, staged) => setDiffTarget({ path, staged })}
+                    />
+                  ) : null}
+                  {rightView === "db" ? (
+                    <DatabasesPanel
+                      project={sessionsProject}
+                      embedded
+                      onOpenTable={(profileId, table, driver) => setDbTarget({ profileId, table, driver })}
+                    />
+                  ) : null}
+                </Suspense>
+              </div>
+            </div>
           ) : (
             <div className="ws-side-loading">Abrindo…</div>
           )}
@@ -2333,6 +2415,23 @@ export default function Workspace({ status }: Props) {
               placeholder="Ex.: marketing"
               autoFocus
             />
+          </Field>
+          <Field label="Ícone do canal">
+            <div className="ws-icon-field">
+              <span className="ws-icon-preview">
+                {channelIcon ? <img src={channelIcon} alt="" draggable={false} /> : <Icon name="channel" size={20} />}
+              </span>
+              <div className="ws-icon-actions">
+                <Button variant="default" size="sm" onClick={() => setIconCrop("channel")}>
+                  {channelIcon ? "Trocar imagem" : "Enviar imagem"}
+                </Button>
+                {channelIcon ? (
+                  <Button variant="ghost" size="sm" onClick={() => setChannelIcon("")}>
+                    Remover
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           </Field>
           <Field label="Tópico">
             <Input
@@ -2389,9 +2488,7 @@ export default function Workspace({ status }: Props) {
               onValueChange={(value) => {
                 if (value === "__new") {
                   setChannelCategoryId(null);
-                  setCategoryName("");
-                  setCategoryChannels([]);
-                  setCategoryOpen(true);
+                  openNewCategory();
                   return;
                 }
                 setChannelCategoryId(value || null);
@@ -2473,6 +2570,23 @@ export default function Workspace({ status }: Props) {
               autoFocus
             />
           </Field>
+          <Field label="Ícone da categoria">
+            <div className="ws-icon-field">
+              <span className="ws-icon-preview">
+                {categoryIcon ? <img src={categoryIcon} alt="" draggable={false} /> : <Icon name="layers" size={20} />}
+              </span>
+              <div className="ws-icon-actions">
+                <Button variant="default" size="sm" onClick={() => setIconCrop("category")}>
+                  {categoryIcon ? "Trocar imagem" : "Enviar imagem"}
+                </Button>
+                {categoryIcon ? (
+                  <Button variant="ghost" size="sm" onClick={() => setCategoryIcon("")}>
+                    Remover
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </Field>
           <Field label="Canais">
             <div className="ws-member-picker">
               {channels.map((room) => (
@@ -2517,7 +2631,7 @@ export default function Workspace({ status }: Props) {
         onOpenChange={(open) => {
           if (!open) setRenamingCategory(null);
         }}
-        title="Renomear categoria"
+        title="Editar categoria"
         closeLabel="Fechar"
         width={420}
       >
@@ -2528,6 +2642,23 @@ export default function Workspace({ status }: Props) {
               onChange={(event) => setRenameCategoryName(event.target.value)}
               autoFocus
             />
+          </Field>
+          <Field label="Ícone da categoria">
+            <div className="ws-icon-field">
+              <span className="ws-icon-preview">
+                {renameCategoryIcon ? <img src={renameCategoryIcon} alt="" draggable={false} /> : <Icon name="layers" size={20} />}
+              </span>
+              <div className="ws-icon-actions">
+                <Button variant="default" size="sm" onClick={() => setIconCrop("category-edit")}>
+                  {renameCategoryIcon ? "Trocar imagem" : "Enviar imagem"}
+                </Button>
+                {renameCategoryIcon ? (
+                  <Button variant="ghost" size="sm" onClick={() => setRenameCategoryIcon("")}>
+                    Remover
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           </Field>
           {error ? <p className="ws-error">{error}</p> : null}
         </DialogBody>
@@ -2968,6 +3099,31 @@ export default function Workspace({ status }: Props) {
           </DialogBody>
         </Dialog>
       ) : null}
+
+      <ImageCropDialog
+        open={iconCrop !== null}
+        title={iconCrop === "channel" ? "Ícone do canal" : "Ícone da categoria"}
+        description="Arraste para enquadrar. O quadrado é o que aparece na sidebar e no topo."
+        placeholder={
+          iconCrop === "channel" ? (
+            channelIcon ? <img src={channelIcon} alt="" draggable={false} /> : <Icon name="channel" size={20} />
+          ) : (iconCrop === "category" ? categoryIcon : renameCategoryIcon) ? (
+            <img
+              src={iconCrop === "category" ? categoryIcon : renameCategoryIcon}
+              alt=""
+              draggable={false}
+            />
+          ) : (
+            <Icon name="layers" size={20} />
+          )
+        }
+        onClose={() => setIconCrop(null)}
+        onSave={(icon) => {
+          if (iconCrop === "channel") setChannelIcon(icon);
+          else if (iconCrop === "category") setCategoryIcon(icon);
+          else if (iconCrop === "category-edit") setRenameCategoryIcon(icon);
+        }}
+      />
 
       <WorkspaceMenu
         open={workspaceMenuOpen}

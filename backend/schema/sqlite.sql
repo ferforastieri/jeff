@@ -359,6 +359,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS principal_user ON principals(user_id) WHERE us
 CREATE TABLE IF NOT EXISTS channel_categories (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    icon TEXT NOT NULL DEFAULT '',
     position INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -369,6 +370,7 @@ CREATE TABLE IF NOT EXISTS rooms (
     project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     kind TEXT NOT NULL DEFAULT 'room' CHECK(kind IN ('room', 'dm')),
     name TEXT NOT NULL,
+    icon TEXT NOT NULL DEFAULT '',
     title TEXT NOT NULL DEFAULT '',
     instructions TEXT NOT NULL DEFAULT '',
     lead_id TEXT REFERENCES principals(id) ON DELETE SET NULL,

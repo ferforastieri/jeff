@@ -20,6 +20,8 @@ import BrandGlyph from "../../../shared/ui/BrandGlyph";
 interface Props {
   project: Project;
   headerControl?: ReactNode;
+  /** Extra controls after the header's new-task action (close, collapse). */
+  headerActions?: ReactNode;
   onSelectChat?: () => void;
   /** Render the chat in place instead of opening a workbench tab. */
   onOpenChat?: (chatId: string) => void;
@@ -27,7 +29,7 @@ interface Props {
 }
 
 /** The project's one Jeff: every task is a session here, the newest first. */
-export default function BotsSidebar({ project, headerControl, onSelectChat, onOpenChat, title = "Mensagens" }: Props) {
+export default function BotsSidebar({ project, headerControl, headerActions, onSelectChat, onOpenChat, title = "Mensagens" }: Props) {
   const chats = useChats((state) => state.byProject[project.id]);
   const ensure = useChats((state) => state.ensure);
   const createConversation = useChats((state) => state.createConversation);
@@ -150,6 +152,7 @@ export default function BotsSidebar({ project, headerControl, onSelectChat, onOp
               disabled={!chats?.hydrated}
               onClick={newTask}
             />
+            {headerActions}
           </>
         }
       />

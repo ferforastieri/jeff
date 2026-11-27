@@ -23,7 +23,7 @@ import { channelsApi, type ChannelCategory, type Principal, type Room, type Room
 import type { Section } from "../../settings/components/JeffSettings";
 import { SettingsView } from "../../settings/components/JeffSettings";
 import { MEMBER_STATUS_LABEL, type MemberStatus } from "../../../shared/ui/presence";
-import { Icon, Menu, MenuItem, MenuRadioGroup, MenuSeparator, type IconName } from "faang-ui";
+import { Icon, Menu, MenuRadioGroup, type IconName } from "faang-ui";
 import { usePrefs } from "../../../shared/prefs";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
@@ -632,50 +632,59 @@ export default function WorkspaceMobile(props: Props) {
     );
   }
 
-  function channelViewMenu() {
+  function channelViewTabs() {
     if (!status.devMode || selectedRoom?.kind !== "room" || selectedRoom.repos.length === 0) return null;
     const repo = channelDevRepoPath || selectedRoom.repos[0];
     const aux = CHANNEL_DEV_TOOLS.filter(
       (tool) => tool.id !== "terminal" && (!tool.feature || featureEnabled(workspaceFeatures, tool.feature)),
     );
     return (
-      <Menu
-        align="end"
-        label="Aba e ferramentas do canal"
-        trigger={
-          <button type="button" className="m-view-trigger" disabled={channelDevBusy}>
-            <Icon name={messageMode === "sessions" ? "agent" : "message"} size={16} />
-            {messageMode === "sessions" ? "Sessões" : "Canal"}
-            <Icon name="chevronDown" size={14} />
+      <div className="m-view-tabs" aria-label="Abas e ferramentas do canal">
+        <button
+          type="button"
+          className={`m-view-tab${messageMode === "channel" ? " is-active" : ""}`}
+          aria-pressed={messageMode === "channel"}
+          onClick={() => changeMessageMode("channel")}
+        >
+          <Icon name="message" size={16} />
+          <span>Canal</span>
+        </button>
+        <button
+          type="button"
+          className={`m-view-tab${messageMode === "sessions" ? " is-active" : ""}`}
+          aria-pressed={messageMode === "sessions"}
+          disabled={channelDevBusy}
+          onClick={() => changeMessageMode("sessions")}
+        >
+          <Icon name="agent" size={16} />
+          <span>Sessões</span>
+        </button>
+        {aux.length > 0 ? <span className="m-view-tabs__sep" aria-hidden="true" /> : null}
+        {aux.map((tool) => (
+          <button
+            key={tool.id}
+            type="button"
+            className={`m-view-tab m-view-tab--aux${channelDevTool === tool.id ? " is-active" : ""}`}
+            aria-label={tool.label}
+            aria-pressed={channelDevTool === tool.id}
+            title={tool.label}
+            disabled={channelDevBusy}
+            onClick={() => void openChannelDev(tool.id)}
+          >
+            <Icon name={tool.icon} size={18} />
           </button>
-        }
-      >
-        <MenuRadioGroup
-          label="Aba principal"
-          value={messageMode}
-          onValueChange={(value) => changeMessageMode(value === "sessions" ? "sessions" : "channel")}
-          options={[
-            { value: "channel", label: "Canal" },
-            { value: "sessions", label: "Sessões" },
-          ]}
-        />
-        {aux.length > 0 ? (
-          <>
-            <MenuSeparator />
-            {aux.map((tool) => (
-              <MenuItem
-                key={tool.id}
-                icon={channelDevTool === tool.id ? "check" : tool.icon}
-                onSelect={() => void openChannelDev(tool.id)}
-              >
-                {tool.label}
-              </MenuItem>
-            ))}
-          </>
-        ) : null}
+        ))}
         {selectedRoom.repos.length > 1 ? (
-          <>
-            <MenuSeparator />
+          <Menu
+            align="end"
+            label="Repositório do canal"
+            trigger={
+              <button type="button" className="m-view-tab m-view-tab--repo" disabled={channelDevBusy}>
+                <Icon name="repo" size={16} />
+                <span>{repo.split("/").pop()}</span>
+              </button>
+            }
+          >
             <MenuRadioGroup
               label="Repositório"
               value={repo}
@@ -690,9 +699,9 @@ export default function WorkspaceMobile(props: Props) {
                 label: path.split("/").pop() || path,
               }))}
             />
-          </>
+          </Menu>
         ) : null}
-      </Menu>
+      </div>
     );
   }
 
@@ -746,11 +755,17 @@ export default function WorkspaceMobile(props: Props) {
         return (
           <ChannelSessionsMobile
             project={project}
+            room={selectedRoom}
+            category={
+              selectedRoom.kind === "room"
+                ? categories.find((item) => item.id === selectedRoom.categoryId) ?? null
+                : null
+            }
             initialChatId={channelDevTarget?.chatId}
             initialBotId={channelDevTarget?.botId}
             onBack={() => changeMessageMode("channel")}
             onBackRef={channelSessionsBack}
-            viewMenu={channelViewMenu()}
+            viewTabs={channelViewTabs()}
           />
         );
       }
@@ -763,6 +778,11 @@ export default function WorkspaceMobile(props: Props) {
           messages={messages}
           title={roomTitle}
           subtitle={roomSubtitle}
+          category={
+            selectedRoom.kind === "room"
+              ? categories.find((item) => item.id === selectedRoom.categoryId) ?? null
+              : null
+          }
           draft={draft}
           models={models}
           welcome={welcome}
@@ -777,7 +797,7 @@ export default function WorkspaceMobile(props: Props) {
           onOpenAgent={(bot) => void openAgent(bot)}
           onOpenMember={onEditPerson}
           renderFace={faceOf}
-          viewMenu={channelViewMenu()}
+          viewTabs={channelViewTabs()}
         />
       );
     }

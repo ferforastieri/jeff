@@ -9,6 +9,7 @@ import type { ChannelCategory, Principal, Room } from "../../rooms/api";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import { MobileEmpty, MobileSectionTitle, MobileWorkspaceButton } from "./mobile-ui";
+import { CategoryGlyph, ChannelGlyph } from "../WorkspaceGlyph";
 
 export interface MobileTeamMember {
   key: string;
@@ -134,7 +135,7 @@ export default function ConversasScreen({
           data-unread={unreadRoomIds.has(room.id) || undefined}
           onClick={() => onSelectRoom(room)}
         >
-          <Icon name="channel" size={18} className="m-row__glyph" />
+          <ChannelGlyph room={room} size={18} className="m-row__glyph" />
           <span className="m-row__name">{room.name}</span>
           {unreadRoomIds.has(room.id) ? <span className="m-row__unread" aria-label="Não lida" /> : null}
           {room.visibility === "private" ? <span className="m-row__tag">privado</span> : null}
@@ -222,6 +223,7 @@ export default function ConversasScreen({
                 <div className="m-category" key={category.id}>
                   <MobileSectionTitle
                     title={category.name}
+                    icon={<CategoryGlyph category={category} size={14} />}
                     open={open}
                     onToggle={() => toggleCategory(category.id)}
                     actions={

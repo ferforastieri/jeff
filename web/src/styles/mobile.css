@@ -155,6 +155,12 @@
   align-items: center;
 }
 
+.m-header__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
 .m-header__copy {
   display: flex;
   min-width: 0;
@@ -598,6 +604,13 @@
   flex: none;
 }
 
+.m-section__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--faint);
+}
+
 .m-section__label {
   overflow: hidden;
   font-size: 11px;
@@ -699,7 +712,9 @@
   width: 18px;
   height: 18px;
   flex: none;
+  border-radius: 5px;
   color: var(--faint);
+  object-fit: cover;
 }
 
 .m-row[data-active] .m-row__glyph {
@@ -1621,22 +1636,14 @@
 }
 
 /* ---------- Chat ---------- */
-.m-chathead__face {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  place-items: center;
+.m-chathead__icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
-.m-chathead__channel {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border-radius: 11px;
-  background: var(--plate);
-  color: var(--muted);
+.m-chathead__chevron {
+  opacity: 0.5;
 }
 
 .m-chatsearch {
@@ -2977,25 +2984,78 @@ body.keyboard-open .m-app {
   padding-bottom: var(--safe-bottom);
 }
 
-.m-view-trigger {
+.m-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 2px 8px 8px;
+  scrollbar-width: none;
+}
+
+.m-view-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.m-view-tab {
   display: inline-flex;
+  height: 32px;
   flex: none;
   align-items: center;
-  gap: 5px;
-  height: 28px;
-  border: 1px solid var(--line);
+  gap: 6px;
+  border: 0;
   border-radius: 9px;
-  background: var(--plate-soft);
-  padding: 0 9px;
+  background: transparent;
+  padding: 0 10px;
   color: var(--ink2);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.m-view-trigger:hover {
-  background: var(--plate);
+.m-view-tab:hover {
+  background: var(--plate-soft);
   color: var(--ink);
+}
+
+.m-view-tab.is-active {
+  background: var(--plate);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink);
+}
+
+.m-view-tab:disabled {
+  opacity: 0.55;
+}
+
+.m-view-tab--aux {
+  width: 34px;
+  justify-content: center;
+  padding: 0;
+}
+
+.m-view-tab--aux.is-active .ac-icon {
+  color: var(--brand);
+}
+
+.m-view-tabs__sep {
+  width: 1px;
+  height: 18px;
+  flex: none;
+  margin: 0 5px;
+  background: var(--line);
+}
+
+.m-view-tab--repo {
+  border: 1px solid var(--line);
+  background: var(--plate-soft);
+  font-size: 11.5px;
+}
+
+.m-view-tab--repo span {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 

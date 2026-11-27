@@ -7,6 +7,8 @@ interface Props {
   subtitle?: string;
   /** A custom lead (an avatar, a workspace mark): without it and with `onBack`, a back chevron. */
   lead?: ReactNode;
+  /** A channel/category mark that sits after the back button or lead. */
+  icon?: ReactNode;
   onBack?: () => void;
   backLabel?: string;
   actions?: ReactNode;
@@ -21,6 +23,7 @@ export default function MobileScreenHeader({
   title,
   subtitle,
   lead,
+  icon,
   onBack,
   backLabel = "Voltar",
   actions,
@@ -38,6 +41,7 @@ export default function MobileScreenHeader({
         ) : lead ? (
           <div className="m-header__lead">{lead}</div>
         ) : null}
+        {icon ? <div className="m-header__icon">{icon}</div> : null}
         <div className="m-header__copy">
           {title ? <h1 className="m-header__title">{title}</h1> : null}
           {subtitle ? <p className="m-header__subtitle">{subtitle}</p> : null}

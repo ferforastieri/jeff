@@ -34,6 +34,8 @@ pub struct Room {
     pub project_id: String,
     pub kind: String,
     pub name: String,
+    #[serde(default)]
+    pub icon: String,
     pub title: String,
     pub instructions: String,
     pub lead_id: Option<String>,
@@ -56,6 +58,8 @@ pub struct Room {
 pub struct ChannelCategory {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    pub icon: String,
     pub position: i64,
     pub created_at: i64,
     pub updated_at: i64,
@@ -125,6 +129,8 @@ impl BotConfig {
 #[serde(rename_all = "camelCase")]
 pub struct CreateRoomInput {
     pub name: String,
+    #[serde(default)]
+    pub icon: String,
     #[serde(default)]
     pub title: String,
     #[serde(default)]
