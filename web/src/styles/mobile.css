@@ -2380,7 +2380,7 @@
   flex: 1;
 }
 
-/* The dev screens (files, git, databases, web apps) already use their own cards
+/* The dev screens (files, git, databases) already use their own cards
    and paddings; the phone only tightens them. */
 .m-app .m-pushed__body--panel > .flex,
 .m-app .m-app__content > .flex {
@@ -2977,6 +2977,36 @@ body.keyboard-open .m-app {
   padding-bottom: var(--safe-bottom);
 }
 
+.m-message-tabs {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--line);
+  background: var(--pane);
+  padding: 4px 10px;
+}
+
+.m-message-tab {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.m-message-tab.is-active {
+  background: var(--plate-soft);
+  color: var(--ink);
+}
+
+.m-message-tab:disabled {
+  opacity: 0.55;
+}
+
 /* The channel's dev tools: a compact strip under the chat header. */
 .m-devbar {
   display: flex;
@@ -2992,6 +3022,15 @@ body.keyboard-open .m-app {
 
 .m-devbar::-webkit-scrollbar {
   display: none;
+}
+
+.m-devbar__repo {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.m-devbar__repo > .ac-icon:last-child {
+  color: var(--faint);
 }
 
 .m-devbar__tab {
@@ -3028,4 +3067,63 @@ body.keyboard-open .m-app {
 .m-dev-surface > .m-screen {
   min-height: 0;
   flex: 1;
+}
+
+.bot-browser-mobile {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--pane);
+}
+
+.bot-browser-mobile__head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding: 14px 14px 10px;
+}
+
+.bot-browser-mobile__head > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bot-browser-mobile__head strong {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 20px;
+}
+
+.bot-browser-mobile__head small {
+  color: var(--faint);
+  font-size: 11.5px;
+  line-height: 15px;
+}
+
+.bot-browser-mobile__close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--muted);
+}
+
+.bot-browser-mobile__close:hover {
+  background: var(--plate-soft);
+  color: var(--ink);
+}
+
+.bot-browser-mobile__body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
 }

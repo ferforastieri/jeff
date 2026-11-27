@@ -2,7 +2,7 @@ import { useProjectStream } from "../../features/projects/hooks/useProjectStream
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { Bot, ChevronDown, Search, TerminalSquare, X } from "@jeff/icons";
-import { api, type SchemaTable, type WebTarget } from "../../shared/api";
+import { api, type SchemaTable } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
 import { useApp, type Sidebar } from "../store";
 import { chatDisplayName, latestChatForJeff, useChats, type ProjectChats, type JeffChat } from "../../features/conversations/store";
@@ -35,21 +35,18 @@ import { parseGitStatus } from "../../features/git/status";
 
 const ExplorerPanel = lazy(() => import("../../features/explorer/components/ExplorerPanel"));
 const DatabasesPanel = lazy(() => import("../../features/databases/components/DatabasesPanel"));
-const WebSidebar = lazy(() => import("../../features/previews/components/WebSidebar"));
 const EditorPanel = lazy(() => import("../../features/editor/components/EditorPanel"));
 const DbPanelTab = lazy(() => import("../../features/databases/components/DbPanelTab"));
 const BotsSidebar = lazy(() => import("../../features/agents/components/BotsSidebar"));
-const WebPanelTab = lazy(() => import("../../features/previews/components/WebPanelTab"));
 const DiffPanelTab = lazy(() => import("../../features/editor/components/DiffPanelTab"));
 const TerminalPanel = lazy(() => import("../../features/terminal/components/TerminalPanel"));
 const SourceControlPanel = lazy(() => import("../../features/git/components/SourceControlPanel"));
 
-type RightPanel = "files" | "scm" | "db" | "web" | "bots";
+type RightPanel = "files" | "scm" | "db" | "bots";
 const rightPanelFeatures: Record<RightPanel, WorkspaceFeature | null> = {
   files: "files",
   scm: "sourceControl",
   db: "databases",
-  web: "webApps",
   bots: null,
 };
 
@@ -58,7 +55,6 @@ function rightPanelForSidebar(sidebar: Sidebar): RightPanel | null {
     case "files":
     case "scm":
     case "db":
-    case "web":
     case "bots":
       return sidebar;
     default:
@@ -66,10 +62,11 @@ function rightPanelForSidebar(sidebar: Sidebar): RightPanel | null {
   }
 }
 
-export default function Workbench() {
+export default function Workbench({ projectId }: { projectId?: string } = {}) {
   const projects = useApp((state) => state.projects);
   const user = useApp((state) => state.user);
-  const activeProjectId = useApp((state) => state.activeProjectId);
+  const storeProjectId = useApp((state) => state.activeProjectId);
+  const activeProjectId = projectId ?? storeProjectId;
   const openProjectIds = useApp((state) => state.openProjectIds);
   const setProjects = useApp((state) => state.setProjects);
   const tabs = useApp((state) => state.tabs);
@@ -487,6 +484,13 @@ export default function Workbench() {
 
 
   useEffect(() => {
+    if (!projectId) return;
+    if (useApp.getState().activeProjectId !== projectId) {
+      useApp.getState().setActiveProject(projectId);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
     let cancelled = false;
     api
       .projects()
@@ -845,17 +849,6 @@ export default function Workbench() {
     if (chat) openConversation(projectId, chat.id);
   }
 
-  function openWeb(target: WebTarget) {
-    if (!project || !featureIsEnabled("webApps")) return;
-    openTab({
-      id: `web:${project.id}:${target.id}`,
-      kind: "web",
-      title: target.name,
-      projectId: project.id,
-      url: target.url,
-    });
-  }
-
   if (!projectsLoaded) {
     return <div className="h-full bg-background-full" />;
   }
@@ -918,9 +911,6 @@ export default function Workbench() {
       {rightPanel === "db" && featureIsEnabled("databases") && (
         <DatabasesPanel project={project} headerControl={rightPanelControl} onOpenTable={openTable} />
       )}
-      {rightPanel === "web" && featureIsEnabled("webApps") && (
-        <WebSidebar headerControl={rightPanelControl} onOpenWeb={openWeb} />
-      )}
       {rightPanel === "bots" && <BotsSidebar project={project} headerControl={rightPanelControl} />}
     </Suspense>
   ) : null;
@@ -976,7 +966,6 @@ export default function Workbench() {
                 <Suspense fallback={null}>
                   {tabsVisible && activeTab?.kind === "editor" && project && featureIsEnabled("files") && <EditorPanel tab={activeTab} project={project} onOpenChanges={(path) => openDiff(path, false)} />}
                   {tabsVisible && activeTab?.kind === "db" && featureIsEnabled("databases") && <DbPanelTab tab={activeTab} />}
-                  {tabsVisible && activeTab?.kind === "web" && featureIsEnabled("webApps") && <WebPanelTab tab={activeTab} />}
                   {tabsVisible && activeTab?.kind === "diff" && project && featureIsEnabled("files") && <DiffPanelTab tab={activeTab} project={project} />}
                   {activeTab?.kind === "ai" && project && activeTab.chatId && (
                     <BotStudioTab embedded key={activeTab.chatId} project={project} conversationId={activeTab.chatId} onOpenFile={(path, line) => openFile(path, line)} />

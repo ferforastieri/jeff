@@ -37,9 +37,6 @@ use integrations_email_routes::*;
 #[path = "../features/database_connections/routes.rs"]
 mod database_connections_routes;
 use database_connections_routes::*;
-#[path = "../features/previews/routes.rs"]
-mod previews_routes;
-use previews_routes::*;
 #[path = "../features/agents/routes.rs"]
 mod agent_routes;
 use agent_routes::*;
@@ -83,7 +80,7 @@ use axum::http::{HeaderMap, Method, Request, StatusCode, Uri};
 use axum::middleware::{self, Next};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Redirect, Response};
-use axum::routing::{any, delete, get, patch, post, put};
+use axum::routing::{delete, get, patch, post, put};
 use axum::{Json, Router};
 use base64::Engine as _;
 use ipnet::IpNet;
@@ -112,7 +109,7 @@ use crate::features::agents::{
     tools::Tools as AgentTools,
 };
 use crate::features::integrations::mcp::Service as McpService;
-use crate::model::{DbProfile, Project, Session, User, WebTarget};
+use crate::model::{DbProfile, Project, Session, User};
 use crate::platform::instance_lock::InstanceLock;
 use crate::push::{PushMessage, PushService};
 use crate::store::{Store, WorkspaceMessageCursor};
@@ -971,7 +968,9 @@ fn router(state: Arc<AppState>) -> Router {
         .route("/api/channels/dm", post(open_dm))
         .route(
             "/api/channels/{room_id}",
-            get(get_channel).delete(delete_channel),
+            get(get_channel)
+                .patch(update_channel)
+                .delete(delete_channel),
         )
         .route(
             "/api/channels/{room_id}/messages",
@@ -1291,15 +1290,6 @@ fn router(state: Arc<AppState>) -> Router {
             "/api/db/profiles/{profile_id}/row",
             post(insert_db_row).put(update_db_row).delete(delete_db_row),
         )
-        .route(
-            "/api/web-targets",
-            get(list_web_targets).post(create_web_target),
-        )
-        .route("/api/web-targets/{target_id}", delete(delete_web_target))
-        .route("/api/web-preview", get(web_preview))
-        .route("/api/web-preview/{token}", any(web_preview_root))
-        .route("/api/web-preview/{token}/", any(web_preview_root))
-        .route("/api/web-preview/{token}/{*path}", any(web_preview_asset))
         .route("/api/engines", get(engine_list))
         .route("/api/engines/{engine_id}/test", post(test_engine))
         .route("/api/engines/{engine_id}/install", post(install_engine))

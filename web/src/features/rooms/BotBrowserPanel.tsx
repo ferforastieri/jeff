@@ -5,15 +5,20 @@ import { UserRound } from "@jeff/icons";
 import { api } from "../../shared/api";
 import type { Project } from "../../shared/api";
 import DebugBrowserPanel from "../conversations/components/DebugBrowserPanel";
-import type { Principal } from "./api";
+
+interface BrowserAgent {
+  id: string;
+  name: string;
+}
 
 interface Props {
   project: Project;
-  bots: Principal[];
+  bots: BrowserAgent[];
+  initialAgentId?: string;
 }
 
-export default function BotBrowserPanel({ project, bots }: Props) {
-  const [agentId, setAgentId] = useState(bots[0]?.id ?? "");
+export default function BotBrowserPanel({ project, bots, initialAgentId }: Props) {
+  const [agentId, setAgentId] = useState(initialAgentId ?? bots[0]?.id ?? "");
   const [takeover, setTakeover] = useState(false);
 
   useEffect(() => {

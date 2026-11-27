@@ -1534,6 +1534,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             // A per-run MCP endpoint exposes ask_user: the CLI keeps its native
             // tools and gains one that waits for the user instead of dead-ending.
             let mut gateway_tools = vec![tools::ask_user_definition()];
+            gateway_tools.extend(tools::browser_definitions());
             if ctx.debug {
                 gateway_tools.extend(tools::debug_terminal_definitions());
                 gateway_tools.extend(tools::debug_browser_definitions());
@@ -2056,6 +2057,55 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                             .session(&ctx.project_id, &ctx.root)
                             .await?;
                         session.reload().await
+                    } else if name.starts_with("browser_") {
+                        let key = format!("bot-{}", ctx.agent.id);
+                        let session = self
+                            .inner
+                            .tools
+                            .browser
+                            .session(&key, &ctx.root)
+                            .await?;
+                        if session.is_takeover() {
+                            Err(bad_request(
+                                "O usuário assumiu o navegador; devolva o controle antes de continuar.",
+                            ))
+                        } else {
+                            match name {
+                                "browser_open" => {
+                                    let url = args["url"].as_str().unwrap_or("").trim();
+                                    if url.is_empty() || url.len() > 4096 {
+                                        Err(bad_request("URL inválida"))
+                                    } else {
+                                        session.open(url).await
+                                    }
+                                }
+                                "browser_read" => session.read().await,
+                                "browser_click" => {
+                                    let selector = args["selector"].as_str();
+                                    let x = args["x"].as_f64();
+                                    let y = args["y"].as_f64();
+                                    if selector.is_none() && (x.is_none() || y.is_none()) {
+                                        Err(bad_request("Informe um seletor ou x/y"))
+                                    } else {
+                                        session.click(selector, x, y).await
+                                    }
+                                }
+                                "browser_type" => {
+                                    let text = args["text"].as_str().unwrap_or("");
+                                    if text.is_empty() || text.len() > 20_000 {
+                                        Err(bad_request("Texto inválido"))
+                                    } else {
+                                        session.type_text(text, args["selector"].as_str()).await
+                                    }
+                                }
+                                "browser_press" => {
+                                    let key = args["key"].as_str().unwrap_or("Enter");
+                                    session.press(key).await
+                                }
+                                "browser_reload" => session.reload().await,
+                                _ => Err(bad_request("Ferramenta de navegador desconhecida")),
+                            }
+                        }
                     } else if name == "read_skill" {
                         let wanted = args["name"].as_str().unwrap_or("");
                         match self

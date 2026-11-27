@@ -198,6 +198,69 @@ pub fn debug_browser_definitions() -> Vec<Value> {
     ]
 }
 
+/// The agent's own visible browser, available in every run. The same page is
+/// streamed to the conversation, where the user can watch and take over.
+pub fn browser_definitions() -> Vec<Value> {
+    vec![
+        json!({
+            "name": "browser_open",
+            "description": "Open a URL in the agent's visible Chromium. The user watches the same page and may take over.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "http or https URL to open."}
+                },
+                "required": ["url"]
+            }
+        }),
+        json!({
+            "name": "browser_read",
+            "description": "Read the current page: URL, title, visible text, recent console messages and failed network requests.",
+            "inputSchema": { "type": "object", "properties": {} }
+        }),
+        json!({
+            "name": "browser_click",
+            "description": "Click an element in the visible browser. Prefer a CSS selector; x/y are viewport pixels when no selector is given.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "selector": {"type": "string", "description": "CSS selector of the element to click."},
+                    "x": {"type": "number", "description": "Viewport x coordinate when no selector is used."},
+                    "y": {"type": "number", "description": "Viewport y coordinate when no selector is used."}
+                }
+            }
+        }),
+        json!({
+            "name": "browser_type",
+            "description": "Type text into the focused element (or click a selector first) in the visible browser.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "selector": {"type": "string", "description": "Optional CSS selector to focus before typing."}
+                },
+                "required": ["text"]
+            }
+        }),
+        json!({
+            "name": "browser_press",
+            "description": "Press a key in the visible browser (Enter, Tab, Escape, Backspace, arrows, Home, End, PageUp, PageDown).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string"}
+                },
+                "required": ["key"]
+            }
+        }),
+        json!({
+            "name": "browser_reload",
+            "description": "Reload the page in the visible browser.",
+            "inputSchema": { "type": "object", "properties": {} }
+        }),
+    ]
+}
+
 pub fn mutating(name: &str) -> bool {
     matches!(
         name,
@@ -210,6 +273,10 @@ pub fn mutating(name: &str) -> bool {
             | "debug_browser_type"
             | "debug_browser_press"
             | "debug_browser_reload"
+            | "browser_click"
+            | "browser_type"
+            | "browser_press"
+            | "browser_reload"
             | "remember"
             | "email_send"
     )

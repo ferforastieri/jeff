@@ -21,10 +21,13 @@ interface Props {
   project: Project;
   headerControl?: ReactNode;
   onSelectChat?: () => void;
+  /** Render the chat in place instead of opening a workbench tab. */
+  onOpenChat?: (chatId: string) => void;
+  title?: string;
 }
 
 /** The project's one Jeff: every task is a session here, the newest first. */
-export default function BotsSidebar({ project, headerControl, onSelectChat }: Props) {
+export default function BotsSidebar({ project, headerControl, onSelectChat, onOpenChat, title = "Mensagens" }: Props) {
   const chats = useChats((state) => state.byProject[project.id]);
   const ensure = useChats((state) => state.ensure);
   const createConversation = useChats((state) => state.createConversation);
@@ -83,7 +86,8 @@ export default function BotsSidebar({ project, headerControl, onSelectChat }: Pr
   // The harness owns the session list and the title it generates. Local chats
   // the harness does not know are drafts, not sessions, so they stay out.
   const sessions = useMemo(() => {
-    if (!harness) return allSessions;
+    // In the in-place Mensagens → Sessões view, drafts are real sessions too.
+    if (onOpenChat || !harness) return allSessions;
     const byChat = new Map(allSessions.map((session) => [session.chat.id, session]));
     return harness.flatMap((item) => {
       const base = byChat.get(item.chatId);
@@ -94,7 +98,7 @@ export default function BotsSidebar({ project, headerControl, onSelectChat }: Pr
         activityAt: item.updatedAt || base.activityAt,
       }];
     });
-  }, [allSessions, harness]);
+  }, [allSessions, harness, onOpenChat]);
 
   function openTask(chatId: string) {
     const current = useChats.getState().byProject[project.id];
@@ -103,6 +107,10 @@ export default function BotsSidebar({ project, headerControl, onSelectChat }: Pr
     useApp.getState().markChatNotificationsRead(chatId);
     useChats.getState().setActiveChat(project.id, chatId);
     useChats.getState().touchConversation(project.id, chatId);
+    if (onOpenChat) {
+      onOpenChat(chatId);
+      return;
+    }
     openChatTab(project.id, chatId, chatSessionTitle(chats, chat));
     onSelectChat?.();
   }
@@ -119,7 +127,7 @@ export default function BotsSidebar({ project, headerControl, onSelectChat }: Pr
       <SidebarHeader
         control={headerControl}
         icon={<BrandGlyph size={16} className="text-accent-500" />}
-        title="Mensagens"
+        title={title}
         count={
           sessions.length > 0 ? (
             <span

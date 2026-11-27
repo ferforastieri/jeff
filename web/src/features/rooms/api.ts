@@ -64,6 +64,17 @@ export interface RoomMessage {
   createdAt: number;
 }
 
+export interface UpdateChannelBody {
+  name: string;
+  title: string;
+  instructions?: string;
+  visibility: "public" | "private";
+  categoryId: string | null;
+  memberIds: string[];
+  agentIds: string[];
+  repos: string[];
+}
+
 export interface CreateRoomBody {
   name: string;
   title?: string;
@@ -202,10 +213,16 @@ export const channelsApi = {
       `${channels}/${encodeURIComponent(roomId)}/messages`,
       json(body),
     ),
-  /** The channel's repo as an accessible project for the dev tools. */
-  devProject: (roomId: string) =>
+  /** One of the channel's repos as an accessible project for the dev tools. */
+  devProject: (roomId: string, repo?: string) =>
     request<{ project: Project }>(`${channels}/${encodeURIComponent(roomId)}/dev-project`, {
       method: "POST",
+      body: JSON.stringify({ repo: repo ?? "" }),
+    }),
+  update: (roomId: string, body: UpdateChannelBody) =>
+    request<Room>(`${channels}/${encodeURIComponent(roomId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
     }),
   setRepos: (roomId: string, repos: string[]) =>
     request<Room>(`${channels}/${encodeURIComponent(roomId)}/repos`, {

@@ -81,6 +81,14 @@ html[data-menu-overlay] .jeff-workspace-home {
   grid-template-columns: minmax(0, 1fr) 0px;
 }
 
+.ws-body.has-members {
+  grid-template-columns: minmax(0, 1fr) 300px 260px;
+}
+
+.ws-body.is-details-closed.has-members {
+  grid-template-columns: minmax(0, 1fr) 0px 260px;
+}
+
 .ws-body.is-details-closed .ws-right {
   width: 0;
   opacity: 0;
@@ -737,6 +745,53 @@ html[data-menu-overlay] .jeff-workspace-home {
   padding-top: 80px;
 }
 
+.ws-members {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-left: 1px solid var(--line, rgba(255, 255, 255, 0.1));
+  background: var(--pane, #181817);
+  padding: 14px 10px;
+}
+
+.ws-members-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px 8px;
+}
+
+.ws-members-head > :first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.ws-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ws-team-member {
+  position: relative;
+}
+
+.ws-team-member .ws-agent-row {
+  min-height: 48px;
+  padding-right: 32px;
+}
+
+.ws-team-member:hover .ws-row-action,
+.ws-team-member:focus-within .ws-row-action {
+  opacity: 1;
+}
+
+.ws-members-toggle.is-active {
+  background: var(--plate-soft);
+  color: var(--ink);
+}
+
 .ws-right {
   min-width: 0;
   min-height: 0;
@@ -1037,11 +1092,14 @@ html[data-menu-overlay] .jeff-workspace-home {
 
 @media (max-width: 1200px) {
   .ws-body,
-  .ws-body.is-details-closed {
+  .ws-body.is-details-closed,
+  .ws-body.has-members,
+  .ws-body.is-details-closed.has-members {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .ws-right {
+  .ws-right,
+  .ws-members {
     display: none;
   }
 
@@ -6867,6 +6925,64 @@ html:not([data-pointer]) .store-back:focus-visible {
 }
 
 /* ---------- Dev tools inside a channel ---------- */
+.ws-message-tabs {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--line);
+  padding: 5px 12px;
+}
+
+.ws-message-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.ws-message-tab:hover {
+  background: var(--plate-soft);
+  color: var(--ink);
+}
+
+.ws-message-tab.is-active {
+  background: var(--plate-soft);
+  color: var(--ink);
+}
+
+.ws-message-tab:disabled {
+  opacity: 0.55;
+}
+
+.ws-sessions {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.ws-sessions-list {
+  width: 292px;
+  min-height: 0;
+  flex: none;
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+}
+
+.ws-sessions-chat {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+}
+
 .ws-devbar {
   display: flex;
   flex: none;
@@ -6881,6 +6997,32 @@ html:not([data-pointer]) .store-back:focus-visible {
 
 .ws-devbar::-webkit-scrollbar {
   display: none;
+}
+
+.ws-devbar__repo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  border-radius: 8px;
+  padding: 0 8px;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.ws-devbar__repo--menu:hover {
+  background: var(--plate-soft);
+}
+
+.ws-devbar__repo > .ac-icon:last-child {
+  color: var(--faint);
+}
+
+.ws-devbar__repo + .ws-devbar__tab {
+  margin-left: 6px;
 }
 
 .ws-devbar__tab {

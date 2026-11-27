@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Database, FileCode2, FileDiff, Globe2, X } from "@jeff/icons";
+import { Database, FileCode2, FileDiff, X } from "@jeff/icons";
 import { PixelSpinner } from "@jeff/ui";
 import { useApp, type Tab } from "../store";
 import { chatSessionTitle, chatJeffs, useChats } from "../../features/conversations/store";
@@ -14,7 +14,7 @@ import FileIcon from "../../features/explorer/components/FileIcon";
 import BrandGlyph from "../../shared/ui/BrandGlyph";
 import { cx } from "@jeff/ui";
 
-const icons = { editor: FileCode2, db: Database, ai: BrandGlyph, web: Globe2, diff: FileDiff };
+const icons = { editor: FileCode2, db: Database, ai: BrandGlyph, diff: FileDiff };
 
 interface ContextMenuState {
   tab: Tab;

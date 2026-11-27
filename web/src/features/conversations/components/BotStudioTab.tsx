@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowDown, Bot, Timer } from "@jeff/icons";
+import { ArrowDown, Bot, Globe2, Timer, X } from "@jeff/icons";
 import { PixelSpinner } from "@jeff/ui";
 import type { Project } from "../../../shared/api";
 import { ApiError } from "../../../shared/api";
@@ -18,7 +18,9 @@ import ApprovalCard from "./ApprovalCard";
 import BotAvatar from "../../agents/components/BotAvatar";
 import { unlockBotSound } from "../sound";
 import { Button } from "@jeff/ui/app";
+import { Dialog, DialogBody } from "faang-ui";
 import { cx } from "@jeff/ui";
+import BotBrowserPanel from "../../rooms/BotBrowserPanel";
 
 interface Props {
   project: Project;
@@ -41,6 +43,7 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   const [sending, setSending] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
   const [queued, setQueued] = useState<Array<{ text: string; attachments: AgentAttachment[] }>>([]);
+  const [browserOpen, setBrowserOpen] = useState(false);
   const draftKey = `${project.id}:dev:${chat?.id ?? "new"}`;
   const text = useJeffDrafts((s) => s.drafts[draftKey] ?? "");
   const setDraft = useJeffDrafts((s) => s.setDraft);
@@ -264,6 +267,8 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
     );
   }
 
+  const browserUsed = !debug && native.messages.some((message) => /browser/i.test(message.title ?? ""));
+  const browserAgents = jeffs.map((jeff) => ({ id: jeff.id, name: jeff.name }));
   const framed = !embedded && !debug;
   const chatView = <div className="flex h-full min-h-0 w-full flex-1 gap-0 overflow-hidden" onPointerDown={unlockBotSound}>
     <section className={cx(
@@ -310,6 +315,19 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         </div>
         {jeffs.length > 0 && !atBottom && <button type="button" onClick={() => { follow.current = true; setAtBottom(true); scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }); }} className="absolute bottom-3 left-1/2 z-10 flex size-8 -translate-x-1/2 items-center justify-center rounded-full border border-border-button-default bg-background-secondary-default text-text-secondary shadow-sidebar" aria-label="Ir para o fim da conversa"><ArrowDown size={15} /></button>}
       </div>
+      {browserUsed ? (
+        <div className="mx-auto flex w-full max-w-[860px] items-center gap-2 px-3 pt-1.5">
+          <button
+            type="button"
+            onClick={() => setBrowserOpen(true)}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border-button-default bg-background-secondary-default px-2.5 py-1.5 text-start text-caption-1-regular text-text-secondary transition-colors hover:bg-background-secondary-hover"
+          >
+            <Globe2 size={14} className="shrink-0 text-accent-500" />
+            <span className="min-w-0 flex-1 truncate">O agente está usando o navegador</span>
+            <span className="shrink-0 font-medium text-accent-600">Ver ao vivo</span>
+          </button>
+        </div>
+      ) : null}
       {queued.length > 0 ? (
         <div className="mx-auto w-full max-w-[860px] px-3 pt-1.5">
           <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border-button-default bg-background-secondary-default px-2.5 py-1.5 text-caption-2-regular text-text-secondary">
@@ -327,10 +345,49 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         <AgentComposer value={text} onChange={(value) => setDraft(draftKey, value)} onSend={(value, files) => void send(value, files)} onStop={() => void stop()} busy={busy}
           placeholder={debug ? "Descreva o bug e como ele acontece…" : "Pergunte ao Jeff…"}
           history={native.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /><ConversationModePicker projectId={project.id} chat={chat!} jeffs={jeffs} /></>}
+          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /><ConversationModePicker projectId={project.id} chat={chat!} jeffs={jeffs} />{!debug ? <button type="button" onClick={() => setBrowserOpen(true)} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-caption-2-medium text-text-tertiary transition-colors hover:text-text-primary" aria-label="Abrir navegador do agente" title="Ver o que o agente vê e assumir o navegador"><Globe2 size={13} /> Navegador</button> : null}</>}
           members={jeffs} />
       </div>}
     </section>
+    {!mobile ? (
+      <Dialog
+        open={browserOpen}
+        onOpenChange={setBrowserOpen}
+        title="Navegador do agente"
+        description="A mesma página que o agente vê. Assuma o controle para clicar e digitar você mesmo."
+        closeLabel="Fechar"
+        width={980}
+      >
+        <DialogBody className="p-0">
+          <div className="h-[min(70vh,640px)]">
+            <BotBrowserPanel
+              project={project}
+              bots={browserAgents}
+              initialAgentId={browserAgents[0]?.id}
+            />
+          </div>
+        </DialogBody>
+      </Dialog>
+    ) : mobile && browserOpen ? (
+      <div className="bot-browser-mobile" role="dialog" aria-modal="true" aria-label="Navegador do agente">
+        <header className="bot-browser-mobile__head">
+          <span className="min-w-0 flex-1">
+            <strong>Navegador do agente</strong>
+            <small>A mesma página que o agente vê; assuma o controle quando quiser.</small>
+          </span>
+          <button type="button" className="bot-browser-mobile__close" aria-label="Fechar navegador" onClick={() => setBrowserOpen(false)}>
+            <X size={18} />
+          </button>
+        </header>
+        <div className="bot-browser-mobile__body">
+          <BotBrowserPanel
+            project={project}
+            bots={browserAgents}
+            initialAgentId={browserAgents[0]?.id}
+          />
+        </div>
+      </div>
+    ) : null}
   </div>;
   if (!debug) return chatView;
   return (

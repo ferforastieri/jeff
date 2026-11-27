@@ -398,6 +398,95 @@ impl Store {
         self.room(project_id, room_id).await
     }
 
+    /// Rewrites a channel's editable fields and membership in one transaction.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update_room(
+        &self,
+        project_id: &str,
+        room_id: &str,
+        name: &str,
+        title: &str,
+        instructions: &str,
+        visibility: &str,
+        category_id: Option<&str>,
+        repos: &[String],
+        member_ids: &[String],
+        agent_ids: &[String],
+    ) -> AppResult<Room> {
+        let existing = self.room(project_id, room_id).await?;
+        let now = now_ms();
+        let mut tx = self.pool.begin().await?;
+        let affected = sqlx::query(
+            "UPDATE rooms
+             SET name = $1, title = $2, instructions = $3, visibility = $4,
+                 category_id = $5, repos = $6, lead_id = $7, updated_at = $8
+             WHERE id = $9 AND project_id = $10",
+        )
+        .bind(name.trim())
+        .bind(title.trim())
+        .bind(instructions.trim())
+        .bind(if visibility == "public" {
+            "public"
+        } else {
+            "private"
+        })
+        .bind(category_id)
+        .bind(serde_json::to_string(repos)?)
+        .bind(
+            existing
+                .lead_id
+                .as_ref()
+                .filter(|lead| agent_ids.iter().any(|id| id == *lead)),
+        )
+        .bind(now)
+        .bind(room_id)
+        .bind(project_id)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if affected == 0 {
+            return Err(AppError::NotFound);
+        }
+        sqlx::query("DELETE FROM room_members WHERE room_id = $1")
+            .bind(room_id)
+            .execute(&mut *tx)
+            .await?;
+        for id in member_ids {
+            let inserted = sqlx::query(
+                "INSERT INTO room_members(room_id,principal_id,joined_at)
+                 SELECT $1, id, $2 FROM principals WHERE id = $3 AND kind = 'human'
+                 ON CONFLICT DO NOTHING",
+            )
+            .bind(room_id)
+            .bind(now)
+            .bind(id)
+            .execute(&mut *tx)
+            .await?
+            .rows_affected();
+            if inserted == 0 {
+                return Err(bad_request("Membro desconhecido."));
+            }
+        }
+        for id in agent_ids {
+            let inserted = sqlx::query(
+                "INSERT INTO room_members(room_id,principal_id,joined_at)
+                 SELECT $1, id, $2 FROM principals WHERE id = $3 AND kind = 'bot'
+                 ON CONFLICT DO NOTHING",
+            )
+            .bind(room_id)
+            .bind(now)
+            .bind(id)
+            .execute(&mut *tx)
+            .await?
+            .rows_affected();
+            if inserted == 0 {
+                return Err(bad_request("Agente desconhecido."));
+            }
+        }
+        tx.commit().await?;
+        self.room(project_id, room_id).await
+    }
+
     pub async fn room(&self, project_id: &str, room_id: &str) -> AppResult<Room> {
         let row = sqlx::query(
             "SELECT id,project_id,kind,name,title,instructions,lead_id,isolated,archived,repos,category_id,visibility,created_at,updated_at

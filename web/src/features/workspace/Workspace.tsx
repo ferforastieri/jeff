@@ -61,6 +61,8 @@ import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import Toasts from "../notifications/components/Toasts";
 import { useIsMobile } from "../../shared/ui/useIsMobile";
 import WorkspaceMobile from "./mobile/WorkspaceMobile";
+import ChannelEditDialog from "./ChannelEditDialog";
+import SessionsWorkspace from "./SessionsWorkspace";
 import { CHANNEL_DEV_TOOLS, type ChannelDevTool } from "./channelDev";
 import { featureEnabled, useSettings } from "../settings/store";
 
@@ -133,6 +135,7 @@ export default function Workspace({ status }: Props) {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const workspaceMenuTrigger = useRef<HTMLButtonElement>(null);
   const [channelOpen, setChannelOpen] = useState(false);
+  const [channelEdit, setChannelEdit] = useState<Room | null>(null);
   const [agentOpen, setAgentOpen] = useState(false);
   const [reposOpen, setReposOpen] = useState(false);
   const [repoQuery, setRepoQuery] = useState("");
@@ -148,7 +151,8 @@ export default function Workspace({ status }: Props) {
   const [agentsError, setAgentsError] = useState("");
   const [channelName, setChannelName] = useState("");
   const [channelTopic, setChannelTopic] = useState("");
-  const [channelRepo, setChannelRepo] = useState("");
+  const [channelRepos, setChannelRepos] = useState<string[]>([]);
+  const [channelRepoQuery, setChannelRepoQuery] = useState("");
   const [channelCategoryId, setChannelCategoryId] = useState<string | null>(null);
   const [channelVisibility, setChannelVisibility] = useState<"public" | "private">("public");
   const [channelMembers, setChannelMembers] = useState<string[]>([]);
@@ -186,11 +190,10 @@ export default function Workspace({ status }: Props) {
   const userStatus = (prefs.userStatus ?? "online") as MemberStatus;
   const openSections = {
     channels: prefs.sidebarSections?.channels !== false,
-    agents: prefs.sidebarSections?.agents !== false,
     dms: prefs.sidebarSections?.dms !== false,
   };
   const openCategories = prefs.sidebarCategories ?? {};
-  const SECTION_DEFAULT = ["channels", "agents", "dms"] as const;
+  const SECTION_DEFAULT = ["channels", "dms"] as const;
   type SectionId = (typeof SECTION_DEFAULT)[number];
   const savedSections = (prefs.sidebarSectionOrder ?? []).filter(
     (id): id is SectionId => SECTION_DEFAULT.includes(id as SectionId),
@@ -203,14 +206,19 @@ export default function Workspace({ status }: Props) {
   const [sectionMark, setSectionMark] = useState<{ id: SectionId; where: "before" | "after" } | null>(null);
   const [draggedNav, setDraggedNav] = useState<string | null>(null);
   const [overNav, setOverNav] = useState<{ id: string; where: "before" | "after" } | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(true);
+  const [messageMode, setMessageMode] = useState<"channel" | "sessions">("channel");
+  const [channelSessionsTarget, setChannelSessionsTarget] = useState<{ chatId?: string; botId?: string } | null>(null);
   const [activeAgents, setActiveAgents] = useState<import("../rooms/api").AgentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [channelDevTool, setChannelDevTool] = useState<ChannelDevTool | null>(null);
   const [channelDevRoomId, setChannelDevRoomId] = useState<string | null>(null);
   const [channelDevProjectId, setChannelDevProjectId] = useState<string | null>(null);
+  const [channelDevRepoPath, setChannelDevRepoPath] = useState<string | null>(null);
   const [channelDevBusy, setChannelDevBusy] = useState(false);
   const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
+  const projects = useApp((state) => state.projects);
   const bottom = useRef<HTMLDivElement>(null);
   const workspaceLogo = status.workspaceLogo || WORKSPACE_FACE;
   const user = useApp((state) => state.user);
@@ -456,7 +464,6 @@ export default function Workspace({ status }: Props) {
 
   const sectionLabel: Record<SectionId, string> = {
     channels: "Canais",
-    agents: "Equipe",
     dms: "Mensagens diretas",
   };
 
@@ -669,11 +676,15 @@ export default function Workspace({ status }: Props) {
   function changeView(next: View) {
     setView(next);
     setMenuOpen(false);
-    if (next !== "chat") resetChannelDev();
+    if (next !== "chat") {
+      resetChannelDev();
+      setMessageMode("channel");
+      setChannelSessionsTarget(null);
+    }
     if (next !== "settings") savePosition(selectedRoomId, next);
   }
 
-  function toggleSection(section: "channels" | "agents" | "dms") {
+  function toggleSection(section: "channels" | "dms") {
     updatePrefs({
       sidebarSections: { ...openSections, [section]: !openSections[section] },
     });
@@ -685,6 +696,9 @@ export default function Workspace({ status }: Props) {
     setMenuOpen(false);
     savePosition(room.id, "chat");
     resetChannelDev();
+    setMessageMode("channel");
+    setChannelSessionsTarget(null);
+    if (room.kind === "room" && room.repos.length > 0) setChannelDevRepoPath(room.repos[0]);
   }
 
   async function openAgent(bot: Principal) {
@@ -727,9 +741,15 @@ export default function Workspace({ status }: Props) {
     setChannelCategoryId(categoryId);
     setChannelVisibility("public");
     setChannelMembers(status.agentId ? [status.agentId] : []);
-    setChannelRepo("");
+    setChannelRepos([]);
+    setChannelRepoQuery("");
     setError("");
     setChannelOpen(true);
+    void loadAvailableRepos();
+  }
+
+  function openChannelEdit(room: Room) {
+    setChannelEdit(room);
     void loadAvailableRepos();
   }
 
@@ -747,7 +767,7 @@ export default function Workspace({ status }: Props) {
         categoryId: channelCategoryId,
         visibility: channelVisibility,
         memberIds: channelMembers,
-        repos: channelRepo ? [channelRepo] : [],
+        repos: channelRepos,
       });
       setRooms((current) => [room, ...current]);
       setSelectedRoomId(room.id);
@@ -828,15 +848,6 @@ export default function Workspace({ status }: Props) {
       setError(cause instanceof Error ? cause.message : "Não foi possível excluir a categoria.");
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function moveChannel(room: Room, categoryId: string | null) {
-    try {
-      const updated = await channelsApi.setCategory(room.id, categoryId);
-      setRooms((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Não foi possível mover o canal.");
     }
   }
 
@@ -970,16 +981,17 @@ export default function Workspace({ status }: Props) {
 
   async function openRepos() {
     if (!selectedRoom || selectedRoom.kind !== "room") return;
-    setDraftRepos(selectedRoom.repos.slice(0, 1));
+    setDraftRepos(selectedRoom.repos);
     setRepoQuery("");
     setRepoError("");
     setReposOpen(true);
     await loadAvailableRepos();
   }
 
-  /** A channel has one repository: picking another replaces the current one. */
   function toggleRepo(path: string) {
-    setDraftRepos((current) => (current.includes(path) ? [] : [path]));
+    setDraftRepos((current) =>
+      current.includes(path) ? current.filter((item) => item !== path) : [...current, path],
+    );
   }
 
   async function saveRepos() {
@@ -987,7 +999,7 @@ export default function Workspace({ status }: Props) {
     setRepoBusy(true);
     setRepoError("");
     try {
-      const updated = await channelsApi.setRepos(selectedRoom.id, draftRepos.slice(0, 1));
+      const updated = await channelsApi.setRepos(selectedRoom.id, draftRepos);
       setRooms((current) =>
         current.map((room) => (room.id === updated.id ? updated : room)),
       );
@@ -1008,12 +1020,16 @@ export default function Workspace({ status }: Props) {
     setRepoBusy(true);
     setRepoError("");
     try {
-      const { project } = await channelsApi.devProject(selectedRoom.id);
-      const result = await api.closeProject(project.id);
+      let processes = 0;
+      for (const repo of selectedRoom.repos) {
+        const { project } = await channelsApi.devProject(selectedRoom.id, repo);
+        const result = await api.closeProject(project.id);
+        processes += result.processes.length;
+      }
       if (channelDevRoomId === selectedRoom.id) resetChannelDev();
       useApp.getState().notify(
         "info",
-        `Projeto ${project.name} limpo. ${result.processes.length} processo${result.processes.length === 1 ? "" : "s"} encerrado${result.processes.length === 1 ? "" : "s"}.`,
+        `${selectedRoom.repos.length} projeto${selectedRoom.repos.length === 1 ? "" : "s"} limpo${selectedRoom.repos.length === 1 ? "" : "s"}. ${processes} processo${processes === 1 ? "" : "s"} encerrado${processes === 1 ? "" : "s"}.`,
       );
     } catch (cause) {
       setRepoError(cause instanceof Error ? cause.message : "Não foi possível limpar o projeto.");
@@ -1050,29 +1066,44 @@ export default function Workspace({ status }: Props) {
     setChannelDevTool(null);
     setChannelDevRoomId(null);
     setChannelDevProjectId(null);
+    setChannelDevRepoPath(null);
   }
 
   /** Resolves the channel's repo into the project the dev panels read. */
-  async function ensureChannelDevProject(room: Room): Promise<string> {
-    if (channelDevRoomId === room.id && channelDevProjectId) return channelDevProjectId;
-    const { project } = await channelsApi.devProject(room.id);
+  async function ensureChannelDevProject(room: Room, repoPath: string): Promise<string> {
+    if (channelDevRoomId === room.id && channelDevProjectId && channelDevRepoPath === repoPath) {
+      return channelDevProjectId;
+    }
+    const { project } = await channelsApi.devProject(room.id, repoPath);
     const app = useApp.getState();
     const exists = app.projects.some((item) => item.id === project.id);
     app.setProjects(exists ? app.projects : [...app.projects, project]);
     app.setActiveProject(project.id);
     setChannelDevRoomId(room.id);
     setChannelDevProjectId(project.id);
+    setChannelDevRepoPath(repoPath);
     return project.id;
   }
 
   /** Opens one of the channel's dev tools, with the channel's repo as project. */
-  async function openChannelDev(tool: ChannelDevTool, targetRoom: Room | null = selectedRoom) {
+  async function openChannelDev(
+    tool: ChannelDevTool,
+    targetRoom: Room | null = selectedRoom,
+    repoPath?: string,
+  ) {
     if (!devMode || !targetRoom || targetRoom.kind !== "room" || targetRoom.repos.length === 0) return;
+    const repo = repoPath && targetRoom.repos.includes(repoPath)
+      ? repoPath
+      : channelDevRepoPath && targetRoom.repos.includes(channelDevRepoPath)
+        ? channelDevRepoPath
+        : targetRoom.repos[0];
     setChannelDevBusy(true);
     try {
-      await ensureChannelDevProject(targetRoom);
+      await ensureChannelDevProject(targetRoom, repo);
       useApp.getState().setSidebar(tool);
       setChannelDevTool(tool);
+      setMessageMode("channel");
+      setChannelSessionsTarget(null);
       setView("chat");
       setMenuOpen(false);
       // Re-clicking the active tool reopens its panel after the user closes it.
@@ -1089,6 +1120,36 @@ export default function Workspace({ status }: Props) {
 
   function closeChannelDev() {
     setChannelDevTool(null);
+  }
+
+  /** The private sessions live inside Mensagens, scoped to the selected repo. */
+  async function openChannelSessions(
+    targetRoom: Room | null = selectedRoom,
+    repoPath?: string,
+    target: { chatId?: string; botId?: string } | null = null,
+  ) {
+    if (!devMode || !targetRoom || targetRoom.kind !== "room" || targetRoom.repos.length === 0) return;
+    const room = targetRoom;
+    const repo = repoPath && room.repos.includes(repoPath)
+      ? repoPath
+      : channelDevRepoPath && room.repos.includes(channelDevRepoPath)
+        ? channelDevRepoPath
+        : room.repos[0];
+    setChannelDevBusy(true);
+    try {
+      await ensureChannelDevProject(room, repo);
+      setChannelDevTool(null);
+      setMessageMode("sessions");
+      setChannelSessionsTarget(target);
+      setView("chat");
+    } catch (cause) {
+      useApp.getState().notify(
+        "error",
+        cause instanceof Error ? cause.message : "Não foi possível abrir as sessões do repo.",
+      );
+    } finally {
+      setChannelDevBusy(false);
+    }
   }
 
   /**
@@ -1127,22 +1188,7 @@ export default function Workspace({ status }: Props) {
       );
       if (!target) return;
       selectRoom(target);
-      localStorage.setItem(
-        "jeff_open_dev_chat",
-        JSON.stringify({
-          projectId: item.projectId,
-          chatId: item.chatId,
-          botId: item.botId,
-        }),
-      );
-      await openChannelDev("bots", target);
-      // The workbench may already be mounted (the user is already in the
-      // channel's dev view): the handoff is only for its first mount.
-      window.dispatchEvent(
-        new CustomEvent(item.chatId ? "jeff:open-chat" : "jeff:open-bot", {
-          detail: { projectId: item.projectId, chatId: item.chatId, botId: item.botId },
-        }),
-      );
+      await openChannelSessions(target, project.root, { chatId: item.chatId, botId: item.botId });
     } catch {
       // A stale notification must not keep the user from using the channel.
     }
@@ -1218,7 +1264,7 @@ export default function Workspace({ status }: Props) {
             setRenameCategoryName(category.name);
           }}
           onDeleteCategory={(category) => void removeCategory(category)}
-          onMoveChannel={(room, categoryId) => void moveChannel(room, categoryId)}
+          onEditChannel={(room) => openChannelEdit(room)}
           onDeleteChannel={(room) => void deleteChannel(room)}
           onOpenChannelAgents={openChannelAgents}
           onOpenChannelRepos={() => void openRepos()}
@@ -1466,24 +1512,9 @@ export default function Workspace({ status }: Props) {
                           />
                         }
                       >
-                        <MenuItem icon="channel" disabled>
-                          Mover para categoria
+                        <MenuItem icon="edit" onSelect={() => openChannelEdit(room)}>
+                          Editar canal
                         </MenuItem>
-                        <MenuItem
-                          icon="layers"
-                          onSelect={() => void moveChannel(room, null)}
-                        >
-                          Sem categoria
-                        </MenuItem>
-                        {categories.map((category) => (
-                          <MenuItem
-                            key={category.id}
-                            icon="layers"
-                            onSelect={() => void moveChannel(room, category.id)}
-                          >
-                            {category.name}
-                          </MenuItem>
-                        ))}
                         <MenuItem danger icon="trash" onSelect={() => void deleteChannel(room)}>
                           Excluir canal
                         </MenuItem>
@@ -1574,24 +1605,9 @@ export default function Workspace({ status }: Props) {
                                     />
                                   }
                                 >
-                                  <MenuItem icon="channel" disabled>
-                                    Mover para categoria
+                                  <MenuItem icon="edit" onSelect={() => openChannelEdit(room)}>
+                                    Editar canal
                                   </MenuItem>
-                                  <MenuItem
-                                    icon="layers"
-                                    onSelect={() => void moveChannel(room, null)}
-                                  >
-                                    Sem categoria
-                                  </MenuItem>
-                                  {categories.map((category) => (
-                                    <MenuItem
-                                      key={category.id}
-                                      icon="layers"
-                                      onSelect={() => void moveChannel(room, category.id)}
-                                    >
-                                      {category.name}
-                                    </MenuItem>
-                                  ))}
                                   <MenuItem
                                     danger
                                     icon="trash"
@@ -1611,96 +1627,6 @@ export default function Workspace({ status }: Props) {
                     </div>
                   );
                 })}
-              </div>
-            ) : null}
-          </section>
-
-          <section className="ws-group" data-open={openSections.agents} {...sectionProps("agents")}>
-            <div className="ws-group-head">
-              <button
-                type="button"
-                className="ws-group-toggle"
-                aria-expanded={openSections.agents}
-                onClick={() => toggleSection("agents")}
-              >
-                <span className="ws-group-label">Equipe</span>
-                <span className="ws-group-count">{teamMembers.length}</span>
-                <Icon name="chevronDown" size={14} className="ws-group-chevron" />
-              </button>
-              {sectionGrip("agents")}
-              {status.isAdmin ? (
-                <Menu
-                  align="end"
-                  label="Adicionar à equipe"
-                  trigger={
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      iconOnly
-                      icon="plus"
-                      className="ws-group-add"
-                      aria-label="Adicionar à equipe"
-                    />
-                  }
-                >
-                  <MenuItem icon="agent" onSelect={() => startNewAgent()}>
-                    Novo agente
-                  </MenuItem>
-                  <MenuItem icon="personAdd" onSelect={() => setInviteOpen(true)}>
-                    Novo usuário
-                  </MenuItem>
-                </Menu>
-              ) : null}
-            </div>
-            {openSections.agents ? (
-              <div className="ws-group-body">
-                {teamMembers.map((member) => {
-                  const active =
-                    member.bot &&
-                    selectedRoom?.kind === "dm" &&
-                    selectedRoom.members.some((item) => item.id === member.bot?.id);
-                  return (
-                    <div className="ws-agent-wrap ws-team-member" key={member.key}>
-                      <button
-                        type="button"
-                        className={`ws-agent-row${active ? " is-active" : ""}`}
-                        onClick={() => {
-                          if (member.bot) void openAgent(member.bot);
-                          else if (member.user) setPersonEdit(member.user);
-                        }}
-                      >
-                        <span className="ws-member-face">
-                          {member.bot ? faceOf(member.bot, 36) : <Avatar name={member.name} size="md" />}
-                          <span className="ws-member-presence" data-status={member.status} aria-hidden="true" />
-                        </span>
-                        <span className="ws-agent-copy">
-                          <strong>{member.name}</strong>
-                          <span className="ws-member-status" data-status={member.status}>
-                            <i aria-hidden="true" />
-                            {member.statusText}
-                          </span>
-                          <span className="ws-member-meta">{member.meta}</span>
-                        </span>
-                      </button>
-                      {status.isAdmin ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          iconOnly
-                          icon="edit"
-                          className="ws-row-action ws-team-edit"
-                          aria-label={`Editar ${member.name}`}
-                          title={`Editar ${member.name}`}
-                          onClick={() => {
-                            if (member.bot) setAgentEdit(member.bot);
-                            else if (member.user) setPersonEdit(member.user);
-                          }}
-                        />
-                      ) : null}
-                    </div>
-                  );
-                })}
-                {teamMembers.length === 0 ? <p className="ws-dm-note">Ninguém na equipe ainda.</p> : null}
               </div>
             ) : null}
           </section>
@@ -1876,6 +1802,16 @@ export default function Workspace({ status }: Props) {
                   variant="ghost"
                   size="sm"
                   iconOnly
+                  icon="members"
+                  className={`ws-members-toggle${membersOpen ? " is-active" : ""}`}
+                  aria-label={membersOpen ? "Ocultar equipe" : "Mostrar equipe"}
+                  title={membersOpen ? "Ocultar equipe" : "Mostrar equipe"}
+                  onClick={() => setMembersOpen((value) => !value)}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
                   icon="sidebar"
                   className="ws-details-toggle"
                   aria-label={detailsOpen ? "Ocultar detalhes" : "Mostrar detalhes"}
@@ -1889,6 +1825,43 @@ export default function Workspace({ status }: Props) {
 
         {view === "chat" && selectedRoom?.kind === "room" && devMode && selectedRoom.repos.length > 0 ? (
           <div className="ws-devbar" role="tablist" aria-label="Ferramentas do canal">
+            {selectedRoom.kind === "room" && selectedRoom.repos.length > 0 ? (
+              selectedRoom.repos.length === 1 ? (
+                <span className="ws-devbar__repo" title={selectedRoom.repos[0]}>
+                  <Icon name="repo" size={14} />
+                  {selectedRoom.repos[0].split("/").pop() || selectedRoom.repos[0]}
+                </span>
+              ) : (
+                <Menu
+                  align="start"
+                  label="Repositório do canal"
+                  trigger={
+                    <button type="button" className="ws-devbar__repo ws-devbar__repo--menu" disabled={channelDevBusy}>
+                      <Icon name="repo" size={14} />
+                      {(channelDevRepoPath || selectedRoom.repos[0]).split("/").pop()}
+                      <Icon name="chevronDown" size={14} />
+                    </button>
+                  }
+                >
+                  {selectedRoom.repos.map((path) => (
+                    <MenuItem
+                      key={path}
+                      icon={(channelDevRepoPath || selectedRoom.repos[0]) === path ? "check" : "repo"}
+                      onSelect={() => {
+                        if ((channelDevRepoPath || selectedRoom.repos[0]) === path) return;
+                        setChannelDevRepoPath(path);
+                        const tool = channelDevTool;
+                        setChannelDevProjectId(null);
+                        if (tool) void openChannelDev(tool, selectedRoom, path);
+                        else if (messageMode === "sessions") void openChannelSessions(selectedRoom, path);
+                      }}
+                    >
+                      {path.split("/").pop() || path}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              )
+            ) : null}
             <button
               type="button"
               role="tab"
@@ -1902,29 +1875,29 @@ export default function Workspace({ status }: Props) {
             {CHANNEL_DEV_TOOLS
               .filter((tool) => !tool.feature || featureEnabled(workspaceFeatures, tool.feature))
               .map((tool) => (
-              <button
-                key={tool.id}
-                type="button"
-                role="tab"
-                aria-selected={channelDevTool === tool.id}
-                className={`ws-devbar__tab${channelDevTool === tool.id ? " is-active" : ""}`}
-                disabled={channelDevBusy}
-                onClick={() => void openChannelDev(tool.id)}
-              >
-                <Icon name={tool.icon} size={14} />
-                {tool.label}
-              </button>
-            ))}
+                <button
+                  key={tool.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={channelDevTool === tool.id}
+                  className={`ws-devbar__tab${channelDevTool === tool.id ? " is-active" : ""}`}
+                  disabled={channelDevBusy}
+                  onClick={() => void openChannelDev(tool.id)}
+                >
+                  <Icon name={tool.icon} size={14} />
+                  {tool.label}
+                </button>
+              ))}
             {channelDevBusy ? <span className="ws-devbar__busy">Abrindo…</span> : null}
           </div>
         ) : null}
 
-        <div className={`ws-body${view === "chat" && detailsOpen && !channelDevTool ? "" : " is-details-closed"}`}>
+        <div className={`ws-body${view === "chat" && detailsOpen && !channelDevTool ? "" : " is-details-closed"}${view === "chat" && membersOpen ? " has-members" : ""}`}>
         <section className="ws-main">
         {view === "chat" && channelDevTool && channelDevProjectId ? (
           <div className="ws-panel ws-dev-panel">
             <Suspense fallback={null}>
-              <Workbench />
+              <Workbench projectId={channelDevProjectId ?? undefined} />
             </Suspense>
           </div>
         ) : null}
@@ -1945,6 +1918,44 @@ export default function Workspace({ status }: Props) {
         ) : null}
         {view === "chat" && !channelDevTool ? (
           <>
+            {devMode && selectedRoom?.kind === "room" && selectedRoom.repos.length > 0 ? (
+              <div className="ws-message-tabs" role="tablist" aria-label="Mensagens do canal">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={messageMode === "channel"}
+                  className={`ws-message-tab${messageMode === "channel" ? " is-active" : ""}`}
+                  onClick={() => setMessageMode("channel")}
+                >
+                  <Icon name="message" size={14} />
+                  Canal
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={messageMode === "sessions"}
+                  className={`ws-message-tab${messageMode === "sessions" ? " is-active" : ""}`}
+                  disabled={channelDevBusy}
+                  onClick={() => void openChannelSessions()}
+                >
+                  <Icon name="agent" size={14} />
+                  Sessões
+                </button>
+              </div>
+            ) : null}
+            {messageMode === "sessions" && channelDevProjectId ? (
+              (() => {
+                const sessionsProject = projects.find((project) => project.id === channelDevProjectId);
+                return sessionsProject ? (
+                  <SessionsWorkspace
+                    project={sessionsProject}
+                    initialChatId={channelSessionsTarget?.chatId}
+                    initialBotId={channelSessionsTarget?.botId}
+                  />
+                ) : null;
+              })()
+            ) : (
+              <>
             <div className="ws-messages">
               <div className="ws-message-list">
                 {messages.length === 0 && agent ? (
@@ -2014,6 +2025,8 @@ export default function Workspace({ status }: Props) {
                 ) : undefined}
               />
             </footer>
+              </>
+            )}
           </>
         ) : null}
 
@@ -2129,6 +2142,86 @@ export default function Workspace({ status }: Props) {
           />
         </div>
       </aside>
+
+      {view === "chat" && membersOpen ? (
+        <aside className="ws-members" aria-label="Equipe">
+          <div className="ws-members-head">
+            <GroupHeading title="Equipe" />
+            {status.isAdmin ? (
+              <Menu
+                align="end"
+                label="Adicionar à equipe"
+                trigger={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="plus"
+                    className="ws-group-add"
+                    aria-label="Adicionar à equipe"
+                  />
+                }
+              >
+                <MenuItem icon="agent" onSelect={() => startNewAgent()}>
+                  Novo agente
+                </MenuItem>
+                <MenuItem icon="personAdd" onSelect={() => setInviteOpen(true)}>
+                  Novo usuário
+                </MenuItem>
+              </Menu>
+            ) : null}
+          </div>
+          <div className="ws-members-list">
+            {teamMembers.map((member) => {
+              const active =
+                member.bot &&
+                selectedRoom?.kind === "dm" &&
+                selectedRoom.members.some((item) => item.id === member.bot?.id);
+              return (
+                <div className="ws-team-member" key={member.key}>
+                  <button
+                    type="button"
+                    className={`ws-agent-row${active ? " is-active" : ""}`}
+                    onClick={() => {
+                      if (member.bot) void openAgent(member.bot);
+                      else if (member.user) setPersonEdit(member.user);
+                    }}
+                  >
+                    <span className="ws-member-face">
+                      {member.bot ? faceOf(member.bot, 32) : <Avatar name={member.name} size="md" />}
+                      <span className="ws-member-presence" data-status={member.status} aria-hidden="true" />
+                    </span>
+                    <span className="ws-agent-copy">
+                      <strong>{member.name}</strong>
+                      <span className="ws-member-status" data-status={member.status}>
+                        <i aria-hidden="true" />
+                        {member.statusText}
+                      </span>
+                      <span className="ws-member-meta">{member.meta}</span>
+                    </span>
+                  </button>
+                  {status.isAdmin ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      icon="edit"
+                      className="ws-row-action ws-team-edit"
+                      aria-label={`Editar ${member.name}`}
+                      title={`Editar ${member.name}`}
+                      onClick={() => {
+                        if (member.bot) setAgentEdit(member.bot);
+                        else if (member.user) setPersonEdit(member.user);
+                      }}
+                    />
+                  ) : null}
+                </div>
+              );
+            })}
+            {teamMembers.length === 0 ? <p className="ws-dm-note">Ninguém na equipe ainda.</p> : null}
+          </div>
+        </aside>
+      ) : null}
       </div>
       </div>
       </div>
@@ -2162,22 +2255,47 @@ export default function Workspace({ status }: Props) {
               placeholder="Do que o canal trata?"
             />
           </Field>
-          <Field label="Repositório do canal">
-            <Select
-              value={channelRepo}
-              onValueChange={setChannelRepo}
-              placeholder={repoLoading ? "Carregando repos…" : "Sem repositório"}
-              options={[
-                { value: "", label: "Sem repositório" },
-                ...availableRepos.map((repo) => ({
-                  value: repo.path,
-                  label: `${repo.name} · ${repo.relative || repo.path}`,
-                })),
-              ]}
+          <Field label="Repositórios do canal">
+            <SearchField
+              value={channelRepoQuery}
+              onChange={(event) => setChannelRepoQuery(event.target.value)}
+              placeholder="Buscar repo…"
+              size="sm"
+              onClear={() => setChannelRepoQuery("")}
+              clearLabel="Limpar busca"
             />
+            <div className="ws-repo-list">
+              {repoLoading ? <p className="ws-muted">Carregando repos…</p> : null}
+              {!repoLoading && availableRepos
+                .filter((repo) => {
+                  const needle = channelRepoQuery.trim().toLowerCase();
+                  return !needle || `${repo.name} ${repo.path}`.toLowerCase().includes(needle);
+                })
+                .map((repo) => (
+                  <label className="ws-repo-option" key={repo.path}>
+                    <Checkbox
+                      checked={channelRepos.includes(repo.path)}
+                      onCheckedChange={() =>
+                        setChannelRepos((current) =>
+                          current.includes(repo.path)
+                            ? current.filter((item) => item !== repo.path)
+                            : [...current, repo.path],
+                        )
+                      }
+                    />
+                    <span>
+                      <strong>{repo.name}</strong>
+                      <small>{repo.path}</small>
+                    </span>
+                  </label>
+                ))}
+              {!repoLoading && availableRepos.length === 0 ? (
+                <p className="ws-muted">Nenhum repositório encontrado.</p>
+              ) : null}
+            </div>
           </Field>
           <p className="ws-invite-hint">
-            Canais com repositório ganham Explorer, Sessões, Source Control, Bancos e Web apps para quem tem acesso dev.
+            Canais com repositórios ganham Explorer, Source Control e Bancos para quem tem acesso dev.
           </p>
           <Field label="Categoria">
             <Select
@@ -2611,8 +2729,8 @@ export default function Workspace({ status }: Props) {
       <Dialog
         open={reposOpen}
         onOpenChange={setReposOpen}
-        title="Repositório do canal"
-        description="Um repositório por canal. Ele liga as ferramentas dev ao canal."
+        title="Repositórios do canal"
+        description="Cada repo escolhido liga as ferramentas dev ao canal, com um seletor na faixa."
         closeLabel="Fechar"
         width={520}
       >
@@ -2668,6 +2786,20 @@ export default function Workspace({ status }: Props) {
           </Button>
         </DialogFooter>
       </Dialog>
+
+      <ChannelEditDialog
+        room={channelEdit}
+        categories={categories}
+        humans={teamPrincipals.filter((principal) => principal.kind === "human")}
+        bots={bots}
+        repos={availableRepos}
+        reposLoading={repoLoading}
+        onClose={() => setChannelEdit(null)}
+        onSaved={(updated) => {
+          setRooms((current) => current.map((room) => (room.id === updated.id ? updated : room)));
+          if (channelDevTool && updated.id === selectedRoomId) resetChannelDev();
+        }}
+      />
 
       <WorkspaceMenu
         open={workspaceMenuOpen}

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Icon, Menu, MenuItem, MenuRadioGroup, MenuSeparator } from "faang-ui";
+import { Icon, Menu, MenuItem, MenuRadioGroup } from "faang-ui";
 import { Avatar } from "faang-ui";
 import { Bell, MoreHorizontal, Plus, Search, Settings2 } from "@jeff/icons";
 import type { User } from "../../../shared/api";
@@ -49,7 +49,7 @@ interface Props {
   onCreateCategory: () => void;
   onRenameCategory: (category: ChannelCategory) => void;
   onDeleteCategory: (category: ChannelCategory) => void;
-  onMoveChannel: (room: Room, categoryId: string | null) => void;
+  onEditChannel: (room: Room) => void;
   onDeleteChannel: (room: Room) => void;
   onOpenSearch: () => void;
   onOpenNotifications: () => void;
@@ -88,7 +88,7 @@ export default function ConversasScreen({
   onCreateCategory,
   onRenameCategory,
   onDeleteCategory,
-  onMoveChannel,
+  onEditChannel,
   onDeleteChannel,
   onOpenSearch,
   onOpenNotifications,
@@ -145,18 +145,9 @@ export default function ConversasScreen({
             label={`Opções de ${room.name}`}
             trigger={<MobileIconButton icon={MoreHorizontal} label={`Opções de ${room.name}`} className="m-row__action" />}
           >
-            <MenuItem icon="layers" disabled>
-              Mover para categoria
+            <MenuItem icon="edit" onSelect={() => onEditChannel(room)}>
+              Editar canal
             </MenuItem>
-            <MenuItem icon="layers" onSelect={() => onMoveChannel(room, null)}>
-              Sem categoria
-            </MenuItem>
-            {categories.map((category) => (
-              <MenuItem key={category.id} icon="layers" onSelect={() => onMoveChannel(room, category.id)}>
-                {category.name}
-              </MenuItem>
-            ))}
-            <MenuSeparator />
             <MenuItem danger icon="trash" onSelect={() => onDeleteChannel(room)}>
               Excluir canal
             </MenuItem>

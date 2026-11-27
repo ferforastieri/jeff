@@ -270,14 +270,6 @@ export interface RowChange {
   values?: Record<string, unknown>;
 }
 
-export interface WebTarget {
-  id: string;
-  name: string;
-  url: string;
-  icon: string;
-  createdAt: string;
-}
-
 export interface EmailAccount {
   id: string;
   name: string;
@@ -440,10 +432,6 @@ export function setApiBase(value: string): void {
 
 export function getApiBase(): string {
   return apiBase;
-}
-
-export function webPreviewUrl(url: string): string {
-  return `${apiBase}/api/web-preview?url=${encodeURIComponent(url)}`;
 }
 
 export async function probeServer(raw: string): Promise<string> {
@@ -1312,20 +1300,8 @@ export const api = {
     });
   },
 
-  async webTargets(): Promise<WebTarget[]> {
-    return request<WebTarget[]>("/web-targets");
-  },
 
-  async createWebTarget(name: string, url: string): Promise<WebTarget> {
-    return request<WebTarget>("/web-targets", {
-      method: "POST",
-      ...json({ name, url }),
-    });
-  },
 
-  async deleteWebTarget(id: string): Promise<void> {
-    await request(`/web-targets/${encodeURIComponent(id)}`, { method: "DELETE" });
-  },
 
   async emailAccounts(): Promise<EmailAccount[]> {
     return request<EmailAccount[]>("/email/accounts");

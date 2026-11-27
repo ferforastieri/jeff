@@ -7,7 +7,6 @@ export function tabFeature(tab: Tab): WorkspaceFeature | null {
     case "editor":
     case "diff": return "files";
     case "db": return "databases";
-    case "web": return "webApps";
     case "ai": return "bots";
     default: return null;
   }
@@ -23,7 +22,7 @@ export function restoredLayoutTabs(
       tab &&
       typeof tab.id === "string" &&
       (tab.kind === "ai" ? typeof tab.chatId === "string" : enabled("tabs")) &&
-      ["editor", "db", "web", "diff", "ai"].includes(tab.kind) &&
+      ["editor", "db", "diff", "ai"].includes(tab.kind) &&
       (!tabFeature(tab) || enabled(tabFeature(tab)!)),
   );
 }

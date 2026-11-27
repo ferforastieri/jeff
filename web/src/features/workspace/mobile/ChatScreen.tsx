@@ -65,6 +65,8 @@ interface Props {
   onOpenAgent: (agent: Principal) => void;
   onOpenMember: (user: User) => void;
   renderFace: (principal: Principal | null | undefined, size?: number) => ReactNode;
+  /** Mensagens' Canal / Sessões tabs, when the channel has a dev repo. */
+  messageTabs?: ReactNode;
   /** The channel's repo tools; only channels with a repo get one. */
   devBar?: ReactNode;
 }
@@ -92,6 +94,7 @@ export default function ChatScreen({
   onOpenAgent,
   onOpenMember,
   renderFace,
+  messageTabs,
   devBar,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -167,6 +170,7 @@ export default function ChatScreen({
         ) : null}
       </MobileScreenHeader>
 
+      {messageTabs}
       {devBar}
 
       <div className="m-chatscroll" ref={scroller}>

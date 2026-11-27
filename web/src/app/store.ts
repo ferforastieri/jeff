@@ -3,11 +3,11 @@ import type { Project, User } from "../shared/api";
 import { isDesktopClient } from "../features/settings/store";
 import { api } from "../shared/api";
 
-type TabKind = "editor" | "db" | "ai" | "web" | "diff";
-export type Sidebar = "files" | "scm" | "db" | "web" | "bots" | "settings";
+type TabKind = "editor" | "db" | "ai" | "diff";
+export type Sidebar = "files" | "scm" | "db" | "bots" | "settings";
 
 /** Screen shown by the compact mobile shell. */
-export type MobileScreen = "bots" | "files" | "scm" | "db" | "web" | "workspace" | "more";
+export type MobileScreen = "bots" | "files" | "scm" | "db" | "workspace" | "more";
 
 export interface Tab {
   id: string;

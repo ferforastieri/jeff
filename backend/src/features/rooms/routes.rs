@@ -572,6 +572,80 @@ pub(super) async fn send_channel_message(
     send_message_impl(&state, &project.id, &room_id, &auth, input).await
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct UpdateChannelInput {
+    name: String,
+    #[serde(default)]
+    title: String,
+    #[serde(default)]
+    instructions: String,
+    #[serde(default)]
+    visibility: String,
+    #[serde(default)]
+    category_id: Option<String>,
+    #[serde(default)]
+    member_ids: Vec<String>,
+    #[serde(default)]
+    agent_ids: Vec<String>,
+    #[serde(default)]
+    repos: Vec<String>,
+}
+
+pub(super) async fn update_channel(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+    Json(input): Json<UpdateChannelInput>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() {
+        return Err(AppError::Forbidden);
+    }
+    let name = input.name.trim();
+    if name.is_empty() {
+        return Err(bad_request("Dê um nome ao canal."));
+    }
+    let project = state.store.workspace_project().await?;
+    let room = state.store.room(&project.id, &room_id).await?;
+    if room.kind != "room" {
+        return Err(AppError::BadRequest("Só canais podem ser editados.".into()));
+    }
+    let category_id = input
+        .category_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    if let Some(category_id) = category_id {
+        state
+            .store
+            .list_channel_categories()
+            .await?
+            .into_iter()
+            .find(|category| category.id == category_id)
+            .ok_or(AppError::NotFound)?;
+    }
+    let room = state
+        .store
+        .update_room(
+            &project.id,
+            &room_id,
+            name,
+            &input.title,
+            &input.instructions,
+            if input.visibility == "public" {
+                "public"
+            } else {
+                "private"
+            },
+            category_id,
+            &input.repos,
+            &input.member_ids,
+            &input.agent_ids,
+        )
+        .await?;
+    Ok(Json(json!(room)))
+}
+
 pub(super) async fn set_channel_repos(
     State(state): State<Arc<AppState>>,
     Path(room_id): Path<String>,
@@ -593,13 +667,21 @@ pub(super) async fn set_channel_repos(
     Ok(Json(json!(room)))
 }
 
-/// The project behind a channel's repository. Dev tools are channel-scoped,
-/// so the channel decides the repo and the server hands back an accessible
-/// project (creating it on first use). Only people with dev access can ask.
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct ChannelDevInput {
+    #[serde(default)]
+    repo: String,
+}
+
+/// The project behind one of a channel's repositories. Dev tools are
+/// channel-scoped, so the channel decides the repo and the server hands back an
+/// accessible project (creating it on first use). Only dev people can ask.
 pub(super) async fn channel_dev_project(
     State(state): State<Arc<AppState>>,
     Path(room_id): Path<String>,
     Extension(auth): Extension<AuthContext>,
+    Json(input): Json<ChannelDevInput>,
 ) -> AppResult<Json<Value>> {
     if !auth.user.is_admin() && !auth.user.dev_access {
         return Err(AppError::Forbidden);
@@ -613,11 +695,19 @@ pub(super) async fn channel_dev_project(
     if !can_see_room(&room, &me.id, auth.user.is_admin()) {
         return Err(AppError::Forbidden);
     }
-    let repo = room
-        .repos
-        .first()
-        .cloned()
-        .ok_or_else(|| bad_request("O canal não tem repositório."))?;
+    let requested = input.repo.trim();
+    let repo = if requested.is_empty() {
+        room.repos
+            .first()
+            .cloned()
+            .ok_or_else(|| bad_request("O canal não tem repositório."))?
+    } else {
+        room.repos
+            .iter()
+            .find(|path| path.as_str() == requested)
+            .cloned()
+            .ok_or_else(|| bad_request("Este repositório não pertence ao canal."))?
+    };
     let root = state.workspace.validate_root(std::path::Path::new(&repo))?;
     let root_string = root.to_string_lossy().to_string();
     let project = match state.store.project_by_root(&root_string).await {
