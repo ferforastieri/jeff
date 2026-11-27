@@ -2397,41 +2397,6 @@
   flex: 1;
 }
 
-.m-devproject {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  align-items: center;
-  gap: 9px;
-  padding: 2px 4px;
-  text-align: start;
-}
-
-.m-devproject__copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.m-devproject__copy strong {
-  overflow: hidden;
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-  line-height: 20px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.m-devproject__copy small {
-  overflow: hidden;
-  color: var(--faint);
-  font-size: 11px;
-  line-height: 15px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .m-devface {
   display: grid;
   width: 34px;
@@ -2451,13 +2416,9 @@
   overscroll-behavior: contain;
 }
 
-.m-devcard--project {
-  margin: 0 0 10px;
-}
-
 .m-quickgrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -3123,13 +3084,6 @@ body.keyboard-open .m-app {
   height: min(var(--visual-viewport-height, 100dvh), calc(100dvh - var(--keyboard-inset, 0px)));
 }
 
-.m-devproject__chevron {
-  width: 15px;
-  height: 15px;
-  flex: none;
-  color: var(--faint);
-}
-
 /* The setup wizard on a phone: one column, the form on top and the progress
    in the headline; the rail would be a second empty card under it. */
 @media (max-width: 900px) {
@@ -3278,4 +3232,17 @@ body.keyboard-open .m-app {
   .m-devwork {
     padding-bottom: calc(10px + var(--safe-bottom));
   }
+}
+
+.m-dev-surface {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding-bottom: var(--safe-bottom);
+}
+
+.m-dev-surface > .m-screen {
+  min-height: 0;
+  flex: 1;
 }

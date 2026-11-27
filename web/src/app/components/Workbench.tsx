@@ -1,21 +1,23 @@
 import { useProjectStream } from "../../features/projects/hooks/useProjectStream";
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
-import { Bot, ChevronDown, X } from "@jeff/icons";
-import { api, type OnboardingStatus, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
+import { Bot, ChevronDown, Search, TerminalSquare, X } from "@jeff/icons";
+import { api, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
-import { useApp, type Sidebar, type Tab } from "../store";
+import { useApp, type Sidebar } from "../store";
 import { chatDisplayName, latestChatForJeff, useChats, type ProjectChats, type JeffChat } from "../../features/conversations/store";
 import { ensureChatSubjects } from "../../features/conversations/subjects";
 import { chatTabId } from "../../features/conversations/navigation";
 import { useAI } from "../../features/providers/store";
 import { PROJECT_EVENT, type ProjectEvent } from "../../features/projects/events";
+import { restoredLayoutTabs } from "../../features/projects/layout";
 import BotStudioTab from "../../features/conversations/components/BotStudioTab";
 import { featureEnabled, isDesktopClient, isJeffOnly, sidebarFeature, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import Tabs from "./Tabs";
-import Toasts from "../../features/notifications/components/Toasts";
 import CloseProjectModal from "../../features/projects/components/CloseProjectModal";
 import ProjectSwitcher from "../../features/projects/components/ProjectSwitcher";
+import QuickOpen from "../../features/explorer/components/QuickOpen";
+import ProjectMonogram from "../../features/projects/components/ProjectMonogram";
 import BranchPicker from "../../features/git/components/BranchPicker";
 import { useNotificationStream } from "../../features/notifications/stream";
 import { unlockBotSound } from "../../features/conversations/sound";
@@ -25,7 +27,7 @@ import { Button } from "@jeff/ui/app";
 import { Input } from "@jeff/ui/app";
 import { Modal } from "@jeff/ui/app";
 import ResizeHandle from "../../shared/ui/resize";
-import { isMobileViewport, useIsMobile } from "../../shared/ui/useIsMobile";
+import { isMobileViewport } from "../../shared/ui/useIsMobile";
 import { useConfirm } from "../../shared/ui/confirm";
 import { agentApi } from "../../features/agents/api";
 import { useAgentActivityBridge } from "../../features/agents/activity";
@@ -33,10 +35,7 @@ import { useJeffDrafts } from "../../features/agents/drafts";
 import { ensureSingleJeff, ensureJeff } from "../../features/agents/default-jeff";
 import { suggestGitChanges } from "../../features/git/ai";
 import { parseGitStatus } from "../../features/git/status";
-import DevSidebar from "./DevSidebar";
-import { roomsApi, type Principal } from "../../features/rooms/api";
 
-const MobileApp = lazy(() => import("../layouts/mobile/MobileApp"));
 const ExplorerPanel = lazy(() => import("../../features/explorer/components/ExplorerPanel"));
 const DatabasesPanel = lazy(() => import("../../features/databases/components/DatabasesPanel"));
 const WebSidebar = lazy(() => import("../../features/previews/components/WebSidebar"));
@@ -67,33 +66,6 @@ function rightPanelForSidebar(sidebar: Sidebar): RightPanel | null {
       return sidebar;
     default:
       return null;
-  }
-}
-
-function tabFeature(tab: Tab): WorkspaceFeature | null {
-  switch (tab.kind) {
-    case "editor":
-    case "diff": return "files";
-    case "db": return "databases";
-    case "web": return "webApps";
-    case "ai": return "bots";
-    default: return null;
-  }
-}
-
-function restoredSidebar(value: unknown): Sidebar {
-  switch (value) {
-    case "files":
-    case "scm":
-    case "db":
-    case "web":
-    case "bots":
-      return value;
-    case "search":
-    case "settings":
-      return "files";
-    default:
-      return "bots";
   }
 }
 
@@ -136,7 +108,7 @@ export default function Workbench() {
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [branchCreateOpen, setBranchCreateOpen] = useState(false);
   const [quickOpenToken, setQuickOpenToken] = useState(0);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const [rightPanel, setRightPanel] = useState<RightPanel>("files");
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const tabsVisible = workspaceFeatures.tabs;
@@ -148,10 +120,7 @@ export default function Workbench() {
   const loadedProject = useRef<string | null>(null);
   const [projectEpoch, setProjectEpoch] = useState(0);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
-  const [workspace, setWorkspace] = useState<OnboardingStatus | null>(null);
-  const [workspaceBots, setWorkspaceBots] = useState<Principal[]>([]);
   const forceJeffsOnLoad = useRef(false);
-  const mobile = useIsMobile();
 
   const project = projects.find((item) => item.id === activeProjectId) ?? null;
   const branch = gitStatus.split("\n")[0]?.replace(/^##\s*/, "").split("...")[0] ?? "";
@@ -191,14 +160,26 @@ export default function Workbench() {
     setSidebar(next);
   }
 
-  function openAuxiliary(panel: Sidebar): void {
-    const target = rightPanelForSidebar(panel);
-    if (!target) return;
-    const feature = rightPanelFeatures[target];
-    if (feature && !featureIsEnabled(feature)) return;
-    setRightPanel(target);
+  useEffect(() => {
+    const panel = rightPanelForSidebar(sidebar);
+    if (!panel) return;
+    setRightPanel(panel);
     setRightPanelOpen(true);
-  }
+  }, [sidebar]);
+
+  useEffect(() => {
+    const openTool = (event: Event) => {
+      const tool = (event as CustomEvent<{ tool?: Sidebar }>).detail?.tool;
+      if (!tool) return;
+      const panel = rightPanelForSidebar(tool);
+      if (!panel) return;
+      setSidebar(tool);
+      setRightPanel(panel);
+      setRightPanelOpen(true);
+    };
+    window.addEventListener("jeff:dev-tool", openTool);
+    return () => window.removeEventListener("jeff:dev-tool", openTool);
+  }, [setSidebar]);
 
   useEffect(() => {
     const selectedFeature = sidebarFeature(sidebar);
@@ -243,7 +224,10 @@ export default function Workbench() {
   }, [activeProjectId, sourceControlEnabled]);
 
   useEffect(() => {
-    const openQuick = () => setQuickOpenToken((current) => current + 1);
+    const openQuick = () => {
+      setQuickOpenOpen(true);
+      setQuickOpenToken((current) => current + 1);
+    };
     window.addEventListener("jeff:quick-open", openQuick);
     return () => window.removeEventListener("jeff:quick-open", openQuick);
   }, []);
@@ -272,6 +256,7 @@ export default function Workbench() {
       }
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "p") {
         event.preventDefault();
+        setQuickOpenOpen(true);
         setQuickOpenToken((current) => current + 1);
         return;
       }
@@ -416,6 +401,7 @@ export default function Workbench() {
     const onOpenBot = (event: Event) => {
       const payload = (event as CustomEvent<{ projectId?: string; botId?: string; notificationId?: string }>).detail;
       if (!payload?.projectId) return;
+      localStorage.removeItem("jeff_open_dev_chat");
       const state = useApp.getState();
       if (payload.notificationId) {
         const notification = state.notifications.find((item) => item.notificationId === payload.notificationId);
@@ -443,6 +429,7 @@ export default function Workbench() {
     const onOpenChat = (event: Event) => {
       const detail = (event as CustomEvent<{ projectId?: string; chatId?: string; title?: string }>).detail;
       if (!detail?.projectId || !detail.chatId) return;
+      localStorage.removeItem("jeff_open_dev_chat");
       const state = useApp.getState();
       if (state.activeProjectId !== detail.projectId) {
         pendingChatOpen.current = { projectId: detail.projectId, chatId: detail.chatId, title: detail.title };
@@ -511,13 +498,6 @@ export default function Workbench() {
 
   useEffect(() => {
     let cancelled = false;
-    void api.onboarding().then((status) => { if (!cancelled) setWorkspace(status); }).catch(() => undefined);
-    void roomsApi.principals().then((result) => { if (!cancelled) setWorkspaceBots(result.bots); }).catch(() => undefined);
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
     api
       .projects()
       .then((items) => {
@@ -563,7 +543,6 @@ export default function Workbench() {
     const initialEnabled = (feature: WorkspaceFeature) => featureEnabled(initialFeatures, feature);
     const initialTopOnly = isJeffOnly(initialFeatures);
     setTerminalOpen(initialEnabled("terminal") && !initialTopOnly && !desktopClient);
-    setSidebar("bots");
     api
       .layout(activeProjectId)
       .then((layout) => {
@@ -571,14 +550,7 @@ export default function Workbench() {
         const features = useSettings.getState().workspaceFeatures;
         const enabled = (feature: WorkspaceFeature) => featureEnabled(features, feature);
         const currentTopOnly = isJeffOnly(features);
-        const restored = (Array.isArray(layout.tabs) ? (layout.tabs as Tab[]) : []).filter(
-          (tab) =>
-            tab &&
-            typeof tab.id === "string" &&
-            (tab.kind === "ai" ? typeof tab.chatId === "string" : enabled("tabs")) &&
-            ["editor", "db", "web", "diff", "ai"].includes(tab.kind) &&
-            (!tabFeature(tab) || enabled(tabFeature(tab)!)),
-        );
+        const restored = restoredLayoutTabs(layout.tabs, enabled);
         const restoredActive = typeof layout.activeTabId === "string" && restored.some((tab) => tab.id === layout.activeTabId)
           ? layout.activeTabId
           : null;
@@ -591,14 +563,6 @@ export default function Workbench() {
         if (currentTopOnly || forceJeffsOnLoad.current || migratingJeffs) {
           forceJeffsOnLoad.current = false;
           setSidebar("bots");
-        } else if (layout.sidebar) {
-          const savedSidebar = restoredSidebar(layout.sidebar);
-          const savedFeature = sidebarFeature(savedSidebar);
-          setSidebar(
-            savedFeature && !enabled(savedFeature)
-              ? "bots"
-              : savedSidebar,
-          );
         }
         setTerminalOpen(
           enabled("terminal") && !currentTopOnly && (
@@ -971,21 +935,20 @@ export default function Workbench() {
   }
 
   if (!projectsLoaded) {
-    return <div className="min-h-dvh bg-background-full" />;
+    return <div className="h-full bg-background-full" />;
   }
 
   if (!project) {
     if (projects.length === 0) {
       return (
-        <main className="safe-screen relative flex min-h-dvh items-center justify-center bg-background-full p-4 sm:p-6">
+        <main className="safe-screen relative flex h-full min-h-0 items-center justify-center overflow-y-auto bg-background-full p-4 sm:p-6">
           <section className="w-full max-w-lg rounded-3xl border border-border-button-white bg-background-primary-default p-3 shadow-2xl">
             <ProjectSwitcher onSelect={switchProject} heading="Repos abertos" />
           </section>
-          <Toasts />
         </main>
       );
     }
-    return <div className="min-h-dvh bg-background-full" />;
+    return <div className="h-full bg-background-full" />;
   }
 
   function branchPickerBody() {
@@ -1051,53 +1014,37 @@ export default function Workbench() {
     </Suspense>
   ) : null;
 
-  if (mobile)
-    return (
-      <Suspense fallback={null}>
-        <MobileApp />
-      </Suspense>
-    );
-
   return (
-    <div className="dev-workbench relative flex h-dvh flex-col overflow-hidden">
-      <div className="dev-workbench__top relative flex min-h-0 flex-1 gap-0">
-        <div className={`dev-sidebar-slot${sidebarCollapsed ? " is-collapsed" : ""}`}>
-          <DevSidebar
-            project={project}
-            projects={projects}
-            openProjectIds={openProjectIds}
-            activeProjectId={activeProjectId}
-            user={user}
-            branch={branch}
-            branchControl={branchControl}
-            quickOpenToken={quickOpenToken}
-            activeTool={sidebar}
-            terminalOpen={terminalOpen}
-            onBack={() => window.location.assign(window.location.pathname)}
-            onOpenFile={openFile}
-            onOpenProject={switchProject}
-            onCloseProject={requestCloseProject}
-            onOpenRepoPicker={() => setRepoPickerOpen(true)}
-            onOpenTool={(tool) => { selectSidebar(tool); openAuxiliary(tool); }}
-            onTerminal={() => setTerminalOpen(!terminalOpen)}
-            onQuickOpen={() => setQuickOpenToken((current) => current + 1)}
-            collapsed={sidebarCollapsed}
-            onCollapse={setSidebarCollapsed}
-            workspace={workspace}
-            workspaceBots={workspaceBots.map(({ id, name, avatar }) => ({ id, name, avatar }))}
-            onWorkspaceInvite={() => {
-              localStorage.setItem("jeff_open_invite", "1");
-              window.location.assign(window.location.pathname);
-            }}
-            onWorkspaceSettings={(section) => {
-              localStorage.setItem("jeff_open_settings_section", section);
-              window.location.assign(window.location.pathname);
-            }}
-          />
-        </div>
-
-        <div className="dev-workbench__workspace dev-workbench__sheet relative flex min-h-0 min-w-0 flex-1 overflow-hidden border border-border-button-white">
+    <div className="dev-embedded relative flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 gap-0">
+        <div className="dev-embedded__sheet relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
           <div className="dev-workbench__main-column flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="dev-embedded__toolbar">
+              <button type="button" className="dev-embedded__project" onClick={() => setRepoPickerOpen(true)} title={project?.root ?? "Abrir repo"}>
+                {project ? <ProjectMonogram project={project} size={22} /> : <BrandMark size="small" />}
+                <span>{project?.name ?? "Abrir repo"}</span>
+                <ChevronDown size={12} />
+              </button>
+              {branchControl}
+              <span className="dev-embedded__grow" />
+              <IconButton
+                icon={Search}
+                size="small"
+                aria-label="Buscar arquivos"
+                title="Buscar (Ctrl+P)"
+                onClick={() => {
+                  setQuickOpenOpen(true);
+                  setQuickOpenToken((current) => current + 1);
+                }}
+              />
+              <IconButton
+                icon={TerminalSquare}
+                size="small"
+                aria-label={terminalOpen ? "Fechar terminal" : "Abrir terminal"}
+                title={terminalOpen ? "Fechar terminal" : "Abrir terminal (Ctrl+J)"}
+                onClick={() => setTerminalOpen(!terminalOpen)}
+              />
+            </div>
           <main className="dev-workbench__main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <div className="flex min-h-0 flex-1 flex-col">
               {tabsVisible && tabs.length > 0 ? <Tabs /> : null}
@@ -1164,6 +1111,26 @@ export default function Workbench() {
         </div>
       </div>
 
+      {quickOpenOpen && project ? (
+        <div
+          className="dev-quickopen"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Buscar"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) setQuickOpenOpen(false); }}
+          onKeyDown={(event) => { if (event.key === "Escape") setQuickOpenOpen(false); }}
+        >
+          <div className="dev-quickopen__card">
+            <QuickOpen
+              project={project}
+              focusToken={quickOpenToken}
+              onOpenFile={(path, line) => { setQuickOpenOpen(false); openFile(path, line); }}
+              floating
+            />
+          </div>
+        </div>
+      ) : null}
+
       <Modal
         isOpen={repoPickerOpen}
         onClose={() => setRepoPickerOpen(false)}
@@ -1173,11 +1140,11 @@ export default function Workbench() {
         bodyClassName="p-3"
       >
         <ProjectSwitcher
-          onlyClosed
           onSelect={(id) => {
             setRepoPickerOpen(false);
             switchProject(id);
           }}
+          onCloseProject={requestCloseProject}
         />
       </Modal>
 
@@ -1229,11 +1196,9 @@ export default function Workbench() {
         project={closeTarget}
         busy={closeBusy}
         error={closeError}
-        mobile={mobile}
         onClose={() => { if (!closeBusy) setCloseTarget(null); }}
         onConfirm={() => void confirmCloseProject()}
       />
-      <Toasts />
     </div>
   );
 }

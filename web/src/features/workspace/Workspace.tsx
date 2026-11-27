@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Avatar,
   Button,
@@ -26,7 +26,7 @@ import {
   type IconName,
 } from "faang-ui";
 import { api, type OnboardingStatus, type Project, type Repository, type User } from "../../shared/api";
-import { useApp, type AppNotification } from "../../app/store";
+import { useApp, type AppNotification, type Sidebar } from "../../app/store";
 import { SettingsView, type Section } from "../settings/components/JeffSettings";
 import {
   channelsApi,
@@ -61,8 +61,11 @@ import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import Toasts from "../notifications/components/Toasts";
 import { useIsMobile } from "../../shared/ui/useIsMobile";
 import WorkspaceMobile from "./mobile/WorkspaceMobile";
+import { featureEnabled, useSettings, type WorkspaceFeature } from "../settings/store";
 
-type View = "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings";
+const Workbench = lazy(() => import("../../app/components/Workbench"));
+
+type View = "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings" | "dev";
 
 function isView(value: string | undefined): value is View {
   return value === "home" || value === "chat" || value === "tasks" || value === "calendar" || value === "drive" || value === "wiki";
@@ -84,6 +87,14 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const NAV_DEFAULT = NAV_ITEMS.map((item) => item.id);
+
+const DEV_TOOLS: Array<{ id: Sidebar; label: string; icon: IconName; feature?: WorkspaceFeature }> = [
+  { id: "files", label: "Explorer", icon: "file", feature: "files" },
+  { id: "bots", label: "Sessões", icon: "message" },
+  { id: "scm", label: "Source Control", icon: "gitPull", feature: "sourceControl" },
+  { id: "db", label: "Databases", icon: "database", feature: "databases" },
+  { id: "web", label: "Web apps", icon: "globe", feature: "webApps" },
+];
 
 const EMOJI_LABELS = {
   dialog: "Emojis",
@@ -201,6 +212,10 @@ export default function Workspace({ status }: Props) {
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [activeAgents, setActiveAgents] = useState<import("../rooms/api").AgentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const sidebar = useApp((state) => state.sidebar);
+  const terminalOpen = useApp((state) => state.terminalOpen);
+  const setTerminalOpen = useApp((state) => state.setTerminalOpen);
+  const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
   const bottom = useRef<HTMLDivElement>(null);
   const workspaceLogo = status.workspaceLogo || WORKSPACE_FACE;
   const user = useApp((state) => state.user);
@@ -570,6 +585,11 @@ export default function Workspace({ status }: Props) {
 
   useEffect(() => setDevMode(status.devMode), [status.devMode]);
 
+  // Turning the dev mode off must not leave the dev surface on screen.
+  useEffect(() => {
+    if (!devMode && view === "dev") setView("home");
+  }, [devMode, view]);
+
   useEffect(() => {
     void loadAIModels();
   }, [loadAIModels]);
@@ -659,7 +679,7 @@ export default function Workspace({ status }: Props) {
   function changeView(next: View) {
     setView(next);
     setMenuOpen(false);
-    if (next !== "settings") savePosition(selectedRoomId, next);
+    if (next !== "settings" && next !== "dev") savePosition(selectedRoomId, next);
   }
 
   function toggleSection(section: "channels" | "agents" | "dms") {
@@ -1005,16 +1025,21 @@ export default function Workspace({ status }: Props) {
     }
   }
 
-  function openDev() {
-    const params = new URLSearchParams(window.location.search);
-    params.set("dev", "1");
-    window.location.assign(`${window.location.pathname}?${params.toString()}`);
+  function openDev(tool?: Sidebar) {
+    if (!devMode) return;
+    if (tool) useApp.getState().setSidebar(tool);
+    setView("dev");
+    setMenuOpen(false);
+    if (tool) {
+      window.dispatchEvent(new CustomEvent("jeff:dev-tool", { detail: { tool } }));
+    }
   }
 
-  /** The phone's way into the dev workbench, on the repo the user picked. */
-  function openWorkbench(projectId?: string) {
-    if (projectId) useApp.getState().setActiveProject(projectId);
-    openDev();
+  function openDevTerminal() {
+    if (!devMode) return;
+    setTerminalOpen(true);
+    setView("dev");
+    setMenuOpen(false);
   }
 
   /**
@@ -1027,6 +1052,12 @@ export default function Workspace({ status }: Props) {
     botId?: string;
     roomId?: string;
   }) {
+    // The phone manages its own panes, so it receives the notification and
+    // decides between the dev chat and a room.
+    if (mobile) {
+      window.dispatchEvent(new CustomEvent("jeff:mobile-notification", { detail: item }));
+      return;
+    }
     const room = item.roomId
       ? allRooms.find((candidate) => candidate.id === item.roomId)
       : null;
@@ -1044,7 +1075,15 @@ export default function Workspace({ status }: Props) {
           botId: item.botId,
         }),
       );
-      openDev();
+      setView("dev");
+      setMenuOpen(false);
+      // The workbench may already be mounted (the user is already in dev):
+      // the handoff in localStorage is only for its first mount.
+      window.dispatchEvent(
+        new CustomEvent(item.chatId ? "jeff:open-chat" : "jeff:open-bot", {
+          detail: { projectId: item.projectId, chatId: item.chatId, botId: item.botId },
+        }),
+      );
     }
   }
 
@@ -1126,7 +1165,6 @@ export default function Workspace({ status }: Props) {
           onSend={(text) => void send(text)}
           onConnectAI={() => openSettingsScreen("harness")}
           onAgentUpdated={(updated) => setBots((current) => current.map((bot) => (bot.id === updated.id ? updated : bot)))}
-          onOpenWorkbench={openWorkbench}
           onOpenNotification={openInboxItem}
           onView={changeView}
           onInvite={() => setInviteOpen(true)}
@@ -1157,7 +1195,7 @@ export default function Workspace({ status }: Props) {
           userStatus={userStatus}
           onStatusChange={(value) => updatePrefs({ userStatus: value })}
           devMode={devMode}
-          onDev={openDev}
+          onDev={() => openDev("files")}
           onOpenNotification={openInboxItem}
         />
       ) : (
@@ -1194,7 +1232,7 @@ export default function Workspace({ status }: Props) {
               icon="code"
               aria-label="Abrir modo dev"
               title="Abrir modo dev"
-              onClick={openDev}
+              onClick={() => openDev("files")}
             />
           ) : null}
         </div>
@@ -1312,6 +1350,40 @@ export default function Workspace({ status }: Props) {
         </nav>
 
         <div className="ws-sidebar-scroll">
+          {devMode ? (
+            <section className="ws-group ws-dev-group" aria-label="Modo dev">
+              <div className="ws-group-head">
+                <span className="ws-group-label">Dev</span>
+                <span className="ws-dev-badge">modo dev</span>
+              </div>
+              <div className="ws-group-body">
+                <ListRow
+                  lead={<Icon name="code" size={16} />}
+                  title="Workbench"
+                  onClick={() => openDev()}
+                />
+                {DEV_TOOLS
+                  .filter((tool) => !tool.feature || featureEnabled(workspaceFeatures, tool.feature))
+                  .map((tool) => (
+                    <ListRow
+                      key={tool.id}
+                      className={view === "dev" && sidebar === tool.id ? "is-active" : ""}
+                      lead={<Icon name={tool.icon} size={16} />}
+                      title={tool.label}
+                      onClick={() => openDev(tool.id)}
+                    />
+                  ))}
+                {featureEnabled(workspaceFeatures, "terminal") ? (
+                  <ListRow
+                    className={view === "dev" && terminalOpen ? "is-active" : ""}
+                    lead={<Icon name="code" size={16} />}
+                    title="Terminal"
+                    onClick={openDevTerminal}
+                  />
+                ) : null}
+              </div>
+            </section>
+          ) : null}
           <section className="ws-group" data-open={openSections.channels} {...sectionProps("channels")}>
             <div className="ws-group-head">
               <button
@@ -1795,6 +1867,15 @@ export default function Workspace({ status }: Props) {
 
         <div className={`ws-body${view === "chat" && detailsOpen ? "" : " is-details-closed"}`}>
         <section className="ws-main">
+        {view === "dev" ? (
+          <div className="ws-panel ws-dev-panel">
+            {devMode ? (
+              <Suspense fallback={null}>
+                <Workbench />
+              </Suspense>
+            ) : null}
+          </div>
+        ) : null}
         {view === "home" ? (
           <div className="ws-panel ws-home-panel">
             <HomeDashboard

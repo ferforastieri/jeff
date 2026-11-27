@@ -7,7 +7,6 @@ import EmailLogin from "../features/auth/components/EmailLogin";
 import ServerSetup from "../features/auth/components/ServerSetup";
 import UpdateToast from "../features/updates/components/UpdateToast";
 import { Button, Card } from "faang-ui";
-const Workbench = lazy(() => import("./components/Workbench"));
 const Workspace = lazy(() => import("../features/workspace/Workspace"));
 const Onboarding = lazy(() => import("../features/onboarding/Onboarding"));
 const AcceptInvite = lazy(() => import("../features/onboarding/AcceptInvite"));
@@ -230,17 +229,6 @@ function AppShell() {
     );
   }
 
-  const wantsDev = new URLSearchParams(window.location.search).get("dev") === "1";
-  if (onboarding?.devMode && wantsDev) {
-    localStorage.removeItem("jeff_open_rooms");
-    return (
-      <>
-        <Suspense fallback={null}><Workbench /></Suspense>
-        <UpdateToast />
-      </>
-    );
-  }
-
   if (onboarding) {
     return (
       <>
@@ -257,7 +245,7 @@ function AppShell() {
       <section className="jeff-welcome__main">
         <Card className="jeff-step__card">
           <h1 className="jeff-welcome__question">Não foi possível abrir o workspace</h1>
-          <p className="jeff-welcome__hint">Tente recarregar. O modo dev não é aberto por padrão.</p>
+          <p className="jeff-welcome__hint">Tente recarregar a página.</p>
           <Button variant="primary" size="sm" block onClick={() => window.location.reload()}>
             Tentar de novo
           </Button>
