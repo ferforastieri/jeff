@@ -53,7 +53,6 @@ interface Props {
   onDeleteChannel: (room: Room) => void;
   onOpenSearch: () => void;
   onOpenNotifications: () => void;
-  onOpenWorkbench: () => void;
 }
 
 function presence(status: MemberStatus) {
@@ -93,7 +92,6 @@ export default function ConversasScreen({
   onDeleteChannel,
   onOpenSearch,
   onOpenNotifications,
-  onOpenWorkbench,
 }: Props) {
   const setUserStatus = usePrefs((state) => state.update);
   const prefs = usePrefs((state) => state.prefs);
@@ -188,10 +186,6 @@ export default function ConversasScreen({
                 </MenuItem>
                 <MenuItem icon="layers" onSelect={onCreateCategory}>
                   Nova categoria
-                </MenuItem>
-                <MenuSeparator />
-                <MenuItem icon="code" onSelect={onOpenWorkbench}>
-                  Abrir workbench
                 </MenuItem>
               </Menu>
             ) : null}

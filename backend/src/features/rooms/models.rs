@@ -137,6 +137,8 @@ pub struct CreateRoomInput {
     pub category_id: Option<String>,
     #[serde(default)]
     pub visibility: String,
+    #[serde(default)]
+    pub repos: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  Braces,
   ChevronRight,
   Globe2,
   HardDrive,
@@ -36,8 +35,6 @@ interface Props {
   agentCount: number;
   projectRoot: string;
   onOpenSettings: (section: Section) => void;
-  onOpenWorkbench: () => void;
-  devMode: boolean;
   onMenu: () => void;
 }
 
@@ -61,8 +58,6 @@ export default function YouScreen({
   agentCount,
   projectRoot,
   onOpenSettings,
-  onOpenWorkbench,
-  devMode,
   onMenu,
 }: Props) {
   const theme = useSettings((state) => state.theme);
@@ -145,12 +140,6 @@ export default function YouScreen({
             <strong>{workspaceName}</strong>
             <small>{memberCount} {memberCount === 1 ? "membro" : "membros"} · {agentCount} {agentCount === 1 ? "agente" : "agentes"}</small>
           </div>
-          {devMode ? (
-            <button type="button" className="m-wscard__dev" onClick={onOpenWorkbench}>
-              <Braces className="m-wscard__icon" />
-              Workbench
-            </button>
-          ) : null}
         </section>
 
         <section className="m-block">

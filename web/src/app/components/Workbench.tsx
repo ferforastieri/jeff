@@ -2,7 +2,7 @@ import { useProjectStream } from "../../features/projects/hooks/useProjectStream
 import { useLayoutTabs, useWorkspacePersistence } from "../../features/projects/hooks/useWorkspacePersistence";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { Bot, ChevronDown, Search, TerminalSquare, X } from "@jeff/icons";
-import { api, type Project, type SchemaTable, type WebTarget } from "../../shared/api";
+import { api, type SchemaTable, type WebTarget } from "../../shared/api";
 import { basename, expandGitPattern, quoteIdentifier, sanitizeBranchName } from "../../shared/lib";
 import { useApp, type Sidebar } from "../store";
 import { chatDisplayName, latestChatForJeff, useChats, type ProjectChats, type JeffChat } from "../../features/conversations/store";
@@ -14,8 +14,6 @@ import { restoredLayoutTabs } from "../../features/projects/layout";
 import BotStudioTab from "../../features/conversations/components/BotStudioTab";
 import { featureEnabled, isDesktopClient, isJeffOnly, sidebarFeature, useSettings, type WorkspaceFeature } from "../../features/settings/store";
 import Tabs from "./Tabs";
-import CloseProjectModal from "../../features/projects/components/CloseProjectModal";
-import ProjectSwitcher from "../../features/projects/components/ProjectSwitcher";
 import QuickOpen from "../../features/explorer/components/QuickOpen";
 import ProjectMonogram from "../../features/projects/components/ProjectMonogram";
 import BranchPicker from "../../features/git/components/BranchPicker";
@@ -31,7 +29,6 @@ import { isMobileViewport } from "../../shared/ui/useIsMobile";
 import { useConfirm } from "../../shared/ui/confirm";
 import { agentApi } from "../../features/agents/api";
 import { useAgentActivityBridge } from "../../features/agents/activity";
-import { useJeffDrafts } from "../../features/agents/drafts";
 import { ensureSingleJeff, ensureJeff } from "../../features/agents/default-jeff";
 import { suggestGitChanges } from "../../features/git/ai";
 import { parseGitStatus } from "../../features/git/status";
@@ -75,8 +72,6 @@ export default function Workbench() {
   const activeProjectId = useApp((state) => state.activeProjectId);
   const openProjectIds = useApp((state) => state.openProjectIds);
   const setProjects = useApp((state) => state.setProjects);
-  const setActiveProject = useApp((state) => state.setActiveProject);
-  const closeProjectTab = useApp((state) => state.closeProjectTab);
   const tabs = useApp((state) => state.tabs);
   const activeTabId = useApp((state) => state.activeTabId);
   const setTabs = useApp((state) => state.setTabs);
@@ -90,7 +85,6 @@ export default function Workbench() {
   const pendingJeffSelection = useRef<{ projectId: string; jeffId: string; chatId?: string } | null>(null);
   const pendingChatOpen = useRef<{ projectId: string; chatId: string; title?: string } | null>(null);
   const loadChats = useChats((state) => state.load);
-  const snapshotChats = useChats((state) => state.snapshot);
   const loadAI = useAI((state) => state.load);
   const loadModels = useAI((state) => state.loadModels);
   const branchPattern = useSettings((state) => state.gitBranchPattern);
@@ -100,10 +94,6 @@ export default function Workbench() {
   const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
   const confirm = useConfirm();
 
-  const [closeTarget, setCloseTarget] = useState<Project | null>(null);
-  const [repoPickerOpen, setRepoPickerOpen] = useState(false);
-  const [closeBusy, setCloseBusy] = useState(false);
-  const [closeError, setCloseError] = useState("");
   const [gitStatus, setGitStatus] = useState("");
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [branchCreateOpen, setBranchCreateOpen] = useState(false);
@@ -514,13 +504,6 @@ export default function Workbench() {
     };
   }, [notify, setProjects]);
 
-  // The welcome page used to flash between projects loading. Pick the first
-  // project instead and only show a picker when the account really has none.
-  useEffect(() => {
-    if (!projectsLoaded || project || projects.length === 0) return;
-    setActiveProject(projects[0].id);
-  }, [projectsLoaded, project, projects, setActiveProject]);
-
   // Keep the index.html splash (Jeff jumping) up until the workbench has
   // something real to show, instead of a black frame between the two.
   useEffect(() => {
@@ -605,21 +588,6 @@ export default function Workbench() {
   }, projectEpoch);
   useAgentActivityBridge(openProjectIds);
 
-  function switchProject(next: string) {
-    if (next === activeProjectId) return;
-    if (project && loadedProject.current === project.id) {
-      void api.saveLayout(project.id, {
-        tabs: layoutTabs,
-        activeTabId,
-        sidebar,
-        terminalOpen,
-        chats: snapshotChats(project.id),
-      });
-    }
-    forceJeffsOnLoad.current = true;
-    loadedProject.current = null;
-    setActiveProject(next);
-  }
 
 
 
@@ -888,68 +856,11 @@ export default function Workbench() {
     });
   }
 
-  function requestCloseProject(id: string) {
-    const target = projects.find((item) => item.id === id);
-    if (!target) return;
-    setCloseError("");
-    setCloseTarget(target);
-  }
-
-  async function confirmCloseProject() {
-    if (!closeTarget || closeBusy) return;
-    const id = closeTarget.id;
-    const target = closeTarget;
-    setCloseBusy(true);
-    setCloseError("");
-    try {
-      if (activeProjectId === id && loadedProject.current === id) {
-        await api
-          .saveLayout(id, {
-            tabs: layoutTabs,
-            activeTabId,
-            sidebar,
-            terminalOpen,
-            chats: snapshotChats(id),
-          })
-          .catch(() => undefined);
-      }
-      const result = await api.closeProject(id);
-      useChats.getState().forget(id);
-      useJeffDrafts.getState().clearProject(id);
-      if (activeProjectId === id) {
-        forceJeffsOnLoad.current = true;
-        loadedProject.current = null;
-      }
-      closeProjectTab(id);
-      setCloseTarget(null);
-      const count = result.processes.length;
-      notify("info", `Repo ${target.name} fechado. ${count} processo${count === 1 ? "" : "s"} encerrado${count === 1 ? "" : "s"}.`);
-      if (result.failed.length > 0) {
-        notify("error", `${result.failed.length} processo${result.failed.length === 1 ? "" : "s"} não puderam ser encerrados.`);
-      }
-    } catch (error) {
-      setCloseError(error instanceof Error ? error.message : "Não foi possível fechar o repo.");
-    } finally {
-      setCloseBusy(false);
-    }
-  }
-
   if (!projectsLoaded) {
     return <div className="h-full bg-background-full" />;
   }
 
-  if (!project) {
-    if (projects.length === 0) {
-      return (
-        <main className="safe-screen relative flex h-full min-h-0 items-center justify-center overflow-y-auto bg-background-full p-4 sm:p-6">
-          <section className="w-full max-w-lg rounded-3xl border border-border-button-white bg-background-primary-default p-3 shadow-2xl">
-            <ProjectSwitcher onSelect={switchProject} heading="Repos abertos" />
-          </section>
-        </main>
-      );
-    }
-    return <div className="h-full bg-background-full" />;
-  }
+  if (!project) return <div className="h-full bg-background-full" />;
 
   function branchPickerBody() {
     return (
@@ -1020,11 +931,10 @@ export default function Workbench() {
         <div className="dev-embedded__sheet relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
           <div className="dev-workbench__main-column flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="dev-embedded__toolbar">
-              <button type="button" className="dev-embedded__project" onClick={() => setRepoPickerOpen(true)} title={project?.root ?? "Abrir repo"}>
-                {project ? <ProjectMonogram project={project} size={22} /> : <BrandMark size="small" />}
-                <span>{project?.name ?? "Abrir repo"}</span>
-                <ChevronDown size={12} />
-              </button>
+              <div className="dev-embedded__project" title={project.root}>
+                <ProjectMonogram project={project} size={22} />
+                <span>{project.name}</span>
+              </div>
               {branchControl}
               <span className="dev-embedded__grow" />
               <IconButton
@@ -1132,23 +1042,6 @@ export default function Workbench() {
       ) : null}
 
       <Modal
-        isOpen={repoPickerOpen}
-        onClose={() => setRepoPickerOpen(false)}
-        title="Abrir repo"
-        description="Escolha um repositório disponível no servidor."
-        size="md"
-        bodyClassName="p-3"
-      >
-        <ProjectSwitcher
-          onSelect={(id) => {
-            setRepoPickerOpen(false);
-            switchProject(id);
-          }}
-          onCloseProject={requestCloseProject}
-        />
-      </Modal>
-
-      <Modal
         isOpen={branchMenuOpen && Boolean(project)}
         onClose={() => setBranchMenuOpen(false)}
         title="Branches"
@@ -1189,16 +1082,6 @@ export default function Workbench() {
           <Button type="submit" size="small" className="w-full justify-center" disabled={!newBranchName.trim() || Boolean(branchBusy)}>{branchBusy === "create" ? "Criando..." : "Criar branch"}</Button>
         </form>
       </Modal>
-
-
-      <CloseProjectModal
-        open={Boolean(closeTarget)}
-        project={closeTarget}
-        busy={closeBusy}
-        error={closeError}
-        onClose={() => { if (!closeBusy) setCloseTarget(null); }}
-        onConfirm={() => void confirmCloseProject()}
-      />
     </div>
   );
 }

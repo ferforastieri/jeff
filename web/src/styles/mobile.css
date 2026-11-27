@@ -1089,160 +1089,6 @@
   color: var(--faint);
 }
 
-.m-blockhead {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 20px 5px 8px;
-}
-
-.m-blockhead > div {
-  min-width: 0;
-  flex: 1;
-}
-
-.m-blockhead h2 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  line-height: 20px;
-}
-
-.m-blockhead p {
-  margin: 1px 0 0;
-  color: var(--faint);
-  font-size: 11.5px;
-  line-height: 16px;
-}
-
-.m-blockhead__action {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 5px;
-  border-radius: 9px;
-  background: var(--plate);
-  color: var(--muted);
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 6px 9px;
-}
-
-.m-blockhead__icon {
-  width: 14px;
-  height: 14px;
-}
-
-.m-devcard {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  align-items: center;
-  gap: 10px;
-  border-radius: 16px;
-  background: var(--raised);
-  box-shadow: var(--e1), var(--top);
-  margin-bottom: 8px;
-  padding: 10px;
-  text-align: start;
-}
-
-.m-devcard__copy {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-}
-
-.m-devcard__copy strong {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 19px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.m-devcard__copy small {
-  overflow: hidden;
-  color: var(--faint);
-  font-size: 10.5px;
-  line-height: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.m-devcard__meta {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  color: var(--agent);
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.m-devcard__icon {
-  width: 14px;
-  height: 14px;
-}
-
-.m-repolist {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.m-reporow {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  align-items: center;
-  gap: 10px;
-  border-radius: 12px;
-  padding: 7px 6px;
-  text-align: start;
-  transition: background-color 0.15s;
-}
-
-.m-reporow:hover,
-.m-reporow[data-active] {
-  background: var(--side-hover);
-}
-
-.m-reporow__copy {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-}
-
-.m-reporow__copy strong {
-  overflow: hidden;
-  font-size: 13.5px;
-  font-weight: 600;
-  line-height: 18px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.m-reporow__copy small {
-  overflow: hidden;
-  color: var(--faint);
-  font-size: 10.5px;
-  line-height: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.m-reporow__icon {
-  width: 16px;
-  height: 16px;
-  flex: none;
-  color: var(--faint);
-}
-
 .m-wideaction {
   display: flex;
   width: 100%;
@@ -1261,16 +1107,6 @@
 .m-wideaction__icon {
   width: 17px;
   height: 17px;
-}
-
-.m-wideaction__tag {
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--agent) 20%, transparent);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 1px 5px;
-  text-transform: uppercase;
 }
 
 .m-muted {
@@ -1547,19 +1383,6 @@
   line-height: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.m-wscard__dev {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--agent) 13%, transparent);
-  color: var(--agent);
-  font-size: 11px;
-  font-weight: 650;
-  padding: 6px 8px;
 }
 
 .m-wscard__icon {
@@ -2408,74 +2231,6 @@
   color: var(--agent);
 }
 
-.m-devwork {
-  min-height: 0;
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px 10px 0;
-  overscroll-behavior: contain;
-}
-
-.m-quickgrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.m-quick {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  border-radius: 14px;
-  background: var(--raised);
-  box-shadow: var(--e1), var(--top);
-  color: var(--muted);
-  padding: 10px 4px 8px;
-  transition: transform 0.15s, color 0.15s;
-}
-
-.m-quick:active {
-  transform: scale(0.97);
-}
-
-.m-quick__glyph {
-  width: 20px;
-  height: 20px;
-  color: var(--agent);
-}
-
-.m-quick span {
-  overflow: hidden;
-  max-width: 100%;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.m-devtablist {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding-bottom: 4px;
-}
-
-.m-devrowwrap {
-  display: flex;
-  align-items: center;
-  gap: 1px;
-  border-radius: 10px;
-  transition: background-color 0.15s;
-}
-
-.m-devrowwrap:hover,
-.m-devrowwrap[data-active] {
-  background: var(--side-hover);
-}
-
 .m-devrow {
   display: flex;
   min-width: 0;
@@ -2667,23 +2422,6 @@
   gap: 8px;
   max-width: 560px;
   margin: 0 auto;
-}
-
-@media (max-width: 360px) {
-  .m-quickgrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .m-quick {
-    flex-direction: row;
-    justify-content: center;
-    gap: 7px;
-    padding: 9px 6px;
-  }
-
-  .m-quick span {
-    font-size: 11px;
-  }
 }
 
 /* The dev composer: the model, the effort and the mode on their own line above
@@ -3229,9 +2967,6 @@ body.keyboard-open .m-app {
     padding-bottom: var(--safe-bottom);
   }
 
-  .m-devwork {
-    padding-bottom: calc(10px + var(--safe-bottom));
-  }
 }
 
 .m-dev-surface {
@@ -3240,6 +2975,54 @@ body.keyboard-open .m-app {
   flex: 1;
   flex-direction: column;
   padding-bottom: var(--safe-bottom);
+}
+
+/* The channel's dev tools: a compact strip under the chat header. */
+.m-devbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  background: var(--pane);
+  padding: 5px 10px;
+  scrollbar-width: none;
+}
+
+.m-devbar::-webkit-scrollbar {
+  display: none;
+}
+
+.m-devbar__tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  border-radius: 9px;
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.m-devbar__tab:hover,
+.m-devbar__tab:active {
+  background: var(--plate-soft);
+  color: var(--ink);
+}
+
+.m-devbar__tab:disabled {
+  opacity: 0.55;
+}
+
+.m-devbar__busy {
+  flex: none;
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 12px;
 }
 
 .m-dev-surface > .m-screen {

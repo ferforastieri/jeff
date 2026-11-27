@@ -6866,25 +6866,60 @@ html:not([data-pointer]) .store-back:focus-visible {
   }
 }
 
-/* ---------- Dev inside the Slack workbench ---------- */
-.ws-dev-badge {
+/* ---------- Dev tools inside a channel ---------- */
+.ws-devbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  background: var(--pane);
+  padding: 4px 12px;
+  scrollbar-width: none;
+}
+
+.ws-devbar::-webkit-scrollbar {
+  display: none;
+}
+
+.ws-devbar__tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  border-radius: 8px;
+  padding: 0 9px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.ws-devbar__tab:hover {
+  background: var(--plate-soft);
+  color: var(--ink);
+}
+
+.ws-devbar__tab.is-active {
+  background: var(--plate-soft);
+  color: var(--ink);
+}
+
+.ws-devbar__tab:disabled {
+  opacity: 0.55;
+}
+
+.ws-devbar__busy {
   flex: none;
   margin-left: auto;
-  border-radius: 5px;
-  background: var(--plate-soft);
   color: var(--faint);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 16px;
-  padding: 0 5px;
-  text-transform: uppercase;
+  font-size: 12px;
 }
 
-.ws-dev-group .ws-group-body {
-  gap: 1px;
-}
-
+/* ---------- Dev inside the Slack workbench ---------- */
 .ws-dev-panel {
   display: flex;
   min-height: 0;
@@ -6924,14 +6959,8 @@ html:not([data-pointer]) .store-back:focus-visible {
   min-width: 0;
   align-items: center;
   gap: 6px;
-  border-radius: 8px;
-  padding: 3px 6px;
+  padding: 3px 2px;
   color: var(--ink);
-  transition: background-color 0.15s;
-}
-
-.dev-embedded__project:hover {
-  background: var(--plate-soft);
 }
 
 .dev-embedded__project > span {

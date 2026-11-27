@@ -61,9 +61,12 @@ interface Props {
   onAgentUpdated: (agent: Principal) => void;
   onOpenChannelAgents: () => void;
   onOpenChannelRepos: () => void;
+  canManageRepos?: boolean;
   onOpenAgent: (agent: Principal) => void;
   onOpenMember: (user: User) => void;
   renderFace: (principal: Principal | null | undefined, size?: number) => ReactNode;
+  /** The channel's repo tools; only channels with a repo get one. */
+  devBar?: ReactNode;
 }
 
 /** A room or DM as the phone's chat screen: flat messages, Discord's shape, and one composer. */
@@ -85,9 +88,11 @@ export default function ChatScreen({
   onAgentUpdated,
   onOpenChannelAgents,
   onOpenChannelRepos,
+  canManageRepos = false,
   onOpenAgent,
   onOpenMember,
   renderFace,
+  devBar,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -161,6 +166,8 @@ export default function ChatScreen({
           </div>
         ) : null}
       </MobileScreenHeader>
+
+      {devBar}
 
       <div className="m-chatscroll" ref={scroller}>
         <MessageLookContext.Provider value={{ style: "left", tone: "strong", mine: "var(--agent)", names: true, faces: true }}>
@@ -283,9 +290,11 @@ export default function ChatScreen({
                 ) : (
                   <p className="m-muted">Nenhum repo escolhido.</p>
                 )}
-                <Button variant="default" size="sm" icon="repo" onClick={() => { setDetailsOpen(false); onOpenChannelRepos(); }}>
-                  Escolher repos
-                </Button>
+                {canManageRepos ? (
+                  <Button variant="default" size="sm" icon="repo" onClick={() => { setDetailsOpen(false); onOpenChannelRepos(); }}>
+                    Escolher repos
+                  </Button>
+                ) : null}
               </section>
             </>
           ) : null}

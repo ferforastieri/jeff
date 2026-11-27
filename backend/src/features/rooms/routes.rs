@@ -11,6 +11,7 @@ use crate::errors::{bad_request, AppError, AppResult};
 use crate::features::rooms::models::{
     CreateBotInput, CreateCardInput, CreateRoomInput, QueueInput, SendMessageInput, UpdateCardInput,
 };
+use crate::model::Project;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -590,6 +591,76 @@ pub(super) async fn set_channel_repos(
         .set_room_repos(&project.id, &room_id, input.repos)
         .await?;
     Ok(Json(json!(room)))
+}
+
+/// The project behind a channel's repository. Dev tools are channel-scoped,
+/// so the channel decides the repo and the server hands back an accessible
+/// project (creating it on first use). Only people with dev access can ask.
+pub(super) async fn channel_dev_project(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Extension(auth): Extension<AuthContext>,
+) -> AppResult<Json<Value>> {
+    if !auth.user.is_admin() && !auth.user.dev_access {
+        return Err(AppError::Forbidden);
+    }
+    let workspace = state.store.workspace_project().await?;
+    let room = state.store.room(&workspace.id, &room_id).await?;
+    if room.kind != "room" {
+        return Err(AppError::BadRequest("O modo dev vale para canais.".into()));
+    }
+    let me = state.store.ensure_human_principal(auth.user.id).await?;
+    if !can_see_room(&room, &me.id, auth.user.is_admin()) {
+        return Err(AppError::Forbidden);
+    }
+    let repo = room
+        .repos
+        .first()
+        .cloned()
+        .ok_or_else(|| bad_request("O canal não tem repositório."))?;
+    let root = state.workspace.validate_root(std::path::Path::new(&repo))?;
+    let root_string = root.to_string_lossy().to_string();
+    let project = match state.store.project_by_root(&root_string).await {
+        Ok(project) => project,
+        Err(AppError::NotFound) => {
+            let name = root
+                .file_name()
+                .map(|value| value.to_string_lossy().to_string())
+                .filter(|value| !value.is_empty())
+                .unwrap_or_else(|| "repo".into());
+            let created = state
+                .store
+                .create_project(Project {
+                    id: crate::crypto::new_id(),
+                    name,
+                    root: root_string.clone(),
+                    color: "#0063D1".into(),
+                    created_at: String::new(),
+                    updated_at: String::new(),
+                })
+                .await;
+            match created {
+                Ok(project) => {
+                    state.watch_project(&project.id, &root).await?;
+                    project
+                }
+                // A parallel open created it first: reuse that project.
+                Err(AppError::Conflict) => state.store.project_by_root(&root_string).await?,
+                Err(error) => return Err(error),
+            }
+        }
+        Err(error) => return Err(error),
+    };
+    if project.id == workspace.id {
+        return Err(AppError::BadRequest(
+            "O repositório do canal não pode ser o workspace inteiro.".into(),
+        ));
+    }
+    state
+        .store
+        .add_project_member(&project.id, auth.user.id)
+        .await?;
+    Ok(Json(json!({ "project": project })))
 }
 
 #[derive(Debug, Deserialize)]

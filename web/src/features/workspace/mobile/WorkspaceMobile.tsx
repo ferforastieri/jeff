@@ -4,9 +4,6 @@ import {
   Bell,
   BookOpen,
   Braces,
-  Database,
-  GitBranch,
-  Globe2,
   HardDrive,
   Home,
   MessageSquare,
@@ -22,11 +19,11 @@ import {
 } from "@jeff/icons";
 import { api, type AIModel, type OnboardingStatus, type Project, type User } from "../../../shared/api";
 import type { AppNotification, Tab } from "../../../app/store";
-import type { ChannelCategory, Principal, Room, RoomMessage } from "../../rooms/api";
+import { channelsApi, type ChannelCategory, type Principal, type Room, type RoomMessage } from "../../rooms/api";
 import type { Section } from "../../settings/components/JeffSettings";
 import { SettingsView } from "../../settings/components/JeffSettings";
 import { MEMBER_STATUS_LABEL, type MemberStatus } from "../../../shared/ui/presence";
-import { Menu, MenuRadioGroup, type IconName } from "faang-ui";
+import { Icon, Menu, MenuRadioGroup, type IconName } from "faang-ui";
 import { usePrefs } from "../../../shared/prefs";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
@@ -49,11 +46,12 @@ import ChatScreen from "./ChatScreen";
 import WorkHub from "./WorkHub";
 import AlertsScreen from "./AlertsScreen";
 import YouScreen from "./YouScreen";
-import WorkspaceDevMobile, { type WorkspaceDevEntry } from "./WorkspaceDevMobile";
+import ChannelDevMobile from "./ChannelDevMobile";
+import { CHANNEL_DEV_TOOLS, type ChannelDevTool } from "../channelDev";
 import { MobileEmpty, MobileWorkspaceButton } from "./mobile-ui";
 
 export type MobileTab = "home" | "conversas" | "trabalho" | "alertas" | "voce";
-type MobilePane = "root" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings" | "search" | "dev";
+type MobilePane = "root" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings" | "search";
 
 interface Props {
   status: OnboardingStatus;
@@ -181,40 +179,31 @@ export default function WorkspaceMobile(props: Props) {
   const [settingsSection, setSettingsSection] = useState<Section>("general");
   const [channelQuery, setChannelQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [devEntry, setDevEntry] = useState<WorkspaceDevEntry>("work");
-  const [devToken, setDevToken] = useState(0);
-  const [devChat, setDevChat] = useState<{ projectId?: string; chatId?: string; botId?: string } | null>(null);
+  const [channelDevTool, setChannelDevTool] = useState<ChannelDevTool | null>(null);
+  const [channelDevProjectId, setChannelDevProjectId] = useState<string | null>(null);
+  const [channelDevTarget, setChannelDevTarget] = useState<{ chatId?: string; botId?: string } | null>(null);
+  const [channelDevBusy, setChannelDevBusy] = useState(false);
   const [projectLayout, setProjectLayout] = useState<{ sidebar?: string; terminalOpen?: boolean } | null>(null);
   const [layoutReady, setLayoutReady] = useState(false);
   const [layoutEpoch, setLayoutEpoch] = useState(0);
   const searchHost = useRef<HTMLDivElement>(null);
-  const devBack = useRef<(() => boolean) | null>(null);
+  const channelDevBack = useRef<(() => boolean) | null>(null);
   const setStatus = usePrefs((state) => state.update);
   const projects = useApp((state) => state.projects);
-  const activeProjectId = useApp((state) => state.activeProjectId);
   const openProjectIds = useApp((state) => state.openProjectIds);
-  const setProjects = useApp((state) => state.setProjects);
   const tabs = useApp((state) => state.tabs);
   const activeTabId = useApp((state) => state.activeTabId);
   const layoutTabs = useLayoutTabs(tabs);
+  const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
 
-  // The phone shell now owns the dev session: projects and the project layout
-  // load here, since the desktop workbench is not mounted on this device.
-  useEffect(() => {
-    if (projects.length > 0) return;
-    let cancelled = false;
-    void api.projects()
-      .then((items) => { if (!cancelled) setProjects(items); })
-      .catch(() => undefined);
-    return () => { cancelled = true; };
-  }, [projects.length, setProjects]);
-
+  // The dev tools belong to the channel's repo; load that project's layout
+  // (tabs and conversations) only when a channel dev tool is first opened.
   useEffect(() => {
     setLayoutReady(false);
     setProjectLayout(null);
-    if (!status.devMode || !activeProjectId) return;
+    const projectId = channelDevProjectId;
+    if (!projectId) return;
     let cancelled = false;
-    const projectId = activeProjectId;
     useChats.getState().unload(projectId);
     useApp.getState().setTabs([]);
     void api.layout(projectId)
@@ -242,11 +231,11 @@ export default function WorkspaceMobile(props: Props) {
         setLayoutEpoch((value) => value + 1);
       });
     return () => { cancelled = true; };
-  }, [activeProjectId, status.devMode]);
+  }, [channelDevProjectId]);
 
   // The desktop workbench shares this layout; keep its sidebar and terminal
   // choices intact while the phone saves tabs and chats.
-  useWorkspacePersistence(activeProjectId, layoutReady, {
+  useWorkspacePersistence(channelDevProjectId, layoutReady, {
     tabs: layoutTabs,
     activeTabId,
     sidebar: projectLayout?.sidebar,
@@ -260,7 +249,11 @@ export default function WorkspaceMobile(props: Props) {
       setDrawerOpen(false);
       return true;
     }
-    if (pane === "dev" && devBack.current?.()) return true;
+    if (channelDevTool) {
+      if (channelDevBack.current?.()) return true;
+      setChannelDevTool(null);
+      return true;
+    }
     if (pane !== "root") {
       setPane("root");
       return true;
@@ -301,6 +294,7 @@ export default function WorkspaceMobile(props: Props) {
     setTab("conversas");
     setPane("chat");
     setDrawerOpen(false);
+    resetChannelDev();
   }
 
   async function openAgent(bot: Principal) {
@@ -322,31 +316,52 @@ export default function WorkspaceMobile(props: Props) {
     setDrawerOpen(false);
   }
 
-  function openDev(
-    entry: WorkspaceDevEntry = "work",
-    projectId?: string,
-    chat: { projectId?: string; chatId?: string; botId?: string } | null = null,
-  ) {
-    if (!status.devMode) return;
-    if (projectId) useApp.getState().setActiveProject(projectId);
-    setDevEntry(entry);
-    setDevChat(chat);
-    setDevToken((value) => value + 1);
-    setPane("dev");
-    setDrawerOpen(false);
+  function resetChannelDev() {
+    setChannelDevTool(null);
+    setChannelDevProjectId(null);
+    setChannelDevTarget(null);
   }
 
-  // Turning the dev mode off must not leave the dev surface on screen.
-  useEffect(() => {
-    if (!status.devMode && pane === "dev") setPane("root");
-  }, [pane, status.devMode]);
+  /** Resolves the channel's repo into a project and opens one of its tools. */
+  async function openChannelDev(
+    tool: ChannelDevTool,
+    room: Room | null = selectedRoom,
+    target: { chatId?: string; botId?: string } | null = null,
+  ) {
+    if (!status.devMode || !room || room.kind !== "room" || room.repos.length === 0) return;
+    setChannelDevBusy(true);
+    try {
+      let project = useApp.getState().projects.find((item) => item.root === room.repos[0]);
+      if (!project) {
+        const result = await channelsApi.devProject(room.id);
+        project = result.project;
+        const app = useApp.getState();
+        const exists = app.projects.some((item) => item.id === result.project.id);
+        app.setProjects(exists ? app.projects : [...app.projects, result.project]);
+      }
+      const app = useApp.getState();
+      app.setActiveProject(project.id);
+      app.setSidebar(tool);
+      setChannelDevProjectId(project.id);
+      setChannelDevTarget(target);
+      setChannelDevTool(tool);
+      setPane("chat");
+      setDrawerOpen(false);
+    } catch (cause) {
+      useApp.getState().notify(
+        "error",
+        cause instanceof Error ? cause.message : "Não foi possível abrir o projeto do canal.",
+      );
+    } finally {
+      setChannelDevBusy(false);
+    }
+  }
 
-  // Only the dev chat is a conversational surface; the rest of the phone shell
-  // must not look like an open conversation to the notification filter.
+  // Only the channel's dev chat is a conversational surface; the rest of the
+  // phone shell must not look like an open conversation to notifications.
   useEffect(() => {
-    if (pane === "dev") return;
-    useApp.getState().setMobileScreen("more");
-  }, [pane]);
+    useApp.getState().setMobileScreen(channelDevTool === "bots" ? "bots" : "more");
+  }, [channelDevTool]);
 
   // A native push opened the app: land on the room, or on the exact dev chat.
   useEffect(() => {
@@ -366,11 +381,15 @@ export default function WorkspaceMobile(props: Props) {
         }
       }
       if (detail.projectId && (detail.chatId || detail.botId)) {
-        openDev("sessions", detail.projectId, {
-          projectId: detail.projectId,
-          chatId: detail.chatId,
-          botId: detail.botId,
-        });
+        void (async () => {
+          const projects = await api.projects().catch(() => []);
+          const project = projects.find((item) => item.id === detail.projectId);
+          if (!project) return;
+          const target = rooms.find((item) => item.kind === "room" && item.repos.includes(project.root));
+          if (!target) return;
+          openRoom(target);
+          await openChannelDev("bots", target, { chatId: detail.chatId, botId: detail.botId });
+        })();
       }
     };
     window.addEventListener("jeff:mobile-notification", open);
@@ -407,22 +426,6 @@ export default function WorkspaceMobile(props: Props) {
         drawerRow("wiki", "Wiki", <BookOpen className="m-drawer__glyph" />, () => openTool("wiki"), { active: pane === "wiki" }),
       ],
     },
-    ...(status.devMode
-      ? [{
-          id: "dev",
-          label: "Dev",
-          rows: [
-            drawerRow("dev-work", "Workbench", <Braces className="m-drawer__glyph" />, () => openDev("work"), { active: pane === "dev" && devEntry === "work", hint: "Abas, terminal e diff" }),
-            drawerRow("dev-sessions", "Sessões", <MessageSquare className="m-drawer__glyph" />, () => openDev("sessions"), { active: pane === "dev" && devEntry === "sessions", hint: "Conversas do Jeff" }),
-            drawerRow("dev-files", "Explorer", <Rows3 className="m-drawer__glyph" />, () => openDev("files"), { active: pane === "dev" && devEntry === "files" }),
-            drawerRow("dev-git", "Source Control", <GitBranch className="m-drawer__glyph" />, () => openDev("git"), { active: pane === "dev" && devEntry === "git" }),
-            drawerRow("dev-terminal", "Terminal", <TerminalSquare className="m-drawer__glyph" />, () => openDev("terminal"), { active: pane === "dev" && devEntry === "terminal" }),
-            drawerRow("dev-db", "Bancos", <Database className="m-drawer__glyph" />, () => openDev("databases"), { active: pane === "dev" && devEntry === "databases" }),
-            drawerRow("dev-web", "Web apps", <Globe2 className="m-drawer__glyph" />, () => openDev("web"), { active: pane === "dev" && devEntry === "web" }),
-            drawerRow("dev-repos", "Repos", <GitBranch className="m-drawer__glyph" />, () => openDev("projects"), { active: pane === "dev" && devEntry === "projects" }),
-          ],
-        }]
-      : []),
     {
       id: "settings",
       label: "Ajustes",
@@ -484,10 +487,7 @@ export default function WorkspaceMobile(props: Props) {
         <WorkHub
           workspaceName={teamName}
           onOpenView={openTool}
-          onOpenWorkbench={(projectId) => openDev("work", projectId)}
           onOpenSearch={() => setPane("search")}
-          onOpenProjects={() => openDev("projects")}
-          devMode={status.devMode}
           onMenu={openDrawer}
         />
       );
@@ -496,17 +496,7 @@ export default function WorkspaceMobile(props: Props) {
       return (
         <AlertsScreen
           onMenu={openDrawer}
-          onOpen={(notification) => {
-            if (notification.projectId && (notification.chatId || notification.botId)) {
-              openDev("sessions", notification.projectId, {
-                projectId: notification.projectId,
-                chatId: notification.chatId,
-                botId: notification.botId,
-              });
-              return;
-            }
-            onOpenNotification(notification);
-          }}
+          onOpen={(notification) => onOpenNotification(notification)}
         />
       );
     }
@@ -523,8 +513,6 @@ export default function WorkspaceMobile(props: Props) {
           agentCount={bots.length}
           projectRoot={status.workspaceRoot}
           onOpenSettings={openSettings}
-          onOpenWorkbench={() => openDev("work")}
-          devMode={status.devMode}
           onMenu={openDrawer}
         />
       );
@@ -562,22 +550,62 @@ export default function WorkspaceMobile(props: Props) {
         onDeleteChannel={onDeleteChannel}
         onOpenSearch={() => setPane("search")}
         onOpenNotifications={() => setTab("alertas")}
-        onOpenWorkbench={() => openDev("work")}
       />
     );
   }
 
+  function channelDevBar() {
+    if (selectedRoom?.kind !== "room" || !status.devMode || selectedRoom.repos.length === 0) return null;
+    return (
+      <div className="m-devbar" role="tablist" aria-label="Ferramentas do canal">
+        {CHANNEL_DEV_TOOLS
+          .filter((tool) => !tool.feature || featureEnabled(workspaceFeatures, tool.feature))
+          .map((tool) => (
+          <button
+            key={tool.id}
+            type="button"
+            role="tab"
+            className="m-devbar__tab"
+            disabled={channelDevBusy}
+            onClick={() => void openChannelDev(tool.id)}
+          >
+            <Icon name={tool.icon} size={16} />
+            {tool.label}
+          </button>
+        ))}
+        {channelDevBusy ? <span className="m-devbar__busy">Abrindo…</span> : null}
+      </div>
+    );
+  }
+
   function pushedScreen() {
-    if (pane === "dev") {
+    if (channelDevTool) {
+      const project = projects.find((item) => item.id === channelDevProjectId);
+      if (!project) {
+        return (
+          <div className="m-screen">
+            <MobileScreenHeader title="Dev" onBack={() => setChannelDevTool(null)} backLabel="Voltar ao canal" />
+            <MobileEmpty title="Repositório indisponível">O canal não tem um projeto acessível.</MobileEmpty>
+          </div>
+        );
+      }
+      if (!layoutReady) {
+        return (
+          <div className="m-screen">
+            <MobileScreenHeader title="Abrindo…" onBack={() => setChannelDevTool(null)} backLabel="Voltar ao canal" />
+            <MobileEmpty title="Carregando o projeto">Buscando abas e sessões do repositório.</MobileEmpty>
+          </div>
+        );
+      }
       return (
-        <WorkspaceDevMobile
-          entry={devEntry}
-          token={devToken}
-          initialChat={devChat}
-          onBackRef={devBack}
-          onMenu={openDrawer}
-          onExit={() => setPane("root")}
-          onEntry={setDevEntry}
+        <ChannelDevMobile
+          project={project}
+          tool={channelDevTool}
+          target={channelDevTarget}
+          onBack={() => setChannelDevTool(null)}
+          onBackRef={channelDevBack}
+          onSelectTool={(next) => void openChannelDev(next)}
+          busy={channelDevBusy}
         />
       );
     }
@@ -609,9 +637,11 @@ export default function WorkspaceMobile(props: Props) {
           onAgentUpdated={onAgentUpdated}
           onOpenChannelAgents={onOpenChannelAgents}
           onOpenChannelRepos={onOpenChannelRepos}
+          canManageRepos={isAdmin}
           onOpenAgent={(bot) => void openAgent(bot)}
           onOpenMember={onEditPerson}
           renderFace={faceOf}
+          devBar={channelDevBar()}
         />
       );
     }

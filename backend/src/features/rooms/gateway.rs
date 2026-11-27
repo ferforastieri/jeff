@@ -350,6 +350,7 @@ impl RoomGateway {
                             member_ids: members,
                             category_id: None,
                             visibility: "private".into(),
+                            repos: Vec::new(),
                         },
                     )
                     .await?;
@@ -1063,6 +1064,7 @@ mod tests {
                     member_ids: vec![bot.id.clone()],
                     category_id: None,
                     visibility: "private".into(),
+                    repos: Vec::new(),
                 },
             )
             .await

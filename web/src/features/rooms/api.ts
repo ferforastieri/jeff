@@ -1,4 +1,4 @@
-import { request } from "../../shared/api";
+import { request, type Project } from "../../shared/api";
 
 export interface Principal {
   id: string;
@@ -72,6 +72,7 @@ export interface CreateRoomBody {
   memberIds?: string[];
   categoryId?: string | null;
   visibility?: "public" | "private";
+  repos?: string[];
 }
 
 export interface CreateBotBody {
@@ -201,6 +202,11 @@ export const channelsApi = {
       `${channels}/${encodeURIComponent(roomId)}/messages`,
       json(body),
     ),
+  /** The channel's repo as an accessible project for the dev tools. */
+  devProject: (roomId: string) =>
+    request<{ project: Project }>(`${channels}/${encodeURIComponent(roomId)}/dev-project`, {
+      method: "POST",
+    }),
   setRepos: (roomId: string, repos: string[]) =>
     request<Room>(`${channels}/${encodeURIComponent(roomId)}/repos`, {
       method: "PUT",

@@ -979,6 +979,10 @@ fn router(state: Arc<AppState>) -> Router {
         )
         .route("/api/channels/{room_id}/repos", put(set_channel_repos))
         .route(
+            "/api/channels/{room_id}/dev-project",
+            post(channel_dev_project),
+        )
+        .route(
             "/api/channels/{room_id}/agents",
             put(set_channel_agents).post(add_channel_agent),
         )

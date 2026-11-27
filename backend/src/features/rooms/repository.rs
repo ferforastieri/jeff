@@ -217,8 +217,8 @@ impl Store {
         let now = now_ms();
         let mut tx = self.pool.begin().await?;
         sqlx::query(
-            "INSERT INTO rooms(id,project_id,kind,name,title,instructions,lead_id,isolated,archived,category_id,visibility,created_at,updated_at)
-             VALUES($1, $2, 'room', $3, $4, $5, $6, 0, 0, $7, $8, $9, $10)",
+            "INSERT INTO rooms(id,project_id,kind,name,title,instructions,lead_id,isolated,archived,category_id,visibility,repos,created_at,updated_at)
+             VALUES($1, $2, 'room', $3, $4, $5, $6, 0, 0, $7, $8, $9, $10, $11)",
         )
         .bind(&id)
         .bind(project_id)
@@ -228,6 +228,7 @@ impl Store {
         .bind(input.lead_id.as_deref())
         .bind(input.category_id.as_deref())
         .bind(if input.visibility == "public" { "public" } else { "private" })
+        .bind(serde_json::to_string(&input.repos)?)
         .bind(now)
         .bind(now)
         .execute(&mut *tx)
@@ -1328,6 +1329,7 @@ mod tests {
                     member_ids: Vec::new(),
                     category_id: None,
                     visibility: "private".into(),
+                    repos: Vec::new(),
                 },
             )
             .await
@@ -1376,6 +1378,7 @@ mod tests {
                     member_ids: vec![ana.id.clone()],
                     category_id: None,
                     visibility: "private".into(),
+                    repos: Vec::new(),
                 },
             )
             .await
@@ -1413,6 +1416,7 @@ mod tests {
                     member_ids: vec![ana.id.clone(), beto.id.clone()],
                     category_id: None,
                     visibility: "private".into(),
+                    repos: Vec::new(),
                 },
             )
             .await

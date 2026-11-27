@@ -259,6 +259,7 @@ Quando faltar uma decisão que muda o caminho, pergunte.",
                         member_ids: vec![config_bot.id.clone()],
                         category_id: None,
                         visibility: "public".into(),
+                        repos: Vec::new(),
                     },
                 )
                 .await?

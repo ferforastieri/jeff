@@ -26,7 +26,7 @@ import {
   type IconName,
 } from "faang-ui";
 import { api, type OnboardingStatus, type Project, type Repository, type User } from "../../shared/api";
-import { useApp, type AppNotification, type Sidebar } from "../../app/store";
+import { useApp, type AppNotification } from "../../app/store";
 import { SettingsView, type Section } from "../settings/components/JeffSettings";
 import {
   channelsApi,
@@ -61,11 +61,12 @@ import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import Toasts from "../notifications/components/Toasts";
 import { useIsMobile } from "../../shared/ui/useIsMobile";
 import WorkspaceMobile from "./mobile/WorkspaceMobile";
-import { featureEnabled, useSettings, type WorkspaceFeature } from "../settings/store";
+import { CHANNEL_DEV_TOOLS, type ChannelDevTool } from "./channelDev";
+import { featureEnabled, useSettings } from "../settings/store";
 
 const Workbench = lazy(() => import("../../app/components/Workbench"));
 
-type View = "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings" | "dev";
+type View = "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings";
 
 function isView(value: string | undefined): value is View {
   return value === "home" || value === "chat" || value === "tasks" || value === "calendar" || value === "drive" || value === "wiki";
@@ -87,14 +88,6 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const NAV_DEFAULT = NAV_ITEMS.map((item) => item.id);
-
-const DEV_TOOLS: Array<{ id: Sidebar; label: string; icon: IconName; feature?: WorkspaceFeature }> = [
-  { id: "files", label: "Explorer", icon: "file", feature: "files" },
-  { id: "bots", label: "Sessões", icon: "message" },
-  { id: "scm", label: "Source Control", icon: "gitPull", feature: "sourceControl" },
-  { id: "db", label: "Databases", icon: "database", feature: "databases" },
-  { id: "web", label: "Web apps", icon: "globe", feature: "webApps" },
-];
 
 const EMOJI_LABELS = {
   dialog: "Emojis",
@@ -155,6 +148,7 @@ export default function Workspace({ status }: Props) {
   const [agentsError, setAgentsError] = useState("");
   const [channelName, setChannelName] = useState("");
   const [channelTopic, setChannelTopic] = useState("");
+  const [channelRepo, setChannelRepo] = useState("");
   const [channelCategoryId, setChannelCategoryId] = useState<string | null>(null);
   const [channelVisibility, setChannelVisibility] = useState<"public" | "private">("public");
   const [channelMembers, setChannelMembers] = useState<string[]>([]);
@@ -212,9 +206,10 @@ export default function Workspace({ status }: Props) {
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [activeAgents, setActiveAgents] = useState<import("../rooms/api").AgentActivity[]>([]);
   const [loading, setLoading] = useState(true);
-  const sidebar = useApp((state) => state.sidebar);
-  const terminalOpen = useApp((state) => state.terminalOpen);
-  const setTerminalOpen = useApp((state) => state.setTerminalOpen);
+  const [channelDevTool, setChannelDevTool] = useState<ChannelDevTool | null>(null);
+  const [channelDevRoomId, setChannelDevRoomId] = useState<string | null>(null);
+  const [channelDevProjectId, setChannelDevProjectId] = useState<string | null>(null);
+  const [channelDevBusy, setChannelDevBusy] = useState(false);
   const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
   const bottom = useRef<HTMLDivElement>(null);
   const workspaceLogo = status.workspaceLogo || WORKSPACE_FACE;
@@ -585,11 +580,6 @@ export default function Workspace({ status }: Props) {
 
   useEffect(() => setDevMode(status.devMode), [status.devMode]);
 
-  // Turning the dev mode off must not leave the dev surface on screen.
-  useEffect(() => {
-    if (!devMode && view === "dev") setView("home");
-  }, [devMode, view]);
-
   useEffect(() => {
     void loadAIModels();
   }, [loadAIModels]);
@@ -679,7 +669,8 @@ export default function Workspace({ status }: Props) {
   function changeView(next: View) {
     setView(next);
     setMenuOpen(false);
-    if (next !== "settings" && next !== "dev") savePosition(selectedRoomId, next);
+    if (next !== "chat") resetChannelDev();
+    if (next !== "settings") savePosition(selectedRoomId, next);
   }
 
   function toggleSection(section: "channels" | "agents" | "dms") {
@@ -693,6 +684,7 @@ export default function Workspace({ status }: Props) {
     setView("chat");
     setMenuOpen(false);
     savePosition(room.id, "chat");
+    resetChannelDev();
   }
 
   async function openAgent(bot: Principal) {
@@ -735,8 +727,10 @@ export default function Workspace({ status }: Props) {
     setChannelCategoryId(categoryId);
     setChannelVisibility("public");
     setChannelMembers(status.agentId ? [status.agentId] : []);
+    setChannelRepo("");
     setError("");
     setChannelOpen(true);
+    void loadAvailableRepos();
   }
 
   async function createChannel() {
@@ -753,6 +747,7 @@ export default function Workspace({ status }: Props) {
         categoryId: channelCategoryId,
         visibility: channelVisibility,
         memberIds: channelMembers,
+        repos: channelRepo ? [channelRepo] : [],
       });
       setRooms((current) => [room, ...current]);
       setSelectedRoomId(room.id);
@@ -960,12 +955,7 @@ export default function Workspace({ status }: Props) {
     }
   }
 
-  async function openRepos() {
-    if (!selectedRoom || selectedRoom.kind !== "room") return;
-    setDraftRepos(selectedRoom.repos ?? []);
-    setRepoQuery("");
-    setRepoError("");
-    setReposOpen(true);
+  async function loadAvailableRepos() {
     if (repoLoaded) return;
     setRepoLoading(true);
     try {
@@ -978,10 +968,18 @@ export default function Workspace({ status }: Props) {
     }
   }
 
+  async function openRepos() {
+    if (!selectedRoom || selectedRoom.kind !== "room") return;
+    setDraftRepos(selectedRoom.repos.slice(0, 1));
+    setRepoQuery("");
+    setRepoError("");
+    setReposOpen(true);
+    await loadAvailableRepos();
+  }
+
+  /** A channel has one repository: picking another replaces the current one. */
   function toggleRepo(path: string) {
-    setDraftRepos((current) =>
-      current.includes(path) ? current.filter((item) => item !== path) : [...current, path],
-    );
+    setDraftRepos((current) => (current.includes(path) ? [] : [path]));
   }
 
   async function saveRepos() {
@@ -989,13 +987,36 @@ export default function Workspace({ status }: Props) {
     setRepoBusy(true);
     setRepoError("");
     try {
-      const updated = await channelsApi.setRepos(selectedRoom.id, draftRepos);
+      const updated = await channelsApi.setRepos(selectedRoom.id, draftRepos.slice(0, 1));
       setRooms((current) =>
         current.map((room) => (room.id === updated.id ? updated : room)),
       );
+      if (channelDevRoomId === updated.id) resetChannelDev();
       setReposOpen(false);
     } catch (cause) {
-      setRepoError(cause instanceof Error ? cause.message : "Não foi possível salvar os repos.");
+      setRepoError(cause instanceof Error ? cause.message : "Não foi possível salvar o repositório.");
+    } finally {
+      setRepoBusy(false);
+    }
+  }
+
+  /** Cleanup only: ends the processes the channel's repo project may hold. */
+  async function cleanupChannelProject() {
+    if (!selectedRoom || selectedRoom.kind !== "room" || selectedRoom.repos.length === 0) return;
+    const name = selectedRoom.repos[0].split("/").pop() || selectedRoom.repos[0];
+    if (!window.confirm(`Limpar o projeto ${name}? Terminais, previews e processos serão encerrados.`)) return;
+    setRepoBusy(true);
+    setRepoError("");
+    try {
+      const { project } = await channelsApi.devProject(selectedRoom.id);
+      const result = await api.closeProject(project.id);
+      if (channelDevRoomId === selectedRoom.id) resetChannelDev();
+      useApp.getState().notify(
+        "info",
+        `Projeto ${project.name} limpo. ${result.processes.length} processo${result.processes.length === 1 ? "" : "s"} encerrado${result.processes.length === 1 ? "" : "s"}.`,
+      );
+    } catch (cause) {
+      setRepoError(cause instanceof Error ? cause.message : "Não foi possível limpar o projeto.");
     } finally {
       setRepoBusy(false);
     }
@@ -1025,35 +1046,63 @@ export default function Workspace({ status }: Props) {
     }
   }
 
-  function openDev(tool?: Sidebar) {
-    if (!devMode) return;
-    if (tool) useApp.getState().setSidebar(tool);
-    setView("dev");
-    setMenuOpen(false);
-    if (tool) {
+  function resetChannelDev() {
+    setChannelDevTool(null);
+    setChannelDevRoomId(null);
+    setChannelDevProjectId(null);
+  }
+
+  /** Resolves the channel's repo into the project the dev panels read. */
+  async function ensureChannelDevProject(room: Room): Promise<string> {
+    if (channelDevRoomId === room.id && channelDevProjectId) return channelDevProjectId;
+    const { project } = await channelsApi.devProject(room.id);
+    const app = useApp.getState();
+    const exists = app.projects.some((item) => item.id === project.id);
+    app.setProjects(exists ? app.projects : [...app.projects, project]);
+    app.setActiveProject(project.id);
+    setChannelDevRoomId(room.id);
+    setChannelDevProjectId(project.id);
+    return project.id;
+  }
+
+  /** Opens one of the channel's dev tools, with the channel's repo as project. */
+  async function openChannelDev(tool: ChannelDevTool, targetRoom: Room | null = selectedRoom) {
+    if (!devMode || !targetRoom || targetRoom.kind !== "room" || targetRoom.repos.length === 0) return;
+    setChannelDevBusy(true);
+    try {
+      await ensureChannelDevProject(targetRoom);
+      useApp.getState().setSidebar(tool);
+      setChannelDevTool(tool);
+      setView("chat");
+      setMenuOpen(false);
+      // Re-clicking the active tool reopens its panel after the user closes it.
       window.dispatchEvent(new CustomEvent("jeff:dev-tool", { detail: { tool } }));
+    } catch (cause) {
+      useApp.getState().notify(
+        "error",
+        cause instanceof Error ? cause.message : "Não foi possível abrir o projeto do canal.",
+      );
+    } finally {
+      setChannelDevBusy(false);
     }
   }
 
-  function openDevTerminal() {
-    if (!devMode) return;
-    setTerminalOpen(true);
-    setView("dev");
-    setMenuOpen(false);
+  function closeChannelDev() {
+    setChannelDevTool(null);
   }
 
   /**
    * Where a bell item lands: a room stays in the Slack shell; an agent
-   * completion opens the dev surface on that exact conversation.
+   * completion opens the Sessions tool of the channel that owns its repo.
    */
-  function openInboxItem(item: {
+  async function openInboxItem(item: {
     projectId?: string;
     chatId?: string;
     botId?: string;
     roomId?: string;
   }) {
     // The phone manages its own panes, so it receives the notification and
-    // decides between the dev chat and a room.
+    // decides between the channel dev tools and a room.
     if (mobile) {
       window.dispatchEvent(new CustomEvent("jeff:mobile-notification", { detail: item }));
       return;
@@ -1066,7 +1115,18 @@ export default function Workspace({ status }: Props) {
       setMenuOpen(false);
       return;
     }
-    if (item.projectId && (item.chatId || item.botId)) {
+    if (!item.projectId || (!item.chatId && !item.botId)) return;
+    try {
+      let project = useApp.getState().projects.find((candidate) => candidate.id === item.projectId);
+      if (!project) {
+        project = (await api.projects()).find((candidate) => candidate.id === item.projectId);
+      }
+      if (!project) return;
+      const target = allRooms.find(
+        (candidate) => candidate.kind === "room" && candidate.repos.includes(project.root),
+      );
+      if (!target) return;
+      selectRoom(target);
       localStorage.setItem(
         "jeff_open_dev_chat",
         JSON.stringify({
@@ -1075,15 +1135,16 @@ export default function Workspace({ status }: Props) {
           botId: item.botId,
         }),
       );
-      setView("dev");
-      setMenuOpen(false);
-      // The workbench may already be mounted (the user is already in dev):
-      // the handoff in localStorage is only for its first mount.
+      await openChannelDev("bots", target);
+      // The workbench may already be mounted (the user is already in the
+      // channel's dev view): the handoff is only for its first mount.
       window.dispatchEvent(
         new CustomEvent(item.chatId ? "jeff:open-chat" : "jeff:open-bot", {
           detail: { projectId: item.projectId, chatId: item.chatId, botId: item.botId },
         }),
       );
+    } catch {
+      // A stale notification must not keep the user from using the channel.
     }
   }
 
@@ -1194,8 +1255,6 @@ export default function Workspace({ status }: Props) {
           userFace={userFace}
           userStatus={userStatus}
           onStatusChange={(value) => updatePrefs({ userStatus: value })}
-          devMode={devMode}
-          onDev={() => openDev("files")}
           onOpenNotification={openInboxItem}
         />
       ) : (
@@ -1224,17 +1283,6 @@ export default function Workspace({ status }: Props) {
             </span>
             <Icon name="chevronDown" size={16} />
           </button>
-          {devMode ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              iconOnly
-              icon="code"
-              aria-label="Abrir modo dev"
-              title="Abrir modo dev"
-              onClick={() => openDev("files")}
-            />
-          ) : null}
         </div>
 
         <div className="ws-search">
@@ -1350,40 +1398,6 @@ export default function Workspace({ status }: Props) {
         </nav>
 
         <div className="ws-sidebar-scroll">
-          {devMode ? (
-            <section className="ws-group ws-dev-group" aria-label="Modo dev">
-              <div className="ws-group-head">
-                <span className="ws-group-label">Dev</span>
-                <span className="ws-dev-badge">modo dev</span>
-              </div>
-              <div className="ws-group-body">
-                <ListRow
-                  lead={<Icon name="code" size={16} />}
-                  title="Workbench"
-                  onClick={() => openDev()}
-                />
-                {DEV_TOOLS
-                  .filter((tool) => !tool.feature || featureEnabled(workspaceFeatures, tool.feature))
-                  .map((tool) => (
-                    <ListRow
-                      key={tool.id}
-                      className={view === "dev" && sidebar === tool.id ? "is-active" : ""}
-                      lead={<Icon name={tool.icon} size={16} />}
-                      title={tool.label}
-                      onClick={() => openDev(tool.id)}
-                    />
-                  ))}
-                {featureEnabled(workspaceFeatures, "terminal") ? (
-                  <ListRow
-                    className={view === "dev" && terminalOpen ? "is-active" : ""}
-                    lead={<Icon name="code" size={16} />}
-                    title="Terminal"
-                    onClick={openDevTerminal}
-                  />
-                ) : null}
-              </div>
-            </section>
-          ) : null}
           <section className="ws-group" data-open={openSections.channels} {...sectionProps("channels")}>
             <div className="ws-group-head">
               <button
@@ -1786,6 +1800,7 @@ export default function Workspace({ status }: Props) {
             <p>{roomSubtitle}</p>
           </span>
           <span className="ws-main-actions">
+            {!channelDevTool ? (
             <div className="ws-chat-search">
               <SearchField
                 value={chatQuery}
@@ -1822,6 +1837,7 @@ export default function Workspace({ status }: Props) {
                 </MenuItem>
               </Menu>
             </div>
+            ) : null}
             {selectedRoom?.kind === "room" ? (
               <>
                 <Button
@@ -1833,47 +1849,83 @@ export default function Workspace({ status }: Props) {
                   aria-label="Agentes do canal"
                   onClick={openChannelAgents}
                 />
+                {status.isAdmin ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="repo"
+                    className="ws-header-channel-action"
+                    aria-label="Repos do canal"
+                    onClick={() => void openRepos()}
+                  />
+                ) : null}
+              </>
+            ) : null}
+            {!channelDevTool ? (
+              <>
                 <Button
                   variant="ghost"
                   size="sm"
                   iconOnly
-                  icon="repo"
-                  className="ws-header-channel-action"
-                  aria-label="Repos do canal"
-                  onClick={() => void openRepos()}
+                  icon="search"
+                  className="ws-search-toggle"
+                  aria-label="Buscar"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
+                  icon="sidebar"
+                  className="ws-details-toggle"
+                  aria-label={detailsOpen ? "Ocultar detalhes" : "Mostrar detalhes"}
+                  onClick={() => setDetailsOpen((value) => !value)}
                 />
               </>
             ) : null}
-            <Button
-              variant="ghost"
-              size="sm"
-              iconOnly
-              icon="search"
-              className="ws-search-toggle"
-              aria-label="Buscar"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              iconOnly
-              icon="sidebar"
-              className="ws-details-toggle"
-              aria-label={detailsOpen ? "Ocultar detalhes" : "Mostrar detalhes"}
-              onClick={() => setDetailsOpen((value) => !value)}
-            />
           </span>
         </header>
         ) : null}
 
-        <div className={`ws-body${view === "chat" && detailsOpen ? "" : " is-details-closed"}`}>
+        {view === "chat" && selectedRoom?.kind === "room" && devMode && selectedRoom.repos.length > 0 ? (
+          <div className="ws-devbar" role="tablist" aria-label="Ferramentas do canal">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!channelDevTool}
+              className={`ws-devbar__tab${!channelDevTool ? " is-active" : ""}`}
+              onClick={closeChannelDev}
+            >
+              <Icon name="message" size={14} />
+              Mensagens
+            </button>
+            {CHANNEL_DEV_TOOLS
+              .filter((tool) => !tool.feature || featureEnabled(workspaceFeatures, tool.feature))
+              .map((tool) => (
+              <button
+                key={tool.id}
+                type="button"
+                role="tab"
+                aria-selected={channelDevTool === tool.id}
+                className={`ws-devbar__tab${channelDevTool === tool.id ? " is-active" : ""}`}
+                disabled={channelDevBusy}
+                onClick={() => void openChannelDev(tool.id)}
+              >
+                <Icon name={tool.icon} size={14} />
+                {tool.label}
+              </button>
+            ))}
+            {channelDevBusy ? <span className="ws-devbar__busy">Abrindo…</span> : null}
+          </div>
+        ) : null}
+
+        <div className={`ws-body${view === "chat" && detailsOpen && !channelDevTool ? "" : " is-details-closed"}`}>
         <section className="ws-main">
-        {view === "dev" ? (
+        {view === "chat" && channelDevTool && channelDevProjectId ? (
           <div className="ws-panel ws-dev-panel">
-            {devMode ? (
-              <Suspense fallback={null}>
-                <Workbench />
-              </Suspense>
-            ) : null}
+            <Suspense fallback={null}>
+              <Workbench />
+            </Suspense>
           </div>
         ) : null}
         {view === "home" ? (
@@ -1891,7 +1943,7 @@ export default function Workspace({ status }: Props) {
             />
           </div>
         ) : null}
-        {view === "chat" ? (
+        {view === "chat" && !channelDevTool ? (
           <>
             <div className="ws-messages">
               <div className="ws-message-list">
@@ -2048,14 +2100,16 @@ export default function Workspace({ status }: Props) {
                 <p className="ws-muted">Nenhum repo escolhido.</p>
               )}
             </div>
-            <Button
-              variant="default"
-              size="sm"
-              icon="repo"
-              onClick={() => void openRepos()}
-            >
-              Escolher repos
-            </Button>
+            {status.isAdmin ? (
+              <Button
+                variant="default"
+                size="sm"
+                icon="repo"
+                onClick={() => void openRepos()}
+              >
+                Escolher repos
+              </Button>
+            ) : null}
           </div>
         ) : null}
         <div className="ws-right-section">
@@ -2088,7 +2142,7 @@ export default function Workspace({ status }: Props) {
         open={channelOpen}
         onOpenChange={setChannelOpen}
         title="Novo canal"
-        description="Crie um canal com nome, tópico, categoria e quem participa."
+        description="Crie um canal com nome, tópico, categoria, repositório e quem participa."
         closeLabel="Fechar"
         width={560}
       >
@@ -2108,6 +2162,23 @@ export default function Workspace({ status }: Props) {
               placeholder="Do que o canal trata?"
             />
           </Field>
+          <Field label="Repositório do canal">
+            <Select
+              value={channelRepo}
+              onValueChange={setChannelRepo}
+              placeholder={repoLoading ? "Carregando repos…" : "Sem repositório"}
+              options={[
+                { value: "", label: "Sem repositório" },
+                ...availableRepos.map((repo) => ({
+                  value: repo.path,
+                  label: `${repo.name} · ${repo.relative || repo.path}`,
+                })),
+              ]}
+            />
+          </Field>
+          <p className="ws-invite-hint">
+            Canais com repositório ganham Explorer, Sessões, Source Control, Bancos e Web apps para quem tem acesso dev.
+          </p>
           <Field label="Categoria">
             <Select
               value={channelCategoryId ?? ""}
@@ -2540,8 +2611,8 @@ export default function Workspace({ status }: Props) {
       <Dialog
         open={reposOpen}
         onOpenChange={setReposOpen}
-        title="Repos do canal"
-        description="Escolha um ou mais repositórios disponíveis neste canal."
+        title="Repositório do canal"
+        description="Um repositório por canal. Ele liga as ferramentas dev ao canal."
         closeLabel="Fechar"
         width={520}
       >
@@ -2574,12 +2645,26 @@ export default function Workspace({ status }: Props) {
           </div>
           {repoError ? <p className="ws-error">{repoError}</p> : null}
         </DialogBody>
-        <DialogFooter>
+        <DialogFooter
+          note={
+            devMode && selectedRoom && selectedRoom.repos.length > 0 ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon="trash"
+                disabled={repoBusy}
+                onClick={() => void cleanupChannelProject()}
+              >
+                Limpar projeto
+              </Button>
+            ) : undefined
+          }
+        >
           <Button variant="default" size="sm" onClick={() => setReposOpen(false)}>
             Cancelar
           </Button>
           <Button variant="primary" size="sm" loading={repoBusy} onClick={() => void saveRepos()}>
-            Salvar repos
+            Salvar repositório
           </Button>
         </DialogFooter>
       </Dialog>
@@ -2664,8 +2749,6 @@ function WorkspaceRail({
   userFace,
   userStatus,
   onStatusChange,
-  devMode,
-  onDev,
   onOpenNotification,
 }: {
   workspaceLogo: string;
@@ -2682,8 +2765,6 @@ function WorkspaceRail({
   userFace: ReactNode;
   userStatus: MemberStatus;
   onStatusChange: (status: MemberStatus) => void;
-  devMode: boolean;
-  onDev: () => void;
   onOpenNotification: (notification: AppNotification) => void;
 }) {
   return (
@@ -2692,17 +2773,6 @@ function WorkspaceRail({
       <button type="button" className="ws-rail-logo" onClick={onExpand} aria-label="Expandir barra">
         <img src={workspaceLogo} alt="" draggable={false} />
       </button>
-      {devMode ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          iconOnly
-          icon="code"
-          aria-label="Abrir modo dev"
-          title="Abrir modo dev"
-          onClick={onDev}
-        />
-      ) : null}
       <Button
         variant="ghost"
         size="sm"
