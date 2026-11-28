@@ -135,6 +135,7 @@ export default function Workspace({ status }: Props) {
   const [bots, setBots] = useState<Principal[]>([]);
   const [messages, setMessages] = useState<RoomMessage[]>([]);
   const [chatQuery, setChatQuery] = useState("");
+  const [chatSearchOpen, setChatSearchOpen] = useState(false);
   const [linkOnly, setLinkOnly] = useState(false);
   const [view, setView] = useState<View>(
     isView(status.workspaceState?.view) ? status.workspaceState.view : "home",
@@ -145,6 +146,8 @@ export default function Workspace({ status }: Props) {
   const workspaceMenuTrigger = useRef<HTMLButtonElement>(null);
   const [channelOpen, setChannelOpen] = useState(false);
   const [channelEdit, setChannelEdit] = useState<Room | null>(null);
+  const [channelAction, setChannelAction] = useState<Room | null>(null);
+  const [categoryAction, setCategoryAction] = useState<ChannelCategory | null>(null);
   const [agentOpen, setAgentOpen] = useState(false);
   const [reposOpen, setReposOpen] = useState(false);
   const [repoQuery, setRepoQuery] = useState("");
@@ -318,13 +321,6 @@ export default function Workspace({ status }: Props) {
         ? selectedRoom.members.filter((member) => member.kind === "bot")
         : [],
     [selectedRoom],
-  );
-  const selectedCategory = useMemo(
-    () =>
-      selectedRoom?.kind === "room" && selectedRoom.categoryId
-        ? categories.find((category) => category.id === selectedRoom.categoryId) ?? null
-        : null,
-    [categories, selectedRoom],
   );
   const activeChannelRepo =
     selectedRoom?.kind === "room" ? channelRepoFor(selectedRoom) : "";
@@ -1286,27 +1282,24 @@ export default function Workspace({ status }: Props) {
           type="button"
           className={`ws-main-tab${messageMode === "channel" ? " is-active" : ""}`}
           aria-pressed={messageMode === "channel"}
+          aria-label="Canal"
           title="Canal"
           onClick={() => changeMessageMode("channel")}
         >
-          <Icon name="message" size={14} />
-          <span className="ws-main-tab__label">Canal</span>
+          <Icon name="message" size={16} />
         </button>
         {devReady ? (
           <button
             type="button"
             className={`ws-main-tab${messageMode === "sessions" ? " is-active" : ""}`}
             aria-pressed={messageMode === "sessions"}
+            aria-label="Sessões privadas"
             title="Sessões privadas"
             disabled={channelDevBusy}
             onClick={() => changeMessageMode("sessions")}
           >
-            <Icon name="agent" size={14} />
-            <span className="ws-main-tab__label">Sessões</span>
+            <Icon name="agent" size={16} />
           </button>
-        ) : null}
-        {devReady && aux.length > 0 ? (
-          <span className="ws-main-tabs__sep" aria-hidden="true" />
         ) : null}
         {devReady
           ? aux.map((tool) => (
@@ -1324,7 +1317,6 @@ export default function Workspace({ status }: Props) {
                 }}
               >
                 <Icon name={tool.icon} size={16} />
-                <span className="ws-main-tab__label ws-main-tab__label--aux">{tool.label}</span>
               </button>
             ))
           : null}
@@ -1513,10 +1505,8 @@ export default function Workspace({ status }: Props) {
           onEditAgent={setAgentEdit}
           onCreateChannel={openChannel}
           onCreateCategory={openNewCategory}
-          onRenameCategory={openEditCategory}
-          onDeleteCategory={(category) => void removeCategory(category)}
-          onEditChannel={(room) => openChannelEdit(room)}
-          onDeleteChannel={(room) => void deleteChannel(room)}
+          onChannelOptions={setChannelAction}
+          onCategoryOptions={setCategoryAction}
           onOpenChannelAgents={openChannelAgents}
           onOpenChannelRepos={() => void openRepos()}
           onDraft={(value) => setDraft(draftKey, value)}
@@ -1745,27 +1735,16 @@ export default function Workspace({ status }: Props) {
                       onClick={() => selectRoom(room)}
                     />
                     {status.isAdmin ? (
-                      <Menu
-                        align="end"
-                        label={`Opções de ${room.name}`}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            iconOnly
-                            icon="more"
-                            className="ws-row-action"
-                            aria-label={`Opções de ${room.name}`}
-                          />
-                        }
-                      >
-                        <MenuItem icon="edit" onSelect={() => openChannelEdit(room)}>
-                          Editar canal
-                        </MenuItem>
-                        <MenuItem danger icon="trash" onSelect={() => void deleteChannel(room)}>
-                          Excluir canal
-                        </MenuItem>
-                      </Menu>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconOnly
+                        icon="cog"
+                        className="ws-row-action"
+                        aria-label={`Opções de ${room.name}`}
+                        title={`Opções de ${room.name}`}
+                        onClick={() => setChannelAction(room)}
+                      />
                     ) : null}
                   </div>
                 ))}
@@ -1783,7 +1762,7 @@ export default function Workspace({ status }: Props) {
                           aria-expanded={open}
                           onClick={() => toggleCategory(category.id)}
                         >
-                          <CategoryGlyph category={category} size={14} className="ws-category-glyph" />
+                          <CategoryGlyph category={category} size={18} className="ws-category-glyph" />
                           <span className="ws-category-label">{category.name}</span>
                           <Icon name="chevronDown" size={14} className="ws-category-chevron" />
                         </button>
@@ -1798,27 +1777,16 @@ export default function Workspace({ status }: Props) {
                               aria-label={`Novo canal em ${category.name}`}
                               onClick={() => openChannel(category.id)}
                             />
-                            <Menu
-                              align="end"
-                              label={`Categoria ${category.name}`}
-                              trigger={
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  iconOnly
-                                  icon="more"
-                                  className="ws-group-add"
-                                  aria-label={`Opções de ${category.name}`}
-                                />
-                              }
-                            >
-                              <MenuItem icon="edit" onSelect={() => openEditCategory(category)}>
-                                Editar categoria
-                              </MenuItem>
-                              <MenuItem danger onSelect={() => void removeCategory(category)}>
-                                Excluir categoria
-                              </MenuItem>
-                            </Menu>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              iconOnly
+                              icon="cog"
+                              className="ws-group-add ws-category-gear"
+                              aria-label={`Opções de ${category.name}`}
+                              title={`Opções de ${category.name}`}
+                              onClick={() => setCategoryAction(category)}
+                            />
                           </>
                         ) : null}
                       </div>
@@ -1833,31 +1801,16 @@ export default function Workspace({ status }: Props) {
                                 onClick={() => selectRoom(room)}
                               />
                               {status.isAdmin ? (
-                                <Menu
-                                  align="end"
-                                  label={`Opções de ${room.name}`}
-                                  trigger={
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      iconOnly
-                                      icon="more"
-                                      className="ws-row-action"
-                                      aria-label={`Opções de ${room.name}`}
-                                    />
-                                  }
-                                >
-                                  <MenuItem icon="edit" onSelect={() => openChannelEdit(room)}>
-                                    Editar canal
-                                  </MenuItem>
-                                  <MenuItem
-                                    danger
-                                    icon="trash"
-                                    onSelect={() => void deleteChannel(room)}
-                                  >
-                                    Excluir canal
-                                  </MenuItem>
-                                </Menu>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  iconOnly
+                                  icon="cog"
+                                  className="ws-row-action"
+                                  aria-label={`Opções de ${room.name}`}
+                                  title={`Opções de ${room.name}`}
+                                  onClick={() => setChannelAction(room)}
+                                />
                               ) : null}
                             </div>
                           ))}
@@ -1961,14 +1914,9 @@ export default function Workspace({ status }: Props) {
       <div className="ws-pages">
       <div className="ws-shell" key={`${view}:${selectedRoomId}`}>
         {view === "chat" ? (
+        <>
         <header className="ws-main-head">
           <span className="ws-main-identity">
-            {selectedCategory?.icon ? (
-              <span className="ws-main-category" title={selectedCategory.name}>
-                <CategoryGlyph category={selectedCategory} size={16} />
-                <Icon name="chevronRight" size={14} className="ws-main-category-chevron" />
-              </span>
-            ) : null}
             <span className={`ws-main-face${selectedRoom?.kind === "room" ? " is-room" : ""}`}>
               {selectedRoom?.kind === "room" ? (
                 <Icon name="channel" size={20} />
@@ -1978,21 +1926,31 @@ export default function Workspace({ status }: Props) {
             </span>
             <span className="ws-main-title">
               <h1>{roomTitle}</h1>
-              <p>{roomSubtitle}</p>
+              {roomSubtitle ? (
+                <>
+                  <span className="ws-main-dot" aria-hidden="true" />
+                  <p>{roomSubtitle}</p>
+                </>
+              ) : null}
             </span>
           </span>
-          {channelTabs()}
           <span className="ws-main-actions">
+            {channelTabs()}
             {devMode && selectedRoom?.kind === "room" && selectedRoom.repos.length > 1 ? (
               <Menu
                 align="end"
                 label="Repositório do canal"
                 trigger={
-                  <button type="button" className="ws-repo-trigger" disabled={channelDevBusy}>
-                    <Icon name="repo" size={14} />
-                    <span>{activeChannelRepo.split("/").pop()}</span>
-                    <Icon name="chevronDown" size={14} />
-                  </button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="repo"
+                    className="ws-repo-trigger"
+                    disabled={channelDevBusy}
+                    aria-label={`Repositório ${activeChannelRepo.split("/").pop()}`}
+                    title={activeChannelRepo.split("/").pop()}
+                  />
                 }
               >
                 <MenuRadioGroup
@@ -2007,66 +1965,16 @@ export default function Workspace({ status }: Props) {
               </Menu>
             ) : null}
             {messageMode === "channel" ? (
-            <div className="ws-chat-search">
-              <SearchField
-                value={chatQuery}
-                onChange={(event) => setChatQuery(event.target.value)}
-                placeholder="Buscar nesta conversa"
+              <Button
+                variant="ghost"
                 size="sm"
-                onClear={() => setChatQuery("")}
-                clearLabel="Limpar busca"
+                iconOnly
+                icon="search"
+                className={`ws-header-search${chatSearchOpen ? " is-active" : ""}`}
+                aria-label="Buscar nesta conversa"
+                title="Buscar nesta conversa"
+                onClick={() => setChatSearchOpen((value) => !value)}
               />
-              <Menu
-                align="end"
-                label="Filtros"
-                trigger={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    iconOnly
-                    icon="filter"
-                    className="ws-chat-filter"
-                    aria-label="Filtros da conversa"
-                  />
-                }
-              >
-                <MenuCheckboxItem
-                  checked={linkOnly}
-                  onCheckedChange={setLinkOnly}
-                  icon="link"
-                  description="tem: link, arquivo, imagem ou cartão"
-                >
-                  Com link, arquivo, imagem ou cartão
-                </MenuCheckboxItem>
-                <MenuItem icon="filter" description="datas, só agentes, fixadas">
-                  Mais filtros
-                </MenuItem>
-              </Menu>
-            </div>
-            ) : null}
-            {selectedRoom?.kind === "room" ? (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  iconOnly
-                  icon="members"
-                  className="ws-header-channel-action"
-                  aria-label="Agentes do canal"
-                  onClick={openChannelAgents}
-                />
-                {status.isAdmin ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    iconOnly
-                    icon="repo"
-                    className="ws-header-channel-action"
-                    aria-label="Repos do canal"
-                    onClick={() => void openRepos()}
-                  />
-                ) : null}
-              </>
             ) : null}
             <Button
               variant="ghost"
@@ -2080,8 +1988,58 @@ export default function Workspace({ status }: Props) {
             />
           </span>
         </header>
+        {messageMode === "channel" && chatSearchOpen ? (
+          <div className="ws-main-searchrow">
+            <SearchField
+              value={chatQuery}
+              onChange={(event) => setChatQuery(event.target.value)}
+              placeholder="Buscar nesta conversa"
+              size="sm"
+              onClear={() => setChatQuery("")}
+              clearLabel="Limpar busca"
+              autoFocus
+            />
+            <Menu
+              align="end"
+              label="Filtros"
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
+                  icon="filter"
+                  aria-label="Filtros da conversa"
+                />
+              }
+            >
+              <MenuCheckboxItem
+                checked={linkOnly}
+                onCheckedChange={setLinkOnly}
+                icon="link"
+                description="tem: link, arquivo, imagem ou cartão"
+              >
+                Com link, arquivo, imagem ou cartão
+              </MenuCheckboxItem>
+              <MenuItem icon="filter" description="datas, só agentes, fixadas">
+                Mais filtros
+              </MenuItem>
+            </Menu>
+            <Button
+              variant="ghost"
+              size="sm"
+              iconOnly
+              icon="close"
+              aria-label="Fechar busca"
+              title="Fechar busca"
+              onClick={() => {
+                setChatSearchOpen(false);
+                setChatQuery("");
+              }}
+            />
+          </div>
         ) : null}
-
+        </>
+        ) : null}
         <div className="ws-body">
         <section className="ws-main">
         {view === "home" ? (
@@ -3004,6 +2962,78 @@ export default function Workspace({ status }: Props) {
             Salvar repositório
           </Button>
         </DialogFooter>
+      </Dialog>
+
+      <Dialog
+        open={channelAction !== null}
+        onOpenChange={(open) => { if (!open) setChannelAction(null); }}
+        title={channelAction?.name ?? "Canal"}
+        description="O que você quer fazer com este canal?"
+        closeLabel="Fechar"
+        width={420}
+      >
+        <DialogBody className="ws-form">
+          <Button
+            variant="default"
+            icon="edit"
+            className="ws-action-button"
+            onClick={() => {
+              const room = channelAction;
+              setChannelAction(null);
+              if (room) openChannelEdit(room);
+            }}
+          >
+            Editar canal
+          </Button>
+          <Button
+            variant="danger"
+            icon="trash"
+            className="ws-action-button"
+            onClick={() => {
+              const room = channelAction;
+              setChannelAction(null);
+              if (room) void deleteChannel(room);
+            }}
+          >
+            Excluir canal
+          </Button>
+        </DialogBody>
+      </Dialog>
+
+      <Dialog
+        open={categoryAction !== null}
+        onOpenChange={(open) => { if (!open) setCategoryAction(null); }}
+        title={categoryAction?.name ?? "Categoria"}
+        description="O que você quer fazer com esta categoria?"
+        closeLabel="Fechar"
+        width={420}
+      >
+        <DialogBody className="ws-form">
+          <Button
+            variant="default"
+            icon="edit"
+            className="ws-action-button"
+            onClick={() => {
+              const category = categoryAction;
+              setCategoryAction(null);
+              if (category) openEditCategory(category);
+            }}
+          >
+            Editar categoria
+          </Button>
+          <Button
+            variant="danger"
+            icon="trash"
+            className="ws-action-button"
+            onClick={() => {
+              const category = categoryAction;
+              setCategoryAction(null);
+              if (category) void removeCategory(category);
+            }}
+          >
+            Excluir categoria
+          </Button>
+        </DialogBody>
       </Dialog>
 
       <ChannelEditDialog

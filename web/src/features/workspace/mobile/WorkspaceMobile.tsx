@@ -84,10 +84,8 @@ interface Props {
   onEditAgent: (agent: Principal) => void;
   onCreateChannel: (categoryId?: string | null) => void;
   onCreateCategory: () => void;
-  onRenameCategory: (category: ChannelCategory) => void;
-  onDeleteCategory: (category: ChannelCategory) => void;
-  onEditChannel: (room: Room) => void;
-  onDeleteChannel: (room: Room) => void;
+  onChannelOptions: (room: Room) => void;
+  onCategoryOptions: (category: ChannelCategory) => void;
   onOpenChannelAgents: () => void;
   onOpenChannelRepos: () => void;
   onDraft: (value: string) => void;
@@ -154,10 +152,8 @@ export default function WorkspaceMobile(props: Props) {
     onEditAgent,
     onCreateChannel,
     onCreateCategory,
-    onRenameCategory,
-    onDeleteCategory,
-    onEditChannel,
-    onDeleteChannel,
+    onChannelOptions,
+    onCategoryOptions,
     onOpenChannelAgents,
     onOpenChannelRepos,
     onDraft,
@@ -591,10 +587,8 @@ export default function WorkspaceMobile(props: Props) {
         onEditAgent={onEditAgent}
         onCreateChannel={onCreateChannel}
         onCreateCategory={onCreateCategory}
-        onRenameCategory={onRenameCategory}
-        onDeleteCategory={onDeleteCategory}
-        onEditChannel={onEditChannel}
-        onDeleteChannel={onDeleteChannel}
+        onChannelOptions={onChannelOptions}
+        onCategoryOptions={onCategoryOptions}
         onOpenSearch={() => setPane("search")}
         onOpenNotifications={() => setTab("alertas")}
         onOpenSettings={() => openSettings("general")}

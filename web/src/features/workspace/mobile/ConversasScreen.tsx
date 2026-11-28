@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Icon, Menu, MenuItem, MenuRadioGroup } from "faang-ui";
 import { Avatar } from "faang-ui";
-import { MoreHorizontal, Plus, Search, Settings2 } from "@jeff/icons";
+import { Plus, Search, Settings2 } from "@jeff/icons";
 import type { User } from "../../../shared/api";
 import { MEMBER_STATUS_LABEL, type MemberStatus } from "../../../shared/ui/presence";
 import { usePrefs } from "../../../shared/prefs";
@@ -49,10 +49,8 @@ interface Props {
   onEditAgent: (agent: Principal) => void;
   onCreateChannel: (categoryId?: string | null) => void;
   onCreateCategory: () => void;
-  onRenameCategory: (category: ChannelCategory) => void;
-  onDeleteCategory: (category: ChannelCategory) => void;
-  onEditChannel: (room: Room) => void;
-  onDeleteChannel: (room: Room) => void;
+  onChannelOptions: (room: Room) => void;
+  onCategoryOptions: (category: ChannelCategory) => void;
   onOpenSearch: () => void;
   onOpenNotifications: () => void;
   onOpenSettings: () => void;
@@ -89,10 +87,8 @@ export default function ConversasScreen({
   onEditAgent,
   onCreateChannel,
   onCreateCategory,
-  onRenameCategory,
-  onDeleteCategory,
-  onEditChannel,
-  onDeleteChannel,
+  onChannelOptions,
+  onCategoryOptions,
   onOpenSearch,
   onOpenNotifications,
   onOpenSettings,
@@ -144,18 +140,12 @@ export default function ConversasScreen({
           {room.visibility === "private" ? <span className="m-row__tag">privado</span> : null}
         </button>
         {isAdmin ? (
-          <Menu
-            align="end"
+          <MobileIconButton
+            icon={Settings2}
             label={`Opções de ${room.name}`}
-            trigger={<MobileIconButton icon={MoreHorizontal} label={`Opções de ${room.name}`} className="m-row__action" />}
-          >
-            <MenuItem icon="edit" onSelect={() => onEditChannel(room)}>
-              Editar canal
-            </MenuItem>
-            <MenuItem danger icon="trash" onSelect={() => onDeleteChannel(room)}>
-              Excluir canal
-            </MenuItem>
-          </Menu>
+            className="m-row__action"
+            onClick={() => onChannelOptions(room)}
+          />
         ) : null}
       </div>
     );
@@ -227,7 +217,7 @@ export default function ConversasScreen({
                 <div className="m-category" key={category.id}>
                   <MobileSectionTitle
                     title={category.name}
-                    icon={<CategoryGlyph category={category} size={14} />}
+                    icon={<CategoryGlyph category={category} size={18} />}
                     open={open}
                     onToggle={() => toggleCategory(category.id)}
                     actions={
@@ -236,18 +226,12 @@ export default function ConversasScreen({
                           <button type="button" className="m-section__add" aria-label={`Novo canal em ${category.name}`} onClick={() => onCreateChannel(category.id)}>
                             <Icon name="plus" size={14} />
                           </button>
-                          <Menu
-                            align="end"
-                            label={`Categoria ${category.name}`}
-                            trigger={<MobileIconButton icon={MoreHorizontal} label={`Opções de ${category.name}`} className="m-row__action" />}
-                          >
-                            <MenuItem icon="edit" onSelect={() => onRenameCategory(category)}>
-                              Renomear
-                            </MenuItem>
-                            <MenuItem danger icon="trash" onSelect={() => onDeleteCategory(category)}>
-                              Excluir categoria
-                            </MenuItem>
-                          </Menu>
+                          <MobileIconButton
+                            icon={Settings2}
+                            label={`Opções de ${category.name}`}
+                            className="m-row__action"
+                            onClick={() => onCategoryOptions(category)}
+                          />
                         </>
                       ) : null
                     }

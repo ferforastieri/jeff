@@ -109,7 +109,7 @@ export default function ChatScreen({
         icon={
           room.kind === "room" ? (
             <span className="m-chathead__icons">
-              {category?.icon ? <CategoryGlyph category={category} size={14} /> : null}
+              {category?.icon ? <CategoryGlyph category={category} size={18} /> : null}
               {category?.icon ? <Icon name="chevronRight" size={14} className="m-chathead__chevron" /> : null}
               <Icon name="channel" size={18} />
             </span>

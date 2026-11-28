@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { X } from "@jeff/icons";
 import { cx } from "@jeff/ui";
 import MobileIconButton from "./MobileIconButton";
+import SidebarJeffs from "../../../../shared/ui/SidebarJeffs";
 
 export interface MobileDrawerRow {
   id: string;
@@ -48,6 +49,7 @@ export default function MobileDrawer({ open, onClose, title, meta, mark, section
     <div className="m-drawer-layer">
       <button type="button" className="m-drawer__scrim" aria-label="Fechar navegação" onClick={onClose} />
       <aside className="m-drawer" role="dialog" aria-modal="true" aria-label="Navegação">
+        <SidebarJeffs subtle className="m-drawer__sky" />
         <header className="m-drawer__head">
           <span className="m-drawer__mark">{mark}</span>
           <span className="m-drawer__titles">

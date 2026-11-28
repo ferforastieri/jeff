@@ -359,6 +359,21 @@
   z-index: 230;
 }
 
+.m-drawer > :not(.ws-sidebar-sky) {
+  position: relative;
+  z-index: 1;
+}
+
+.m-drawer__sky {
+  height: 42%;
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+[data-theme="light"] .m-drawer__sky {
+  opacity: 0.15;
+}
+
 .m-drawer__scrim {
   position: absolute;
   inset: 0;
