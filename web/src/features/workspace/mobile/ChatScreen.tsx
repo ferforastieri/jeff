@@ -16,7 +16,7 @@ import {
   SearchField,
 } from "faang-ui";
 import { Info, Search, SlidersHorizontal } from "@jeff/icons";
-import { CategoryGlyph, ChannelGlyph } from "../WorkspaceGlyph";
+import { CategoryGlyph } from "../WorkspaceGlyph";
 import type { AIModel, User } from "../../../shared/api";
 import type { ChannelCategory, Principal, Room, RoomMessage } from "../../rooms/api";
 import AgentComposerControls from "../AgentComposerControls";
@@ -129,7 +129,7 @@ export default function ChatScreen({
             <span className="m-chathead__icons">
               {category?.icon ? <CategoryGlyph category={category} size={14} /> : null}
               {category?.icon ? <Icon name="chevronRight" size={14} className="m-chathead__chevron" /> : null}
-              <ChannelGlyph room={room} size={18} />
+              <Icon name="channel" size={18} />
             </span>
           ) : (
             renderFace(other, 24)

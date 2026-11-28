@@ -802,7 +802,6 @@ html[data-menu-overlay] .jeff-workspace-home {
   height: 100%;
   min-height: 0;
   flex-direction: column;
-  background: var(--side, #0b0d11);
 }
 
 .ws-side-panel__body {
@@ -829,6 +828,11 @@ html[data-menu-overlay] .jeff-workspace-home {
   .ws-main-tab--aux .ws-main-tab__label {
     display: inline;
   }
+}
+
+.ws-editor-modal {
+  height: min(82vh, 780px);
+  min-height: 420px;
 }
 
 .ws-side-loading,
@@ -955,10 +959,67 @@ html[data-menu-overlay] .jeff-workspace-home {
   min-height: 0;
   flex: none;
   flex-direction: column;
+  overflow: hidden;
   margin-left: 8px;
   background: var(--side, #0b0d11);
   padding: 8px 4px;
   animation: ws-panel-in 200ms ease both;
+}
+
+.ws-team-sidebar > :not(.ws-ambient, .ws-sidebar-sky) {
+  position: relative;
+  z-index: 1;
+}
+
+.ws-team-surface {
+  background: transparent;
+}
+
+.ws-team-sidebar .ws-session-row {
+  min-height: 34px;
+  border-radius: 10px;
+}
+
+.ws-team-sidebar .ws-session-row__button {
+  min-height: 34px;
+  gap: 10px;
+  border-radius: 10px;
+  padding: 4px 8px;
+  color: #bdbdbd;
+}
+
+.ws-team-sidebar .ws-session-row__button:hover {
+  background: var(--side-hover, #1a1c20);
+  color: var(--ink, #efefec);
+}
+
+.ws-team-sidebar .ws-session-row[data-selected] .ws-session-row__button {
+  background: var(--side-chosen, #2b2d30);
+  color: var(--ink, #efefec);
+}
+
+.ws-team-sidebar .ws-session-row__glyph {
+  display: inline-flex;
+  width: 18px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: #8f8f8f;
+}
+
+.ws-team-sidebar .ws-session-row[data-selected] .ws-session-row__glyph {
+  color: var(--ink, #efefec);
+}
+
+.ws-team-sidebar .ws-session-row__title {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.ws-team-sidebar .ws-session-row__time {
+  color: var(--faint, #8f8f8f);
+  font-size: 11px;
 }
 
 .ws-team-sidebar.is-aux {

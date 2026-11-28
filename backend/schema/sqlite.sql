@@ -370,7 +370,6 @@ CREATE TABLE IF NOT EXISTS rooms (
     project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     kind TEXT NOT NULL DEFAULT 'room' CHECK(kind IN ('room', 'dm')),
     name TEXT NOT NULL,
-    icon TEXT NOT NULL DEFAULT '',
     title TEXT NOT NULL DEFAULT '',
     instructions TEXT NOT NULL DEFAULT '',
     lead_id TEXT REFERENCES principals(id) ON DELETE SET NULL,

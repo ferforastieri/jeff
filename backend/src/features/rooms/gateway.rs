@@ -344,7 +344,6 @@ impl RoomGateway {
                         &self.principal,
                         CreateRoomInput {
                             name: name.to_string(),
-                            icon: String::new(),
                             title: args["title"].as_str().unwrap_or("").to_string(),
                             instructions: args["instructions"].as_str().unwrap_or("").to_string(),
                             lead_id: None,
@@ -1059,7 +1058,6 @@ mod tests {
                 &me,
                 CreateRoomInput {
                     name: "Geral".into(),
-                    icon: String::new(),
                     title: String::new(),
                     instructions: String::new(),
                     lead_id: Some(bot.id.clone()),

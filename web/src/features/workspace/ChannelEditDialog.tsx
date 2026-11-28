@@ -6,7 +6,6 @@ import {
   DialogBody,
   DialogFooter,
   Field,
-  Icon,
   Input,
   SearchField,
   Select,
@@ -14,7 +13,6 @@ import {
 import type { Repository } from "../../shared/api";
 import type { ChannelCategory, Principal, Room } from "../rooms/api";
 import { channelsApi } from "../rooms/api";
-import { ImageCropDialog } from "../onboarding/ImageCropDialog";
 import { faceOf } from "./face";
 
 interface Props {
@@ -44,8 +42,6 @@ export default function ChannelEditDialog({
   onSaved,
 }: Props) {
   const [name, setName] = useState("");
-  const [icon, setIcon] = useState("");
-  const [iconOpen, setIconOpen] = useState(false);
   const [topic, setTopic] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
@@ -59,7 +55,6 @@ export default function ChannelEditDialog({
   useEffect(() => {
     if (!room) return;
     setName(room.name);
-    setIcon(room.icon ?? "");
     setTopic(room.title);
     setCategoryId(room.categoryId ?? "");
     setVisibility(room.visibility === "private" ? "private" : "public");
@@ -93,7 +88,6 @@ export default function ChannelEditDialog({
     try {
       const updated = await channelsApi.update(room.id, {
         name: name.trim(),
-        icon,
         title: topic.trim(),
         instructions: room.instructions,
         visibility,
@@ -112,7 +106,6 @@ export default function ChannelEditDialog({
   }
 
   return (
-    <>
     <Dialog
       open
       onOpenChange={(open) => {
@@ -126,23 +119,6 @@ export default function ChannelEditDialog({
       <DialogBody className="ws-form">
         <Field label="Nome do canal">
           <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex.: marketing" autoFocus />
-        </Field>
-        <Field label="Ícone do canal">
-          <div className="ws-icon-field">
-            <span className="ws-icon-preview">
-              {icon ? <img src={icon} alt="" draggable={false} /> : <Icon name="channel" size={20} />}
-            </span>
-            <div className="ws-icon-actions">
-              <Button variant="default" size="sm" onClick={() => setIconOpen(true)}>
-                {icon ? "Trocar imagem" : "Enviar imagem"}
-              </Button>
-              {icon ? (
-                <Button variant="ghost" size="sm" onClick={() => setIcon("")}>
-                  Remover
-                </Button>
-              ) : null}
-            </div>
-          </div>
         </Field>
         <Field label="Tópico">
           <Input value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="Do que o canal trata?" />
@@ -239,16 +215,5 @@ export default function ChannelEditDialog({
         <Button variant="primary" loading={busy} onClick={() => void save()}>Salvar canal</Button>
       </DialogFooter>
     </Dialog>
-    <ImageCropDialog
-      open={iconOpen}
-      title="Ícone do canal"
-      description="Arraste para enquadrar. O quadrado é o que aparece na sidebar e no topo do canal."
-      placeholder={
-        icon ? <img src={icon} alt="" draggable={false} /> : <Icon name="channel" size={20} />
-      }
-      onClose={() => setIconOpen(false)}
-      onSave={setIcon}
-    />
-    </>
   );
 }

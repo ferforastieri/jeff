@@ -755,7 +755,6 @@ export default function WorkspaceMobile(props: Props) {
         return (
           <ChannelSessionsMobile
             project={project}
-            room={selectedRoom}
             category={
               selectedRoom.kind === "room"
                 ? categories.find((item) => item.id === selectedRoom.categoryId) ?? null

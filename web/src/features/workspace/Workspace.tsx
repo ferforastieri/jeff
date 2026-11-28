@@ -24,6 +24,7 @@ import {
   Select,
   type IconName,
 } from "faang-ui";
+import { PixelSpinner } from "@jeff/ui";
 import { api, type OnboardingStatus, type Project, type Repository, type User, type WorkspaceLayout, type SchemaTable } from "../../shared/api";
 import { useApp, type AppNotification, type Tab } from "../../app/store";
 import { SettingsView, type Section } from "../settings/components/JeffSettings";
@@ -42,7 +43,7 @@ import { modelSelectOptions, useAI } from "../providers/store";
 import Board from "../rooms/Board";
 import AgentComposerControls from "./AgentComposerControls";
 import SidebarHeader from "../../app/components/SidebarHeader";
-import { CategoryGlyph, ChannelGlyph } from "./WorkspaceGlyph";
+import { CategoryGlyph } from "./WorkspaceGlyph";
 import { ImageCropDialog } from "../onboarding/ImageCropDialog";
 import WorkspaceMenu, { WorkspaceMenuSky } from "./WorkspaceMenu";
 import HomeDashboard from "./HomeDashboard";
@@ -77,6 +78,20 @@ const DatabasesPanel = lazy(() => import("../../features/databases/components/Da
 const EditorPanel = lazy(() => import("../../features/editor/components/EditorPanel"));
 const DiffPanelTab = lazy(() => import("../../features/editor/components/DiffPanelTab"));
 const DbPanelTab = lazy(() => import("../../features/databases/components/DbPanelTab"));
+
+let editorPreload: Promise<unknown> | null = null;
+
+/** Starts downloading the editor and Monaco while the user is still in the tree. */
+function preloadEditor() {
+  if (!editorPreload) {
+    editorPreload = import("../../features/editor/components/EditorPanel")
+      .then(() => import("@monaco-editor/react"))
+      .then(({ loader }) => loader.init());
+  }
+  void editorPreload.catch(() => {
+    editorPreload = null;
+  });
+}
 
 type View = "home" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings";
 type RightView = "team" | "files" | "scm" | "db" | "sessions";
@@ -162,7 +177,6 @@ export default function Workspace({ status }: Props) {
   const [agentsBusy, setAgentsBusy] = useState(false);
   const [agentsError, setAgentsError] = useState("");
   const [channelName, setChannelName] = useState("");
-  const [channelIcon, setChannelIcon] = useState("");
   const [channelTopic, setChannelTopic] = useState("");
   const [channelRepos, setChannelRepos] = useState<string[]>([]);
   const [channelRepoQuery, setChannelRepoQuery] = useState("");
@@ -178,7 +192,7 @@ export default function Workspace({ status }: Props) {
   const [renamingCategory, setRenamingCategory] = useState<ChannelCategory | null>(null);
   const [renameCategoryName, setRenameCategoryName] = useState("");
   const [renameCategoryIcon, setRenameCategoryIcon] = useState("");
-  const [iconCrop, setIconCrop] = useState<"channel" | "category" | "category-edit" | null>(null);
+  const [iconCrop, setIconCrop] = useState<"category" | "category-edit" | null>(null);
   const [agentName, setAgentName] = useState("");
   const [agentHandle, setAgentHandle] = useState("");
   const [agentTitle, setAgentTitle] = useState("");
@@ -235,11 +249,12 @@ export default function Workspace({ status }: Props) {
   const [sessionsReady, setSessionsReady] = useState(false);
   const [sessionsLayout, setSessionsLayout] = useState<WorkspaceLayout | null>(null);
   const [sessionsEpoch, setSessionsEpoch] = useState(0);
-  const [editorTarget, setEditorTarget] = useState<{ path: string; line?: number } | null>(null);
+  const [editorTarget, setEditorTarget] = useState<{ tabId: string; path: string; line?: number } | null>(null);
   const [diffTarget, setDiffTarget] = useState<{ path: string; staged: boolean } | null>(null);
   const [dbTarget, setDbTarget] = useState<{ profileId: string; table: SchemaTable; driver: string } | null>(null);
   const workspaceFeatures = useSettings((state) => state.workspaceFeatures);
   const projects = useApp((state) => state.projects);
+  const workspaceTabs = useApp((state) => state.tabs);
   const bottom = useRef<HTMLDivElement>(null);
   const workspaceLogo = status.workspaceLogo || WORKSPACE_FACE;
   const user = useApp((state) => state.user);
@@ -336,6 +351,9 @@ export default function Workspace({ status }: Props) {
   const auxIcon: IconName =
     rightView === "files" ? "file" : rightView === "scm" ? "gitPull" : "database";
   const sessionsProject = projects.find((project) => project.id === channelDevProjectId) ?? null;
+  const editorTab = editorTarget
+    ? workspaceTabs.find((tab) => tab.id === editorTarget.tabId) ?? null
+    : null;
   const boardProject: Project = useMemo(
     () => ({
       id: selectedRoom?.projectId || status.projectId,
@@ -819,7 +837,6 @@ export default function Workspace({ status }: Props) {
 
   function openChannel(categoryId: string | null = null) {
     setChannelName("");
-    setChannelIcon("");
     setChannelTopic("");
     setChannelCategoryId(categoryId);
     setChannelVisibility("public");
@@ -861,7 +878,6 @@ export default function Workspace({ status }: Props) {
     try {
       const room = await channelsApi.create({
         name: channelName.trim(),
-        icon: channelIcon,
         title: channelTopic.trim(),
         categoryId: channelCategoryId,
         visibility: channelVisibility,
@@ -1208,6 +1224,7 @@ export default function Workspace({ status }: Props) {
     repoPath?: string,
   ) {
     if (!devMode || !targetRoom || targetRoom.kind !== "room" || targetRoom.repos.length === 0) return;
+    if (view === "files") preloadEditor();
     setChannelDevBusy(true);
     try {
       await ensureChannelDevProject(targetRoom, channelRepoFor(targetRoom, repoPath));
@@ -1223,6 +1240,31 @@ export default function Workspace({ status }: Props) {
     } finally {
       setChannelDevBusy(false);
     }
+  }
+
+  function openEditorFile(path: string, line?: number) {
+    if (!sessionsProject) return;
+    const tabId = `editor:${sessionsProject.id}:${path}`;
+    const app = useApp.getState();
+    app.openTab({
+      id: tabId,
+      kind: "editor",
+      title: basename(path),
+      projectId: sessionsProject.id,
+      path,
+      line,
+    });
+    if (line) app.updateTab(tabId, { line });
+    preloadEditor();
+    setEditorTarget({ tabId, path, line });
+  }
+
+  function closeEditorFile() {
+    if (!editorTarget) return;
+    const tab = useApp.getState().tabs.find((item) => item.id === editorTarget.tabId);
+    if (tab?.dirty && !window.confirm("Descartar as alterações deste arquivo?")) return;
+    useApp.getState().closeTab(editorTarget.tabId);
+    setEditorTarget(null);
   }
 
   function changeMessageMode(mode: MessageMode) {
@@ -1716,7 +1758,7 @@ export default function Workspace({ status }: Props) {
                   <div className="ws-channel-wrap" key={room.id}>
                     <ListRow
                       className={`ws-channel-row${view === "chat" && selectedRoomId === room.id ? " is-active" : ""}`}
-                      lead={<ChannelGlyph room={room} size={16} />}
+                      lead={<Icon name="channel" size={16} />}
                       title={room.name}
                       onClick={() => selectRoom(room)}
                     />
@@ -1804,7 +1846,7 @@ export default function Workspace({ status }: Props) {
                             <div className="ws-channel-wrap" key={room.id}>
                               <ListRow
                                 className={`ws-channel-row${view === "chat" && selectedRoomId === room.id ? " is-active" : ""}`}
-                                lead={<ChannelGlyph room={room} size={16} />}
+                                lead={<Icon name="channel" size={16} />}
                                 title={room.name}
                                 onClick={() => selectRoom(room)}
                               />
@@ -1947,7 +1989,7 @@ export default function Workspace({ status }: Props) {
             ) : null}
             <span className={`ws-main-face${selectedRoom?.kind === "room" ? " is-room" : ""}`}>
               {selectedRoom?.kind === "room" ? (
-                <ChannelGlyph room={selectedRoom} size={20} />
+                <Icon name="channel" size={20} />
               ) : (
                 faceOf(agent, 32)
               )}
@@ -2211,6 +2253,8 @@ export default function Workspace({ status }: Props) {
           className={`ws-team-sidebar${rightView !== "team" ? " is-aux" : ""}`}
           aria-label="Barra da direita"
         >
+          <div className="ws-ambient" aria-hidden="true" />
+          <SidebarJeffs subtle />
           {rightView === "team" ? (
             <div className="ws-team-scroll">
               <section className="ws-group" aria-label="Equipe">
@@ -2308,26 +2352,15 @@ export default function Workspace({ status }: Props) {
                 title="Sessões"
                 onOpenChat={() => undefined}
                 headerActions={
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      iconOnly
-                      icon="close"
-                      aria-label="Fechar sessões e voltar à equipe"
-                      title="Fechar e voltar à equipe"
-                      onClick={closeRightTool}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      iconOnly
-                      icon="chevronRight"
-                      aria-label="Recolher barra da direita"
-                      title="Recolher barra"
-                      onClick={() => setRightOpen(false)}
-                    />
-                  </>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="close"
+                    aria-label="Fechar sessões e voltar à equipe"
+                    title="Fechar e voltar à equipe"
+                    onClick={closeRightTool}
+                  />
                 }
               />
             ) : (
@@ -2339,26 +2372,15 @@ export default function Workspace({ status }: Props) {
                 icon={<Icon name={auxIcon} size={16} />}
                 title={auxTitle}
                 actions={
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      iconOnly
-                      icon="close"
-                      aria-label={`Fechar ${auxTitle} e voltar à equipe`}
-                      title="Fechar e voltar à equipe"
-                      onClick={closeRightTool}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      iconOnly
-                      icon="chevronRight"
-                      aria-label="Recolher barra da direita"
-                      title="Recolher barra"
-                      onClick={() => setRightOpen(false)}
-                    />
-                  </>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="close"
+                    aria-label={`Fechar ${auxTitle} e voltar à equipe`}
+                    title="Fechar e voltar à equipe"
+                    onClick={closeRightTool}
+                  />
                 }
               />
               <div className="ws-side-panel__body">
@@ -2367,7 +2389,7 @@ export default function Workspace({ status }: Props) {
                     <ExplorerPanel
                       project={sessionsProject}
                       embedded
-                      onOpenFile={(path, line) => setEditorTarget({ path, line })}
+                      onOpenFile={openEditorFile}
                     />
                   ) : null}
                   {rightView === "scm" ? (
@@ -2415,23 +2437,6 @@ export default function Workspace({ status }: Props) {
               placeholder="Ex.: marketing"
               autoFocus
             />
-          </Field>
-          <Field label="Ícone do canal">
-            <div className="ws-icon-field">
-              <span className="ws-icon-preview">
-                {channelIcon ? <img src={channelIcon} alt="" draggable={false} /> : <Icon name="channel" size={20} />}
-              </span>
-              <div className="ws-icon-actions">
-                <Button variant="default" size="sm" onClick={() => setIconCrop("channel")}>
-                  {channelIcon ? "Trocar imagem" : "Enviar imagem"}
-                </Button>
-                {channelIcon ? (
-                  <Button variant="ghost" size="sm" onClick={() => setChannelIcon("")}>
-                    Remover
-                  </Button>
-                ) : null}
-              </div>
-            </div>
           </Field>
           <Field label="Tópico">
             <Input
@@ -2576,13 +2581,25 @@ export default function Workspace({ status }: Props) {
                 {categoryIcon ? <img src={categoryIcon} alt="" draggable={false} /> : <Icon name="layers" size={20} />}
               </span>
               <div className="ws-icon-actions">
-                <Button variant="default" size="sm" onClick={() => setIconCrop("category")}>
-                  {categoryIcon ? "Trocar imagem" : "Enviar imagem"}
-                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  iconOnly
+                  icon="upload"
+                  aria-label="Enviar imagem da categoria"
+                  title="Enviar imagem"
+                  onClick={() => setIconCrop("category")}
+                />
                 {categoryIcon ? (
-                  <Button variant="ghost" size="sm" onClick={() => setCategoryIcon("")}>
-                    Remover
-                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="trash"
+                    aria-label="Remover ícone da categoria"
+                    title="Remover"
+                    onClick={() => setCategoryIcon("")}
+                  />
                 ) : null}
               </div>
             </div>
@@ -2649,13 +2666,25 @@ export default function Workspace({ status }: Props) {
                 {renameCategoryIcon ? <img src={renameCategoryIcon} alt="" draggable={false} /> : <Icon name="layers" size={20} />}
               </span>
               <div className="ws-icon-actions">
-                <Button variant="default" size="sm" onClick={() => setIconCrop("category-edit")}>
-                  {renameCategoryIcon ? "Trocar imagem" : "Enviar imagem"}
-                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  iconOnly
+                  icon="upload"
+                  aria-label="Enviar imagem da categoria"
+                  title="Enviar imagem"
+                  onClick={() => setIconCrop("category-edit")}
+                />
                 {renameCategoryIcon ? (
-                  <Button variant="ghost" size="sm" onClick={() => setRenameCategoryIcon("")}>
-                    Remover
-                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="trash"
+                    aria-label="Remover ícone da categoria"
+                    title="Remover"
+                    onClick={() => setRenameCategoryIcon("")}
+                  />
                 ) : null}
               </div>
             </div>
@@ -3028,30 +3057,31 @@ export default function Workspace({ status }: Props) {
         }}
       />
 
-      {editorTarget && sessionsProject ? (
+      {editorTarget && editorTab && sessionsProject ? (
         <Dialog
           open
-          onOpenChange={(open) => { if (!open) setEditorTarget(null); }}
+          onOpenChange={(open) => { if (!open) closeEditorFile(); }}
           title={basename(editorTarget.path)}
           description={editorTarget.path}
           closeLabel="Fechar"
           width={1100}
         >
           <DialogBody className="p-0">
-            <div className="h-[min(82vh,780px)]">
-              <EditorPanel
-                tab={{
-                  id: `editor:${sessionsProject.id}:${editorTarget.path}`,
-                  kind: "editor",
-                  title: basename(editorTarget.path),
-                  projectId: sessionsProject.id,
-                  path: editorTarget.path,
-                  line: editorTarget.line,
-                }}
-                project={sessionsProject}
-                onOpenChanges={(path) => setDiffTarget({ path, staged: false })}
-              />
-            </div>
+            <Suspense
+              fallback={
+                <div className="flex h-[min(82vh,780px)] items-center justify-center gap-2 text-caption-1-regular text-text-tertiary">
+                  <PixelSpinner size={16} /> Abrindo arquivo…
+                </div>
+              }
+            >
+              <div className="ws-editor-modal">
+                <EditorPanel
+                  tab={editorTab}
+                  project={sessionsProject}
+                  onOpenChanges={(path) => setDiffTarget({ path, staged: false })}
+                />
+              </div>
+            </Suspense>
           </DialogBody>
         </Dialog>
       ) : null}
@@ -3066,19 +3096,27 @@ export default function Workspace({ status }: Props) {
           width={1100}
         >
           <DialogBody className="p-0">
-            <div className="h-[min(82vh,780px)]">
-              <DiffPanelTab
-                tab={{
-                  id: `diff:${sessionsProject.id}:${diffTarget.staged ? "staged" : "worktree"}:${diffTarget.path}`,
-                  kind: "diff",
-                  title: basename(diffTarget.path),
-                  projectId: sessionsProject.id,
-                  path: diffTarget.path,
-                  staged: diffTarget.staged,
-                }}
-                project={sessionsProject}
-              />
-            </div>
+            <Suspense
+              fallback={
+                <div className="flex h-[min(82vh,780px)] items-center justify-center gap-2 text-caption-1-regular text-text-tertiary">
+                  <PixelSpinner size={16} /> Abrindo diff…
+                </div>
+              }
+            >
+              <div className="ws-editor-modal">
+                <DiffPanelTab
+                  tab={{
+                    id: `diff:${sessionsProject.id}:${diffTarget.staged ? "staged" : "worktree"}:${diffTarget.path}`,
+                    kind: "diff",
+                    title: basename(diffTarget.path),
+                    projectId: sessionsProject.id,
+                    path: diffTarget.path,
+                    staged: diffTarget.staged,
+                  }}
+                  project={sessionsProject}
+                />
+              </div>
+            </Suspense>
           </DialogBody>
         </Dialog>
       ) : null}
@@ -3093,21 +3131,27 @@ export default function Workspace({ status }: Props) {
           width={1100}
         >
           <DialogBody className="p-0">
-            <div className="h-[min(82vh,780px)]">
-              <DbPanelTab tab={dbTabFor(dbTarget, sessionsProject)} />
-            </div>
+            <Suspense
+              fallback={
+                <div className="flex h-[min(82vh,780px)] items-center justify-center gap-2 text-caption-1-regular text-text-tertiary">
+                  <PixelSpinner size={16} /> Abrindo tabela…
+                </div>
+              }
+            >
+              <div className="ws-editor-modal">
+                <DbPanelTab tab={dbTabFor(dbTarget, sessionsProject)} />
+              </div>
+            </Suspense>
           </DialogBody>
         </Dialog>
       ) : null}
 
       <ImageCropDialog
         open={iconCrop !== null}
-        title={iconCrop === "channel" ? "Ícone do canal" : "Ícone da categoria"}
+        title="Ícone da categoria"
         description="Arraste para enquadrar. O quadrado é o que aparece na sidebar e no topo."
         placeholder={
-          iconCrop === "channel" ? (
-            channelIcon ? <img src={channelIcon} alt="" draggable={false} /> : <Icon name="channel" size={20} />
-          ) : (iconCrop === "category" ? categoryIcon : renameCategoryIcon) ? (
+          (iconCrop === "category" ? categoryIcon : renameCategoryIcon) ? (
             <img
               src={iconCrop === "category" ? categoryIcon : renameCategoryIcon}
               alt=""
@@ -3119,8 +3163,7 @@ export default function Workspace({ status }: Props) {
         }
         onClose={() => setIconCrop(null)}
         onSave={(icon) => {
-          if (iconCrop === "channel") setChannelIcon(icon);
-          else if (iconCrop === "category") setCategoryIcon(icon);
+          if (iconCrop === "category") setCategoryIcon(icon);
           else if (iconCrop === "category-edit") setRenameCategoryIcon(icon);
         }}
       />

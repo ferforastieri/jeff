@@ -23,7 +23,6 @@ export interface Room {
   projectId: string;
   kind: "room" | "dm";
   name: string;
-  icon: string;
   title: string;
   instructions: string;
   leadId: string | null;
@@ -68,7 +67,6 @@ export interface RoomMessage {
 
 export interface UpdateChannelBody {
   name: string;
-  icon: string;
   title: string;
   instructions?: string;
   visibility: "public" | "private";
@@ -80,7 +78,6 @@ export interface UpdateChannelBody {
 
 export interface CreateRoomBody {
   name: string;
-  icon?: string;
   title?: string;
   instructions?: string;
   leadId?: string | null;

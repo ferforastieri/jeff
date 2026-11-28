@@ -15,8 +15,8 @@ use crate::model::Project;
 
 const MAX_ICON_BYTES: usize = 2_000_000;
 
-/// Channel and category icons are small square PNGs produced by the web
-/// cropper. They travel as data URIs so the icon is part of the room itself.
+/// Category icons are small square PNGs produced by the web cropper. They
+/// travel as data URIs so the icon is part of the category itself.
 fn clean_icon(value: &str) -> AppResult<String> {
     let icon = value.trim();
     if icon.is_empty() {
@@ -128,13 +128,12 @@ pub(super) async fn create_room(
     State(state): State<Arc<AppState>>,
     Path(project): Path<String>,
     Extension(auth): Extension<AuthContext>,
-    Json(mut input): Json<CreateRoomInput>,
+    Json(input): Json<CreateRoomInput>,
 ) -> AppResult<Json<Value>> {
     state.store.project(&project).await?;
     if !auth.user.is_admin() {
         return Err(AppError::Forbidden);
     }
-    input.icon = clean_icon(&input.icon)?;
     let me = state.store.ensure_human_principal(auth.user.id).await?;
     let room = state.store.create_room(&project, &me, input).await?;
     let _ = state
@@ -596,8 +595,6 @@ pub(super) async fn send_channel_message(
 pub(super) struct UpdateChannelInput {
     name: String,
     #[serde(default)]
-    icon: String,
-    #[serde(default)]
     title: String,
     #[serde(default)]
     instructions: String,
@@ -645,14 +642,12 @@ pub(super) async fn update_channel(
             .find(|category| category.id == category_id)
             .ok_or(AppError::NotFound)?;
     }
-    let icon = clean_icon(&input.icon)?;
     let room = state
         .store
         .update_room(
             &project.id,
             &room_id,
             name,
-            &icon,
             &input.title,
             &input.instructions,
             if input.visibility == "public" {

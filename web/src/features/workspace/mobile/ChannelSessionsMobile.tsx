@@ -2,10 +2,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MessageSquarePlus } from "@jeff/icons";
 import { Icon } from "faang-ui";
 import { api, type Project } from "../../../shared/api";
-import type { ChannelCategory, Room } from "../../rooms/api";
+import type { ChannelCategory } from "../../rooms/api";
 import { useApp } from "../../../app/store";
 import { latestChatForJeff, useChats } from "../../conversations/store";
-import { CategoryGlyph, ChannelGlyph } from "../WorkspaceGlyph";
+import { CategoryGlyph } from "../WorkspaceGlyph";
 import { ensureJeff } from "../../agents/default-jeff";
 import SessionsScreen from "../../../app/layouts/mobile/screens/SessionsScreen";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
@@ -16,7 +16,6 @@ import { MobileEmpty } from "./mobile-ui";
 
 interface Props {
   project: Project;
-  room: Room;
   category?: ChannelCategory | null;
   initialChatId?: string | null;
   initialBotId?: string | null;
@@ -28,7 +27,6 @@ interface Props {
 /** The private sessions half of Mensagens, inside the channel. */
 export default function ChannelSessionsMobile({
   project,
-  room,
   category,
   initialChatId,
   initialBotId,
@@ -123,7 +121,7 @@ export default function ChannelSessionsMobile({
           <span className="m-chathead__icons">
             {category?.icon ? <CategoryGlyph category={category} size={14} /> : null}
             {category?.icon ? <Icon name="chevronRight" size={14} className="m-chathead__chevron" /> : null}
-            <ChannelGlyph room={room} size={18} />
+            <Icon name="channel" size={18} />
           </span>
         }
         title="Sessões"

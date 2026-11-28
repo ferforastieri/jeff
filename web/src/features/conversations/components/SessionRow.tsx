@@ -3,6 +3,7 @@ import { PixelSpinner } from "@jeff/ui";
 import { cx } from "@jeff/ui";
 import { IconButton } from "@jeff/ui/app";
 import { sessionWhen } from "../sessions";
+import BrandGlyph from "../../../shared/ui/BrandGlyph";
 
 interface Props {
   title: string;
@@ -27,21 +28,26 @@ export default function SessionRow({
 }: Props) {
   const state = running ? "Rodando agora" : "";
   return (
-    <div className={cx("group relative flex min-w-0 items-center", selected && "rounded-xl bg-background-tertiary-default")}>
+    <div
+      className={cx("ws-session-row group relative flex min-w-0 items-center", selected && "rounded-xl bg-background-tertiary-default")}
+      data-selected={selected || undefined}
+    >
       <button
         type="button"
         onClick={onOpen}
         aria-current={selected ? "true" : undefined}
         aria-label={`${title}${state ? `. ${state}` : ""}${unread ? ". Resposta não lida" : ""}`}
         className={cx(
-          "flex w-full min-w-0 items-center rounded-xl px-2 py-2 text-start transition-colors",
+          "ws-session-row__button flex w-full min-w-0 items-center gap-2.5 rounded-xl px-2 py-2 text-start transition-colors",
           onDelete && "pe-9",
           selected ? "bg-background-tertiary-default" : "hover:bg-background-primary-hover",
         )}
       >
-        <span className="flex min-w-0 flex-1 items-center gap-1.5">
-          {running ? <PixelSpinner size={14} className="shrink-0" /> : null}
-          <span className="truncate text-caption-1-medium text-text-primary">{title}</span>
+        <span className="ws-session-row__glyph">
+          {running ? <PixelSpinner size={14} /> : <BrandGlyph size={15} />}
+        </span>
+        <span className="ws-session-row__copy flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="ws-session-row__title truncate text-caption-1-medium text-text-primary">{title}</span>
           {unread ? (
             <span
               className="size-1.5 shrink-0 rounded-full bg-accent-500"
@@ -49,7 +55,7 @@ export default function SessionRow({
               aria-label="Resposta não lida"
             />
           ) : null}
-          <span className="ms-auto shrink-0 text-[10px] tabular-nums text-text-tertiary">{sessionWhen(activityAt)}</span>
+          <span className="ws-session-row__time ms-auto shrink-0 text-[10px] tabular-nums text-text-tertiary">{sessionWhen(activityAt)}</span>
         </span>
       </button>
       {onDelete ? (

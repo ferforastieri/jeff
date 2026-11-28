@@ -125,7 +125,7 @@ export default function BotsSidebar({ project, headerControl, headerActions, onS
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background-primary-default">
+    <div className="ws-team-surface flex h-full min-h-0 flex-col bg-background-primary-default">
       <SidebarHeader
         control={headerControl}
         icon={<BrandGlyph size={16} className="text-accent-500" />}

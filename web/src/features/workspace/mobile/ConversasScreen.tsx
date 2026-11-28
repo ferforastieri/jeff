@@ -9,7 +9,7 @@ import type { ChannelCategory, Principal, Room } from "../../rooms/api";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import { MobileEmpty, MobileSectionTitle, MobileWorkspaceButton } from "./mobile-ui";
-import { CategoryGlyph, ChannelGlyph } from "../WorkspaceGlyph";
+import { CategoryGlyph } from "../WorkspaceGlyph";
 
 export interface MobileTeamMember {
   key: string;
@@ -135,7 +135,7 @@ export default function ConversasScreen({
           data-unread={unreadRoomIds.has(room.id) || undefined}
           onClick={() => onSelectRoom(room)}
         >
-          <ChannelGlyph room={room} size={18} className="m-row__glyph" />
+          <Icon name="channel" size={18} className="m-row__glyph" />
           <span className="m-row__name">{room.name}</span>
           {unreadRoomIds.has(room.id) ? <span className="m-row__unread" aria-label="Não lida" /> : null}
           {room.visibility === "private" ? <span className="m-row__tag">privado</span> : null}

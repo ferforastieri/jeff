@@ -70,11 +70,14 @@ impl Database {
             .await
             .map_err(|error| AppError::Internal(anyhow::anyhow!("sqlite migration: {error}")))?;
         let pool = connection.get_sqlite_connection_pool();
-        for (table, column) in [("rooms", "icon"), ("channel_categories", "icon")] {
-            ensure_column(pool, table, column, "TEXT NOT NULL DEFAULT ''")
-                .await
-                .map_err(|error| AppError::Internal(anyhow::anyhow!("sqlite schema: {error}")))?;
-        }
+        ensure_column(
+            pool,
+            "channel_categories",
+            "icon",
+            "TEXT NOT NULL DEFAULT ''",
+        )
+        .await
+        .map_err(|error| AppError::Internal(anyhow::anyhow!("sqlite schema: {error}")))?;
         Ok(Self { connection })
     }
 

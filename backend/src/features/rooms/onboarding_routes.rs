@@ -253,7 +253,6 @@ Quando faltar uma decisão que muda o caminho, pergunte.",
                     &me,
                     CreateRoomInput {
                         name: "Geral".into(),
-                        icon: String::new(),
                         title: String::new(),
                         instructions: String::new(),
                         lead_id: None,
