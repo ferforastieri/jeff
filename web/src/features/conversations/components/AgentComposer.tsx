@@ -25,6 +25,7 @@ interface Props {
   modeControls?: ReactNode;
   history?: string[];
   members?: ChatJeff[];
+  ariaLabel?: string;
 }
 
 /** The composer's busy audio control: the pixel Jeff as a Button's leading icon. */
@@ -37,7 +38,7 @@ function SpinnerIcon({
   return <PixelSpinner size={14} className={className} />;
 }
 
-export function AgentComposer({ value, onChange, onSend, onStop, busy, placeholder, allowAttachments = true, leadingControls, modeControls, history = [], members = [] }: Props) {
+export function AgentComposer({ value, onChange, onSend, onStop, busy, placeholder, allowAttachments = true, leadingControls, modeControls, history = [], members = [], ariaLabel = "Mensagem para o agente" }: Props) {
   const mobile = useIsMobile();
   const [attachments, setAttachments] = useState<AgentAttachment[]>([]);
   const attachmentsRef = useRef<AgentAttachment[]>([]);
@@ -280,7 +281,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
                   value={value}
                   onChange={(next) => { historyIndex.current = -1; historyDraft.current = next; detectMention(next); onChange(next); }}
                   placeholder={placeholder}
-                  aria-label="Mensagem para o agente"
+                  aria-label={ariaLabel}
                   rows={1}
                   autoResize
                   maxRows={6}
@@ -337,7 +338,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, busy, placehold
                 value={value}
                 onChange={(next) => { historyIndex.current = -1; historyDraft.current = next; detectMention(next); onChange(next); }}
                 placeholder={placeholder}
-                aria-label="Mensagem para o agente"
+                aria-label={ariaLabel}
                 rows={1}
                 autoResize
                 maxRows={6}

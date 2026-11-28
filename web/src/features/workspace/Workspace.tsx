@@ -5,7 +5,6 @@ import {
   Card,
   Checkbox,
   Chip,
-  Composer,
   Dialog,
   DialogBody,
   DialogFooter,
@@ -42,6 +41,7 @@ import { WORKSPACE_FACE, faceOf, personName } from "./face";
 import { modelSelectOptions, useAI } from "../providers/store";
 import Board from "../rooms/Board";
 import AgentComposerControls from "./AgentComposerControls";
+import { AgentComposer } from "../conversations/components/AgentComposer";
 import SidebarHeader from "../../app/components/SidebarHeader";
 import { CategoryGlyph } from "./WorkspaceGlyph";
 import { ImageCropDialog } from "../onboarding/ImageCropDialog";
@@ -118,24 +118,6 @@ const NAV_ITEMS: NavItem[] = [
 
 const NAV_DEFAULT = NAV_ITEMS.map((item) => item.id);
 
-const EMOJI_LABELS = {
-  dialog: "Emojis",
-  search: "Buscar emoji",
-  noResults: "Nenhum emoji encontrado",
-  recent: "Usados recentemente",
-  results: "Resultados",
-  categories: {
-    smileys: "Carinhas",
-    people: "Pessoas",
-    nature: "Natureza",
-    food: "Comida",
-    activities: "Atividades",
-    travel: "Viagem",
-    objects: "Objetos",
-    symbols: "Símbolos",
-  },
-  button: "Emoji",
-};
 
 interface Props {
   status: OnboardingStatus;
@@ -2180,17 +2162,16 @@ export default function Workspace({ status }: Props) {
               </div>
             </div>
             <footer className="ws-composer">
-              <Composer
+              <AgentComposer
                 value={draft}
                 onChange={(value) => setDraft(draftKey, value)}
                 onSend={(text) => void send(text)}
-                label={`Mensagem para ${roomTitle}`}
+                busy={false}
                 placeholder={`Mensagem para ${roomTitle} · nada muda sem você`}
-                sendLabel="Enviar"
-                attachLabel="Anexar"
-                emoji={EMOJI_LABELS}
-                inlinePills
-                pills={agent ? (
+                allowAttachments={false}
+                history={messages.filter((message) => message.author.kind === "human").map((message) => message.text)}
+                ariaLabel={`Mensagem para ${roomTitle}`}
+                leadingControls={agent ? (
                   <AgentComposerControls
                     agent={agent}
                     models={aiModels}

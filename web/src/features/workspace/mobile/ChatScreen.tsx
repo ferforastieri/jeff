@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Button,
   Chip,
-  Composer,
   Dialog,
   DialogBody,
   GroupHeading,
@@ -20,29 +19,12 @@ import { CategoryGlyph } from "../WorkspaceGlyph";
 import type { AIModel, User } from "../../../shared/api";
 import type { ChannelCategory, Principal, Room, RoomMessage } from "../../rooms/api";
 import AgentComposerControls from "../AgentComposerControls";
+import { AgentComposer } from "../../conversations/components/AgentComposer";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import { formatTime } from "../../../shared/time";
 import { basename } from "../../../shared/lib";
 
-const EMOJI_LABELS = {
-  dialog: "Emojis",
-  search: "Buscar emoji",
-  noResults: "Nenhum emoji encontrado",
-  recent: "Usados recentemente",
-  results: "Resultados",
-  categories: {
-    smileys: "Carinhas",
-    people: "Pessoas",
-    nature: "Natureza",
-    food: "Comida",
-    activities: "Atividades",
-    travel: "Viagem",
-    objects: "Objetos",
-    symbols: "Símbolos",
-  },
-  button: "Emoji",
-};
 
 interface Props {
   room: Room;
@@ -223,25 +205,23 @@ export default function ChatScreen({
       </div>
 
       <footer className="m-composer">
-        {agent ? (
-          <div className="m-composer-controls">
+        <AgentComposer
+          value={draft}
+          onChange={onDraft}
+          onSend={(text) => onSend(text)}
+          busy={false}
+          placeholder={`Mensagem para ${title} · nada muda sem você`}
+          allowAttachments={false}
+          history={messages.filter((message) => message.author.kind === "human").map((message) => message.text)}
+          ariaLabel={`Mensagem para ${title}`}
+          leadingControls={agent ? (
             <AgentComposerControls
               agent={agent}
               models={models}
               onConnect={onConnectAI}
               onUpdated={onAgentUpdated}
             />
-          </div>
-        ) : null}
-        <Composer
-          value={draft}
-          onChange={onDraft}
-          onSend={onSend}
-          label={`Mensagem para ${title}`}
-          placeholder={`Mensagem para ${title} · nada muda sem você`}
-          sendLabel="Enviar"
-          attachLabel="Anexar"
-          emoji={EMOJI_LABELS}
+          ) : undefined}
         />
       </footer>
 
