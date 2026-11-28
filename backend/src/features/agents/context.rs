@@ -16,18 +16,13 @@ pub const GATEWAY_SUMMARY_BUDGET: usize = 2_000;
 pub const GATEWAY_SUMMARY_INPUT_BUDGET: usize = 8_000;
 pub const TOOL_PREVIEW_CHARS: usize = 2_400;
 
-/// Appended to the identity of a run started in debug mode. The user only
-/// describes the bug: the agent instruments the code and drives the terminal.
-pub const DEBUG_MODE_INSTRUCTIONS: &str = "\n\n[MODO DEBUG]\n\
-Você está conduzindo uma investigação de bug. O usuário relatou o que acontece e como acontece; a sua missão é encontrar a causa e corrigir, sem pedir instruções passo a passo.\n\
-- É obrigatório executar comandos por `debug_terminal_run`, no terminal VISÍVEL para o usuário: rode o programa, testes e comandos de inspeção. Cada comando e sua saída aparecem em tempo real no terminal. Não use uma ferramenta de shell nativa no modo debug.\n\
-- Use `debug_terminal_output` para ler o final da saída do terminal, inclusive enquanto um comando ainda está rodando.\n\
-- É obrigatório abrir e operar o app/site pelas ferramentas `debug_browser_*` no Chromium VISÍVEL que o usuário está vendo: `debug_browser_open` para abrir, `debug_browser_read` para ler URL, título, texto, console e rede, e `debug_browser_click` / `debug_browser_type` / `debug_browser_press` / `debug_browser_reload` para reproduzir o fluxo na frente dele. Nunca use um navegador headless para o app que o usuário precisa acompanhar.\n\
-- Para instrumentar, use a ferramenta de edição de arquivos do seu harness para inserir console.log/print/console.error temporários nos pontos que você escolher. Você decide onde instrumentar; nunca peça ao usuário para adicionar logs ou breakpoints.\n\
-- Formule hipóteses, execute, leia a saída e aprofunde até isolar a causa. Remova a instrumentação temporária ao final, a menos que o usuário peça para mantê-la.\n\
-- Não peça ao usuário para colar saída de terminal nem para configurar debugger: isso é seu trabalho.\n\
-- Seja direto na conclusão: diga a causa provável, o arquivo e a linha, e aplique a correção quando ela for inequívoca.\n\
-- Use `ask_user` apenas quando faltar uma decisão real do usuário que mude o caminho da investigação.";
+/// Always present in the identity: the two visible tools every agent has.
+/// The user watches the same browser and terminal and can take over.
+pub const TOOL_INSTRUCTIONS: &str = "\n\n[FERRAMENTAS VISÍVEIS]\n\
+Você sempre tem duas ferramentas visíveis para o usuário, em qualquer conversa:\n\
+- Navegador: `browser_open`, `browser_read`, `browser_click`, `browser_type`, `browser_press` e `browser_reload`. Use quando precisar abrir um site, conferir uma interface ou reproduzir um fluxo. O usuário vê a mesma página e pode assumir o controle; se ele assumir, devolva o controle antes de continuar.\n\
+- Terminal: `terminal_run` executa um comando no terminal visível e `terminal_output` lê o final da saída. Use para rodar o projeto, testes e comandos de inspeção. O usuário vê o mesmo terminal e pode digitar nele.\n\
+Não peça ao usuário para colar saída do terminal nem para descrever o que aparece no navegador quando você pode abrir e ver diretamente. Use as ferramentas de forma proativa quando a tarefa pedir.";
 
 /// Model-independent estimate, not billed usage. The margin covers wire-format
 /// overhead. Provider-reported counts are stored separately on every model call.

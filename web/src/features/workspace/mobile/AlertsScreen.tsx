@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Check, MenuBars, MessageSquare } from "@jeff/icons";
+import { Check, ChevronRight, MenuBars } from "@jeff/icons";
 import { api } from "../../../shared/api";
 import { useApp, type AppNotification } from "../../../app/store";
 import { formatTime } from "../../../shared/time";
@@ -7,6 +7,8 @@ import { cx } from "@jeff/ui";
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconButton";
 import { MobileEmpty } from "./mobile-ui";
+import BrandGlyph from "../../../shared/ui/BrandGlyph";
+import JeffBell from "../../../shared/ui/JeffBell";
 
 interface Props {
   onOpen: (notification: AppNotification) => void;
@@ -71,21 +73,16 @@ export default function AlertsScreen({ onOpen, onMenu }: Props) {
       </div>
       <div className="m-scroll">
         {list.length === 0 ? (
-          <MobileEmpty icon={<Bell className="m-empty__glyph" />} title={filter === "unread" ? "Nenhum alerta não lido" : "Nenhum alerta ainda"}>
+          <MobileEmpty icon={<JeffBell className="m-empty__glyph" />} title={filter === "unread" ? "Nenhum alerta não lido" : "Nenhum alerta ainda"}>
             {filter === "unread" ? "Você está em dia." : "Respostas dos agentes e avisos do workspace aparecem aqui."}
           </MobileEmpty>
         ) : (
           <ul className="m-alertlist">
             {list.map((notification) => (
-              <li key={notification.id}>
-                <button
-                  type="button"
-                  className="m-alert"
-                  data-unread={!notification.read || undefined}
-                  onClick={() => open(notification)}
-                >
-                  <span className="m-alert__icon">
-                    {notification.kind === "ai" ? <MessageSquare className="m-alert__glyph" /> : <Bell className="m-alert__glyph" />}
+              <li key={notification.id} className="m-alert" data-unread={!notification.read || undefined}>
+                <button type="button" className="m-alert__main" onClick={() => open(notification)}>
+                  <span className="m-alert__photo">
+                    {notification.kind === "ai" ? <BrandGlyph size={28} /> : <JeffBell className="m-alert__glyph" />}
                   </span>
                   <span className="m-alert__copy">
                     <span className="m-alert__top">
@@ -93,10 +90,36 @@ export default function AlertsScreen({ onOpen, onMenu }: Props) {
                       <time>{formatTime(notification.createdAt)}</time>
                     </span>
                     {notification.body ? <span className="m-alert__body">{notification.body}</span> : null}
-                    {notification.projectName ? <span className="m-alert__meta">{notification.projectName}</span> : null}
+                    <span className="m-alert__foot">
+                      <span className="m-alert__meta">
+                        {notification.botName || notification.projectName || "Workspace"}
+                      </span>
+                      {!notification.read ? <span className="m-alert__dot" aria-label="Não lida" /> : null}
+                    </span>
                   </span>
-                  {!notification.read ? <span className="m-alert__dot" aria-label="Não lida" /> : null}
                 </button>
+                <span className="m-alert__actions">
+                  {!notification.read ? (
+                    <button
+                      type="button"
+                      className="m-alert__action"
+                      aria-label={`Marcar ${notification.title} como lida`}
+                      title="Marcar como lida"
+                      onClick={() => markRead(notification.id)}
+                    >
+                      <Check size={14} />
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="m-alert__action"
+                    aria-label={`Abrir ${notification.title}`}
+                    title="Abrir"
+                    onClick={() => open(notification)}
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                </span>
               </li>
             ))}
           </ul>

@@ -19,9 +19,6 @@ use conversations_routes::*;
 #[path = "../features/terminals/routes.rs"]
 mod terminals_routes;
 use terminals_routes::*;
-#[path = "../features/debug/routes.rs"]
-mod debug_routes;
-use debug_routes::*;
 #[path = "../features/browser/routes.rs"]
 mod browser_routes;
 use browser_routes::*;
@@ -100,7 +97,6 @@ use crate::browser::BrowserManager;
 use crate::config::Config;
 use crate::crypto::new_id;
 use crate::database::{DatabaseService, ProfileInput, RowChange};
-use crate::debug::{DebugManager, DebugStartInput};
 use crate::email::{AccountInput, EmailService, PublicAccount, SendInput, DEFAULT_LIST_LIMIT};
 use crate::errors::{AppError, AppResult};
 use crate::events::{EventHub, ProjectWatcher};
@@ -177,7 +173,6 @@ pub struct AppState {
     pub auth: AuthManager,
     pub workspace: WorkspaceService,
     pub terminals: Arc<TerminalManager>,
-    pub debug: Arc<DebugManager>,
     pub browser: Arc<BrowserManager>,
     pub database: DatabaseService,
     pub email: EmailService,
@@ -346,7 +341,6 @@ impl AppState {
         }
         let workspace = WorkspaceService::new(roots)?;
         let terminals = Arc::new(TerminalManager::new(None));
-        let debug = Arc::new(DebugManager::new());
         let browser = Arc::new(BrowserManager::new(config.data_dir.clone()));
         let vault = Arc::new(crate::features::browser::vault::VaultService::new(
             store.clone(),
@@ -424,7 +418,6 @@ impl AppState {
             pairing: Arc::new(PairingCodes::default()),
             workspace,
             terminals,
-            debug,
             browser,
             database,
             email,
@@ -513,7 +506,6 @@ impl AppState {
                 let Some(state) = maintain_state.upgrade() else {
                     break;
                 };
-                state.debug.maintain().await;
                 state.agents.maintain().await;
                 state.browser.maintain_idle(Duration::from_secs(15 * 60));
                 state.login_limiter.prune();
@@ -839,7 +831,6 @@ impl EmbeddedServer {
             state.agents.shutdown();
             state.watcher.stop_all();
             state.terminals.close_all();
-            state.debug.close_all_now();
             state.browser.close_all_now();
         }
         if let Some(sender) = self.shutdown.take() {
@@ -913,7 +904,6 @@ pub async fn serve(config: Config) -> AppResult<()> {
     state.agents.shutdown();
     state.watcher.stop_all();
     state.terminals.close_all();
-    state.debug.close_all().await;
     state.browser.close_all().await;
     Ok(())
 }
@@ -1192,16 +1182,8 @@ fn router(state: Arc<AppState>) -> Router {
                 .delete(close_terminals),
         )
         .route(
-            "/api/projects/{project_id}/debug/terminal",
-            get(debug_terminal_info),
-        )
-        .route(
-            "/api/projects/{project_id}/debug/browser",
-            get(debug_browser_info),
-        )
-        .route(
-            "/api/projects/{project_id}/debug/browser/ws",
-            get(debug_browser_ws),
+            "/api/projects/{project_id}/agent/terminal",
+            get(agent_terminal_info),
         )
         .route(
             "/api/projects/{project_id}/bots/{agent_id}/browser",
@@ -1219,20 +1201,6 @@ fn router(state: Arc<AppState>) -> Router {
         .route("/api/terminals/{terminal_id}", delete(close_terminal))
         .route("/api/terminals/{terminal_id}/ws", get(terminal_ws))
         .route("/api/ports", get(list_ports))
-        .route("/api/projects/{project_id}/debug/eval", post(debug_eval))
-        .route(
-            "/api/projects/{project_id}/debug/config",
-            get(get_debug_config).put(save_debug_config),
-        )
-        .route(
-            "/api/projects/{project_id}/debug/session",
-            get(get_debug_session).post(start_debug).delete(stop_debug),
-        )
-        .route("/api/projects/{project_id}/debug/ws", get(debug_ws))
-        .route(
-            "/api/projects/{project_id}/debug/release",
-            post(release_debug),
-        )
         .route("/api/repos", get(list_repos).post(create_repo))
         .route("/api/drive/agent-files", get(agent_files))
         .route(
@@ -1458,7 +1426,6 @@ fn session_token(headers: &HeaderMap, uri: &Uri) -> Option<(String, bool)> {
         return Some((value.trim().to_string(), false));
     }
     if (uri.path().starts_with("/api/terminals/") && uri.path().ends_with("/ws"))
-        || (uri.path().starts_with("/api/projects/") && uri.path().ends_with("/debug/ws"))
         || (uri.path().starts_with("/api/projects/") && uri.path().ends_with("/browser/ws"))
     {
         if let Some(token) = uri.query().and_then(|query| {
@@ -1534,7 +1501,6 @@ async fn auth_middleware(
         || path == "/api/notifications/stream"
         || path.ends_with("/agent/events")
         || (path.starts_with("/api/terminals/") && path.ends_with("/ws"))
-        || (path.starts_with("/api/projects/") && path.ends_with("/debug/ws"))
         || (path.starts_with("/api/projects/") && path.ends_with("/browser/ws"));
     if !long_lived
         && path.starts_with("/api/")

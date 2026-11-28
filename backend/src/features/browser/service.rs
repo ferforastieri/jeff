@@ -31,9 +31,7 @@ pub struct BrowserFrame {
 #[serde(rename_all = "camelCase")]
 pub struct BrowserInfo {
     pub id: String,
-    pub project_id: String,
     pub page_url: String,
-    pub ws_url: String,
 }
 
 struct CommandRequest {
@@ -232,16 +230,11 @@ impl BrowserSession {
     pub fn info(&self) -> BrowserInfo {
         BrowserInfo {
             id: self.id.clone(),
-            project_id: self.project_id.clone(),
             page_url: self
                 .page_url
                 .lock()
                 .map(|url| url.clone())
                 .unwrap_or_default(),
-            ws_url: format!(
-                "/api/projects/{}/debug/browser/ws",
-                urlencoding(&self.project_id)
-            ),
         }
     }
 
@@ -288,7 +281,7 @@ impl BrowserSession {
             std::sync::atomic::Ordering::SeqCst,
         );
         if self.closed.load(Ordering::SeqCst) {
-            return Err("O navegador de debug foi encerrado.".into());
+            return Err("O navegador do agente foi encerrado.".into());
         }
         let (reply, answer) = oneshot::channel();
         self.command_tx
@@ -298,10 +291,10 @@ impl BrowserSession {
                 reply,
             })
             .await
-            .map_err(|_| "O navegador de debug não está disponível.".to_string())?;
+            .map_err(|_| "O navegador do agente não está disponível.".to_string())?;
         match tokio::time::timeout(Duration::from_secs(15), answer).await {
             Ok(Ok(result)) => result,
-            Ok(Err(_)) => Err("O navegador de debug encerrou a conexão.".into()),
+            Ok(Err(_)) => Err("O navegador do agente encerrou a conexão.".into()),
             Err(_) => Err(format!("O navegador não respondeu a {method}.")),
         }
     }
@@ -311,7 +304,7 @@ impl BrowserSession {
             .map_err(|_| AppError::BadRequest("URL do navegador inválida.".into()))?;
         if !matches!(parsed.scheme(), "http" | "https") {
             return Err(AppError::BadRequest(
-                "O navegador de debug só abre http ou https.".into(),
+                "O navegador do agente só abre http ou https.".into(),
             ));
         }
         self.command("Page.navigate", json!({ "url": parsed.as_str() }))
@@ -1041,7 +1034,7 @@ async fn actor(
                     "params": command.params,
                 });
                 if write.send(Message::Text(payload.to_string().into())).await.is_err() {
-                    command.reply.send(Err("O navegador de debug encerrou.".into())).ok();
+                    command.reply.send(Err("O navegador do agente encerrou.".into())).ok();
                     break;
                 }
                 pending.insert(id, command.reply);
@@ -1156,7 +1149,7 @@ async fn actor(
     }
     for (_, reply) in pending {
         reply
-            .send(Err("O navegador de debug encerrou.".into()))
+            .send(Err("O navegador do agente encerrou.".into()))
             .ok();
     }
 }
@@ -1264,8 +1257,4 @@ fn chromium_binary() -> Option<PathBuf> {
         }
     }
     None
-}
-
-fn urlencoding(value: &str) -> String {
-    url::form_urlencoded::byte_serialize(value.as_bytes()).collect()
 }

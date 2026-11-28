@@ -12,6 +12,7 @@ import {
 import { Modal } from "@jeff/ui/app";
 import { api, getApiBase, probeServer, setApiBase, type User } from "../../../shared/api";
 import { useApp } from "../../../app/store";
+import { ThemeToggle } from "../../../shared/ui/ThemeToggle";
 const WorkspaceSettings = lazy(() => import("./WorkspaceSettings"));
 const SkillsPanel = lazy(() => import("../../skills/components/SkillsPanel"));
 const HarnessSettings = lazy(() => import("./HarnessSettings"));
@@ -199,6 +200,19 @@ export function SettingsView({
                       <span className="settings-row__label">{user?.username ?? "Conta"}</span>
                       <span className="settings-row__status">{getApiBase() || window.location.origin}</span>
                     </span>
+                  </div>
+                </div>
+              </Card>
+              <Card>
+                <CardHeader title="Aparência" subtitle="Claro para ambientes iluminados; escuro para o resto." />
+                <div className="settings-rows">
+                  <div className="settings-row ac-actrow">
+                    <span className="settings-row__icon" aria-hidden="true"><Icon name="preference" size={16} /></span>
+                    <span className="settings-row__text ac-actrow__text">
+                      <span className="settings-row__label">Tema</span>
+                      <span className="settings-row__status">Claro ou escuro</span>
+                    </span>
+                    <ThemeToggle />
                   </div>
                 </div>
               </Card>

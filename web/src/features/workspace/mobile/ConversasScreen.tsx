@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Icon, Menu, MenuItem, MenuRadioGroup } from "faang-ui";
 import { Avatar } from "faang-ui";
-import { Bell, MoreHorizontal, Plus, Search, Settings2 } from "@jeff/icons";
+import { MoreHorizontal, Plus, Search, Settings2 } from "@jeff/icons";
 import type { User } from "../../../shared/api";
 import { MEMBER_STATUS_LABEL, type MemberStatus } from "../../../shared/ui/presence";
 import { usePrefs } from "../../../shared/prefs";
@@ -10,6 +10,7 @@ import MobileIconButton from "../../../app/layouts/mobile/components/MobileIconB
 import MobileScreenHeader from "../../../app/layouts/mobile/components/MobileScreenHeader";
 import { MobileEmpty, MobileSectionTitle, MobileWorkspaceButton } from "./mobile-ui";
 import { CategoryGlyph } from "../WorkspaceGlyph";
+import JeffBell from "../../../shared/ui/JeffBell";
 
 export interface MobileTeamMember {
   key: string;
@@ -54,6 +55,7 @@ interface Props {
   onDeleteChannel: (room: Room) => void;
   onOpenSearch: () => void;
   onOpenNotifications: () => void;
+  onOpenSettings: () => void;
 }
 
 function presence(status: MemberStatus) {
@@ -93,6 +95,7 @@ export default function ConversasScreen({
   onDeleteChannel,
   onOpenSearch,
   onOpenNotifications,
+  onOpenSettings,
 }: Props) {
   const setUserStatus = usePrefs((state) => state.update);
   const prefs = usePrefs((state) => state.prefs);
@@ -166,7 +169,8 @@ export default function ConversasScreen({
         actions={
           <>
             <MobileIconButton icon={Search} label="Buscar" onClick={onOpenSearch} />
-            <MobileIconButton icon={Bell} label="Notificações" badge={unread} onClick={onOpenNotifications} />
+            <MobileIconButton icon={JeffBell} label="Notificações" badge={unread} onClick={onOpenNotifications} />
+            <MobileIconButton icon={Settings2} label="Configurações" onClick={onOpenSettings} />
             {isAdmin ? (
               <Menu
                 align="end"

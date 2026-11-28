@@ -17,7 +17,6 @@ const jeff: ChatJeff = {
   model: "openai::gpt",
   engine: "opencode",
   effort: "",
-  agentMode: "build",
   permissionMode: "yolo",
   mcpServers: [],
   emailAccountIds: [],

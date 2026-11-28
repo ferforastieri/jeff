@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Check, ChevronRight, CircleAlert, ExternalLink, Plus, Trash2 } from "@jeff/icons";
+import { Check, ChevronRight, CircleAlert, ExternalLink, Trash2 } from "@jeff/icons";
 import { api, type GitConnection } from "../../../shared/api";
 import { agentApi, type McpServer } from "../../agents/api";
 import { useApp } from "../../../app/store";
 import { Button, Input } from "@jeff/ui/app";
 import { Dialog, DialogBody, DialogFooter, SearchField } from "faang-ui";
-import ProviderIcon from "../../providers/components/ProviderIcon";
+import ConnectorIcon from "./ConnectorIcon";
 
 type Category = "dev" | "productivity" | "automation";
 type How = "oauth" | "token" | "address";
@@ -30,18 +30,6 @@ const CATEGORY_LABEL: Record<Category, string> = {
 };
 
 const ATLASSIAN_NAME = "Atlassian (Jira, Confluence, Bitbucket)";
-
-function BitbucketIcon({ size = 22 }: { size?: number }) {
-  return <img src={`${import.meta.env.BASE_URL}material-icons/bitbucket.svg`} alt="" width={size} height={size} />;
-}
-
-function AtlassianIcon({ size = 22 }: { size?: number }) {
-  return (
-    <span className="inline-flex items-center justify-center rounded-lg bg-[#0052CC] text-white" style={{ width: size, height: size, fontSize: size * 0.55, fontWeight: 700 }}>
-      A
-    </span>
-  );
-}
 
 /** The connector store, ported from the Agentes Chat reference. */
 export default function ConnectorsStore() {
@@ -85,7 +73,7 @@ export default function ConnectorsStore() {
         description: "Jira, Confluence, Bitbucket e JSM para os agentes, com login OAuth e sem API key.",
         category: "productivity",
         connected: Boolean(atlassian),
-        icon: <AtlassianIcon />,
+        icon: <ConnectorIcon name="atlassian" />,
         color: "#0052CC",
         how: "oauth",
         server: atlassian,
@@ -96,7 +84,7 @@ export default function ConnectorsStore() {
         description: "Pull, push e branches no terminal com a sua conta do Bitbucket.",
         category: "dev",
         connected: Boolean(bitbucket?.connected),
-        icon: <BitbucketIcon />,
+        icon: <ConnectorIcon name="bitbucket" />,
         color: "#0052CC",
         how: "token",
         provider: "bitbucket",
@@ -107,7 +95,7 @@ export default function ConnectorsStore() {
         description: "Pull, push e branches no terminal com a sua conta do GitHub.",
         category: "dev",
         connected: Boolean(github?.connected),
-        icon: <ProviderIcon provider="github" className="size-5" />,
+        icon: <ConnectorIcon name="github" />,
         color: "#24292f",
         how: "token",
         provider: "github",
@@ -118,7 +106,7 @@ export default function ConnectorsStore() {
         description: "Qualquer servidor MCP por URL, com token ou sem autenticação.",
         category: "automation",
         connected: false,
-        icon: <Plus size={18} />,
+        icon: <ConnectorIcon name="mcp" />,
         color: "#64748b",
         how: "address",
       },
@@ -130,7 +118,7 @@ export default function ConnectorsStore() {
           description: server.url || server.command.join(" "),
           category: "automation" as const,
           connected: true,
-          icon: <span className="text-body-2-semibold">MCP</span>,
+          icon: <ConnectorIcon name={server.name} />,
           color: "#0EA5E9",
           how: "address" as const,
           server,

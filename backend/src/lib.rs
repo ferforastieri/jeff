@@ -7,7 +7,6 @@ pub use app::server;
 pub use features::auth::service as auth;
 pub use features::browser::service as browser;
 pub use features::database_connections::service as database;
-pub use features::debug::service as debug;
 pub use features::integrations::email::service as email;
 pub use features::notifications::service as push;
 pub use features::providers::service as ai;

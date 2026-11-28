@@ -1,21 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useApp } from "../../../app/store";
 import {
-  Bell,
   BookOpen,
-  Braces,
   HardDrive,
   Home,
   MessageSquare,
-  PlugZap,
   Rows3,
   Search,
   Settings2,
-  Sparkles,
-  TerminalSquare,
   Timer,
-  UserRound,
-  Users,
 } from "@jeff/icons";
 import { api, type AIModel, type OnboardingStatus, type Project, type User } from "../../../shared/api";
 import type { AppNotification, Tab } from "../../../app/store";
@@ -43,15 +36,15 @@ import WikiPanel from "../WikiPanel";
 import WorkspaceSearch from "../WorkspaceSearch";
 import ConversasScreen, { type MobileTeamMember } from "./ConversasScreen";
 import ChatScreen from "./ChatScreen";
-import WorkHub from "./WorkHub";
 import AlertsScreen from "./AlertsScreen";
 import YouScreen from "./YouScreen";
 import ChannelDevMobile from "./ChannelDevMobile";
 import ChannelSessionsMobile from "./ChannelSessionsMobile";
 import { CHANNEL_DEV_TOOLS, type ChannelDevTool } from "../channelDev";
 import { MobileEmpty, MobileWorkspaceButton } from "./mobile-ui";
+import JeffBell from "../../../shared/ui/JeffBell";
 
-export type MobileTab = "home" | "conversas" | "trabalho" | "alertas" | "voce";
+export type MobileTab = "home" | "conversas" | "alertas" | "voce";
 type MobilePane = "root" | "chat" | "tasks" | "calendar" | "drive" | "wiki" | "settings" | "search";
 
 interface Props {
@@ -180,6 +173,7 @@ export default function WorkspaceMobile(props: Props) {
   const [settingsSection, setSettingsSection] = useState<Section>("general");
   const [channelQuery, setChannelQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const [channelDevTool, setChannelDevTool] = useState<ChannelDevTool | null>(null);
   const [channelDevProjectId, setChannelDevProjectId] = useState<string | null>(null);
   const [channelDevRepoPath, setChannelDevRepoPath] = useState<string | null>(null);
@@ -490,8 +484,7 @@ export default function WorkspaceMobile(props: Props) {
       rows: [
         drawerRow("home", "Início", <Home className="m-drawer__glyph" />, () => selectTab("home"), { active: pane === "root" && tab === "home" }),
         drawerRow("conversas", "Conversas", <MessageSquare className="m-drawer__glyph" />, () => selectTab("conversas"), { active: (pane === "root" || pane === "chat") && tab === "conversas", badge: roomUnread }),
-        drawerRow("trabalho", "Trabalho", <Braces className="m-drawer__glyph" />, () => selectTab("trabalho"), { active: pane === "root" && tab === "trabalho" }),
-        drawerRow("alertas", "Alertas", <Bell className="m-drawer__glyph" />, () => selectTab("alertas"), { active: pane === "root" && tab === "alertas", badge: unread }),
+        drawerRow("alertas", "Alertas", <JeffBell className="m-drawer__glyph" />, () => selectTab("alertas"), { active: pane === "root" && tab === "alertas", badge: unread }),
       ],
     },
     {
@@ -502,21 +495,6 @@ export default function WorkspaceMobile(props: Props) {
         drawerRow("calendar", "Calendário", <Timer className="m-drawer__glyph" />, () => openTool("calendar"), { active: pane === "calendar" }),
         drawerRow("drive", "Drive", <HardDrive className="m-drawer__glyph" />, () => openTool("drive"), { active: pane === "drive" }),
         drawerRow("wiki", "Wiki", <BookOpen className="m-drawer__glyph" />, () => openTool("wiki"), { active: pane === "wiki" }),
-      ],
-    },
-    {
-      id: "settings",
-      label: "Ajustes",
-      rows: [
-        drawerRow("general", "Configurações", <Settings2 className="m-drawer__glyph" />, () => openSettings("general"), { hint: "Conta, servidor e modelos", active: pane === "settings" }),
-        drawerRow("you", "Você e conta", <UserRound className="m-drawer__glyph" />, () => selectTab("voce"), { hint: "Perfil, tema e sessão", active: pane === "root" && tab === "voce" }),
-        drawerRow("connectors", "Conectores e MCP", <PlugZap className="m-drawer__glyph" />, () => openSettings("connectors")),
-        drawerRow("skills", "Skills", <Sparkles className="m-drawer__glyph" />, () => openSettings("skills")),
-        drawerRow("harness", "Harness", <TerminalSquare className="m-drawer__glyph" />, () => openSettings("harness")),
-        drawerRow("workspace", "Configurações do workspace", <HardDrive className="m-drawer__glyph" />, () => openSettings("workspace")),
-        ...(isAdmin
-          ? [drawerRow("invite", "Convidar pessoas", <Users className="m-drawer__glyph" />, () => { closeDrawer(); onInvite(); })]
-          : []),
       ],
     },
   ];
@@ -539,7 +517,8 @@ export default function WorkspaceMobile(props: Props) {
             actions={
               <>
                 <MobileIconButton icon={Search} label="Buscar" onClick={() => setPane("search")} />
-                <MobileIconButton icon={Bell} label="Alertas" badge={unread} onClick={() => setTab("alertas")} />
+                <MobileIconButton icon={JeffBell} label="Notificações" badge={unread} onClick={() => setTab("alertas")} />
+                <MobileIconButton icon={Settings2} label="Configurações" onClick={() => openSettings("general")} />
               </>
             }
           />
@@ -558,16 +537,6 @@ export default function WorkspaceMobile(props: Props) {
             <div className="m-scroll__end" />
           </div>
         </div>
-      );
-    }
-    if (tab === "trabalho") {
-      return (
-        <WorkHub
-          workspaceName={teamName}
-          onOpenView={openTool}
-          onOpenSearch={() => setPane("search")}
-          onMenu={openDrawer}
-        />
       );
     }
     if (tab === "alertas") {
@@ -628,6 +597,7 @@ export default function WorkspaceMobile(props: Props) {
         onDeleteChannel={onDeleteChannel}
         onOpenSearch={() => setPane("search")}
         onOpenNotifications={() => setTab("alertas")}
+        onOpenSettings={() => openSettings("general")}
       />
     );
   }
@@ -861,14 +831,12 @@ export default function WorkspaceMobile(props: Props) {
                   setTab("home");
                   onView("home");
                 } else if (view === "tasks" || view === "calendar" || view === "drive" || view === "wiki") {
-                  setTab("trabalho");
                   openTool(view);
                 }
               }}
               onOpenCard={(roomId) => {
                 const room = roomId ? rooms.find((item) => item.id === roomId) ?? null : selectedRoom;
                 if (room) onSelectRoom(room);
-                setTab("trabalho");
                 setPane("tasks");
               }}
             />
@@ -919,8 +887,26 @@ export default function WorkspaceMobile(props: Props) {
     );
   }
 
+  function beginSwipe(event: React.TouchEvent<HTMLDivElement>) {
+    if (drawerOpen) return;
+    if ((event.target as HTMLElement).closest(".m-view-tabs, .m-chatsearch, .m-segmented, .m-settingsects")) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    swipeStart.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function endSwipe(event: React.TouchEvent<HTMLDivElement>) {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start || drawerOpen) return;
+    const touch = event.changedTouches[0];
+    if (!touch || start.x > 120) return;
+    if (touch.clientX - start.x < 70 || Math.abs(touch.clientY - start.y) > 50) return;
+    openDrawer();
+  }
+
   return (
-    <div className="m-app">
+    <div className="m-app" onTouchStart={beginSwipe} onTouchEnd={endSwipe}>
       <div className="m-app__body">{pane === "root" ? rootScreen() : pushedScreen()}</div>
       <MobileDrawer
         open={drawerOpen}

@@ -1,6 +1,6 @@
 use super::{
     activity, cli,
-    context::DEBUG_MODE_INSTRUCTIONS,
+    context::TOOL_INSTRUCTIONS,
     event,
     models::*,
     repository::{RecoveredRun, Repository},
@@ -400,7 +400,6 @@ impl Runtime {
             silent: false,
             routing_reason: "retomada após reinício".into(),
             request: prompt,
-            debug: false,
         };
         self.inner.repo.record_recovery(&ctx.run.id).await?;
         self.inner.repo.requeue(&ctx.run.id, "").await?;
@@ -584,7 +583,6 @@ impl Runtime {
                 || !handles.insert(&agent.handle)
                 || agent.prompt.len() + agent.description.len() + agent.personality.len() > 12_000
                 || !matches!(agent.permission_mode.as_str(), "yolo" | "ask" | "deny")
-                || !matches!(agent.agent_mode.as_str(), "build" | "plan")
             {
                 return Err(bad_request("Invalid agent configuration"));
             }
@@ -598,9 +596,7 @@ impl Runtime {
             session_id,
             agents,
             attachments,
-            mode,
         } = input;
-        let debug = mode == "debug";
         let mut roster = agents;
         let (mut responders, routing_reason) = if agent_id.is_empty() || agent_id == "router" {
             self.route_agents(user, project, &chat_id, &roster, &text)
@@ -754,7 +750,6 @@ impl Runtime {
                 silent: silent && primary_responder,
                 routing_reason: routing_reason.clone(),
                 request: text.clone(),
-                debug,
             };
             let runtime = self.clone();
             let run_text = text.clone();
@@ -1019,7 +1014,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             json!({"role":"user","content":parts})
         };
         let visible = ctx.depth == 0 && !ctx.secondary;
-        let display = json!({"id":id,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"model":ctx.agent.model,"agentMode":ctx.agent.agent_mode,"role":if ctx.depth==0{"user"}else{"system"},"content":if ctx.depth==0{text.to_owned()}else{format!("Tarefa para @{}: {}",ctx.agent.handle,text)},"status":"complete","createdAt":now(),"hidden":!visible});
+        let display = json!({"id":id,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"model":ctx.agent.model,"role":if ctx.depth==0{"user"}else{"system"},"content":if ctx.depth==0{text.to_owned()}else{format!("Tarefa para @{}: {}",ctx.agent.handle,text)},"status":"complete","createdAt":now(),"hidden":!visible});
         let seq = self
             .inner
             .repo
@@ -1433,7 +1428,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
         ))
     }
 
-    fn identity(agent: &AgentSpec, roster: &[AgentSpec], routed: &[String], debug: bool) -> String {
+    fn identity(agent: &AgentSpec, roster: &[AgentSpec], routed: &[String]) -> String {
         let mut text = format!(
             "Você é {} (@{}), {}.\n{}\n{}\n{}",
             agent.name,
@@ -1472,9 +1467,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             text.push_str("\n\n");
             text.push_str(&brief);
         }
-        if debug {
-            text.push_str(DEBUG_MODE_INSTRUCTIONS);
-        }
+        text.push_str(TOOL_INSTRUCTIONS);
         text
     }
 
@@ -1499,7 +1492,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             } else {
                 ctx.agent.model.clone()
             };
-            let system = Self::identity(&ctx.agent, &ctx.roster, &ctx.routed, ctx.debug);
+            let system = Self::identity(&ctx.agent, &ctx.roster, &ctx.routed);
             let attachment_dir = cli::work_dir(&ctx.run.session_id).join("attachments");
             let attachment_files = cli::attachment_files(&attachment_dir, attachments).await?;
             let prompt = format!(
@@ -1535,10 +1528,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             // tools and gains one that waits for the user instead of dead-ending.
             let mut gateway_tools = vec![tools::ask_user_definition()];
             gateway_tools.extend(tools::browser_definitions());
-            if ctx.debug {
-                gateway_tools.extend(tools::debug_terminal_definitions());
-                gateway_tools.extend(tools::debug_browser_definitions());
-            }
+            gateway_tools.extend(tools::terminal_definitions());
             let mut gateway_handle = None;
             if let Ok((url, handle)) = super::gateway::Gateway::start(
                 self.clone(),
@@ -1566,7 +1556,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
             tokio::fs::create_dir_all(&work).await?;
             let streaming_parts = engine == "opencode";
             let mid = format!("{}-engine", ctx.run.id);
-            let display = json!({"id":mid,"userId":ctx.user_id,"projectId":ctx.project_id,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"model":model,"agentMode":ctx.agent.agent_mode,"role":"assistant","content":"","status":"running","createdAt":now()});
+            let display = json!({"id":mid,"userId":ctx.user_id,"projectId":ctx.project_id,"chatId":ctx.run.chat_id,"jeffId":ctx.agent.id,"sessionId":ctx.run.session_id,"runId":ctx.run.id,"model":model,"role":"assistant","content":"","status":"running","createdAt":now()});
             // Harnesses that report text as it happens persist each finished
             // part as its own message, in order with the tool calls. The other
             // harnesses only return the final answer, so a running draft keeps
@@ -1973,7 +1963,7 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 result=async {
                     if name == "ask_user" {
                         self.ask_user(ctx, &tid, &args, cancel).await
-                    } else if name == "debug_terminal_run" {
+                    } else if name == "terminal_run" {
                         let command = args["command"].as_str().unwrap_or("").trim();
                         if command.is_empty() || command.len() > 8192 || command.contains('\0') {
                             Err(bad_request("Comando inválido"))
@@ -1981,82 +1971,16 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                             self.inner
                                 .tools
                                 .terminals
-                                .debug_run(&ctx.project_id, &ctx.root, command)
+                                .agent_run(&ctx.project_id, &ctx.root, command)
                         }
-                    } else if name == "debug_terminal_output" {
+                    } else if name == "terminal_output" {
                         let tail = args["tailBytes"].as_u64().unwrap_or(16_000) as usize;
                         let tail = tail.clamp(1_000, 128_000);
                         Ok(json!({ "output": self
                             .inner
                             .tools
                             .terminals
-                            .debug_output(&ctx.project_id, tail)? }))
-                    } else if name == "debug_browser_open" {
-                        let url = args["url"].as_str().unwrap_or("").trim();
-                        if url.is_empty() || url.len() > 4096 {
-                            Err(bad_request("URL inválida"))
-                        } else {
-                            let session = self
-                                .inner
-                                .tools
-                                .browser
-                                .session(&ctx.project_id, &ctx.root)
-                                .await?;
-                            session.open(url).await
-                        }
-                    } else if name == "debug_browser_read" {
-                        let session = self
-                            .inner
-                            .tools
-                            .browser
-                            .session(&ctx.project_id, &ctx.root)
-                            .await?;
-                        session.read().await
-                    } else if name == "debug_browser_click" {
-                        let selector = args["selector"].as_str();
-                        let x = args["x"].as_f64();
-                        let y = args["y"].as_f64();
-                        if selector.is_none() && (x.is_none() || y.is_none()) {
-                            Err(bad_request("Informe um seletor ou x/y"))
-                        } else {
-                            let session = self
-                                .inner
-                                .tools
-                                .browser
-                                .session(&ctx.project_id, &ctx.root)
-                                .await?;
-                            session.click(selector, x, y).await
-                        }
-                    } else if name == "debug_browser_type" {
-                        let text = args["text"].as_str().unwrap_or("");
-                        if text.is_empty() || text.len() > 20_000 {
-                            Err(bad_request("Texto inválido"))
-                        } else {
-                            let session = self
-                                .inner
-                                .tools
-                                .browser
-                                .session(&ctx.project_id, &ctx.root)
-                                .await?;
-                            session.type_text(text, args["selector"].as_str()).await
-                        }
-                    } else if name == "debug_browser_press" {
-                        let key = args["key"].as_str().unwrap_or("Enter");
-                        let session = self
-                            .inner
-                            .tools
-                            .browser
-                            .session(&ctx.project_id, &ctx.root)
-                            .await?;
-                        session.press(key).await
-                    } else if name == "debug_browser_reload" {
-                        let session = self
-                            .inner
-                            .tools
-                            .browser
-                            .session(&ctx.project_id, &ctx.root)
-                            .await?;
-                        session.reload().await
+                            .agent_output(&ctx.project_id, tail)? }))
                     } else if name.starts_with("browser_") {
                         let key = format!("bot-{}", ctx.agent.id);
                         let session = self
@@ -2314,7 +2238,6 @@ Se a mensagem depender de uma ferramenta ou MCP, prefira quem tem acesso a ele; 
                 silent: false,
                 routing_reason: String::new(),
                 request: task.to_string(),
-                debug: parent.debug,
             };
             self.inner
                 .runs
@@ -2639,23 +2562,21 @@ mod tests {
     #[test]
     fn identity_adds_the_team_brief_only_for_the_routed_team() {
         let roster = vec![agent("a", "ana"), agent("b", "beto")];
-        let solo = Runtime::identity(&roster[0], &roster, &["a".into()], false);
+        let solo = Runtime::identity(&roster[0], &roster, &["a".into()]);
         assert!(!solo.contains("docs/team-plan.md"));
-        let team = Runtime::identity(&roster[0], &roster, &["a".into(), "b".into()], false);
+        let team = Runtime::identity(&roster[0], &roster, &["a".into(), "b".into()]);
         assert!(team.contains("docs/team-plan.md"));
         assert!(team.contains("Time nesta mensagem"));
     }
 
     #[test]
-    fn identity_adds_debug_instructions_only_in_debug_mode() {
+    fn identity_always_lists_the_visible_tools() {
         let roster = vec![agent("a", "ana")];
-        let normal = Runtime::identity(&roster[0], &roster, &["a".into()], false);
-        assert!(!normal.contains("debug_terminal_run"));
-        let debug = Runtime::identity(&roster[0], &roster, &["a".into()], true);
-        assert!(debug.contains("debug_terminal_run"));
-        assert!(debug.contains("debug_terminal_output"));
-        assert!(debug.contains("debug_browser_open"));
-        assert!(debug.contains("debug_browser_read"));
+        let prompt = Runtime::identity(&roster[0], &roster, &["a".into()]);
+        assert!(prompt.contains("terminal_run"));
+        assert!(prompt.contains("terminal_output"));
+        assert!(prompt.contains("browser_open"));
+        assert!(prompt.contains("browser_read"));
     }
 
     #[test]

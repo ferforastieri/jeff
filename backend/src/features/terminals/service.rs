@@ -16,8 +16,8 @@ const RING_SIZE: usize = 128 * 1024;
 
 pub struct TerminalManager {
     sessions: Mutex<HashMap<String, Arc<TerminalSession>>>,
-    /// One visible PTY per project, used by debug-mode agent runs.
-    debug: Mutex<HashMap<String, Arc<TerminalSession>>>,
+    /// One visible PTY per project, shared by the agent and the user.
+    agent: Mutex<HashMap<String, Arc<TerminalSession>>>,
     shell: String,
 }
 
@@ -45,7 +45,7 @@ impl TerminalManager {
     pub fn new(shell: Option<String>) -> Self {
         Self {
             sessions: Mutex::new(HashMap::new()),
-            debug: Mutex::new(HashMap::new()),
+            agent: Mutex::new(HashMap::new()),
             shell: shell.unwrap_or_else(default_shell),
         }
     }
@@ -145,46 +145,46 @@ impl TerminalManager {
         self.sessions.lock().ok()?.get(id).cloned()
     }
 
-    /// Returns the project's debug terminal, creating it on first use. The
-    /// frontend opens a WebSocket on the same session so the user sees every
-    /// command the agent runs and all of its output as it happens.
-    pub fn debug_session(&self, project_id: &str, cwd: &Path) -> AppResult<Arc<TerminalSession>> {
+    /// Returns the project's visible agent terminal, creating it on first use.
+    /// The user attaches a WebSocket to the same session, so every command the
+    /// agent runs and all of its output are visible live.
+    pub fn agent_session(&self, project_id: &str, cwd: &Path) -> AppResult<Arc<TerminalSession>> {
         if let Some(session) = self
-            .debug
+            .agent
             .lock()
-            .map_err(|_| crate::errors::internal("debug terminal lock"))?
+            .map_err(|_| crate::errors::internal("agent terminal lock"))?
             .get(project_id)
             .cloned()
         {
             return Ok(session);
         }
         let session = self.create(project_id, cwd, None, None)?;
-        self.debug
+        self.agent
             .lock()
-            .map_err(|_| crate::errors::internal("debug terminal lock"))?
+            .map_err(|_| crate::errors::internal("agent terminal lock"))?
             .insert(project_id.to_string(), session.clone());
         Ok(session)
     }
 
-    pub fn debug_run(
+    pub fn agent_run(
         &self,
         project_id: &str,
         cwd: &Path,
         command: &str,
     ) -> AppResult<serde_json::Value> {
-        let session = self.debug_session(project_id, cwd)?;
+        let session = self.agent_session(project_id, cwd)?;
         session.write(format!("{command}\n").as_bytes())?;
         Ok(serde_json::json!({"ok": true, "terminalId": session.id}))
     }
 
-    pub fn debug_output(&self, project_id: &str, tail: usize) -> AppResult<String> {
+    pub fn agent_output(&self, project_id: &str, tail: usize) -> AppResult<String> {
         let session = self
-            .debug
+            .agent
             .lock()
-            .map_err(|_| crate::errors::internal("debug terminal lock"))?
+            .map_err(|_| crate::errors::internal("agent terminal lock"))?
             .get(project_id)
             .cloned()
-            .ok_or_else(|| crate::errors::bad_request("Terminal de debug não iniciado"))?;
+            .ok_or_else(|| crate::errors::bad_request("Terminal do agente não iniciado"))?;
         Ok(String::from_utf8_lossy(&session.output_tail(tail)).into_owned())
     }
 
@@ -212,6 +212,15 @@ impl TerminalManager {
             .lock()
             .ok()
             .and_then(|mut sessions| sessions.remove(id));
+        if self
+            .agent
+            .lock()
+            .map(|mut agent| agent.retain(|_, item| item.id != id))
+            .is_err()
+        {
+            // The session is still closed below; a poisoned map only means the
+            // terminal cannot be reused.
+        }
         if let Some(session) = session {
             session.close();
             true
@@ -238,7 +247,7 @@ impl TerminalManager {
         if let Ok(mut map) = self.sessions.lock() {
             map.retain(|_, session| session.project_id != project_id);
         }
-        if let Ok(mut map) = self.debug.lock() {
+        if let Ok(mut map) = self.agent.lock() {
             map.remove(project_id);
         }
         sessions.len()
@@ -256,7 +265,7 @@ impl TerminalManager {
         if let Ok(mut map) = self.sessions.lock() {
             map.clear();
         }
-        if let Ok(mut map) = self.debug.lock() {
+        if let Ok(mut map) = self.agent.lock() {
             map.clear();
         }
     }

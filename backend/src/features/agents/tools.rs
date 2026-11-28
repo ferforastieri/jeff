@@ -20,9 +20,9 @@ pub struct Tools {
     pub artifacts: PathBuf,
     pub mcp: crate::features::integrations::mcp::Service,
     pub http: reqwest::Client,
-    /// Debug-mode runs drive a real PTY the user watches live.
+    /// The visible PTY every run can drive; the user watches it live.
     pub terminals: Arc<crate::terminal::TerminalManager>,
-    /// Debug-mode runs also drive a live Chromium the user watches.
+    /// The visible Chromium every run can drive; the user watches it live.
     pub browser: Arc<crate::browser::BrowserManager>,
 }
 
@@ -107,13 +107,13 @@ pub fn ask_user_definition() -> Value {
     })
 }
 
-/// The visible terminal is only exposed to runs started in debug mode. The
-/// agent decides what to run; the user watches each command and its output.
-pub fn debug_terminal_definitions() -> Vec<Value> {
+/// The visible terminal is available to every run. The agent decides what to
+/// run; the user watches the same terminal and can type in it.
+pub fn terminal_definitions() -> Vec<Value> {
     vec![
         json!({
-            "name": "debug_terminal_run",
-            "description": "Run a command in the debug terminal the user is watching. Use it to start the program, run tests and inspect state. The command and its output appear in real time in the terminal.",
+            "name": "terminal_run",
+            "description": "Run a command in the visible terminal the user is watching. Use it to start the program, run tests and inspect state. The command and its output appear in real time.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -123,77 +123,14 @@ pub fn debug_terminal_definitions() -> Vec<Value> {
             }
         }),
         json!({
-            "name": "debug_terminal_output",
-            "description": "Read the tail of the debug terminal output. Use after debug_terminal_run to see the result, including while a command is still running.",
+            "name": "terminal_output",
+            "description": "Read the tail of the visible terminal output. Use after terminal_run to see the result, including while a command is still running.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "tailBytes": {"type": "integer", "description": "How many bytes of recent output to return (default 16000)."}
                 }
             }
-        }),
-    ]
-}
-
-/// The live browser is only exposed to runs started in debug mode. The agent
-/// decides what to do; the user watches the same Chromium in the app.
-pub fn debug_browser_definitions() -> Vec<Value> {
-    vec![
-        json!({
-            "name": "debug_browser_open",
-            "description": "Open a URL in the live Chromium the user is watching. Use it before inspecting a web app or reproducing a UI bug.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "url": {"type": "string", "description": "http or https URL to open."}
-                },
-                "required": ["url"]
-            }
-        }),
-        json!({
-            "name": "debug_browser_read",
-            "description": "Read the current page: URL, title, visible text, recent console messages and failed network requests. Use it after opening or interacting with the page.",
-            "inputSchema": { "type": "object", "properties": {} }
-        }),
-        json!({
-            "name": "debug_browser_click",
-            "description": "Click an element in the live browser, visibly. Prefer a CSS selector; x/y are viewport pixels when no selector is given.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "selector": {"type": "string", "description": "CSS selector of the element to click."},
-                    "x": {"type": "number", "description": "Viewport x coordinate when no selector is used."},
-                    "y": {"type": "number", "description": "Viewport y coordinate when no selector is used."}
-                }
-            }
-        }),
-        json!({
-            "name": "debug_browser_type",
-            "description": "Type text into the focused element (or click a selector first) in the live browser. The user sees the text appear.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "text": {"type": "string"},
-                    "selector": {"type": "string", "description": "Optional CSS selector to focus before typing."}
-                },
-                "required": ["text"]
-            }
-        }),
-        json!({
-            "name": "debug_browser_press",
-            "description": "Press a key in the live browser (Enter, Tab, Escape, Backspace, arrows, Home, End, PageUp, PageDown).",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "key": {"type": "string"}
-                },
-                "required": ["key"]
-            }
-        }),
-        json!({
-            "name": "debug_browser_reload",
-            "description": "Reload the page in the live browser.",
-            "inputSchema": { "type": "object", "properties": {} }
         }),
     ]
 }
@@ -268,11 +205,7 @@ pub fn mutating(name: &str) -> bool {
             | "edit_file"
             | "delete_file"
             | "shell"
-            | "debug_terminal_run"
-            | "debug_browser_click"
-            | "debug_browser_type"
-            | "debug_browser_press"
-            | "debug_browser_reload"
+            | "terminal_run"
             | "browser_click"
             | "browser_type"
             | "browser_press"

@@ -9,7 +9,7 @@ import { CODE_FONT_FAMILY, codeLineHeight, monacoThemeName, registerEditorThemes
 import { relativeTime } from "../../../shared/lib";
 import { useAI } from "../../providers/store";
 import { useApp } from "../../../app/store";
-import { api, type DebugBreakpoint, type GitBlameLine, type GitHistoryEntry } from "../../../shared/api";
+import { api, type GitBlameLine, type GitHistoryEntry } from "../../../shared/api";
 import { useIsMobile } from "../../../shared/ui/useIsMobile";
 import LoadingState from "../../../shared/ui/LoadingState";
 
@@ -28,9 +28,6 @@ interface Props {
   onChange: (value: string) => void;
   onSave?: () => void;
   onRun?: () => void;
-  breakpoints?: DebugBreakpoint[];
-  debugLine?: number;
-  onToggleBreakpoint?: (line: number) => void;
 }
 
 export default function CodeEditor({
@@ -48,15 +45,10 @@ export default function CodeEditor({
   onChange,
   onSave,
   onRun,
-  breakpoints,
-  debugLine,
-  onToggleBreakpoint,
 }: Props) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const blameWidget = useRef<{ editor: editor.IStandaloneCodeEditor; widget: editor.IContentWidget } | null>(null);
-  const breakpointDecorations = useRef<string[]>([]);
-  const debugLineDecorations = useRef<string[]>([]);
   const [monacoReady, setMonacoReady] = useState(false);
   const [annotations, setAnnotations] = useState(true);
   const [aiDialog, setAiDialog] = useState<{ title: string; text: string; busy: boolean; error: string } | null>(null);
@@ -304,15 +296,6 @@ export default function CodeEditor({
       runRef.current?.();
     });
     addContextActions(instance);
-    instance.onMouseDown((event) => {
-      if (!onToggleBreakpoint) return;
-      if (event.target.type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) return;
-      const lineNumber = event.target.position?.lineNumber;
-      if (lineNumber) {
-        event.event.preventDefault();
-        onToggleBreakpoint(lineNumber);
-      }
-    });
     const dom = instance.getDomNode();
     const handleContextMenu = (event: MouseEvent) => openEditorContextMenu(event, instance);
     dom?.addEventListener("contextmenu", handleContextMenu, true);
@@ -476,54 +459,6 @@ export default function CodeEditor({
     };
   }, [monacoReady, path]);
 
-  useEffect(() => {
-    const instance = editorRef.current;
-    const monaco = monacoRef.current;
-    if (!instance || !monaco || !monacoReady) return;
-    const decorations = (breakpoints ?? []).map((breakpoint) => ({
-      range: new monaco.Range(breakpoint.line, 1, breakpoint.line, 1),
-      options: {
-        isWholeLine: false,
-        glyphMarginClassName: breakpoint.enabled === false
-          ? "jeff-breakpoint jeff-breakpoint-disabled"
-          : breakpoint.logMessage
-            ? "jeff-breakpoint jeff-breakpoint-logpoint"
-            : breakpoint.condition
-              ? "jeff-breakpoint jeff-breakpoint-conditional"
-              : "jeff-breakpoint",
-        glyphMarginHoverMessage: {
-          value: breakpoint.logMessage
-            ? `Logpoint: ${breakpoint.logMessage}`
-            : breakpoint.condition
-              ? `Condição: ${breakpoint.condition}`
-              : "Breakpoint",
-        },
-        stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
-      },
-    }));
-    breakpointDecorations.current = instance.deltaDecorations(breakpointDecorations.current, decorations);
-  }, [
-    breakpoints?.map((item) => `${item.id}:${item.line}:${item.enabled === false ? 0 : 1}:${item.condition ?? ""}:${item.logMessage ?? ""}`).join("|"),
-    monacoReady,
-  ]);
-
-  useEffect(() => {
-    const instance = editorRef.current;
-    const monaco = monacoRef.current;
-    if (!instance || !monaco || !monacoReady) return;
-    const decorations = debugLine && debugLine > 0
-      ? [{
-          range: new monaco.Range(debugLine, 1, debugLine, 1),
-          options: {
-            isWholeLine: true,
-            className: "jeff-debug-active-line",
-            glyphMarginClassName: "jeff-debug-active-glyph",
-          },
-        }]
-      : [];
-    debugLineDecorations.current = instance.deltaDecorations(debugLineDecorations.current, decorations);
-  }, [debugLine, monacoReady]);
-
   return (
     <>
     <Editor
@@ -549,7 +484,7 @@ export default function CodeEditor({
         cursorBlinking: "blink",
         renderWhitespace: "none",
         lineNumbersMinChars: 3,
-        glyphMargin: Boolean(breakpoints?.length || onToggleBreakpoint),
+        glyphMargin: false,
         padding: { top: 6, bottom: 14 },
         tabSize: 2,
         wordWrap: mobile ? "on" : "off",

@@ -1,5 +1,5 @@
 import { forwardRef, type ReactNode } from "react";
-import { ChevronDown, ChevronRight } from "@jeff/icons";
+import { ChevronDown, ChevronRight, MenuBars } from "@jeff/icons";
 import { cx } from "@jeff/ui";
 
 interface WorkspaceButtonProps {
@@ -17,6 +17,7 @@ export const MobileWorkspaceButton = forwardRef<HTMLButtonElement, WorkspaceButt
 ) {
   return (
     <button type="button" ref={ref} className={cx("m-wsbtn", compact && "is-compact")} onClick={onClick} aria-haspopup="dialog">
+      <MenuBars className="m-wsbtn__drawer" />
       <span className="m-wsbtn__logo">
         <img src={logo} alt="" draggable={false} />
       </span>

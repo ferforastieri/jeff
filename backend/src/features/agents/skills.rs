@@ -136,6 +136,21 @@ fn parse_builtin(relative: &str) -> Option<Skill> {
     parse_raw(relative, &String::from_utf8_lossy(&file.data), true)
 }
 
+/// Reads one embedded recipe by folder id. Used by the virtual built-in
+/// records in the Skills list and by the runtime.
+pub(crate) fn builtin_recipe(id: &str) -> Option<(String, String, String)> {
+    let path = format!("{id}/SKILL.md");
+    let file = BuiltinSkills::get(&path)?;
+    let raw = String::from_utf8_lossy(&file.data);
+    let (frontmatter, body) = split_frontmatter(&raw);
+    let name = field(frontmatter, "name");
+    let description = field(frontmatter, "description");
+    if name.is_empty() || description.is_empty() {
+        return None;
+    }
+    Some((name, description, body.trim_start().to_string()))
+}
+
 fn builtin_skills() -> Vec<Skill> {
     let mut found: Vec<Skill> = BuiltinSkills::iter()
         .filter(|path| path.ends_with("/SKILL.md"))
@@ -475,12 +490,15 @@ mod tests {
     #[test]
     fn skips_skills_without_a_description() {
         let root = temporary();
+        std::fs::create_dir_all(root.join(".jeff/skills/browser-test")).unwrap();
         std::fs::write(
-            root.join(".jeff/skills/browser/SKILL.md"),
-            "---\nname: browser\n---\nBody\n",
+            root.join(".jeff/skills/browser-test/SKILL.md"),
+            "---\nname: browser-test\n---\nBody\n",
         )
         .unwrap();
-        assert!(!discover(&root).iter().any(|skill| skill.id == "browser"));
+        assert!(!discover(&root)
+            .iter()
+            .any(|skill| skill.id == "browser-test"));
         std::fs::remove_dir_all(&root).ok();
     }
 

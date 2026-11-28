@@ -13,7 +13,6 @@ const jeff: ChatJeff = {
   model: "",
   engine: "opencode",
   effort: "",
-  agentMode: "build",
   permissionMode: "yolo",
   mcpServers: [],
   emailAccountIds: [],

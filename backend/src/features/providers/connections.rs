@@ -71,6 +71,29 @@ impl AiService {
     }
 
     pub async fn migrate_layout_models(&self, layout: &mut serde_json::Value) -> AppResult<()> {
+        // Conversations no longer have plan/build/debug modes, and agents no
+        // longer carry an agentMode. Old layouts are rewritten on read, so the
+        // next save persists the clean shape.
+        if let Some(chats) = layout
+            .pointer_mut("/chats/chats")
+            .and_then(serde_json::Value::as_array_mut)
+        {
+            for chat in chats {
+                if let Some(chat) = chat.as_object_mut() {
+                    chat.remove("mode");
+                }
+            }
+        }
+        if let Some(agents) = layout
+            .pointer_mut("/chats/jeffs")
+            .and_then(serde_json::Value::as_array_mut)
+        {
+            for agent in agents {
+                if let Some(agent) = agent.as_object_mut() {
+                    agent.remove("agentMode");
+                }
+            }
+        }
         let Some(agents) = layout
             .pointer_mut("/chats/jeffs")
             .and_then(serde_json::Value::as_array_mut)

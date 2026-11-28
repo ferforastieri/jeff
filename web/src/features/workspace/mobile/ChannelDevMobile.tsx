@@ -229,7 +229,7 @@ export default function ChannelDevMobile({ project, tool, onBack, onBackRef }: P
           {item.kind === "editor" ? <EditorPanel tab={item} project={project} mobile onOpenChanges={(path) => openDiff(path, false)} /> : null}
           {item.kind === "db" ? <DbPanelTab tab={item} /> : null}
           {item.kind === "diff" ? <DiffPanelTab tab={item} project={project} mobile /> : null}
-          {item.kind === "ai" && item.chatId ? <BotStudioTab project={project} conversationId={item.chatId} mobile onOpenFile={openFile} /> : null}
+          {item.kind === "ai" && item.chatId ? <BotStudioTab project={project} conversationId={item.chatId} mobile /> : null}
         </div>
       </div>
     );

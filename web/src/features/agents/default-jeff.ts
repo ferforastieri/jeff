@@ -9,7 +9,6 @@ export const DEFAULT_JEFF: JeffPreset = {
   prompt: "",
   color: "#0063D1",
   avatar: "jeff-logo",
-  agentMode: "build",
   permissionMode: "yolo",
   mcpServers: [],
   emailAccountIds: [],

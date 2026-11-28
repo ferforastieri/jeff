@@ -33,7 +33,7 @@ The app is at `/app`. Auth cookie: `jeff_session`. Data: `JEFF_DATA_DIR/jeff.db`
 - Models: OpenAI, Anthropic, DeepSeek, OpenRouter, Groq, Mistral, xAI, Ollama, custom gateway.
 - Modes: Plan (read only), Ask (approval before changes), YOLO (allowed tools run).
 - Tools: files, shell, Git, MCP, skills, memory, artifacts, images, audio, approvals, questions.
-- Workbench: explorer/editor, terminal, source control, databases, agent debug mode with a visible terminal and live browser, web apps, previews.
+- Workbench: explorer/editor, terminal, source control, databases, a visible terminal and live browser the agent can drive, web apps, previews.
 - Files: upload/edit and stream downloads of any size.
 - Attachments: up to 6 files, 8 MB total per message; run endpoint accepts 32 MB.
 

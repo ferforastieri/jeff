@@ -16,7 +16,7 @@
 - Models: OpenAI, Anthropic, DeepSeek, OpenRouter, Groq, Mistral, xAI, Ollama or a company gateway.
 - Permissions: Plan (read only), Ask (approval before changes), YOLO (allowed tools run without prompting).
 - Tools: files, shell, Git, MCP, skills, memory, artifacts, images, audio, questions and approvals.
-- Workbench: project explorer/editor, terminal, source control, databases, agent debug mode, web apps and previews.
+- Workbench: project explorer/editor, terminal, source control, databases, the agent's visible browser and previews.
 - Files: upload, edit and stream downloads of any size.
 
 ## Install (Linux, root)
@@ -92,7 +92,7 @@ JEFF_ADMIN_PASSWORD='change-me' docker compose -f deploy/compose.yaml up -d
 - Source control: status, diffs, stage, commit, branches, blame, discard.
 - Terminal per project.
 - Databases: Postgres, MySQL, SQLite connections, schema and queries.
-- Agent debug mode: the Jeff instruments code, runs commands in a visible terminal and drives a live browser; no breakpoints or hidden headless runs.
+- Visible agent tools: every conversation has a terminal and a Chromium the Jeff can drive; you watch and can take over. No hidden headless runs and no plan/build/debug modes.
 - Web apps and previews with logs.
 
 ## Attachments

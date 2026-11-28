@@ -1,31 +1,6 @@
 use super::*;
 use crate::browser::BrowserSession;
 
-/// The live browser a debug-mode agent drives. Created on demand so the UI can
-/// attach its WebSocket before the agent opens a page.
-pub(super) async fn debug_browser_info(
-    State(state): State<Arc<AppState>>,
-    Path(project_id): Path<String>,
-) -> AppResult<Json<Value>> {
-    let session = browser_session(&state, &project_id, &project_id).await?;
-    Ok(Json(session_info(&session)))
-}
-
-pub(super) async fn debug_browser_ws(
-    State(state): State<Arc<AppState>>,
-    Path(project_id): Path<String>,
-    ws: WebSocketUpgrade,
-) -> Response {
-    let session = match browser_session(&state, &project_id, &project_id).await {
-        Ok(session) => session,
-        Err(error) => return error.into_response(),
-    };
-    session
-        .clients
-        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-    ws.on_upgrade(move |socket| browser_socket(socket, session))
-}
-
 /// The bot's own persistent browser, watched from the room.
 pub(super) async fn bot_browser_info(
     State(state): State<Arc<AppState>>,
@@ -33,7 +8,11 @@ pub(super) async fn bot_browser_info(
 ) -> AppResult<Json<Value>> {
     let key = format!("bot-{agent_id}");
     let session = browser_session(&state, &project_id, &key).await?;
-    Ok(Json(session_info(&session)))
+    Ok(Json(session_info(
+        &session,
+        &project_id,
+        &format!("/api/projects/{project_id}/bots/{agent_id}/browser/ws"),
+    )))
 }
 
 pub(super) async fn bot_browser_ws(
@@ -61,13 +40,13 @@ async fn browser_session(
     state.browser.session(key, FsPath::new(&project.root)).await
 }
 
-fn session_info(session: &BrowserSession) -> Value {
+fn session_info(session: &BrowserSession, project_id: &str, ws_url: &str) -> Value {
     let info = session.info();
     json!({
         "id": info.id,
-        "projectId": info.project_id,
+        "projectId": project_id,
         "pageUrl": info.page_url,
-        "wsUrl": info.ws_url,
+        "wsUrl": ws_url,
         "takeover": session.is_takeover(),
     })
 }

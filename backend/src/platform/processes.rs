@@ -38,7 +38,7 @@ struct ProcEntry {
 }
 
 /// Terminates processes owned by the Jeff user whose working directory is
-/// inside the project. This complements the tracked terminal/debug sessions:
+/// inside the project. This complements the tracked terminal sessions:
 /// a dev server opened manually from a shell is still inside the project.
 #[cfg(not(windows))]
 pub fn terminate_project_processes(root: &Path) -> ProcessCloseResult {

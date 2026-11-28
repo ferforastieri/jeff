@@ -31,7 +31,6 @@ export default function AgentComposerControls({ agent, models, onUpdated, onConn
     model: bot.model ?? "",
     engine: bot.engine ?? "opencode",
     effort: bot.effort ?? "",
-    agentMode: "build",
     permissionMode: "ask",
     mcpServers: [],
     emailAccountIds: [],

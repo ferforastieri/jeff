@@ -63,8 +63,8 @@ async fn old_layout_model_ids_migrate_to_their_own_connections_idempotently() {
     ai.save_connection(serde_json::from_value(json!({"label":"OpenAI","provider":"openai","baseUrl":"https://api.openai.com/v1","apiKey":"fixture"})).unwrap()).await.unwrap();
     let connection = ai.connections().await.unwrap().remove(0);
     let mut layout = json!({"chats":{"jeffs":[
-        {"name":"Jeff","model":"openai/gpt-6-astra","agentMode":"plan","personality":"Careful"},
-        {"name":"Beto","model":"opencode-go/deepseek-v4.1-flash","agentMode":"build","personality":"Direct"}
+        {"name":"Jeff","model":"openai/gpt-6-astra","personality":"Careful"},
+        {"name":"Beto","model":"opencode-go/deepseek-v4.1-flash","personality":"Direct"}
     ]}});
     ai.migrate_layout_models(&mut layout).await.unwrap();
     assert_eq!(
@@ -75,7 +75,7 @@ async fn old_layout_model_ids_migrate_to_their_own_connections_idempotently() {
         layout["chats"]["jeffs"][1]["model"],
         "default::deepseek-v4.1-flash"
     );
-    assert_eq!(layout["chats"]["jeffs"][0]["agentMode"], "plan");
+    assert!(layout["chats"]["jeffs"][0].get("agentMode").is_none());
     assert_eq!(layout["chats"]["jeffs"][1]["personality"], "Direct");
     let canonical = layout.clone();
     ai.migrate_layout_models(&mut layout).await.unwrap();

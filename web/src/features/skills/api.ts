@@ -15,6 +15,9 @@ export interface SkillRecord {
   proposedBy?: string | null;
   reason?: string | null;
   source?: string | null;
+  origin?: string;
+  icon?: string;
+  builtin?: boolean;
   createdAt: number;
   updatedAt: number;
 }

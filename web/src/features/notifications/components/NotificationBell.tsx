@@ -5,6 +5,7 @@ import { useApp, type AppNotification } from "../../../app/store";
 import { api } from "../../../shared/api";
 import { formatTime } from "../../../shared/time";
 import NotificationSoundSettings from "./NotificationSoundSettings";
+import JeffBell from "../../../shared/ui/JeffBell";
 
 interface Props {
   className?: string;
@@ -89,7 +90,7 @@ export default function NotificationBell({ className, onOpenNotification }: Prop
       aria-label={unread > 0 ? `Notificações, ${unread} não lidas` : "Notificações"}
       title="Notificações"
     >
-      <Icon name="bell" size={16} />
+      <JeffBell className="notification-bell__icon" />
       {unread > 0 ? (
         <span className="notification-bell__badge" aria-hidden="true">
           {unread > 99 ? "99+" : unread}
@@ -130,7 +131,7 @@ export default function NotificationBell({ className, onOpenNotification }: Prop
         <NotificationSoundSettings />
       ) : sorted.length === 0 ? (
         <div className="notification-menu__empty">
-          <Icon name="bell" size={18} />
+          <JeffBell className="notification-menu__empty-icon" />
           <span>Tudo em dia.</span>
         </div>
       ) : (

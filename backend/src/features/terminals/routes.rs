@@ -27,16 +27,16 @@ pub(super) async fn create_terminal(
         .into_response())
 }
 
-/// The terminal a debug-mode agent drives. Created on demand so the UI can
-/// attach its WebSocket before the first command is sent.
-pub(super) async fn debug_terminal_info(
+/// The terminal the agent drives. Created on demand so the UI can attach its
+/// WebSocket before the first command is sent.
+pub(super) async fn agent_terminal_info(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<String>,
 ) -> AppResult<Json<Value>> {
     let project = state.store.project(&project_id).await?;
     let session = state
         .terminals
-        .debug_session(&project_id, FsPath::new(&project.root))?;
+        .agent_session(&project_id, FsPath::new(&project.root))?;
     Ok(Json(json!({
         "id": session.id,
         "projectId": project_id,
@@ -78,8 +78,6 @@ pub(super) async fn close_project(
     let project = state.store.project(&project_id).await?;
     state.agents.cancel_project(None, &project_id, None).await?;
     let terminals = state.terminals.close_project(&project_id);
-    let had_debug = state.debug.get(&project_id).is_some();
-    state.debug.close_project(&project_id).await;
     state.browser.close_project(&project_id).await;
     let root = project.root.clone();
     let cleanup = tokio::task::spawn_blocking(move || {
@@ -90,7 +88,6 @@ pub(super) async fn close_project(
     Ok(Json(json!({
         "ok": true,
         "terminals": terminals,
-        "debug": had_debug,
         "processes": cleanup.terminated,
         "failed": cleanup.failed,
     })))

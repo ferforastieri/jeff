@@ -253,7 +253,7 @@ footer.site-footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
       <p><strong>Jeff é um workbench de agentes de IA self-hosted.</strong> Você abre um projeto, cria um ou vários Jeffs e cada um trabalha com o motor, o modelo, as ferramentas e as permissões que você escolher. O projeto e os arquivos ficam no seu computador ou servidor.</p>
       <div class="grid2">
         <div class="mini"><b>Um Jeff ou um time</b><p>Uma tarefa pode ter um Jeff sozinho ou vários. Sem menção, o roteador escolhe quem responde; com <code>@handle</code>, você escolhe.</p></div>
-        <div class="mini"><b>O projeto é o centro</b><p>Arquivos, editor, terminal, Git, bancos, debug e previews no mesmo lugar. O agente trabalha no projeto de verdade.</p></div>
+        <div class="mini"><b>O projeto é o centro</b><p>Arquivos, editor, terminal, Git, bancos, navegador visível e previews no mesmo lugar. O agente trabalha no projeto de verdade.</p></div>
         <div class="mini"><b>Você manda nas ferramentas</b><p>Plan, Ask ou YOLO por Jeff. Aprovações aparecem dentro da tarefa antes de escrever, apagar ou rodar algo.</p></div>
         <div class="mini"><b>Seu modelo, seu motor</b><p>OpenCode, Claude Code ou Codex. OpenAI, Anthropic, DeepSeek, OpenRouter, Ollama ou o gateway da sua empresa.</p></div>
       </div>
@@ -362,7 +362,7 @@ sudo install -m 755 bin/jeff /usr/local/bin/jeff</code></pre>
         <div class="mini"><b>Source Control</b><p>Status, diffs, stage, commit, branches, blame e descarte de mudanças.</p></div>
         <div class="mini"><b>Terminal</b><p>Terminais reais no servidor, por projeto, para rodar o que precisar.</p></div>
         <div class="mini"><b>Bancos de dados</b><p>Conexões Postgres, MySQL e SQLite, schema e consultas com resultado.</p></div>
-        <div class="mini"><b>Debug no agente</b><p>Modo plano, construção ou debug: o Jeff instrumenta o código, roda comandos no terminal visível e opera um Chromium ao vivo, na sua frente.</p></div>
+        <div class="mini"><b>Navegador e terminal visíveis</b><p>O Jeff decide quando abrir uma página ou rodar um comando; você vê o mesmo Chromium e o mesmo terminal ao vivo e pode assumir o controle.</p></div>
         <div class="mini"><b>Web apps e previews</b><p>Rode a aplicação e abra o preview no painel, com logs e inspeção.</p></div>
       </div>
     </section>
@@ -384,7 +384,7 @@ sudo install -m 755 bin/jeff /usr/local/bin/jeff</code></pre>
         <li><strong>Pastas permitidas:</strong> em <strong>Configurações → Workspace</strong>, adicione as raízes que o Jeff pode ler e escrever. O servidor não sai dessas pastas.</li>
         <li><strong>Botão +:</strong> lista os projetos existentes e todos os repositórios Git das raízes. Clicar em um repo ainda não aberto cria o projeto e abre.</li>
         <li><strong>Vários projetos:</strong> abra quantos quiser; cada um tem suas tarefas, terminais e configurações.</li>
-        <li><strong>Fechar projeto:</strong> encerra terminais/debug daquele projeto sem apagar os arquivos.</li>
+        <li><strong>Fechar projeto:</strong> encerra os terminais daquele projeto sem apagar os arquivos.</li>
       </ul>
     </section>
 

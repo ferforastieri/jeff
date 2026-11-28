@@ -40,6 +40,12 @@ pub struct ManagedSkill {
     pub reason: Option<String>,
     /// Set for a skill linked to a SKILL.md file outside the database.
     pub source: Option<String>,
+    #[serde(default)]
+    pub origin: String,
+    #[serde(default)]
+    pub icon: String,
+    #[serde(default)]
+    pub builtin: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -102,8 +108,57 @@ impl Service {
             proposed_by: row.get("proposed_by"),
             reason: row.get("reason"),
             source: row.get("source"),
+            origin: if row.get::<Option<String>, _>("source").is_some() {
+                "linked".into()
+            } else {
+                "user".into()
+            },
+            icon: "book".into(),
+            builtin: false,
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
+        })
+    }
+
+    fn builtin_records() -> Vec<ManagedSkill> {
+        [
+            ("browser", "Navegador", "globe"),
+            ("terminal", "Terminal", "terminal"),
+        ]
+        .into_iter()
+        .filter_map(|(id, name, icon)| {
+            let (_, description, body) = super::skills::builtin_recipe(id)?;
+            Some(ManagedSkill {
+                id: id.to_string(),
+                project_id: String::new(),
+                name: name.to_string(),
+                description,
+                body,
+                agents: Vec::new(),
+                state: "active".into(),
+                replaces: None,
+                proposed_by: None,
+                reason: None,
+                source: None,
+                origin: "integrated".into(),
+                icon: icon.into(),
+                builtin: true,
+                created_at: 0,
+                updated_at: 0,
+            })
+        })
+        .collect()
+    }
+
+    fn builtin(id: &str) -> Option<ManagedSkill> {
+        Self::builtin_records()
+            .into_iter()
+            .find(|skill| skill.id.eq_ignore_ascii_case(id) || skill.name.eq_ignore_ascii_case(id))
+    }
+
+    fn reserved(name: &str) -> bool {
+        Self::builtin_records().iter().any(|skill| {
+            skill.id.eq_ignore_ascii_case(name) || skill.name.eq_ignore_ascii_case(name)
         })
     }
 
@@ -115,10 +170,22 @@ impl Service {
         )
         .fetch_all(self.0.pool())
         .await?;
-        rows.iter().map(Self::row).collect()
+        let mut skills: Vec<ManagedSkill> = rows
+            .iter()
+            .map(Self::row)
+            .collect::<AppResult<Vec<_>>>()?
+            .into_iter()
+            .filter(|skill| !Self::reserved(&skill.id) && !Self::reserved(&skill.name))
+            .collect();
+        skills.extend(Self::builtin_records());
+        skills.sort_by(|left, right| left.name.cmp(&right.name));
+        Ok(skills)
     }
 
     pub async fn get(&self, id: &str) -> AppResult<ManagedSkill> {
+        if let Some(skill) = Self::builtin(id) {
+            return Ok(skill);
+        }
         let row = sqlx::query(
             "SELECT id,project_id,name,description,body,agents,state,replaces,proposed_by,reason,source,created_at,updated_at \
              FROM agent_skills WHERE id=$1",
@@ -175,6 +242,11 @@ impl Service {
 
     fn validated(input: &ManagedSkillInput) -> AppResult<(String, String, String, Vec<String>)> {
         let name = normalize_name(&input.name)?;
+        if Self::reserved(&name) {
+            return Err(bad_request(
+                "Browser e Terminal são skills integradas e não podem ser propostas.",
+            ));
+        }
         let description = input.description.trim().to_string();
         let body = input.body.trim().to_string();
         if description.is_empty() {
@@ -195,6 +267,11 @@ impl Service {
     /// version, so every change can be undone.
     pub async fn save(&self, project: &str, input: ManagedSkillInput) -> AppResult<ManagedSkill> {
         let (name, description, body, agents) = Self::validated(&input)?;
+        if input.id.as_deref().is_some_and(Self::reserved) || Self::reserved(&name) {
+            return Err(bad_request(
+                "Browser e Terminal são skills integradas e não podem ser alteradas.",
+            ));
+        }
         let at = now();
         if let Some(id) = input.id.as_deref() {
             let previous = self.get(id).await?;
@@ -286,6 +363,11 @@ impl Service {
             return self.get(&existing.id).await;
         }
         let name = normalize_name(&found.name)?;
+        if Self::reserved(&name) {
+            return Err(bad_request(
+                "Browser e Terminal são skills integradas e não podem ser duplicadas.",
+            ));
+        }
         if self.active_by_name(&name).await?.is_some() {
             return Err(bad_request(
                 "Já existe uma skill ativa com esse nome. Renomeie uma das duas.",
@@ -384,6 +466,11 @@ impl Service {
         input: ProposalInput,
     ) -> AppResult<Value> {
         let name = normalize_name(&input.name)?;
+        if Self::reserved(&name) {
+            return Err(bad_request(
+                "Browser e Terminal são skills integradas e não podem ser propostas.",
+            ));
+        }
         let description = input.description.trim().to_string();
         let body = input.body.trim().to_string();
         let reason = input.reason.trim().to_string();
@@ -471,6 +558,9 @@ impl Service {
 
     /// The user approves or refuses a pending proposal.
     pub async fn decide(&self, id: &str, approve: bool) -> AppResult<Option<ManagedSkill>> {
+        if Self::builtin(id).is_some() {
+            return Err(bad_request("Browser e Terminal são skills integradas."));
+        }
         let pending = self.get(id).await?;
         if pending.state != "pending" {
             return Err(AppError::NotFound);
@@ -512,6 +602,9 @@ impl Service {
     }
 
     pub async fn versions(&self, id: &str) -> AppResult<Vec<ManagedSkillVersion>> {
+        if Self::builtin(id).is_some() {
+            return Ok(Vec::new());
+        }
         self.get(id).await?;
         let rows = sqlx::query(
             "SELECT id,skill_id,name,description,body,by,at FROM agent_skill_versions WHERE skill_id=$1 ORDER BY at DESC,id DESC",
@@ -536,6 +629,11 @@ impl Service {
     /// Restores a previous version. The current one is kept too, so this can
     /// be undone as well.
     pub async fn restore(&self, id: &str, version_id: i64) -> AppResult<ManagedSkill> {
+        if Self::builtin(id).is_some() {
+            return Err(bad_request(
+                "Browser e Terminal são skills integradas e não têm versões.",
+            ));
+        }
         let current = self.get(id).await?;
         let version = sqlx::query(
             "SELECT name,description,body FROM agent_skill_versions WHERE id=$1 AND skill_id=$2",
@@ -566,6 +664,11 @@ impl Service {
     }
 
     pub async fn archive(&self, id: &str, archived: bool) -> AppResult<ManagedSkill> {
+        if Self::builtin(id).is_some() {
+            return Err(bad_request(
+                "Browser e Terminal são skills integradas e não podem ser arquivadas.",
+            ));
+        }
         let skill = self.get(id).await?;
         if skill.state == "pending" {
             return Err(AppError::NotFound);
@@ -583,6 +686,11 @@ impl Service {
     }
 
     pub async fn remove(&self, id: &str) -> AppResult<()> {
+        if Self::builtin(id).is_some() {
+            return Err(bad_request(
+                "Browser e Terminal são skills integradas e não podem ser apagadas.",
+            ));
+        }
         self.get(id).await?;
         sqlx::query("DELETE FROM agent_skill_versions WHERE skill_id=$1")
             .bind(id)

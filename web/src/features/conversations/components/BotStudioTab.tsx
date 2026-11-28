@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowDown, Bot, Globe2, TerminalSquare, Timer, X } from "@jeff/icons";
+import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowDown, Bot, Globe2, Timer, X } from "@jeff/icons";
 import { PixelSpinner } from "@jeff/ui";
 import type { Project } from "../../../shared/api";
 import { ApiError } from "../../../shared/api";
@@ -12,16 +12,15 @@ import { AgentComposer, type AgentAttachment } from "./AgentComposer";
 import ChatMessages from "./ChatMessages";
 import ChatModelUsage from "./ChatModelUsage";
 import ConversationEffortPicker from "./ConversationEffortPicker";
-import ConversationModePicker from "./ConversationModePicker";
-const AgentDebugWorkspace = lazy(() => import("./AgentDebugWorkspace"));
 import ApprovalCard from "./ApprovalCard";
 import BotAvatar from "../../agents/components/BotAvatar";
 import { unlockBotSound } from "../sound";
 import { Button } from "@jeff/ui/app";
 import { Dialog, DialogBody } from "faang-ui";
 import { cx } from "@jeff/ui";
-import BotBrowserPanel from "../../rooms/BotBrowserPanel";
-import TerminalPanel from "../../terminal/components/TerminalPanel";
+import AgentToolPicker from "./AgentToolPicker";
+const BotBrowserPanel = lazy(() => import("../../rooms/BotBrowserPanel"));
+const AgentTerminalPanel = lazy(() => import("./AgentTerminalPanel"));
 
 interface Props {
   project: Project;
@@ -30,10 +29,9 @@ interface Props {
   embedded?: boolean;
   compact?: boolean;
   headerControl?: ReactNode;
-  onOpenFile?: (path: string, line?: number) => void;
 }
 
-export default function BotStudioTab({ project, conversationId, mobile = false, embedded = false, compact = false, headerControl, onOpenFile }: Props) {
+export default function BotStudioTab({ project, conversationId, mobile = false, embedded = false, compact = false, headerControl }: Props) {
   const stored = useChats((s) => s.byProject[project.id]);
   const chat = stored?.chats.find((item) => item.id === conversationId) ?? null;
   const jeffs = useMemo(() => chatJeffs(stored, conversationId), [stored?.jeffs, stored?.chats, conversationId]);
@@ -70,7 +68,6 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
   const lastError = /cancel|abort|interromp/i.test(lastRunError) ? "" : lastRunError;
   const bannerError = /cancel|abort|interromp/i.test(native.error) ? "" : native.error;
   const title = chatDisplayName(stored, chat);
-  const debug = chat?.mode === "debug";
 
   /** Pin to the end and ignore the scroll events this move generates. */
   function pinToBottom() {
@@ -181,14 +178,8 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         chatId: chat.id,
         agentId: "router",
         text: value,
-        mode: debug ? "debug" : undefined,
         agents: jeffs.map((jeff) => ({
           ...jeff,
-          agentMode: chat.mode === "plan" || chat.mode === "build"
-            ? chat.mode
-            : chat.mode === "debug"
-              ? "build"
-              : jeff.agentMode,
           model: settings[jeff.id]?.model || jeff.model || fallbackModel,
           effort: settings[jeff.id]?.effort ?? jeff.effort,
           engine: settings[jeff.id]?.engine || jeff.engine || "opencode",
@@ -269,9 +260,11 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
     );
   }
 
-  const browserUsed = !debug && native.messages.some((message) => /browser/i.test(message.title ?? ""));
+  const browserToolMessage = [...native.messages].reverse().find((message) => /^browser_/.test(message.title ?? ""));
+  const browserUsed = Boolean(browserToolMessage);
   const browserAgents = jeffs.map((jeff) => ({ id: jeff.id, name: jeff.name }));
-  const framed = !embedded && !debug;
+  const browserAgentId = browserToolMessage?.jeffId ?? jeffs[0]?.id;
+  const framed = !embedded;
   const chatView = <div className="flex h-full min-h-0 w-full flex-1 gap-0 overflow-hidden" onPointerDown={unlockBotSound}>
     <section className={cx(
       "relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background-full",
@@ -306,9 +299,8 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
             {native.hasMore && <Button variant="ghost" size="small" disabled={native.loading} onClick={older}>{native.loading ? <><PixelSpinner size={14} /> Carregando mensagens antigas…</> : "Carregar mensagens anteriores"}</Button>}
             {!stored?.hydrated ? <div className="my-auto flex items-center justify-center gap-2 py-8 text-caption-1-regular text-text-tertiary"><PixelSpinner size={16} /> Carregando conversas…</div>
               : !jeffs.length ? <div className="my-auto flex flex-col items-center gap-3 px-6 py-10 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500"><Bot size={22} /></span><strong className="text-title-3-medium">Esta conversa ficou sem Jeffs.</strong><p className="max-w-sm text-caption-1-regular text-text-secondary">Adicione um Jeff nas configurações da conversa.</p></div>
-              : !native.messages.length && !busy ? (debug
-                  ? <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{jeffs.slice(0, 4).map((jeff) => <BotAvatar key={jeff.id} bot={jeff} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Conte o que está acontecendo.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Descreva o bug, o que esperava e como reproduzir. O Jeff instrumenta o código, roda os comandos no terminal e mostra tudo em tempo real — você não precisa configurar breakpoints.</p></div>
-                  : <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{jeffs.slice(0, 4).map((jeff) => <BotAvatar key={jeff.id} bot={jeff} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Escreva sua mensagem.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Pergunte, peça uma alteração ou anexe um arquivo. Cada conversa tem o próprio histórico.</p></div>) : null}
+              : !native.messages.length && !busy ? (
+                  <div className="my-auto flex flex-col items-center gap-3 px-4 py-10 text-center"><div className="flex -space-x-2">{jeffs.slice(0, 4).map((jeff) => <BotAvatar key={jeff.id} bot={jeff} size={38} className="rounded-full bg-background-primary-default ring-2 ring-background-primary-default" />)}</div><strong className="text-title-3-medium">Escreva sua mensagem.</strong><p className="max-w-md text-caption-1-regular text-text-secondary">Pergunte, peça uma alteração ou anexe um arquivo. Cada conversa tem o próprio histórico.</p></div>) : null}
             <ChatMessages messages={optimistic ? [...native.messages, optimistic] : native.messages} jeffs={jeffs} runs={native.runs} project={project} mobile={mobile} compact={compact} questions={native.questions} onAnswer={(id, answer) => { void agentApi.answer(project.id, id, answer).catch((e) => native.setError(String(e))); }} />
             {native.approvals.map((approval) => <ApprovalCard key={approval.id} agentName={jeffs.find((a) => a.id === approval.agentId)?.name ?? "Jeff"} name={approval.name} arguments={approval.arguments} onApprove={() => void agentApi.approve(project.id, approval.id, true).catch((e) => native.setError(String(e)))} onReject={() => void agentApi.approve(project.id, approval.id, false).catch((e) => native.setError(String(e)))} />)}
             {native.compacting && <p role="status" className="text-center text-caption-2-regular text-text-tertiary">Compactando contexto; histórico preservado…</p>}
@@ -345,9 +337,9 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
       {jeffs.length > 0 && <div className="shrink-0">
         {modelError && <p role="alert" className="px-3 text-xs text-text-error-primary">{modelError}</p>}
         <AgentComposer value={text} onChange={(value) => setDraft(draftKey, value)} onSend={(value, files) => void send(value, files)} onStop={() => void stop()} busy={busy}
-          placeholder={debug ? "Descreva o bug e como ele acontece…" : "Pergunte ao Jeff…"}
+          placeholder="Pergunte ao Jeff…"
           history={native.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /><ConversationModePicker projectId={project.id} chat={chat!} jeffs={jeffs} />{!debug ? <><button type="button" onClick={() => setBrowserOpen(true)} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-caption-2-medium text-text-tertiary transition-colors hover:text-text-primary" aria-label="Abrir navegador do agente" title="Ver o que o agente vê e assumir o navegador"><Globe2 size={13} /> Navegador</button><button type="button" onClick={() => setTerminalOpen(true)} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-caption-2-medium text-text-tertiary transition-colors hover:text-text-primary" aria-label="Abrir terminal do agente" title="Abrir o terminal do agente"><TerminalSquare size={13} /> Terminal</button></> : null}</>}
+          leadingControls={<><ChatModelUsage projectId={project.id} chat={chat!} jeffs={jeffs} chatName={title} /><ConversationEffortPicker projectId={project.id} chat={chat!} jeffs={jeffs} /><AgentToolPicker tool="browser" onOpen={() => setBrowserOpen(true)} /><AgentToolPicker tool="terminal" onOpen={() => setTerminalOpen(true)} /></>}
           members={jeffs} />
       </div>}
     </section>
@@ -361,12 +353,14 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         width={980}
       >
         <DialogBody className="p-0">
-          <div className="h-[min(70vh,640px)]">
-            <BotBrowserPanel
-              project={project}
-              bots={browserAgents}
-              initialAgentId={browserAgents[0]?.id}
-            />
+          <div className="ws-agent-tool-modal">
+            <Suspense fallback={<div className="ws-tool-loading"><PixelSpinner size={16} /> Abrindo navegador…</div>}>
+              <BotBrowserPanel
+                project={project}
+                bots={browserAgents}
+                initialAgentId={browserAgentId}
+              />
+            </Suspense>
           </div>
         </DialogBody>
       </Dialog>
@@ -382,11 +376,13 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
           </button>
         </header>
         <div className="bot-browser-mobile__body">
-          <BotBrowserPanel
-            project={project}
-            bots={browserAgents}
-            initialAgentId={browserAgents[0]?.id}
-          />
+          <Suspense fallback={<div className="ws-tool-loading"><PixelSpinner size={16} /> Abrindo navegador…</div>}>
+            <BotBrowserPanel
+              project={project}
+              bots={browserAgents}
+              initialAgentId={browserAgentId}
+            />
+          </Suspense>
         </div>
       </div>
     ) : null}
@@ -400,8 +396,10 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
         width={1000}
       >
         <DialogBody className="p-0">
-          <div className="h-[min(60vh,520px)]">
-            <TerminalPanel project={project} onOpenFile={() => undefined} />
+          <div className="ws-agent-terminal-modal">
+            <Suspense fallback={<div className="ws-tool-loading"><PixelSpinner size={16} /> Abrindo terminal…</div>}>
+              <AgentTerminalPanel project={project} />
+            </Suspense>
           </div>
         </DialogBody>
       </Dialog>
@@ -417,17 +415,12 @@ export default function BotStudioTab({ project, conversationId, mobile = false, 
           </button>
         </header>
         <div className="bot-browser-mobile__body">
-          <TerminalPanel project={project} onOpenFile={() => undefined} sheet onClose={() => setTerminalOpen(false)} />
+          <Suspense fallback={<div className="ws-tool-loading"><PixelSpinner size={16} /> Abrindo terminal…</div>}>
+            <AgentTerminalPanel project={project} mobile />
+          </Suspense>
         </div>
       </div>
     ) : null}
   </div>;
-  if (!debug) return chatView;
-  return (
-    <Suspense fallback={<div className="flex h-full items-center justify-center"><PixelSpinner size={16} className="text-text-tertiary" /></div>}>
-      <AgentDebugWorkspace project={project} mobile={mobile} onOpenFile={onOpenFile}>
-        {chatView}
-      </AgentDebugWorkspace>
-    </Suspense>
-  );
+  return chatView;
 }

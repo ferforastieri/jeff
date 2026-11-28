@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { BookOpen, Check, ChevronDown, ChevronRight, History, Pencil, Plus, Search, Sparkles, Trash2 } from "@jeff/icons";
+import { BookOpen, Check, ChevronDown, ChevronRight, Globe2, History, Pencil, Plus, Search, Sparkles, TerminalSquare, Trash2 } from "@jeff/icons";
 import { PixelSpinner } from "@jeff/ui";
 import { useApp } from "../../../app/store";
 import { useConfirm } from "../../../shared/ui/confirm";
 import { Button } from "@jeff/ui/app";
 import { Input } from "@jeff/ui/app";
+import { SearchField } from "faang-ui";
 import { Modal } from "@jeff/ui/app";
 import { Textarea } from "@jeff/ui/app";
 import { skillApi, type LocalSkill, type SkillDraft, type SkillRecord, type SkillVersion, type SuggestedSkill } from "../api";
@@ -13,6 +14,17 @@ const RECOMMENDED = 10_000;
 
 function emptyDraft(): SkillDraft {
   return { name: "", description: "", body: "", agents: [] };
+}
+
+function skillIcon(skill: SkillRecord) {
+  if (skill.icon === "globe") return <Globe2 size={15} />;
+  if (skill.icon === "terminal") return <TerminalSquare size={15} />;
+  return <BookOpen size={15} />;
+}
+
+function skillOrigin(skill: SkillRecord): string {
+  if (skill.builtin) return "Integrada";
+  return skill.source ? "Arquivo externo" : "Escrita aqui";
 }
 
 function when(value: number): string {
@@ -78,6 +90,7 @@ export default function SkillsPanel({ projectId }: Props) {
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [review, setReview] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [versions, setVersions] = useState<SkillVersion[]>([]);
@@ -132,6 +145,10 @@ export default function SkillsPanel({ projectId }: Props) {
   const shownSuggested = suggested.filter((skill) => !needle || `${skill.name} ${skill.description} ${skill.category}`.toLowerCase().includes(needle));
   const shownLocal = localSkills.filter((skill) => !needle || `${skill.name} ${skill.description} ${skill.origin}`.toLowerCase().includes(needle));
   const active = (skills ?? []).filter((skill) => skill.state === "active");
+  const activeQuery = query.trim().toLowerCase();
+  const shownActive = active.filter((skill) =>
+    !activeQuery || `${skill.name} ${skill.description} ${skill.origin ?? ""}`.toLowerCase().includes(activeQuery),
+  );
   const pending = (skills ?? []).filter((skill) => skill.state === "pending");
   const archived = (skills ?? []).filter((skill) => skill.state === "archived");
   const selected = selectedId ? (skills ?? []).find((skill) => skill.id === selectedId) ?? null : null;
@@ -140,7 +157,10 @@ export default function SkillsPanel({ projectId }: Props) {
     setSelectedId(skill.id);
     setVersions([]);
     setShowingVersion(null);
-    if (!projectId) return;
+    if (!projectId || skill.builtin) {
+      setVersionsLoading(false);
+      return;
+    }
     setVersionsLoading(true);
     void skillApi
       .versions(projectId, skill.id)
@@ -291,18 +311,34 @@ export default function SkillsPanel({ projectId }: Props) {
 
       {active.length > 0 ? (
         <section className="flex flex-col gap-1">
-          <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">Em uso</p>
-          {active.map((skill) => (
+          <div className="flex flex-wrap items-center gap-2 px-1">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">Em uso · {shownActive.length}</p>
+            <span className="flex-1" />
+            <SearchField
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar skill…"
+              size="sm"
+              onClear={() => setQuery("")}
+              clearLabel="Limpar busca"
+              className="max-w-[220px]"
+            />
+          </div>
+          {shownActive.map((skill) => (
             <button key={skill.id} type="button" onClick={() => open(skill)} className="flex items-center gap-3 rounded-xl border border-border-button-default bg-background-primary-default px-3 py-2.5 text-start transition-colors hover:bg-background-primary-hover">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-500/10 text-accent-500"><BookOpen size={15} /></span>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-500/10 text-accent-500">{skillIcon(skill)}</span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-caption-1-semibold text-text-primary">{skill.name}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-caption-1-semibold text-text-primary">{skill.name}</span>
+                  {skill.builtin ? <span className="shrink-0 rounded-full bg-accent-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-accent-600">Integrada</span> : null}
+                </span>
                 <span className="block truncate text-caption-2-regular text-text-tertiary">{skill.description}</span>
-                <span className="mt-0.5 block truncate text-caption-2-regular text-text-tertiary">Todos os repos · {skill.body.length.toLocaleString("pt-BR")} caracteres</span>
+                <span className="mt-0.5 block truncate text-caption-2-regular text-text-tertiary">{skillOrigin(skill)} · {skill.body.length.toLocaleString("pt-BR")} caracteres</span>
               </span>
               <ChevronRight size={15} className="shrink-0 text-text-tertiary" />
             </button>
           ))}
+          {shownActive.length === 0 ? <p className="px-1 py-3 text-caption-1-regular text-text-tertiary">Nenhuma skill encontrada para “{query}”.</p> : null}
         </section>
       ) : null}
 
@@ -323,7 +359,7 @@ export default function SkillsPanel({ projectId }: Props) {
           </button>
           {showArchived ? archived.map((skill) => (
             <div key={skill.id} className="flex items-center gap-3 rounded-xl border border-border-button-default px-3 py-2.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background-tertiary-default text-text-tertiary"><BookOpen size={15} /></span>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background-tertiary-default text-text-tertiary">{skillIcon(skill)}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-caption-1-medium text-text-secondary">{skill.name}</span>
                 <span className="block truncate text-caption-2-regular text-text-tertiary">{skill.description}</span>
@@ -424,16 +460,16 @@ export default function SkillsPanel({ projectId }: Props) {
       </Modal>
 
       <Modal isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.name ?? "Skill"} description={selected?.description} placement="center" size="lg" bodyClassName="p-4" footer={
-        selected ? <div className="flex flex-wrap justify-end gap-2">
+        selected && !selected.builtin ? <div className="flex flex-wrap justify-end gap-2">
           <Button variant="ghost" size="small" leadingIcon={Pencil} onClick={() => edit(selected)}>Editar</Button>
           <Button variant="ghost" size="small" onClick={() => void archive(selected, true)}>Arquivar</Button>
           <Button variant="danger" size="small" leadingIcon={Trash2} onClick={() => void remove(selected)}>Apagar</Button>
-        </div> : null
+        </div> : selected?.builtin ? <p className="text-caption-2-regular text-text-tertiary">Skill integrada: sempre disponível e não editável.</p> : null
       }>
         {selected ? <div className="flex flex-col gap-4">
           <dl className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-border-button-default px-3 py-2"><dt className="text-caption-2-regular text-text-tertiary">Onde vale</dt><dd className="mt-0.5 text-caption-1-medium text-text-primary">Todos os seus repos</dd></div>
-            <div className="rounded-xl border border-border-button-default px-3 py-2"><dt className="text-caption-2-regular text-text-tertiary">Origem</dt><dd className="mt-0.5 text-caption-1-medium text-text-primary">{selected.source ? "Arquivo externo" : "Escrita aqui"}</dd></div>
+            <div className="rounded-xl border border-border-button-default px-3 py-2"><dt className="text-caption-2-regular text-text-tertiary">Origem</dt><dd className="mt-0.5 text-caption-1-medium text-text-primary">{skillOrigin(selected)}</dd></div>
           </dl>
           <section>
             <p className="mb-1.5 text-caption-1-semibold text-text-primary">Receita</p>
@@ -441,7 +477,7 @@ export default function SkillsPanel({ projectId }: Props) {
             {selected.body.length > RECOMMENDED ? <p className="mt-1 text-caption-2-regular text-status-yellow-text">Receita longa: {selected.body.length.toLocaleString("pt-BR")} caracteres. O recomendado é até {RECOMMENDED.toLocaleString("pt-BR")}.</p> : null}
           </section>
           <section>
-            <p className="mb-1.5 flex items-center gap-1.5 text-caption-1-semibold text-text-primary"><History size={13} /> Histórico</p>
+            {!selected.builtin ? <><p className="mb-1.5 flex items-center gap-1.5 text-caption-1-semibold text-text-primary"><History size={13} /> Histórico</p>
             {versionsLoading ? <p className="text-caption-2-regular text-text-tertiary">Buscando o histórico…</p> : versions.length === 0 ? <p className="text-caption-2-regular text-text-tertiary">Nenhuma mudança ainda: esta é a primeira versão.</p> : <div className="flex flex-col gap-2">
               {versions.map((version) => <div key={version.id} className="rounded-xl border border-border-button-default px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -452,6 +488,7 @@ export default function SkillsPanel({ projectId }: Props) {
                 {showingVersion === version.id ? <div className="mt-2"><Diff before={`${version.description}\n\n${version.body}`} after={`${selected.description}\n\n${selected.body}`} /></div> : null}
               </div>)}
             </div>}
+            </> : null}
           </section>
         </div> : null}
       </Modal>

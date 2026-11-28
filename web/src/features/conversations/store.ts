@@ -10,10 +10,7 @@ function currentBrandColor(color?: string): string {
   return LEGACY_BRAND_COLORS.has(value.toUpperCase()) ? DEFAULT_JEFF_COLOR : value;
 }
 
-type JeffAgentMode = "build" | "plan";
 type JeffPermissionMode = "yolo" | "ask" | "deny";
-/** The whole conversation runs in one of these modes. */
-export type JeffChatMode = "build" | "plan" | "debug";
 
 export interface ChatJeff {
   /** A Jeff belongs to the project, not to a conversation. */
@@ -28,7 +25,6 @@ export interface ChatJeff {
   /** External CLI that owns the agent loop. */
   engine: string;
   effort: string;
-  agentMode: JeffAgentMode;
   permissionMode: JeffPermissionMode;
   mcpServers: string[];
   emailAccountIds: string[];
@@ -50,8 +46,6 @@ export interface JeffChat {
   description: string;
   /** One id is an individual task; two or more make a group. */
   participantIds: string[];
-  /** Plan, build or debug; missing means the Jeff's own default. */
-  mode?: JeffChatMode;
   /** Model, effort and harness chosen in this conversation, by Jeff id. */
   jeffSettings?: Record<string, { model?: string; effort?: string; engine?: string }>;
   createdAt: number;
@@ -99,7 +93,6 @@ export interface JeffPreset {
   model?: string;
   engine?: string;
   effort?: string;
-  agentMode?: JeffAgentMode;
   permissionMode?: JeffPermissionMode;
   mcpServers?: string[];
   emailAccountIds?: string[];
@@ -163,7 +156,6 @@ function normalizeJeff(jeff: Partial<ChatJeff>): ChatJeff {
     model: jeff.model ?? "",
     engine: typeof jeff.engine === "string" && jeff.engine ? jeff.engine : "opencode",
     effort: jeff.effort ?? "",
-    agentMode: jeff.agentMode === "plan" ? "plan" : "build",
     permissionMode: jeff.permissionMode === "ask" || jeff.permissionMode === "deny" ? jeff.permissionMode : "yolo",
     mcpServers: Array.isArray(jeff.mcpServers) ? jeff.mcpServers.filter((item): item is string => typeof item === "string") : [],
     emailAccountIds: Array.isArray(jeff.emailAccountIds) ? jeff.emailAccountIds.filter((item): item is string => typeof item === "string") : [],
@@ -280,7 +272,6 @@ function sanitizeProject(input: ProjectChats | null | undefined): ProjectChats {
       subject: typeof item.subject === "string" ? item.subject.trim() : "",
       description: item.description ?? "",
       participantIds,
-      mode: item.mode === "plan" || item.mode === "debug" ? item.mode : item.mode === "build" ? "build" : undefined,
       jeffSettings: normalizeJeffSettings(settings),
       createdAt: Number.isFinite(item.createdAt) ? Number(item.createdAt) : now,
       updatedAt: Number.isFinite(item.updatedAt) ? Number(item.updatedAt) : now,
@@ -376,7 +367,7 @@ interface ChatStore {
   forget: (projectId: string) => void;
   /** Creates a task with one Jeff (individual) or several (group). */
   createConversation: (projectId: string, participantIds: string[], options?: { name?: string; description?: string }) => JeffChat | null;
-  updateChat: (projectId: string, chatId: string, patch: Partial<Pick<JeffChat, "name" | "subject" | "description" | "mode">>) => void;
+  updateChat: (projectId: string, chatId: string, patch: Partial<Pick<JeffChat, "name" | "subject" | "description">>) => void;
   /** The model/effort/harness of one Jeff in this conversation only. */
   updateChatJeff: (projectId: string, chatId: string, jeffId: string, patch: { model?: string; effort?: string; engine?: string }) => void;
   deleteConversation: (projectId: string, chatId: string) => void;
@@ -476,7 +467,6 @@ export const useChats = create<ChatStore>((set, get) => ({
                     name: patch.name === undefined ? chat.name : patch.name.trim(),
                     subject: patch.subject === undefined ? chat.subject : patch.subject.trim(),
                     description: patch.description === undefined ? chat.description : patch.description.trim(),
-                    mode: patch.mode === undefined ? chat.mode : patch.mode,
                     updatedAt: Date.now(),
                   }
                 : chat,
@@ -549,7 +539,6 @@ export const useChats = create<ChatStore>((set, get) => ({
       model: preset.model ?? "",
       engine: preset.engine ?? "opencode",
       effort: preset.effort ?? "",
-      agentMode: preset.agentMode === "plan" ? "plan" : "build",
       permissionMode: preset.permissionMode === "ask" || preset.permissionMode === "deny" ? preset.permissionMode : "yolo",
       mcpServers: [...(preset.mcpServers ?? [])],
       emailAccountIds: [...(preset.emailAccountIds ?? [])],

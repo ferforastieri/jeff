@@ -32,7 +32,6 @@ const legacyJeff = (id: string, chatId: string, name: string): ChatJeff & { chat
   model: "",
   engine: "opencode",
   effort: "",
-  agentMode: "build",
   permissionMode: "yolo",
   mcpServers: [],
   emailAccountIds: [],

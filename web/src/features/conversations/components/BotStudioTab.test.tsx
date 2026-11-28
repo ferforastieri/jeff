@@ -14,7 +14,6 @@ const native = vi.hoisted(() => ({
   usage: { inputTokens: 100, outputTokens: 20, cachedTokens: 40, calls: 1, byAgent: [] },
 }));
 vi.mock("../../agents/useAgentChat", () => ({ useAgentChat: () => native }));
-vi.mock("./AgentDebugWorkspace", () => ({ default: ({ children }: { children: unknown }) => children }));
 
 
 const project: Project = { id: "project", name: "Project", root: "/project", color: "#0063D1", createdAt: "", updatedAt: "" };
@@ -29,8 +28,8 @@ beforeEach(() => {
   localStorage.removeItem("jeff_preferred_model");
   useChats.setState({ byProject: {}, messageWrites: {} });
   useChats.getState().load(project.id);
-  firstId = useChats.getState().createJeff(project.id, { ...DEFAULT_JEFF, name: "Fernando", model: "go::deepseek", agentMode: "build" })!.id;
-  memberId = useChats.getState().createJeff(project.id, { ...DEFAULT_JEFF, name: "Beto", model: "openai::review", agentMode: "build" })!.id;
+  firstId = useChats.getState().createJeff(project.id, { ...DEFAULT_JEFF, name: "Fernando", model: "go::deepseek" })!.id;
+  memberId = useChats.getState().createJeff(project.id, { ...DEFAULT_JEFF, name: "Beto", model: "openai::review" })!.id;
   chatId = useChats.getState().createConversation(project.id, [firstId, memberId], { description: "Preservar os contratos da tarefa" })!.id;
   useAI.setState({ config: null, error: "", models: [{ id: "go::deepseek", label: "DeepSeek", provider: "custom" }, { id: "openai::gpt", label: "GPT", provider: "openai" }, { id: "openai::review", label: "Review", provider: "openai" }] });
   useJeffDrafts.setState({ drafts: {} });
@@ -56,38 +55,26 @@ describe("Jeff chat controls", () => {
     expect(screen.getByRole("button", { name: "Modelo e consumo" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Esforço" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Modo do agente" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Navegador" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Terminal" })).toBeVisible();
     expect(screen.queryByText("Harness Jeff · execução no servidor")).not.toBeInTheDocument();
     expect(screen.queryByText(/Sua mensagem entra na fila/)).not.toBeInTheDocument();
   });
 
   it("sends each Jeff's own settings", async () => {
     const start = vi.spyOn(agentApi, "start").mockResolvedValue({ id: "run", sessionId: "session", agentId: firstId, chatId, state: "queued", error: "", createdAt: 1 });
-    useChats.getState().updateJeff(project.id, firstId, { agentMode: "plan" });
     useChats.getState().updateChatJeff(project.id, chatId, firstId, { model: "openai::gpt", effort: "high" });
     render(<BotStudioTab project={project} conversationId={chatId} />);
     const members = useChats.getState().byProject[project.id].jeffs;
-    expect(members.find((a) => a.id === firstId)?.agentMode).toBe("plan");
-    expect(members.find((a) => a.id === memberId)).toMatchObject({ model: "openai::review", agentMode: "build" });
+    expect(members.find((a) => a.id === memberId)).toMatchObject({ model: "openai::review" });
     fireEvent.change(screen.getByRole("textbox", { name: "Mensagem para o agente" }), { target: { value: "Revise o projeto" } });
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
     await waitFor(() => expect(start).toHaveBeenCalledOnce());
     const input = start.mock.calls[0][1];
     expect(input.agentId).toBe("router");
     expect(input.chatDescription).toBeUndefined();
-    expect(input.agents.find((a) => a.id === firstId)).toMatchObject({ agentMode: "plan", model: "openai::gpt", effort: "high" });
-    expect(input.agents.find((a) => a.id === memberId)).toMatchObject({ agentMode: "build", model: "openai::review" });
-  });
-
-  it("sends debug mode to the agent", async () => {
-    const start = vi.spyOn(agentApi, "start").mockResolvedValue({ id: "run", sessionId: "session", agentId: firstId, chatId, state: "queued", error: "", createdAt: 1 });
-    useChats.getState().updateChat(project.id, chatId, { mode: "debug" });
-    render(<BotStudioTab project={project} conversationId={chatId} />);
-    fireEvent.change(await screen.findByRole("textbox", { name: "Mensagem para o agente" }), { target: { value: "O login quebra no Safari" } });
-    fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
-    await waitFor(() => expect(start).toHaveBeenCalledOnce());
-    const input = start.mock.calls[0][1];
-    expect(input.mode).toBe("debug");
-    expect(input.agents.every((agent) => agent.agentMode === "build")).toBe(true);
+    expect(input.agents.find((a) => a.id === firstId)).toMatchObject({ model: "openai::gpt", effort: "high" });
+    expect(input.agents.find((a) => a.id === memberId)).toMatchObject({ model: "openai::review" });
   });
 
   it("queues a follow-up while a run is active and sends it after the run", async () => {

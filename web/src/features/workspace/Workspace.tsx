@@ -2261,15 +2261,7 @@ export default function Workspace({ status }: Props) {
                 <div className="ws-group-head">
                   <span className="ws-group-label">Equipe</span>
                   <span className="ws-group-count">{teamMembers.length}</span>
-                  <button
-                    type="button"
-                    className="ws-team-collapse"
-                    aria-label="Recolher equipe"
-                    title="Recolher equipe"
-                    onClick={() => setRightOpen(false)}
-                  >
-                    <Icon name="chevronRight" size={14} />
-                  </button>
+                  <span className="ws-group-spacer" aria-hidden="true" />
                   {status.isAdmin ? (
                     <Menu
                       align="end"

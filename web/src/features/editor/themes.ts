@@ -12,7 +12,7 @@ const lightTheme: editor.IStandaloneThemeData = {
   base: "vs",
   inherit: true,
   rules: [
-    { token: "comment", foreground: "7A8177", fontStyle: "italic" },
+    { token: "comment", foreground: "5C5C58", fontStyle: "italic" },
     { token: "keyword", foreground: "9A5B12" },
     { token: "string", foreground: "3E7A45" },
     { token: "number", foreground: "A05A18" },
@@ -23,10 +23,10 @@ const lightTheme: editor.IStandaloneThemeData = {
   colors: {
     "editor.background": "#F7F8F5",
     "editor.foreground": "#22251F",
-    "editorLineNumber.foreground": "#A2A79D",
+    "editorLineNumber.foreground": "#6F6F6A",
     "editorLineNumber.activeForeground": "#555C52",
     "editorCursor.foreground": "#9D3BB5",
-    "editorGhostText.foreground": "#9D3BB5CC",
+    "editorGhostText.foreground": "#7A3B8FDD",
     "editorGhostText.background": "#00000000",
     "editor.selectionBackground": "#EBD4F2",
     "editor.inactiveSelectionBackground": "#F3E4F7",
