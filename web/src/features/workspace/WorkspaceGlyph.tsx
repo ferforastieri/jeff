@@ -2,7 +2,7 @@ import { Icon } from "faang-ui";
 import type { ChannelCategory } from "../rooms/api";
 
 interface GlyphProps {
-  size?: 14 | 16 | 18 | 20;
+  size?: 14 | 16 | 18 | 20 | 22;
   className?: string;
 }
 
@@ -19,5 +19,9 @@ export function CategoryGlyph({ category, size = 16, className }: GlyphProps & {
       />
     );
   }
-  return <Icon name="layers" size={size} className={className} />;
+  return (
+    <span className={`ws-glyph-fallback${className ? ` ${className}` : ""}`} style={{ width: size, height: size }}>
+      <Icon name="layers" size={20} />
+    </span>
+  );
 }

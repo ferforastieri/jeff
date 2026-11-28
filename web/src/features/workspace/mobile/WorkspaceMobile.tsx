@@ -84,8 +84,8 @@ interface Props {
   onEditAgent: (agent: Principal) => void;
   onCreateChannel: (categoryId?: string | null) => void;
   onCreateCategory: () => void;
-  onChannelOptions: (room: Room) => void;
-  onCategoryOptions: (category: ChannelCategory) => void;
+  onEditChannel: (room: Room) => void;
+  onRenameCategory: (category: ChannelCategory) => void;
   onOpenChannelAgents: () => void;
   onOpenChannelRepos: () => void;
   onDraft: (value: string) => void;
@@ -152,8 +152,8 @@ export default function WorkspaceMobile(props: Props) {
     onEditAgent,
     onCreateChannel,
     onCreateCategory,
-    onChannelOptions,
-    onCategoryOptions,
+    onEditChannel,
+    onRenameCategory,
     onOpenChannelAgents,
     onOpenChannelRepos,
     onDraft,
@@ -587,8 +587,8 @@ export default function WorkspaceMobile(props: Props) {
         onEditAgent={onEditAgent}
         onCreateChannel={onCreateChannel}
         onCreateCategory={onCreateCategory}
-        onChannelOptions={onChannelOptions}
-        onCategoryOptions={onCategoryOptions}
+        onEditChannel={onEditChannel}
+        onRenameCategory={onRenameCategory}
         onOpenSearch={() => setPane("search")}
         onOpenNotifications={() => setTab("alertas")}
         onOpenSettings={() => openSettings("general")}
@@ -938,6 +938,12 @@ export default function WorkspaceMobile(props: Props) {
                 }))}
               />
             </Menu>
+            <MobileIconButton
+              icon={Settings2}
+              label="Configurações"
+              className="m-profilebar__gear"
+              onClick={() => openSettings("general")}
+            />
           </div>
         }
       />

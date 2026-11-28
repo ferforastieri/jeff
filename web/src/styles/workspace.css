@@ -591,7 +591,7 @@ html[data-menu-overlay] .jeff-workspace-home {
   min-width: 0;
   flex: 1 1 auto;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
 }
 
 .ws-main-face {
@@ -621,7 +621,7 @@ html[data-menu-overlay] .jeff-workspace-home {
   overflow: hidden;
   flex: none;
   max-width: 46%;
-  font-size: 18px;
+  font-size: 19.5px;
   font-weight: 650;
   letter-spacing: -0.01em;
   line-height: 1.15;
@@ -634,7 +634,7 @@ html[data-menu-overlay] .jeff-workspace-home {
   overflow: hidden;
   min-width: 0;
   color: var(--faint, #8f8f8f);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -644,6 +644,7 @@ html[data-menu-overlay] .jeff-workspace-home {
   width: 3px;
   height: 3px;
   flex: none;
+  align-self: center;
   border-radius: 50%;
   background: var(--faint, #8f8f8f);
 }
@@ -746,6 +747,18 @@ html[data-menu-overlay] .jeff-workspace-home {
   flex: none;
   color: var(--faint, #8f8f8f);
 }
+
+.ws-glyph-fallback {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+}
+
+.ws-glyph-fallback > svg {
+  width: 100%;
+  height: 100%;
+}
+
 
 .ws-action-button {
   width: 100%;
@@ -1502,7 +1515,7 @@ html[data-menu-overlay] .jeff-workspace-home {
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 2px;
+  gap: 9px;
   border: 0;
   border-radius: 10px;
   background: transparent;
@@ -1519,7 +1532,7 @@ html[data-menu-overlay] .jeff-workspace-home {
 
 .ws-category-label {
   overflow: hidden;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 20px;
   text-overflow: ellipsis;
@@ -1918,7 +1931,8 @@ html:not([data-pointer]) .setup-row__link:focus-visible {
 
 /* The Slack sidebar is dense: the same Jeffs become a watermark. */
 .ws-sidebar-sky.is-subtle {
-  opacity: 0.38;
+  opacity: 0.52;
+  filter: brightness(1.18) saturate(1.05);
 }
 
 @keyframes ws-ambient-drift {

@@ -146,8 +146,6 @@ export default function Workspace({ status }: Props) {
   const workspaceMenuTrigger = useRef<HTMLButtonElement>(null);
   const [channelOpen, setChannelOpen] = useState(false);
   const [channelEdit, setChannelEdit] = useState<Room | null>(null);
-  const [channelAction, setChannelAction] = useState<Room | null>(null);
-  const [categoryAction, setCategoryAction] = useState<ChannelCategory | null>(null);
   const [agentOpen, setAgentOpen] = useState(false);
   const [reposOpen, setReposOpen] = useState(false);
   const [repoQuery, setRepoQuery] = useState("");
@@ -927,8 +925,8 @@ export default function Workspace({ status }: Props) {
     }
   }
 
-  async function removeCategory(category: ChannelCategory) {
-    if (!window.confirm(`Excluir a categoria “${category.name}”? Os canais continuam.`)) return;
+  async function removeCategory(category: ChannelCategory, skipConfirm = false): Promise<boolean> {
+    if (!skipConfirm && !window.confirm(`Excluir a categoria “${category.name}”? Os canais continuam.`)) return false;
     setBusy(true);
     setError("");
     try {
@@ -939,15 +937,17 @@ export default function Workspace({ status }: Props) {
           room.categoryId === category.id ? { ...room, categoryId: null } : room,
         ),
       );
+      return true;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível excluir a categoria.");
+      return false;
     } finally {
       setBusy(false);
     }
   }
 
-  async function deleteChannel(room: Room) {
-    if (!window.confirm(`Excluir o canal “${room.name}”? As mensagens saem do workspace.`)) return;
+  async function deleteChannel(room: Room, skipConfirm = false) {
+    if (!skipConfirm && !window.confirm(`Excluir o canal “${room.name}”? As mensagens saem do workspace.`)) return;
     try {
       await channelsApi.remove(room.id);
       setRooms((current) => current.filter((item) => item.id !== room.id));
@@ -1505,8 +1505,8 @@ export default function Workspace({ status }: Props) {
           onEditAgent={setAgentEdit}
           onCreateChannel={openChannel}
           onCreateCategory={openNewCategory}
-          onChannelOptions={setChannelAction}
-          onCategoryOptions={setCategoryAction}
+          onEditChannel={openChannelEdit}
+          onRenameCategory={openEditCategory}
           onOpenChannelAgents={openChannelAgents}
           onOpenChannelRepos={() => void openRepos()}
           onDraft={(value) => setDraft(draftKey, value)}
@@ -1743,7 +1743,7 @@ export default function Workspace({ status }: Props) {
                         className="ws-row-action"
                         aria-label={`Opções de ${room.name}`}
                         title={`Opções de ${room.name}`}
-                        onClick={() => setChannelAction(room)}
+                        onClick={() => openChannelEdit(room)}
                       />
                     ) : null}
                   </div>
@@ -1762,7 +1762,7 @@ export default function Workspace({ status }: Props) {
                           aria-expanded={open}
                           onClick={() => toggleCategory(category.id)}
                         >
-                          <CategoryGlyph category={category} size={18} className="ws-category-glyph" />
+                          <CategoryGlyph category={category} size={22} className="ws-category-glyph" />
                           <span className="ws-category-label">{category.name}</span>
                           <Icon name="chevronDown" size={14} className="ws-category-chevron" />
                         </button>
@@ -1785,7 +1785,7 @@ export default function Workspace({ status }: Props) {
                               className="ws-group-add ws-category-gear"
                               aria-label={`Opções de ${category.name}`}
                               title={`Opções de ${category.name}`}
-                              onClick={() => setCategoryAction(category)}
+                              onClick={() => openEditCategory(category)}
                             />
                           </>
                         ) : null}
@@ -1809,7 +1809,7 @@ export default function Workspace({ status }: Props) {
                                   className="ws-row-action"
                                   aria-label={`Opções de ${room.name}`}
                                   title={`Opções de ${room.name}`}
-                                  onClick={() => setChannelAction(room)}
+                                  onClick={() => openChannelEdit(room)}
                                 />
                               ) : null}
                             </div>
@@ -2622,7 +2622,20 @@ export default function Workspace({ status }: Props) {
           </Field>
           {error ? <p className="ws-error">{error}</p> : null}
         </DialogBody>
-        <DialogFooter>
+        <DialogFooter
+          note={renamingCategory ? (
+            <Button
+              variant="danger"
+              icon="trash"
+              onClick={() => {
+                const category = renamingCategory;
+                if (category) void removeCategory(category).then((removed) => { if (removed) setRenamingCategory(null); });
+              }}
+            >
+              Excluir categoria
+            </Button>
+          ) : undefined}
+        >
           <Button variant="default" onClick={() => setRenamingCategory(null)}>
             Cancelar
           </Button>
@@ -2964,78 +2977,6 @@ export default function Workspace({ status }: Props) {
         </DialogFooter>
       </Dialog>
 
-      <Dialog
-        open={channelAction !== null}
-        onOpenChange={(open) => { if (!open) setChannelAction(null); }}
-        title={channelAction?.name ?? "Canal"}
-        description="O que você quer fazer com este canal?"
-        closeLabel="Fechar"
-        width={420}
-      >
-        <DialogBody className="ws-form">
-          <Button
-            variant="default"
-            icon="edit"
-            className="ws-action-button"
-            onClick={() => {
-              const room = channelAction;
-              setChannelAction(null);
-              if (room) openChannelEdit(room);
-            }}
-          >
-            Editar canal
-          </Button>
-          <Button
-            variant="danger"
-            icon="trash"
-            className="ws-action-button"
-            onClick={() => {
-              const room = channelAction;
-              setChannelAction(null);
-              if (room) void deleteChannel(room);
-            }}
-          >
-            Excluir canal
-          </Button>
-        </DialogBody>
-      </Dialog>
-
-      <Dialog
-        open={categoryAction !== null}
-        onOpenChange={(open) => { if (!open) setCategoryAction(null); }}
-        title={categoryAction?.name ?? "Categoria"}
-        description="O que você quer fazer com esta categoria?"
-        closeLabel="Fechar"
-        width={420}
-      >
-        <DialogBody className="ws-form">
-          <Button
-            variant="default"
-            icon="edit"
-            className="ws-action-button"
-            onClick={() => {
-              const category = categoryAction;
-              setCategoryAction(null);
-              if (category) openEditCategory(category);
-            }}
-          >
-            Editar categoria
-          </Button>
-          <Button
-            variant="danger"
-            icon="trash"
-            className="ws-action-button"
-            onClick={() => {
-              const category = categoryAction;
-              setCategoryAction(null);
-              if (category) void removeCategory(category);
-            }}
-          >
-            Excluir categoria
-          </Button>
-        </DialogBody>
-      </Dialog>
-
       <ChannelEditDialog
         room={channelEdit}
         categories={categories}
@@ -3044,6 +2985,10 @@ export default function Workspace({ status }: Props) {
         repos={availableRepos}
         reposLoading={repoLoading}
         onClose={() => setChannelEdit(null)}
+        onDelete={(room) => {
+          if (!window.confirm(`Excluir o canal “${room.name}”? As mensagens saem do workspace.`)) return;
+          void deleteChannel(room, true).then(() => setChannelEdit(null));
+        }}
         onSaved={(updated) => {
           setRooms((current) => current.map((room) => (room.id === updated.id ? updated : room)));
           if (updated.id !== selectedRoomId) return;

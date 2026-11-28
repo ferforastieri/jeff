@@ -49,8 +49,8 @@ interface Props {
   onEditAgent: (agent: Principal) => void;
   onCreateChannel: (categoryId?: string | null) => void;
   onCreateCategory: () => void;
-  onChannelOptions: (room: Room) => void;
-  onCategoryOptions: (category: ChannelCategory) => void;
+  onEditChannel: (room: Room) => void;
+  onRenameCategory: (category: ChannelCategory) => void;
   onOpenSearch: () => void;
   onOpenNotifications: () => void;
   onOpenSettings: () => void;
@@ -87,8 +87,8 @@ export default function ConversasScreen({
   onEditAgent,
   onCreateChannel,
   onCreateCategory,
-  onChannelOptions,
-  onCategoryOptions,
+  onEditChannel,
+  onRenameCategory,
   onOpenSearch,
   onOpenNotifications,
   onOpenSettings,
@@ -144,7 +144,7 @@ export default function ConversasScreen({
             icon={Settings2}
             label={`Opções de ${room.name}`}
             className="m-row__action"
-            onClick={() => onChannelOptions(room)}
+            onClick={() => onEditChannel(room)}
           />
         ) : null}
       </div>
@@ -217,7 +217,7 @@ export default function ConversasScreen({
                 <div className="m-category" key={category.id}>
                   <MobileSectionTitle
                     title={category.name}
-                    icon={<CategoryGlyph category={category} size={18} />}
+                    icon={<CategoryGlyph category={category} size={22} />}
                     open={open}
                     onToggle={() => toggleCategory(category.id)}
                     actions={
@@ -230,7 +230,7 @@ export default function ConversasScreen({
                             icon={Settings2}
                             label={`Opções de ${category.name}`}
                             className="m-row__action"
-                            onClick={() => onCategoryOptions(category)}
+                            onClick={() => onRenameCategory(category)}
                           />
                         </>
                       ) : null
@@ -359,6 +359,12 @@ export default function ConversasScreen({
             }))}
           />
         </Menu>
+        <MobileIconButton
+          icon={Settings2}
+          label="Configurações"
+          className="m-profilebar__gear"
+          onClick={onOpenSettings}
+        />
       </div>
     </div>
   );

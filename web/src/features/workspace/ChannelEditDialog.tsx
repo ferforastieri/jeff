@@ -24,6 +24,7 @@ interface Props {
   reposLoading?: boolean;
   onClose: () => void;
   onSaved: (room: Room) => void;
+  onDelete?: (room: Room) => void;
 }
 
 /**
@@ -40,6 +41,7 @@ export default function ChannelEditDialog({
   reposLoading = false,
   onClose,
   onSaved,
+  onDelete,
 }: Props) {
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
@@ -210,7 +212,13 @@ export default function ChannelEditDialog({
         </Field>
         {error ? <p className="ws-error">{error}</p> : null}
       </DialogBody>
-      <DialogFooter>
+      <DialogFooter
+        note={onDelete ? (
+          <Button variant="danger" icon="trash" onClick={() => onDelete(room)}>
+            Excluir canal
+          </Button>
+        ) : undefined}
+      >
         <Button variant="default" onClick={onClose}>Cancelar</Button>
         <Button variant="primary" loading={busy} onClick={() => void save()}>Salvar canal</Button>
       </DialogFooter>
